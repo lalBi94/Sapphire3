@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
-import { ChevronDown, Download, Upload, X } from 'lucide-react'
+import { Check, ChevronDown, Download, Palette, Upload, X } from 'lucide-react'
 import { useTranslation } from '../../i18n.jsx'
+import { useTheme } from '../../theme.jsx'
 import './ProjectNavigation.css'
 
 // Bloque le remplacement du document tant qu'il n'a pas été confirmé explicitement.
@@ -24,6 +25,7 @@ function ImportConfirmation({ path, onConfirm, onCancel }) {
 export default function ProjectNavigation({ busy, message, error, pendingImport, onExport, onImport, onConfirmImport, onCancelImport, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hasSelection, onOpenSelectionMenu }) {
   const navigationRef = useRef(null)
   const { language, setLanguage, t } = useTranslation()
+  const { theme, themes, setTheme } = useTheme()
 
   useEffect(() => {
     // Ferme les volets lorsque l'utilisateur interagit ailleurs dans l'application.
@@ -94,6 +96,21 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
           <button type="button" onClick={onZoom100}>{t('nav.zoom100')}</button>
           <button type="button" onClick={onCenter}>{t('nav.center')}</button>
           <label className="project-navigation__check"><input type="checkbox" checked={distorted} onChange={onToggleDistortion} />{t('nav.distortion')}</label>
+        </div>
+      </details>
+      <details name="workspace-menu" onToggle={handleToggle}>
+        <summary><Palette size={13} aria-hidden="true" />{t('nav.theme')}<ChevronDown size={12} aria-hidden="true" /></summary>
+        <div className="project-navigation__menu project-navigation__theme-menu">
+          <p>{t('theme.choose')}</p>
+          {themes.map((option) => (
+            <button type="button" className={`project-navigation__theme-option${option.id === theme.id ? ' project-navigation__theme-option--selected' : ''}`} aria-pressed={option.id === theme.id} key={option.id} onClick={() => setTheme(option.id)}>
+              <span className="project-navigation__theme-colors" aria-hidden="true">
+                {Object.values(option.colors).slice(0, 5).map((color, index) => <span key={`${option.id}:${index}`} style={{ backgroundColor: color }} />)}
+              </span>
+              <span className="project-navigation__theme-label">{t(option.labelKey)}</span>
+              {option.id === theme.id && <Check size={14} aria-hidden="true" />}
+            </button>
+          ))}
         </div>
       </details>
       <span className="project-navigation__status" role="status">{busy ? t('nav.working') : message}</span>
