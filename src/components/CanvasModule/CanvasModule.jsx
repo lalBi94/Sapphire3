@@ -1,16 +1,105 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { minimumModuleSize, moduleTypes } from '../../utils/moduleTypes.js'
 import './CanvasModule.css'
 
-// Affiche un conteneur vide ancré dans le monde et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize }) {
+// Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onRename, onTextChange, children, selected = false, onSelect }) {
+  const [isMoving, setIsMoving] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [draftName, setDraftName] = useState('')
   const resizeRef = useRef(null)
+  const moveRef = useRef(null)
+  const titleRef = useRef(null)
+  const nameInputRef = useRef(null)
+  const restoreNameFocusRef = useRef(false)
+
+  useEffect(() => {
+    if (editingName) {
+      nameInputRef.current.focus()
+      nameInputRef.current.select()
+    } else if (restoreNameFocusRef.current) {
+      titleRef.current.focus({ preventScroll: true })
+      restoreNameFocusRef.current = false
+    }
+  }, [editingName])
 
   const definition = moduleTypes[module.type]
+  const name = module.name || definition.label
+
+  // Ouvre un brouillon de titre sans modifier le nom tant qu'il n'est pas validé.
+  function handleRenameStart() {
+    if (!definition.renamable || moveRef.current || resizeRef.current) return
+    setDraftName(name)
+    restoreNameFocusRef.current = true
+    setEditingName(true)
+  }
+
+  // Valide un titre non vide ; un brouillon vide conserve le titre précédent.
+  function handleRenameCommit(event) {
+    if (event?.type === 'blur') restoreNameFocusRef.current = false
+    const nextName = draftName.trim()
+    if (nextName) onRename(module.id, nextName)
+    setEditingName(false)
+  }
+
+  // Valide avec Entrée et annule sans mutation avec Échap.
+  function handleNameKeyDown(event) {
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      handleRenameCommit()
+    } else if (event.key === 'Escape') {
+      event.preventDefault()
+      setEditingName(false)
+    }
+  }
+
+  // Capture l'en-tête et mémorise la position ainsi que le zoom au début du geste.
+  function handleMoveStart(event) {
+    if (event.button !== 0 || moveRef.current || resizeRef.current) return
+    event.preventDefault()
+    event.currentTarget.focus({ preventScroll: true })
+    event.currentTarget.setPointerCapture(event.pointerId)
+    moveRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, originX: module.x, originY: module.y, zoom }
+    setIsMoving(true)
+  }
+
+  // Convertit le glisser en unités monde sans déplacer le canvas ni changer les dimensions.
+  function handleMove(event) {
+    const move = moveRef.current
+    if (!move || move.pointerId !== event.pointerId) return
+    const x = move.originX + (event.clientX - move.x) / move.zoom
+    const y = move.originY + (event.clientY - move.y) / move.zoom
+    if (Number.isFinite(x) && Number.isFinite(y)) onMove(module.id, x, y)
+  }
+
+  // Libère le geste aussi en cas d'annulation ou de perte de capture.
+  function handleMoveEnd(event) {
+    if (moveRef.current?.pointerId !== event.pointerId) return
+    moveRef.current = null
+    setIsMoving(false)
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+  }
+
+  // Propose le déplacement au clavier lorsque l'en-tête possède le focus.
+  function handleMoveKeyDown(event) {
+    if (moveRef.current || resizeRef.current) return
+    if (definition.renamable && ['Enter', 'F2'].includes(event.key)) {
+      event.preventDefault()
+      handleRenameStart()
+      return
+    }
+    const directions = { ArrowLeft: [-10, 0], ArrowRight: [10, 0], ArrowUp: [0, -10], ArrowDown: [0, 10] }
+    const direction = directions[event.key]
+    if (!direction) return
+    event.preventDefault()
+    const x = module.x + direction[0]
+    const y = module.y + direction[1]
+    if (Number.isFinite(x) && Number.isFinite(y)) onMove(module.id, x, y)
+  }
 
   // Mémorise les dimensions initiales et capture le geste sur la poignée.
   function handleResizeStart(event) {
-    if (event.button !== 0 || resizeRef.current) return
+    if (event.button !== 0 || resizeRef.current || moveRef.current) return
     event.preventDefault()
     event.currentTarget.focus({ preventScroll: true })
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -63,8 +152,9 @@ export default function CanvasModule({ module, camera, zoom, onResize }) {
 
   return (
     <section
-      className={`canvas-module canvas-module--${module.type}`}
-      aria-label={definition.label}
+      className={`canvas-module canvas-module--${module.type}${isMoving ? ' canvas-module--moving' : ''}${selected ? ' canvas-module--selected' : ''}`}
+      aria-label={name}
+      data-source-module={definition.hasText ? undefined : module.id}
       style={{
         left: `calc(50% + ${(module.x - camera.x) * zoom}px)`,
         top: `calc(50% + ${(module.y - camera.y) * zoom}px)`,
@@ -74,15 +164,55 @@ export default function CanvasModule({ module, camera, zoom, onResize }) {
       }}
       onPointerDown={(event) => event.stopPropagation()}
       onKeyDown={(event) => event.stopPropagation()}
+      onClick={onSelect}
     >
       <header className="canvas-module__header">
-        <span className="canvas-module__marker" aria-hidden="true" />
-        <h2>{definition.label}</h2>
+        <h2>
+          {editingName ? (
+            <input
+              ref={nameInputRef}
+              className="canvas-module__name-input"
+              aria-label={`${definition.label} name`}
+              value={draftName}
+              onChange={(event) => setDraftName(event.target.value)}
+              onBlur={handleRenameCommit}
+              onKeyDown={handleNameKeyDown}
+            />
+          ) : (
+            <button
+              ref={titleRef}
+              type="button"
+              className="canvas-module__move"
+              aria-label={`Move ${name}`}
+              title={definition.renamable ? 'Drag to move. Double-click or press F2 to rename.' : 'Drag to move. Arrow keys adjust the position.'}
+              onDoubleClick={handleRenameStart}
+              onPointerDown={handleMoveStart}
+              onPointerMove={handleMove}
+              onPointerUp={handleMoveEnd}
+              onPointerCancel={handleMoveEnd}
+              onLostPointerCapture={handleMoveEnd}
+              onKeyDown={handleMoveKeyDown}
+            >
+              <span className="canvas-module__marker" aria-hidden="true" />
+              <span className="canvas-module__name">{name}</span>
+            </button>
+          )}
+        </h2>
       </header>
+      {definition.hasText ? (
+        <textarea
+          className="canvas-module__comment"
+          aria-label={`${name} text`}
+          placeholder="Write a visual note…"
+          value={module.text ?? ''}
+          onChange={(event) => onTextChange(module.id, event.target.value)}
+          spellCheck={false}
+        />
+      ) : children}
       <button
         className="canvas-module__resize"
         type="button"
-        aria-label={`Resize ${definition.label}`}
+        aria-label={`Resize ${name}`}
         title="Drag to resize. Arrow keys adjust the size."
         onPointerDown={handleResizeStart}
         onPointerMove={handleResizeMove}

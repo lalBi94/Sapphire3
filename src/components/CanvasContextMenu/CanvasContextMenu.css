@@ -25,8 +25,14 @@
   cursor: pointer;
 }
 
-.canvas-context-menu button:hover,
+.canvas-context-menu button:not(:disabled):hover,
 .canvas-context-menu button:focus-visible {
   outline: none;
   background: var(--color-hover);
+}
+
+.canvas-context-menu button:disabled {
+  color: var(--color-text-muted);
+  opacity: 0.45;
+  cursor: not-allowed;
 }

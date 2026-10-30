@@ -1,0 +1,233 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\input{glyphtounicode}
+\pdfgentounicode=1
+\setlength{\textwidth}{168mm}
+\setlength{\textheight}{245mm}
+\setlength{\oddsidemargin}{-4mm}
+\setlength{\evensidemargin}{-4mm}
+\setlength{\topmargin}{-8mm}
+\setlength{\headheight}{0mm}
+\setlength{\headsep}{0mm}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\setlength{\emergencystretch}{3em}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\chaptertitle}[2]{\noindent{\small\sffamily SAPPHIRE 3 --- FONDATIONS LOGIQUES\hfill #1/4}\par\vspace{4mm}{\LARGE\sffamily\bfseries #2}\par\vspace{3mm}}
+\begin{document}
+\chaptertitle{1}{Objectif et modèle conceptuel}
+
+\section*{1. Objectif et périmètre}
+Le moteur transforme un document source de Modules et de Nodes en un
+\textbf{AST logique indépendant des langages cibles}, puis en informations
+sémantiques et diagnostics. Il accepte les étapes intermédiaires de construction :
+une erreur ne détruit ni la source ni la possibilité d'inspecter l'arbre.
+
+Le périmètre livré couvre la construction de l'AST, les portées lexicales,
+les références locales et intermodules, un typage statique strict et la
+sérialisation JSON versionnée. Le moteur est du JavaScript pur, sans React,
+DOM, Neutralinojs ou dépendance npm. L'interface graphique existante reste
+inchangée et n'est pas encore branchée au moteur.
+
+\textbf{Exclus :} simulation, suggestions contextuelles, génération de code,
+analyse de flot avancée, modèles objets, persistance sur disque et éditeur
+spécifique à chaque construction. Le document décrit des fondations, pas
+un compilateur complet.
+
+\section*{2. Concepts et relations distinctes}
+\begin{tabular}{@{}p{29mm}p{131mm}@{}}
+\textbf{Project} & Document source portant un identifiant, une version de format,
+une liste de modules et une liste globale de nœuds.\\[3pt]
+\textbf{Module} & Unité logique avec identifiant stable, racines syntaxiques,
+imports et exports explicites. Aucun lien obligatoire avec un fichier physique.\\[3pt]
+\textbf{Node} & Enregistrement discriminé par \code{kind}, propriétaire
+\code{moduleId}, propriétés, enfants syntaxiques et références symboliques.\\[3pt]
+\textbf{AST} & Arborescence dérivée : les identifiants d'enfants sont remplacés
+par des constructions hiérarchiques. Les \code{sourceId} restent stables.\\[3pt]
+\textbf{Scope} & Portée lexicale avec parent ; elle ne correspond pas nécessairement
+au module propriétaire.\\[3pt]
+\textbf{Symbol} & Déclaration accessible depuis une portée, ou alias d'import,
+associé à son nœud et à un type statique résolu ; un échec reste diagnostiqué sans type de secours.\\
+\end{tabular}
+
+\textbf{Trois relations indépendantes :} appartenance par \code{moduleId},
+imbrication par \code{children}, référence par \code{references.target}.
+Une référence vers une déclaration ne la transforme pas en enfant de l'appelant.
+Une connexion graphique n'a donc aucun sens logique implicite.
+
+Les catégories source \code{module} et \code{main} sont reconnues ; Main ne
+déclenche aucune exécution. Un projet valide possède zéro ou un seul Main ;
+chaque Main supplémentaire est diagnostiqué sans suppression. Les sous-modules
+ne sont pas introduits à ce stade.
+
+\newpage
+\chaptertitle{2}{Architecture et invariants}
+\section*{3. Flux et responsabilités}
+\begin{center}
+\fbox{\parbox[c][12mm][c]{43mm}{\centering Source JSON v1\\Modules + Nodes}}
+$\longrightarrow$
+\fbox{\parbox[c][12mm][c]{43mm}{\centering AST logique\\arbres + fragments}}
+$\longrightarrow$
+\fbox{\parbox[c][12mm][c]{43mm}{\centering Modèle sémantique\\portées + types}}
+
+\smallskip
+\fbox{\parbox{147mm}{\centering Diagnostics structurés à chaque passe ;
+inspection toujours disponible, production de code bloquable.}}
+\end{center}
+
+\begin{tabular}{@{}p{43mm}p{117mm}@{}}
+\code{model.js},\newline\code{nodeSchema.js} & Contrats JSDoc, fabriques sans génération
+d'identifiant, catégories, slots et opérateurs centralisés.\\[3pt]
+\code{ast.js} & Indexation, reconstruction des enfants, contrôle de structure,
+cycles, parents multiples et propriétaires ; parcours et fragments détachés.\\[3pt]
+\code{semantics.js} & Collecte des portées et déclarations, contrôle des
+imports/exports et résolution des références.\\[3pt]
+\code{typeAnalysis.js} & Annotations obligatoires, signatures et expressions
+statiquement déterminées, sans conversion implicite ni type de secours.\\[3pt]
+\code{primitives.js},\newline\code{numericConstants.js} & Catalogue de dix primitifs,
+bornes, arrondis et contrôles des expressions constantes.\\[3pt]
+\code{diagnostics.js} & Codes stables, gravité, message et localisation.\\[3pt]
+\code{serialization.js} & Lecture/écriture JSON sans migration implicite.\\
+\end{tabular}
+
+Tous ces fichiers sont dans \code{src/utils/logic/} ; l'API publique est
+\code{index.js}. La fonction \code{analyzeProgram(source)} renvoie
+\code{source}, \code{ast}, \code{semantic}, \code{diagnostics} et
+\code{canGenerate}. Les fonctions ne modifient pas la source.
+
+\section*{4. Structures et invariants}
+\begin{itemize}
+\setlength{\itemsep}{1pt}
+\item Identifiants de nœuds uniques dans le projet ; identifiants d'import
+uniques dans leur module. Aucun identifiant n'est recréé pendant les passes.
+\item Un enfant syntaxique a au plus un parent et appartient au même module.
+L'ordre des listes de slots est significatif, pas celui du tableau \code{nodes}.
+\item Déclarations : variables, constantes, fonctions, paramètres et alias de
+types. Instructions : blocs, retours, affectations, conditions et boucles.
+Expressions : littéraux, références, appels et opérations unaires/binaires.
+\item Un slot requis absent produit \code{Hole}. Un lien impossible produit
+\code{Invalid}. Les fragments détachés restent visibles ; la source conserve
+également les enregistrements malformés ou dupliqués.
+\item Annotations obligatoires des déclarations et littéraux : \code{primitive}
+ou alias transparent \code{named}. Signature \code{function} dérivée pour les
+fonctions. Dix primitifs : \code{short int}, \code{short uint}, \code{int},
+\code{uint}, \code{float}, \code{double}, \code{string}, \code{char},
+\code{boolean}, \code{void} (retour uniquement). Aucune promotion implicite.
+\end{itemize}
+
+\newpage
+\chaptertitle{3}{Exemple et résolution des références}
+\section*{5. Deux modules, une référence intermodule}
+Le scénario exécutable \code{twoModules()} dans
+\code{tests/logic/fixtures.js} crée la constante publique \code{answer = 42}
+dans \code{math}, puis la variable \code{result} dans \code{app}.
+
+{\small
+\begin{verbatim}
+Project { formatVersion: 1, id: "project" }
+  Module "math"
+    rootNodeIds: ["answer"]
+    exports: [{ nodeId: "answer", name: "answer" }]
+  Module "app"
+    rootNodeIds: ["result"]
+    imports: [{ id: "answerImport", moduleId: "math",
+                nodeId: "answer", localName: "answer" }]
+
+Node "answer" : ConstantDeclaration, moduleId = "math"
+  properties: { name: "answer", type: primitive("int") }
+  children.initializer: "fortyTwo"
+Node "fortyTwo" : Literal, value = 42, type = primitive("int")
+
+Node "result" : VariableDeclaration, moduleId = "app"
+  properties: { name: "result", type: primitive("int") }
+  children.initializer: "answerReference"
+Node "answerReference" : Reference, moduleId = "app"
+  references.target: { kind: "import", importId: "answerImport" }
+\end{verbatim}}
+\code{primitive("int")} est ici une notation abrégée pour
+\code{\{kind:"primitive", name:"int"\}}.
+
+L'AST simplifié est le suivant ; chaque construction conserve son
+identifiant source :
+{\small
+\begin{verbatim}
+Project
+  Module math
+    ConstantDeclaration [answer]
+      initializer -> Literal [fortyTwo] : int
+  Module app
+    VariableDeclaration [result]
+      initializer -> Reference [answerReference] : int
+\end{verbatim}}
+La déclaration \code{answer} n'est pas recopiée sous \code{result}.
+Le modèle sémantique associe la référence au symbole importé et au nœud
+cible \code{answer}. Sans export ou import explicite, la référence est rejetée.
+
+\textbf{Règles de portée :} une portée par module, fonction, bloc imbriqué et
+\code{for}. Paramètres et bloc principal d'une fonction partagent une portée.
+Les noms sont collectés avant résolution ; un doublon local est une erreur,
+un masquage dans une portée interne est autorisé. Une référence directe par
+identifiant ne contourne pas les frontières lexicales ou les imports.
+
+\newpage
+\chaptertitle{4}{Vérification et évolutivité}
+\section*{6. Validation et résultats constatés}
+Un diagnostic contient \code{code}, \code{severity}, \code{message} et
+\code{location = \{projectId, moduleId, nodeId, field\}}. La localisation
+désigne le nœud fautif ou le propriétaire d'un slot manquant. Les éléments
+inapplicables sont nuls. Les codes ne dépendent pas de la langue du message.
+
+Contrôles structurels : identifiants invalides/dupliqués, enfant absent,
+mauvais propriétaire, catégories illégales, cycles, parents multiples,
+fragments détachés et slots incomplets. Contrôles sémantiques : référence
+inaccessible, import/export invalide, conflit de déclaration, retour hors
+fonction, contrôle de boucle hors boucle, affectation d'une constante.
+
+Typage strict : annotations, initialisation, opérateurs, conditions booléennes,
+signatures/appels, affectations et retours. Les expressions non typables
+restent inspectables sans type publié. Le contrôle de retour accepte les blocs
+et les deux branches d'un \code{if}, mais ne prouve pas les retours via les boucles.
+Entiers signés/non signés de 16/32 bits, flottants IEEE 754 de 32/64 bits ;
+\code{char} est un scalaire Unicode. Les conversions \code{CastExpression}
+sont numériques explicites, avec troncature ou arrondi et contrôle des bornes.
+
+\textbf{Vérifications exécutées :} \code{pnpm test}, runner natif Node :
+\textbf{60 tests réussis, 0 échec}. Couverture de l'unicité de Main, des modules vides,
+déclarations multiples, fonctions/paramètres/retours, conditions et boucles
+imbriquées, références locales, import intermodule, références absentes,
+conflits, programmes incomplets, erreurs de type et reconstruction JSON.
+Des tests supplémentaires contrôlent les identifiants, localisations,
+sources gelées, fragments détachés, champs malformés, profondeurs,
+bornes numériques, sous-flux, arrondis difficiles et conversions interdites.
+
+\code{pnpm build} : frontend compilé avec succès. Ce contrôle protège le
+frontend existant ; le moteur séparé est vérifié par les tests Node, pas par
+la compilation du bundle. Seules les catégories Module/Main sont partagées
+avec l'UI. Aucune nouvelle fonction
+native n'a été ajoutée ; pas de nouvelle vérification Neutralinojs.
+
+\section*{7. Évolution sans couplage prématuré}
+La simulation pourra consommer l'AST et les symboles résolus, puis publier
+des événements indexés par \code{sourceId}. Les suggestions exploiteront
+les portées et les types au point d'édition. Chaque générateur abaissera
+ensuite les mêmes constructions vers sa cible ; aucun AST Babel n'est utilisé.
+
+Un futur générateur devra refuser les diagnostics bloquants.
+\code{canGenerate} signifie seulement « aucune erreur détectée par les passes
+actuelles », et non une garantie d'exécutabilité. Aucun de ces trois moteurs
+n'est implémenté et aucun système de plugins n'a été inventé.
+
+Le format v1 préserve les champs supplémentaires. Une version inconnue est
+conservée et signalée, sans migration. La sérialisation refuse les données
+non JSON au lieu de les supprimer silencieusement. Les profondeurs d'analyse
+et de sérialisation sont bornées pour éviter les dépassements de pile.
+
+\textbf{Limites assumées :} pas de sous-modules, objets, génériques, réexports ou
+résolution de fichiers. Les dépassements constants sont diagnostiqués ; les
+valeurs reçues à l'exécution ne sont pas bornées globalement par cette analyse.
+Les futurs backends devront appliquer les mêmes opérations contrôlées, sans
+rebouclage. L'API complète
+et les conventions de slots sont décrites dans \code{docs/LOGIC\_API.md}.
+\end{document}

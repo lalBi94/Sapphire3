@@ -1,0 +1,10 @@
+.logic-context-menu { position: absolute; z-index: 5; display: flex; align-items: flex-start; gap: 8px; max-width: calc(100% - 16px); max-height: calc(100dvh - 16px); border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface-raised); box-shadow: 0 8px 24px #00000033; padding: 6px; cursor: default; }
+.logic-context-menu__actions { width: 206px; max-height: min(400px, calc(100dvh - 36px)); overflow-y: auto; flex-shrink: 0; }
+.logic-context-menu__title { color: var(--color-text-muted); padding: 9px; font-size: 11px; }
+.logic-context-menu__actions button { display: block; width: 100%; min-height: 32px; padding: 7px 9px; border: 0; border-radius: 4px; text-align: left; color: var(--color-text); background: transparent; font: inherit; font-size: 12px; cursor: pointer; }
+.logic-context-menu__actions button:hover:not(:disabled), .logic-context-menu__actions button:focus-visible, .logic-context-menu__actions button[aria-pressed='true'] { outline: none; background: var(--color-hover); }
+.logic-context-menu__actions button:disabled { color: var(--color-text-muted); opacity: 0.45; cursor: not-allowed; }
+.logic-context-menu p { margin: 8px; font-size: 11px; color: var(--color-text-muted); line-height: 1.5; }
+.logic-context-menu__form { width: 300px; max-height: min(600px, calc(100dvh - 36px)); overflow-y: auto; padding: 8px; border-left: 1px solid var(--color-border); }
+.logic-context-menu__form h3 { font-size: 12px; margin: 0 0 14px; }
+@media (max-width: 600px) { .logic-context-menu { flex-direction: column; overflow: auto; } .logic-context-menu__actions, .logic-context-menu__form { width: min(300px, calc(100vw - 44px)); } .logic-context-menu__form { border-left: 0; border-top: 1px solid var(--color-border); } }

@@ -12,6 +12,7 @@ export default function useCanvasPan() {
 
     // Zoome autour du milieu de la vue sans déclencher le défilement du WebView.
     function handleWheel(event) {
+      if (event.target.closest('input, textarea, [data-canvas-scroll]')) return
       event.preventDefault()
       if (dragRef.current) return
 

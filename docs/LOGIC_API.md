@@ -1,0 +1,181 @@
+# API du moteur logique — format source v1
+
+Point d'entrée : `src/utils/logic/index.js`. JavaScript pur, sans React, DOM, API native, dépendance npm ou accès aux fichiers. Le modèle source est la référence persistable ; AST, portées et types sont des résultats dérivés, jamais la sauvegarde principale.
+
+## API publique
+
+| Fonction | Résultat |
+| --- | --- |
+| `createProject(id)` | `{formatVersion: 1, id, modules: [], nodes: []}` |
+| `createModule(id, name, kind = 'module')` | Module vide ; `kind` vaut `module` ou `main` |
+| `createNode(id, moduleId, kind, {properties, children, references})` | Nœud permissif, sans génération d'identifiant |
+| `buildLogicalAst(source)` | `{ast, diagnostics}` ; structure hiérarchique avec trous et fragments invalides |
+| `buildSemanticModel(ast)` | `{model, diagnostics, index}` ; entrée attendue : AST issu du constructeur ; `index` contient les Map temporaires des passes suivantes |
+| `analyzeProgram(source)` | `{source, ast, semantic, diagnostics, canGenerate}` ; point d'entrée recommandé |
+| `walkAst(ast, visitor)` | Parcours syntaxique des nœuds et fragments détachés, sans suivre les références |
+| `findAstNode(ast, sourceId)` | Nœud construit correspondant, ou `null` |
+| `serializeSource(source)` | `{json, diagnostics}` ; `json: null` si une valeur n'est pas représentable sans perte en JSON |
+| `deserializeSource(json)` | `{source, diagnostics}` ; `source: null` si JSON illisible ; version future conservée et signalée |
+| `hasBlockingDiagnostics(diagnostics)` | Vrai si au moins une gravité `error` est présente |
+| `createContextIndex(project, analysis?)` | Cache lecture seule : modules, nœuds, parentés, doublons, types et portées déjà analysés |
+| `resolveContext(project, targetId, slot?, index?)` | Cible résolue, slots, contexte lexical, portée et type attendu, sans reconstruire l'AST |
+| `getAvailableActions(project, targetId, slot?, {index})` | `{ok, actions, slots, slot, …}` ; constructions insérables dans le slot demandé |
+| `getVisibleSymbols(context)` | Symboles lexicaux visibles depuis la portée d'insertion |
+| `createNodeBundle(moduleId, draft, idFactory)` | `{ok, rootId, nodes}` ; arborescence source neuve, sans toucher aux nœuds existants |
+| `insertSourceNodes(project, {targetId, slot}, bundle, {index})` | `{ok, project, analysis, index, nodeId}` ou code d'échec ; insertion atomique |
+| `updateSourceNode(project, nodeId, {properties?, references?})` | Édition des propriétés seules, enfants et identifiants conservés |
+
+`diagnosticCodes`, `sourceFormatVersion`, `moduleKinds`, `nodeSchema`, `getNodeSchema`, `binaryOperators`, `unaryOperators`, `primitiveDefinitions`, `primitiveType(name)`, `sameType` et `acceptsOperand` sont également exportés. `primitiveType` renvoie uniquement un primitif autorisé, ou `null` comme absence de résultat. Aucun type de secours n'existe. Les catégories Module/Main sont définies dans `model.js` et réutilisées par les libellés visuels ; les cartes Module/Main partagent désormais l'identifiant de leur module source, tandis que les annotations Comment restent hors du moteur. Les contrats JSDoc sont dans `model.js`, `ast.js`, `semantics.js`, `diagnostics.js`, `contextResolver.js` et `sourceMutation.js` ; aucun TypeScript ajouté.
+
+Les fonctions ne modifient pas les entrées. Les identifiants sont fournis par l'appelant, stables et jamais régénérés pendant les transformations. Les consommateurs doivent traiter les résultats comme des instantanés en lecture seule ; certains champs JSON sont partagés avec la source, sans copie profonde inutile.
+
+## Trois relations indépendantes
+
+- `node.moduleId` : propriétaire logique obligatoire ; identifiants de nœuds uniques dans le projet.
+- `node.children` : imbrication syntaxique par noms de slots ; un nœud a au plus un parent syntaxique (ou une entrée racine). Un enfant ne traverse pas la frontière d'un module.
+- `node.references.target` : lien symbolique, jamais un enfant syntaxique. Une référence ne déplace ni ne réplique la déclaration dans l'AST.
+
+Un module possède `rootNodeIds`, `imports` et `exports`. L'ordre de `rootNodeIds` et des slots de listes est l'ordre syntaxique, pas celui du tableau global `nodes`. Pas de sous-modules dans cette version ; l'absence de hiérarchie de modules évite de la confondre avec les portées lexicales.
+
+Un projet valide contient zéro ou un seul module de catégorie `main`. Chaque Main supplémentaire produit `MAIN_DUPLICATE` sur son `moduleId` et le champ `kind`. La source et l'AST restent inspectables sans suppression automatique ; `canGenerate` est faux. Main ne possède pas encore de sémantique d'exécution.
+
+## Constructions et slots
+
+`properties` et `references` sont toujours des objets ; les slots optionnels acceptent `null` ou l'absence de clé. Une liste vide est valide, une liste absente requise est diagnostiquée.
+
+| `kind` | Propriétés et slots |
+| --- | --- |
+| `VariableDeclaration` | `name`, `type` obligatoire ; `initializer?` expression |
+| `ConstantDeclaration` | `name`, `type` obligatoire ; `initializer` expression requis |
+| `FunctionDeclaration` | `name`, `type` obligatoire (retour) ; `parameters[]`, `body` Block |
+| `Parameter` | `name`, `type` obligatoire ; uniquement dans `parameters[]` |
+| `TypeDeclaration` | `name`, `type` obligatoire ; alias transparent d'un primitif, pas de classes/structures |
+| `Block` | `statements[]` : déclarations ou instructions |
+| `ReturnStatement` | `argument?` expression ; uniquement dans une fonction |
+| `IfStatement` | `test` expression booléenne, `consequent` Block, `alternate?` Block |
+| `WhileStatement` | `test` booléen, `body` Block |
+| `ForStatement` | `initializer?` variable/constante/affectation/instruction-expression ; `test?`, `update?` expression ou affectation ; `body` Block |
+| `BreakStatement`, `ContinueStatement` | Aucun slot ; boucle obligatoire, sans traverser une frontière de fonction |
+| `ExpressionStatement` | `expression` |
+| `AssignmentStatement` | `target` Reference, `value` expression ; variable ou paramètre modifiable |
+| `BinaryExpression` | `operator`, `left`, `right` |
+| `UnaryExpression` | `operator`, `operand` |
+| `Literal` | `type` obligatoire et `value` strictement compatible ; aucune inférence depuis la valeur |
+| `Reference` | `references.target` |
+| `CallExpression` | `callee` expression, `arguments[]` |
+| `CastExpression` | `type` cible obligatoire, `argument` expression ; conversion explicitement demandée |
+| `Hole` | Incomplétude explicite, diagnostic bloquant mais représentation conservée |
+
+`nodeSchema.js` centralise catégories, slots et opérateurs. Le champ `declaresType` identifie les constructions portant une annotation ; une annotation sur un opérateur ou une référence est une erreur structurelle et ne peut pas forcer son type. Les règles détaillées des opérateurs et conversions sont ci-dessous.
+
+## Portées, imports et types
+
+- Une portée par module ; une par fonction, partagée par ses paramètres et son bloc principal ; une par bloc imbriqué et par `for`.
+- Un espace de noms commun aux valeurs et aux types. Les déclarations d'une portée sont collectées avant résolution ; pas de temporal dead zone ni d'analyse d'initialisation/ordre d'exécution à ce stade.
+- Un nom peut masquer une déclaration d'une portée externe. Un doublon dans la même portée est une erreur ; la première déclaration reste choisie pour permettre l'inspection.
+- Cibles : `{kind:'name', name}`, `{kind:'node', nodeId}`, `{kind:'import', importId}`. Une cible par identifiant reste soumise à l'accessibilité lexicale ; un import explicite peut être visé par son identifiant indépendamment de son alias local.
+- Export : `{nodeId, name}`, uniquement pour une déclaration racine. Import : `{id, moduleId, nodeId, localName}`, uniquement vers un nœud explicitement exporté d'un autre module. Les imports peuvent être cycliques ; aucune exécution ou analyse de cycle d'initialisation n'est engagée. Pas de réexport, import étoilé ou résolution de chemin physique.
+- Toutes les variables, constantes, fonctions, paramètres, déclarations de types et tous les littéraux portent un type explicite. Une fonction porte le type de retour, chaque paramètre son propre type. Les alias existants restent transparents et doivent aboutir à un primitif autorisé ; aucun nouveau type avancé introduit.
+- Une annotation absente ou invalide est diagnostiquée et ne produit aucun type de remplacement. Les déclarations ne récupèrent jamais le type de leur initialiseur. Les expressions valides sont déterminées uniquement par les types déclarés et les règles des constructions.
+- `semantic.nodeTypes` ne contient que les résultats de typage résolus. `semantic.untypedNodeIds` liste les expressions qui ne peuvent pas être typées ; un symbole non typable n'a pas de propriété `type`. `null` dans les calculs internes représente une absence, pas un type logique.
+- Le type fonction dérivé est une signature complète `{kind:'function', parameters:[...], returnType:...}`, pas un primitif supplémentaire ni un type de variable autorisé. Les signatures récursives sont résolues sans exécuter les fonctions.
+
+## Typage statique strict : catalogue et bornes
+
+Le catalogue unique est `primitives.js`. Les seuls primitifs sont :
+
+| Nom exact | Représentation et domaine |
+| --- | --- |
+| `short int` | Entier signé 16 bits : -32 768 à 32 767 |
+| `short uint` | Entier non signé 16 bits : 0 à 65 535 |
+| `int` | Entier signé 32 bits : -2 147 483 648 à 2 147 483 647 |
+| `uint` | Entier non signé 32 bits : 0 à 4 294 967 295 |
+| `float` | IEEE 754 binaire32 ; maximum fini ≈ 3,4028234663852886 × 10^38 ; minimum subnormal positif 2^-149 |
+| `double` | IEEE 754 binaire64 ; maximum fini ≈ 1,7976931348623157 × 10^308 ; minimum subnormal positif 2^-1074 |
+| `string` | Chaîne, vide autorisé ; aucune conversion en nombre implicite |
+| `char` | Un scalaire Unicode unique, y compris hors BMP ; ni paire de scalaires ni surrogate isolé |
+| `boolean` | Booléen strict, jamais 0/1 ou chaîne |
+| `void` | Absence de valeur : annotation de retour de fonction uniquement |
+
+`number`, `any` et `unknown` sont rejetés comme types logiques ; aucun export, marqueur interne ou compatibilité implicite ne les remplace. Le mot `number` dans `typeof` JavaScript désigne uniquement le stockage de l'hôte, jamais un type logique du programme.
+
+### Littéraux et précision
+
+Forme : `{kind:'Literal', properties:{type:{kind:'primitive',name:'short int'},value:'32767'}, ...}`. Un entier accepte un entier JSON exact dans son domaine, ou un texte décimal signé sans point ni exposant. Le calcul interne utilise BigInt, jamais persisté dans la source ou exposé comme nouveau type. Les fractions, hexadécimaux textuels et chaînes avec espaces sont refusés.
+
+Un flottant accepte un nombre JSON fini ou un texte décimal avec point/exposant. Un nombre JSON déjà chargé représente sa valeur binaire64 reçue ; utiliser un texte décimal pour conserver le lexème exact. Les textes `float` sont arrondis directement en binaire32 par rapport rationnel exact, sans double arrondi via binaire64 ; les `double` utilisent l'arrondi IEEE 754 binaire64 du moteur JS. Arrondi au plus proche, égalités vers le significande pair. Les subnormaux sont autorisés ; infinis, NaN, dépassements et valeurs non nulles arrondies à zéro sont refusés. Chaque résultat arithmétique `float` est de nouveau arrondi en binaire32.
+
+Le texte `'-0'` préserve un zéro flottant signé à travers JSON. La sérialisation refuse une valeur JS numérique `-0`, que `JSON.stringify` transformerait silencieusement en `0` ; l'analyse peut la représenter mais sa sauvegarde exige cette forme textuelle.
+
+### Opérateurs, appels, affectations et retours
+
+- Aucun élargissement, promotion des petits entiers, changement de signe ou conversion implicite, même sans perte de précision. Affectation, initialisation, arguments et retours exigent des types strictement identiques après résolution des alias.
+- Binaires `+ - * /` : deux opérandes numériques du **même** type, résultat de ce type. Division entière tronquée vers zéro, sans promotion ; par exemple `short int / short int` reste `short int`.
+- `%` : entiers du même type ; reste associé à la division tronquée vers zéro, avec le signe du dividende. Division et reste par zéro interdits. Pas de rebouclage en cas de dépassement.
+- `< <= > >=` : mêmes types numériques, résultat `boolean`. `== !=` : même primitif non `void`, résultat `boolean`. Pas de comparaison de signatures de fonctions.
+- `and/or`, `not` : booléens uniquement. Signe unaire `+` : numérique ; `-` : numérique signé uniquement, donc interdit pour `short uint` et `uint`. Le résultat conserve le type, y compris les bornes.
+- Pas d'arithmétique sur booléens/caractères, concaténation de chaînes ou comparaison ordonnée de textes.
+- Conditions `if/while/for` : `boolean` uniquement. Le nombre et les types des arguments de `CallExpression` doivent correspondre exactement à la signature ; un appel invalide n'obtient pas le type de retour comme secours.
+- `void` est interdit pour variables, constantes, paramètres, alias, littéraux et conversions. Un appel `void` peut former une `ExpressionStatement`, mais ne peut fournir une valeur. Une fonction `void` accepte `return` sans argument, jamais un retour avec expression.
+- Une fonction non `void` doit retourner la bonne valeur sur tous les chemins démontrés par le vérificateur simple : retour direct, séquence de blocs, ou deux branches d'un `if`. Les boucles ne prouvent pas à elles seules le retour ; les cas non prouvés sont refusés conservativement. Aucune exécution de condition ni simulation.
+
+### Conversions explicites
+
+`CastExpression` porte `properties.type` (cible) et `children.argument`. Les conversions entre les six primitifs numériques sont permises, ainsi que l'identité d'un primitif non vide. Pas de conversion chaîne/nombre, booléen/nombre ou char/string.
+
+Vers un entier : troncature de la partie fractionnaire vers zéro, puis contrôle exact du domaine cible. Une valeur négative entière ne passe pas en non signé et une réduction de largeur ne reboucle pas. Vers un flottant : arrondi IEEE 754 à sa précision ; la perte de précision est acceptée parce que demandée explicitement, mais dépassement ou sous-flux vers zéro restent des erreurs. Les conversions implicites équivalentes restent interdites.
+
+### Portée de la vérification numérique
+
+`numericConstants.js` vérifie uniquement les expressions constantes (littéraux, opérations, conversions et références de constantes dont l'initialiseur est prouvé constant), sans appeler de fonction ni exécuter de boucle. Les cycles constants et les profondeurs excessives sont diagnostiqués. Les initialiseurs de variables ne sont pas propagés comme constantes, pour ne pas ignorer des mutations.
+
+Les types des expressions non constantes sont entièrement statiques, mais leurs bornes à l'exécution ne sont pas prouvées globalement. Les futurs interprètes/générateurs devront respecter les mêmes domaines, arrondis et opérations contrôlées, refuser division par zéro, sous-flux vers zéro et débordement, **sans wrap ni comportement dépendant de la cible**. Aucun moteur d'exécution, analyse d'intervalles ou générateur n'est introduit ici ; `canGenerate` n'est pas une preuve de sûreté de toutes les valeurs futures.
+
+## Diagnostics et tolérance
+
+Forme : `{code, severity, message, location:{projectId, moduleId, nodeId, field}}`. Les identifiants inapplicables valent `null`. Les messages techniques sont en français ; une future UI anglaise pourra localiser les codes sans parser ces messages.
+
+Un lien syntaxique manquant devient un `Hole` ; un cycle, parent multiple, lien étranger ou identifiant absent produit un `Invalid`. La source complète est toujours conservée dans le résultat, y compris les enregistrements dupliqués ou malformés qui ne peuvent pas devenir des nœuds AST. Les fragments non rattachés sont présents dans `detachedNodes`, les propriétaires absents dans `unassignedNodes`. Tous ces défauts bloquent `canGenerate`, mais pas l'inspection. Ce booléen n'est pas une garantie d'exécutabilité et aucun générateur n'est implémenté.
+
+Limites de sécurité : profondeur syntaxique et de dépendances de types autour de 200 niveaux, avec diagnostic plutôt qu'un débordement de pile ; sérialisation JSON également bornée à 200 niveaux. Proxies hostiles, accesseurs arbitraires pendant l'analyse et quotas globaux mémoire/temps ne font pas partie du contrat de données JSON. La sérialisation refuse les accesseurs sans les appeler.
+
+## Exemple exécutable et extensions
+
+`tests/logic/fixtures.js` expose `twoModules()` : `math` exporte la constante `answer = 42`, `app` l'importe sous `answerImport` et initialise `result` par une référence à cet import.
+
+```js
+import { analyzeProgram, serializeSource } from './src/utils/logic/index.js'
+import { twoModules } from './tests/logic/fixtures.js'
+
+const result = analyzeProgram(twoModules())
+// result.ast.modules[1].body[0].children.initializer.kind === 'Reference'
+// result.semantic.references[0].symbolId désigne le symbole importé.
+const saved = serializeSource(result.source)
+```
+
+Une intégration est désormais en place : les cartes Module/Main partagent l'identifiant de leur module source, les coordonnées/tailles restent dans un état de présentation séparé, et les annotations Comment restent hors du moteur. Les identifiants de nœuds sont des UUID stables fournis par l'interface.
+
+### Insertion contextuelle
+
+`getAvailableActions` déduit les constructions insérables du schéma (`nodeSchema`) et du contexte lexical, jamais d'une liste codée en dur. `Module`/`Main` utilisent `rootNodeIds` ; les autres nœuds utilisent `children`. Les slots sont proposés avant les constructions ; un slot unique occupé ou malformé n'est pas remplaçable. `placement.js` partage les restrictions lexicales avec le validateur : fonctions et types aux racines du module, paramètres dans une liste de fonction, `return` dans une fonction, `break`/`continue` dans une boucle.
+
+`createNodeBundle` construit uniquement de nouveaux enregistrements ; `insertSourceNodes` vérifie le slot, l'appartenance au module, l'unicité des identifiants, l'absence d'enfant existant, le type attendu et les nouvelles erreurs dures après réanalyse. Un échec renvoie la source inchangée. `updateSourceNode` ne modifie que `properties`/`references` et conserve les enfants. Les états incomplets (littéral sans valeur, appel partiel, retour sans argument) restent acceptés mais laissent `canGenerate` faux.
+
+```js
+import { createContextIndex, resolveContext, getAvailableActions, createNodeBundle, insertSourceNodes, primitiveType } from './src/utils/logic/index.js'
+
+const index = createContextIndex(project, analysis)
+const actions = getAvailableActions(project, 'module-id', 'rootNodeIds', { index })
+const context = resolveContext(project, 'module-id', 'rootNodeIds', index)
+const bundle = createNodeBundle(context.moduleId, { kind: 'VariableDeclaration', properties: { name: 'count', type: primitiveType('int') } }, () => crypto.randomUUID())
+const inserted = insertSourceNodes(project, { targetId: 'module-id', slot: 'rootNodeIds' }, bundle, { index })
+// inserted.ok === true ; inserted.analysis contient les diagnostics à jour.
+```
+
+Simulation, suggestions et codegen pourront consommer `ast`, `semantic` et `diagnostics`, et relier leurs résultats aux `sourceId`. Un générateur refusera les erreurs bloquantes avant d'abaisser l'AST vers sa cible. Ces moteurs ne sont pas présents ; aucune interface de plugin spéculative ajoutée.
+
+## Vérification et documentation compilée
+
+`pnpm test` : runner natif Node, sans dépendance de test. Les tests couvrent les scénarios valides, invalides et incomplets, les localisations, les identifiants, la conservation JSON, la non-mutation, l'indépendance des imports du moteur et l'API contextuelle (actions, factory, mutations atomiques, cache). `pnpm build` vérifie que le frontend compile avec l'intégration ; les passes du moteur sont vérifiées par les tests Node, pas par le build.
+
+Rapport court : `ARCHITECTURE_AST.tex` et `ARCHITECTURE_AST.pdf` à la racine. Compilation reproductible avec le script `pnpm docs:ast` (MiKTeX/pdfLaTeX installé requis). Les fichiers auxiliaires restent dans `build/latex/`, ignoré par Git.

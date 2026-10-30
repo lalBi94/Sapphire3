@@ -20,11 +20,14 @@ Ne propose ni n'implémente de fonctionnalité supplémentaire sans demande expl
 ## Périmètre fonctionnel et direction du produit
 
 - Avancer par petites étapes demandées : une demande de base visuelle, de dossiers ou de documentation n'autorise pas à implémenter le stockage, l'import ou le métier complet.
-- Incréments autorisés : socle React/Vite et fenêtre Neutralinojs, canvas navigable avec zoom et repères, menu de création de conteneurs visuels redimensionnables Module et Main. Aucune logique interne, AST, génération de code, persistance ou import à implémenter à ce stade.
+- Incréments autorisés : socle React/Vite et fenêtre Neutralinojs, canvas navigable avec zoom et repères, conteneurs visuels Module/Main, moteur logique indépendant avec source JSON versionnée, AST, portées, références intermodules et validations fondamentales. Aucun moteur de simulation, suggestion ou génération de code, ni persistance sur disque à implémenter sans nouvelle demande.
 - Direction à terme : représentation visuelle de la programmation, AST indépendant des langages et traductions vers des langages cibles. Concepts de base souhaités ; modèle objet à discuter, aucun contrat décidé.
 - Une direction de conception n'est ni une fonctionnalité déjà livrée ni une autorisation de commencer son implémentation.
 - Lorsqu'un même concept est partagé entre interface, rangement et règles métier, utiliser une définition centralisée simple avec des identifiants stables, distincts des libellés affichés. Ne pas dupliquer les listes de référence dans l'application.
-- Aucun contrat métier ni format d'AST défini pour l'instant. Avancer par petites étapes décidées avec l'utilisateur.
+- Contrats du moteur logique dans `docs/LOGIC_API.md` ; moteur pur dans `src/utils/logic/`, sans React, DOM, rendu ou API native. Le modèle source est distinct des AST et des informations de présentation. Avancer par petites étapes décidées avec l'utilisateur.
+- Un projet valide contient zéro ou un seul Main. Empêcher sa création en double dans l'UI et diagnostiquer les doublons dans le moteur sans perdre les données source invalides.
+- Les Modules visuels sont renommables ; Main conserve son nom. Les cartes Comment sont des annotations de présentation avec titre et texte libres, déplaçables et redimensionnables, hors du modèle logique et des commentaires de code.
+- Typage logique strict et statique : seuls `short int`, `short uint`, `int`, `uint`, `float`, `double`, `string`, `char`, `boolean`, `void` (retour de fonction uniquement). Déclarations et littéraux explicitement typés, aucune conversion implicite ni type de secours ; une expression non typable reste représentable avec diagnostics et sans type attribué. Règles numériques et conversions explicites dans `docs/LOGIC_API.md`.
 
 ## Comprendre le contexte avant de coder
 
@@ -98,7 +101,7 @@ Un fichier = une responsabilité principale. Ne pas multiplier les fichiers ou l
 - Regrouper les appels natifs dans `src/services/` ; vérifier les fonctions effectivement disponibles dans la version installée et les permissions de `neutralino.config.json`.
 - Pour le desktop, enregistrer les données et préférences utilisateur dans un **répertoire persistant utilisateur** ; jamais dans `src/`, `public/`, les ressources compilées ou le dossier de l'exécutable. Distinguer ce stockage des données de test du dépôt.
 - Pour un site, définir le stockage et les accès réseau selon le besoin approuvé, sans inventer un backend ou une persistance de production à partir d'une maquette.
-- Aucun format de données ni stockage métier défini ou autorisé à ce stade.
+- Format source logique JSON v1 défini ; sérialisation/désérialisation en mémoire autorisée. Aucun emplacement de stockage métier ni écriture de projet utilisateur sur disque défini ou autorisé à ce stade.
 - Ne pas publier de secrets, de données personnelles ou de fichiers utilisateur dans un paquet de distribution. Ne pas masquer un échec d'écriture, d'import ou de sauvegarde.
 - Traiter sobrement les erreurs qui comptent : fichier manquant, permission refusée, donnée invalide, requête ou import interrompu. Ne pas construire de système générique de gestion des erreurs inutile.
 - Les migrations et remplacements de données ne sont pas autorisés implicitement par une demande d'interface.
@@ -123,7 +126,7 @@ Un fichier = une responsabilité principale. Ne pas multiplier les fichiers ou l
 ## Git à chaque demande
 
 - L'utilisateur s'occupe de créer les dépôts Git. Ne pas lancer `git init` à sa place. Si le dépôt n'existe pas encore, signaler que le commit est en attente de sa création.
-- À la fin de chaque demande, après les vérifications pertinentes, exécuter `git add .`, puis `git commit` avec un message bref décrivant les changements.
+- À la fin de chaque demande, après les vérifications pertinentes, exécuter `git add .`, puis `git commit` avec un message bref décrivant les changements, sauf instruction explicite contraire dans la demande courante.
 - Inclure toutes les modifications présentes dans le répertoire de travail, conformément à la demande explicite de l'utilisateur ; ne pas les annuler ni les écraser.
 - S'il n'y a aucun changement à commiter, ne pas créer de commit vide et le signaler simplement.
 - Ne jamais effectuer de `git push` sans nouvelle demande explicite de l'utilisateur.

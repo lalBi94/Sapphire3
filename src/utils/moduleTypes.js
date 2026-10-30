@@ -1,7 +1,10 @@
-// Centralise les deux catégories visuelles, sans leur attribuer de logique métier.
+import { moduleKinds } from './logic/model.js'
+
+// Centralise les cartes visuelles ; Comment n'est pas une catégorie logique.
 export const moduleTypes = {
-  module: { label: 'Module', action: 'Create module', width: 320, height: 220 },
-  main: { label: 'Main', action: 'Create Main', width: 320, height: 220 },
+  [moduleKinds.module]: { label: 'Module', action: 'Create module', width: 320, height: 220, renamable: true },
+  [moduleKinds.main]: { label: 'Main', action: 'Create Main', width: 320, height: 220, renamable: false },
+  comment: { label: 'Comment', action: 'Create comment', width: 320, height: 220, renamable: true, hasText: true },
 }
 
 export const minimumModuleSize = { width: 180, height: 120 }

@@ -5,6 +5,8 @@
   "type": "module",
   "packageManager": "pnpm@11.5.0",
   "scripts": {
+    "test": "node --test tests/logic/*.test.js",
+    "docs:ast": "powershell -NoProfile -File scripts/build-ast-doc.ps1",
     "dev": "neu run",
     "dev:web": "vite",
     "build": "vite build",
