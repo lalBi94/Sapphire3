@@ -5,6 +5,18 @@
   overflow: hidden;
   isolation: isolate;
   background: var(--color-surface);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.canvas--panning {
+  cursor: grabbing;
+}
+
+.canvas:focus-visible {
+  outline: 1px solid var(--color-text-muted);
+  outline-offset: -1px;
 }
 
 .canvas::after {

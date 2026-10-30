@@ -17,3 +17,11 @@
 - Quadrillage SVG à distorsion progressive, vignette CSS, surface plein viewport.
 - Navigateur sur Vite : capture contrôlée visuellement ; viewport 752 × 670, surface 752 × 670,4 (arrondi des unités CSS), aucune dimension de défilement supplémentaire. Aucun message console de niveau erreur.
 - `pnpm build` réussi. Pas de nouvelle vérification de la fenêtre native pour cet incrément visuel.
+
+## Déplacement libre du canvas — 30 octobre 2026
+
+- Hook de navigation locale : pointeur capturé, glisser gauche/central, gestion annulation/perte de capture, flèches clavier et focus visible. CSS `touch-action: none` pour laisser le geste au canvas.
+- Grille recalculée avec une translation modulo l'espacement ; échelle SVG suivie par ResizeObserver. La distorsion reste attachée à la fenêtre.
+- Contrôles navigateur avec événements DOM synthétiques : une flèche modifie le tracé ; le glisser active le curseur et modifie la grille ; le relâchement termine le geste.
+- Déplacement simulé de -10 000 003 px / +10 000 007 px : coordonnées valides, 69 lignes avant et après. Annulation du geste confirmée, aucun déplacement sur les mouvements suivants. Aucun message console de niveau erreur.
+- `pnpm build` réussi. Limites : pas de test de glisser physique, de tactile réel ou de nouvelle vérification native ; pas de limites dynamiques ni de zoom implémentés.
