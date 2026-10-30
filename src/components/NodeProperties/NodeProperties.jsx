@@ -1,6 +1,6 @@
 import { ChevronRight, X } from 'lucide-react'
 import { resolveContext, getNodeSchema } from '../../utils/logic/index.js'
-import { kindLabel } from '../LogicTree/logicLabels.js'
+import { diagnosticLabel, kindLabel, slotLabel } from '../LogicTree/logicLabels.js'
 import NodeForm from '../NodeForm/NodeForm.jsx'
 import ModuleNameForm from './ModuleNameForm.jsx'
 import DeleteAction from '../DeleteAction/DeleteAction.jsx'
@@ -15,20 +15,19 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
   const configurable = schema && (schema.named || schema.declaresType || ['BinaryExpression', 'UnaryExpression', 'Reference'].includes(record.kind))
 
   return (
-    <aside className="node-properties" data-canvas-ui data-canvas-scroll aria-label="Node properties" onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
-      <header><h2>{selected.kind === 'module' ? 'Module properties' : record ? kindLabel(record.kind) : 'Node properties'}</h2><button type="button" aria-label="Close properties" onClick={onClose}><X size={18} strokeWidth={1.75} aria-hidden="true" /></button></header>
-      {!context.ok ? <p>Selection is unavailable: {context.code}</p> : <>
-        <p className="node-properties__id">{record.id}</p>
-        {selected.kind === 'module' ? <ModuleNameForm key={`${record.id}:${record.name}`} module={record} onRename={onRename} /> : configurable ? <NodeForm key={`${record.id}:${JSON.stringify([record.properties, record.references])}`} kind={record.kind} initialNode={record} context={context} submitLabel="Save properties" onSubmit={(patch) => onConfigure(record.id, patch)} /> : <p>Configure this node through its child slots.</p>}
-        <h3>{selected.kind === 'module' ? 'Root nodes' : 'Children'}</h3>
-        {(selected.kind === 'module' ? [['rootNodeIds', record.rootNodeIds]] : Object.entries(record.children ?? {})).map(([slot, value]) => <div className="node-properties__children" key={slot}><span>{slot}</span>
-          {(Array.isArray(value) ? value : value ? [value] : []).map((id, position) => <button type="button" key={`${id}:${position}`} onClick={() => onSelect({ kind: 'node', id })}>{index.nodes.get(id)?.properties?.name || index.nodes.get(id)?.kind || 'Missing node'}<ChevronRight size={14} strokeWidth={1.75} aria-hidden="true" /></button>)}
-          {(value === null || (Array.isArray(value) && value.length === 0)) && <small>Empty</small>}
+    <aside className="node-properties" data-canvas-ui data-canvas-scroll aria-label="Details" onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+      <header><h2>{selected.kind === 'module' ? 'Module' : record ? kindLabel(record.kind) : 'Block'}</h2><button type="button" aria-label="Close details" onClick={onClose}><X size={18} strokeWidth={1.75} aria-hidden="true" /></button></header>
+      {!context.ok ? <p>This selection is no longer available.</p> : <>
+        {selected.kind === 'module' ? <ModuleNameForm key={`${record.id}:${record.name}`} module={record} onRename={onRename} /> : configurable ? <NodeForm key={`${record.id}:${JSON.stringify([record.properties, record.references])}`} kind={record.kind} initialNode={record} context={context} submitLabel="Save" onSubmit={(patch) => onConfigure(record.id, patch)} /> : <p>Add or change parts from the + menu.</p>}
+        <h3>{selected.kind === 'module' ? 'Top-level blocks' : 'Parts'}</h3>
+        {(selected.kind === 'module' ? [['rootNodeIds', record.rootNodeIds]] : Object.entries(record.children ?? {})).map(([slot, value]) => <div className="node-properties__children" key={slot}><span>{slotLabel(slot)}</span>
+          {(Array.isArray(value) ? value : value ? [value] : []).map((id, position) => <button type="button" key={`${id}:${position}`} onClick={() => onSelect({ kind: 'node', id })}>{index.nodes.get(id)?.properties?.name || (index.nodes.get(id) ? kindLabel(index.nodes.get(id).kind) : 'Missing block')}<ChevronRight size={14} strokeWidth={1.75} aria-hidden="true" /></button>)}
+          {(value === null || (Array.isArray(value) && value.length === 0)) && <small>Nothing added</small>}
         </div>)}
       </>}
-      <h3>Diagnostics · {diagnostics.length}</h3>
-      {mutationError && <p role="alert">{mutationError.replaceAll('_', ' ')}</p>}
-      {diagnostics.length === 0 ? <p>No diagnostics for this selection.</p> : <ul className="node-properties__diagnostics">{diagnostics.map((entry, position) => <li key={position}><strong>{entry.code.replaceAll('_', ' ')}</strong><small>{entry.location.nodeId ?? selected.id} · {entry.location.field ?? ''}</small></li>)}</ul>}
+      <h3>Issues · {diagnostics.length}</h3>
+      {mutationError && <p role="alert">{diagnosticLabel(mutationError)}</p>}
+      {diagnostics.length === 0 ? <p>No issues here.</p> : <ul className="node-properties__diagnostics">{diagnostics.map((entry, position) => <li key={position}><strong>{diagnosticLabel(entry.code)}</strong>{entry.location.field && <small>{slotLabel(entry.location.field)}</small>}</li>)}</ul>}
       {context.ok && record && <div className="node-properties__danger"><DeleteAction key={`${selected.kind}:${record.id}`} targetId={record.id} kind={selected.kind} onDelete={selected.kind === 'module' ? onDeleteModule : onDelete} /></div>}
     </aside>
   )

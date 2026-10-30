@@ -124,7 +124,7 @@ export default function Canvas() {
   return (
     <div className="canvas-workspace">
     <ProjectNavigation busy={files.busy} message={files.message} error={files.error} pendingImport={files.pendingImport} onExport={files.handleExport} onImport={files.handleImport} onConfirmImport={files.handleConfirmImport} onCancelImport={files.handleCancelImport} onDismiss={files.handleDismiss} />
-    <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label="Programming canvas. Drag to pan. Use the top-right + or right-click a card or node to open its menu." tabIndex={0}
+    <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label="Canvas. Drag to move around. Use + or right-click to open a menu." tabIndex={0}
       onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerEnd} onPointerCancel={handlePointerEnd} onLostPointerCapture={handlePointerEnd} onKeyDown={handleKeyDown} onContextMenu={handleContextMenu}>
       <CanvasGrid camera={camera} zoom={zoom} />
       {document.cards.map((card) => <CanvasModule key={`${document.revision}:${card.id}`} module={card} camera={camera} zoom={zoom}

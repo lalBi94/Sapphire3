@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { getNodeSchema } from '../../utils/logic/index.js'
-import { kindLabel, nodeSummary } from './logicLabels.js'
+import { kindLabel, nodeSummary, slotLabel } from './logicLabels.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
 
 // Rend une construction avec ses slots ; les cycles ou liens manquants restent des fragments lisibles.
@@ -25,8 +25,8 @@ export default function LogicNode({ id, index, selectedId, onSelect, ancestors, 
     onToggle(id)
   }
 
-  if (!node) return <p className="logic-tree__missing">Missing node: {String(id)}</p>
-  if (ancestors.includes(id) || ancestors.length >= 60) return <p className="logic-tree__missing">Cyclic or deeply nested fragment: {id}</p>
+  if (!node) return <p className="logic-tree__missing">This block is missing.</p>
+  if (ancestors.includes(id) || ancestors.length >= 60) return <p className="logic-tree__missing">This block cannot be shown here.</p>
   return (
     <section className={`logic-node${selectedId === id ? ' logic-node--selected' : ''}${expanded ? '' : ' logic-node--collapsed'}`} data-source-node={id} data-group={schema?.group ?? 'incomplete'} aria-label={name} onClick={handleSelect}>
       <NodeMenuButton label={name} onOpen={(event) => onOpenActions(event, { kind: 'node', id })} />
@@ -36,8 +36,8 @@ export default function LogicNode({ id, index, selectedId, onSelect, ancestors, 
         </button>
         <button type="button" className="logic-node__heading" onClick={handleSelect} aria-pressed={selectedId === id}>
           <span>{kindLabel(node.kind)}{node.properties?.name ? ` · ${node.properties.name}` : ''}</span>
-          {node.kind === 'FunctionDeclaration' && node.properties?.entryPoint === true && <span className="logic-node__entry-point">Entry point</span>}
-          {diagnostics.length > 0 && <span className="logic-node__issues" aria-label={`${diagnostics.length} diagnostics`}>{diagnostics.length}</span>}
+          {node.kind === 'FunctionDeclaration' && node.properties?.entryPoint === true && <span className="logic-node__entry-point">Start here</span>}
+          {diagnostics.length > 0 && <span className="logic-node__issues" aria-label={`${diagnostics.length} issues`}>{diagnostics.length}</span>}
         </button>
       </div>
       {summary && <div className={`logic-node__summary${expanded ? '' : ' logic-node__summary--collapsed'}`}>{summary}</div>}
@@ -45,8 +45,8 @@ export default function LogicNode({ id, index, selectedId, onSelect, ancestors, 
         const value = node.children?.[slotName]
         const children = Array.isArray(value) ? value : value === null || value === undefined ? [] : [value]
         return <div className="logic-node__slot" data-slot={slotName} key={slotName}>
-          <span className="logic-node__slot-label">{slotName}{slot.many ? ` [${children.length}]` : ''}</span>
-          {children.length === 0 ? <span className="logic-node__empty">{slot.required ? 'Incomplete' : 'Empty'}</span> : children.map((childId, position) => <LogicNode key={`${childId}:${position}`} id={childId} index={index} selectedId={selectedId} onSelect={onSelect} ancestors={[...ancestors, id]} expandedIds={expandedIds} onToggle={onToggle} onOpenActions={onOpenActions} />)}
+          <span className="logic-node__slot-label">{slotLabel(slotName)}{slot.many ? ` [${children.length}]` : ''}</span>
+          {children.length === 0 ? <span className="logic-node__empty">{slot.required ? 'Add something' : 'Empty'}</span> : children.map((childId, position) => <LogicNode key={`${childId}:${position}`} id={childId} index={index} selectedId={selectedId} onSelect={onSelect} ancestors={[...ancestors, id]} expandedIds={expandedIds} onToggle={onToggle} onOpenActions={onOpenActions} />)}
         </div>
       })}
     </section>

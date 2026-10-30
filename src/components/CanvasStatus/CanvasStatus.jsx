@@ -15,7 +15,7 @@ export default function CanvasStatus({ camera, zoom, onRecenter }) {
   return (
     <aside
       className="canvas-status"
-      aria-label="Canvas position and zoom"
+      aria-label="Canvas view"
       onPointerDown={(event) => event.stopPropagation()}
       onKeyDown={(event) => event.stopPropagation()}
     >
@@ -26,7 +26,7 @@ export default function CanvasStatus({ camera, zoom, onRecenter }) {
       <span className="canvas-status__zoom" aria-label="Zoom">
         {formatValue(zoom * 100)} %
       </span>
-      <button type="button" onClick={onRecenter} title="Return to origin (0, 0)" aria-label="Return to origin (0, 0)">
+      <button type="button" onClick={onRecenter} title="Center the view" aria-label="Center the view">
         <Crosshair size={18} strokeWidth={1.75} aria-hidden="true" />
       </button>
     </aside>

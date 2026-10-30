@@ -22,7 +22,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
       const path = await exportWorkspaceFile(extension, text)
       if (path) setMessage('Workspace exported.')
     } catch (failure) {
-      setError(`Export failed: ${failure.message || failure.code || 'Unknown error.'}`)
+      setError(`Couldn't export: ${failure.message || failure.code || 'Unknown error.'}`)
     } finally {
       operation.current = false
       setBusy(false)
@@ -40,7 +40,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
       const file = await importWorkspaceFile()
       if (file) setPendingImport({ workspace: deserializeWorkspace(file.text), path: file.path })
     } catch (failure) {
-      setError(`Import failed: ${failure.message || failure.code || 'Unknown error.'}`)
+      setError(`Couldn't import: ${failure.message || failure.code || 'Unknown error.'}`)
     } finally {
       operation.current = false
       setBusy(false)

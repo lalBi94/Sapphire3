@@ -6,7 +6,7 @@ export default function NodeTypeInput({ label = 'Type', value, onChange, require
     <label>{label}
       <select aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} required={required}>
         <option value="">Choose a type</option>
-        {alias && <option value="@alias">Declared alias (unchanged)</option>}
+        {alias && <option value="@alias">Keep current type</option>}
         {Object.entries(primitiveDefinitions).filter(([, type]) => allowVoid || type.category !== 'void').map(([name]) => <option key={name} value={name}>{name}</option>)}
       </select>
     </label>

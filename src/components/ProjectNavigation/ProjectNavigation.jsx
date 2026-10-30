@@ -11,8 +11,8 @@ function ImportConfirmation({ path, onConfirm, onCancel }) {
   }, [])
 
   return <dialog ref={dialogRef} className="project-navigation__confirmation" aria-labelledby="import-title" onCancel={onCancel}>
-    <h2 id="import-title">Replace current workspace?</h2>
-    <p>Importing replaces all current modules, comments and layout. Export your current workspace first if you want to keep it.</p>
+    <h2 id="import-title">Replace this workspace?</h2>
+    <p>This will replace your modules, notes and layout. Export first if you want to keep them.</p>
     <p className="project-navigation__path">{path}</p>
     <div><button type="button" autoFocus onClick={onCancel}>Cancel</button><button type="button" className="project-navigation__primary" onClick={onConfirm}>Replace and import</button></div>
   </dialog>
@@ -69,7 +69,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
       <span className="project-navigation__brand">Sapphire 3</span>
       {['Edit', 'View'].map((label) => <details key={label} name="workspace-menu" onToggle={handleToggle}>
         <summary>{label}<ChevronDown size={12} aria-hidden="true" /></summary>
-        <div className="project-navigation__menu"><p>No actions yet.</p></div>
+        <div className="project-navigation__menu"><p>Nothing here yet.</p></div>
       </details>)}
       <details name="workspace-menu" onToggle={handleToggle}>
         <summary>Settings<ChevronDown size={12} aria-hidden="true" /></summary>

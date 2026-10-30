@@ -52,7 +52,7 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId =
       data-canvas-scroll
       style={{ left: `min(${x}px, max(8px, calc(100% - 192px)))`, top: anchored ? y : commentId ? `min(${y}px, max(8px, calc(100% - 240px)))` : y, maxHeight: anchored ? `calc(100% - ${y + 8}px)` : undefined }}
       role="menu"
-      aria-label={commentId ? 'Comment menu' : 'Create a canvas item'}
+      aria-label={commentId ? 'Note menu' : 'Add to canvas'}
       onPointerDown={(event) => event.stopPropagation()}
       onKeyDown={handleKeyDown}
     >

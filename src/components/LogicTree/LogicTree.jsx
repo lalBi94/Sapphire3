@@ -49,7 +49,7 @@ export default function LogicTree({ module, index, selectedId, onSelect, expande
 
   return (
     <div className="logic-tree" data-canvas-scroll>
-      {module.rootNodeIds.length === 0 && <p className="logic-tree__empty">Use the top-right + to open the node menu.</p>}
+      {module.rootNodeIds.length === 0 && <p className="logic-tree__empty">Use + to add your first block.</p>}
       {module.rootNodeIds.map((id, position) => <LogicNode key={`${id}:${position}`} id={id} index={index} selectedId={selectedId} onSelect={onSelect} ancestors={[]} expandedIds={expandedIds} onToggle={handleToggle} onOpenActions={onOpenActions} />)}
     </div>
   )

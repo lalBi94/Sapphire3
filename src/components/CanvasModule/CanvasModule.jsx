@@ -205,7 +205,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
               type="button"
               className="canvas-module__move"
               aria-label={`Move ${name}`}
-              title={definition.renamable ? 'Drag to move. Double-click or press F2 to rename.' : 'Drag to move. Arrow keys adjust the position.'}
+              title={definition.renamable ? 'Drag to move. Double-click or press F2 to rename.' : 'Drag to move. Use the arrow keys to adjust.'}
               onDoubleClick={handleRenameStart}
               onPointerDown={handleMoveStart}
               onPointerMove={handleMove}
@@ -224,7 +224,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         <textarea
           className="canvas-module__comment"
           aria-label={`${name} text`}
-          placeholder="Write a visual note…"
+          placeholder="Write a note…"
           value={module.text ?? ''}
           onChange={(event) => onTextChange(module.id, event.target.value)}
           spellCheck={false}
@@ -234,7 +234,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         className="canvas-module__resize"
         type="button"
         aria-label={`Resize ${name}`}
-        title="Drag to resize. Arrow keys adjust the size."
+        title="Drag to resize. Use the arrow keys to adjust."
         onPointerDown={handleResizeStart}
         onPointerMove={handleResizeMove}
         onPointerUp={handleResizeEnd}

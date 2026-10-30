@@ -5,6 +5,7 @@ import { initialNodeForm, nodeConfiguration } from './nodeConfiguration.js'
 import NodeTypeInput from './NodeTypeInput.jsx'
 import NodeValueInput from './NodeValueInput.jsx'
 import ExpressionInput from './ExpressionInput.jsx'
+import { diagnosticLabel } from '../LogicTree/logicLabels.js'
 import './NodeForm.css'
 
 // Configure les propriétés du langage sans éditer ni remplacer implicitement les liens syntaxiques.
@@ -34,41 +35,41 @@ export default function NodeForm({ kind, initialNode = null, context, onSubmit, 
     setError('')
   }
 
-  // Les erreurs du moteur restent structurées ; l'UI anglaise affiche leurs codes, non leur texte français.
+  // Les erreurs du moteur restent structurées ; l'interface affiche une explication courte.
   function handleSubmit(event) {
     event.preventDefault()
     if (required && ((schema.named && !form.name.trim()) || (isNew && kind === 'FunctionDeclaration' && form.parameters.some((parameter) => !parameter.name.trim() || !parameter.typeName)))) {
-      setError('A name and an explicit type are required for each declaration.')
+      setError('Add a name and a type before saving.')
       return
     }
     const result = onSubmit(nodeConfiguration(kind, form, symbols, initialNode))
-    if (!result.ok) setError([result.code, ...(result.diagnostics ?? []).map((entry) => `${entry.code} · ${entry.location.field ?? ''}`)].join(' — '))
+    if (!result.ok) setError([diagnosticLabel(result.code), ...(result.diagnostics ?? []).map((entry) => diagnosticLabel(entry.code))].join(' '))
     else setError('')
   }
 
-  if (!schema) return <p>Unsupported node.</p>
+  if (!schema) return <p>This block is not available yet.</p>
   return (
     <form className="node-form" onSubmit={handleSubmit}>
       {schema.named && <label>Name<input aria-label="Name" value={form.name} onChange={(event) => change('name', event.target.value)} required={required} autoComplete="off" /></label>}
       {schema.declaresType && <NodeTypeInput label={kind === 'FunctionDeclaration' ? 'Return type' : 'Type'} value={form.typeName} onChange={(value) => change('typeName', value)} required={required} allowVoid={kind === 'FunctionDeclaration'} alias={initialNode?.properties.type?.kind === 'named'} />}
       {kind === 'FunctionDeclaration' && <>
-        <label className="node-form__check"><input type="checkbox" checked={form.entryPoint} disabled={entryPointTaken && !form.entryPoint} onChange={(event) => change('entryPoint', event.target.checked)} />Entry point</label>
-        {entryPointTaken && !form.entryPoint && <p className="node-form__hint">Another function is already the entry point. Unmark it first.</p>}
+        <label className="node-form__check"><input type="checkbox" checked={form.entryPoint} disabled={entryPointTaken && !form.entryPoint} onChange={(event) => change('entryPoint', event.target.checked)} />Start program here</label>
+        {entryPointTaken && !form.entryPoint && <p className="node-form__hint">Another function already starts the program. Turn that off first.</p>}
       </>}
       {['BinaryExpression', 'UnaryExpression'].includes(kind) && <label>Operator
         <select aria-label="Operator" value={form.operator} onChange={(event) => change('operator', event.target.value)} required={required}>
-          <option value="">Choose an operator</option>{operators.map(([operator]) => <option key={operator} value={operator}>{operator}</option>)}
+          <option value="">Choose an operation</option>{operators.map(([operator]) => <option key={operator} value={operator}>{operator}</option>)}
         </select>
       </label>}
       {kind === 'Literal' && <NodeValueInput typeName={resolvedName} value={form.value} empty={form.empty} required={required} onChange={(value) => change('value', value)} onEmptyChange={(value) => change('empty', value)} />}
       {(kind === 'Reference' || (isNew && kind === 'CallExpression')) && <label>{kind === 'Reference' ? 'Symbol' : 'Function'}
         <select aria-label={kind === 'Reference' ? 'Symbol' : 'Function'} value={form.symbolId || (unresolved ? '@unresolved' : '')} onChange={(event) => change('symbolId', event.target.value)} required={required}>
-          <option value="">Choose a visible symbol</option>
-          {unresolved && <option value="@unresolved">Unresolved reference (unchanged)</option>}
+          <option value="">Choose a name</option>
+          {unresolved && <option value="@unresolved">Keep this link</option>}
           {references.map((symbol) => <option key={symbol.id} value={symbol.id}>{symbol.name}</option>)}
         </select>
       </label>}
-      {isNew && ['VariableDeclaration', 'ConstantDeclaration'].includes(kind) && <ExpressionInput label="Initializer" value={form.initializer} onChange={(value) => change('initializer', value)} type={type} symbols={symbols} required={kind === 'ConstantDeclaration' && required} allowIncomplete={form.allowIncomplete} />}
+      {isNew && ['VariableDeclaration', 'ConstantDeclaration'].includes(kind) && <ExpressionInput label="Starting value" value={form.initializer} onChange={(value) => change('initializer', value)} type={type} symbols={symbols} required={kind === 'ConstantDeclaration' && required} allowIncomplete={form.allowIncomplete} />}
       {isNew && ['IfStatement', 'WhileStatement', 'ForStatement'].includes(kind) && <ExpressionInput label="Condition" value={form.condition} onChange={(value) => change('condition', value)} type={primitiveType('boolean')} symbols={symbols} required={kind !== 'ForStatement' && required} allowIncomplete={form.allowIncomplete} />}
       {isNew && kind === 'FunctionDeclaration' && <fieldset><legend>Parameters</legend>
         {form.parameters.map((parameter, index) => <div className="node-form__parameter" key={index}>
@@ -78,9 +79,9 @@ export default function NodeForm({ kind, initialNode = null, context, onSubmit, 
         </div>)}
         <button type="button" onClick={() => change('parameters', [...form.parameters, { name: '', typeName: '' }])}><Plus size={16} strokeWidth={1.75} aria-hidden="true" />Add parameter</button>
       </fieldset>}
-      {isNew && kind === 'ForStatement' && <p className="node-form__hint">Initializer and update are configured through their slots after creation.</p>}
-      {isNew && <p className="node-form__hint">Unfilled child slots stay incomplete and keep their diagnostics. No values are generated.</p>}
-      <label className="node-form__check"><input type="checkbox" checked={form.allowIncomplete} onChange={(event) => change('allowIncomplete', event.target.checked)} />Allow incomplete properties</label>
+      {isNew && kind === 'ForStatement' && <p className="node-form__hint">Add the start and update parts after creating this block.</p>}
+      {isNew && <p className="node-form__hint">You can leave parts empty and fill them in later.</p>}
+      <label className="node-form__check"><input type="checkbox" checked={form.allowIncomplete} onChange={(event) => change('allowIncomplete', event.target.checked)} />Leave parts empty for now</label>
       {error && <p className="node-form__error" role="alert">{error}</p>}
       <button type="submit" className="node-form__submit">{initialNode ? <Save size={16} strokeWidth={1.75} aria-hidden="true" /> : <Plus size={16} strokeWidth={1.75} aria-hidden="true" />}{submitLabel}</button>
     </form>

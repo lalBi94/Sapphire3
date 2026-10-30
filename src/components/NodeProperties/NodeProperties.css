@@ -4,7 +4,6 @@
 .node-properties h3 { margin: 18px 0 10px; }
 .node-properties header button { display: grid; place-items: center; width: 28px; height: 28px; flex-shrink: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--color-text-muted); cursor: pointer; }
 .node-properties p { color: var(--color-text-muted); line-height: 1.5; }
-.node-properties__id { font-size: 10px; overflow-wrap: anywhere; }
 .node-properties__children { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0; }
 .node-properties__children span, .node-properties__children small { color: var(--color-text-muted); }
 .node-properties__children button { display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; border: 1px solid var(--color-selection-border); border-radius: var(--radius-small); color: var(--color-selection); background: var(--color-selection-surface); font: inherit; font-size: 10px; cursor: pointer; }
