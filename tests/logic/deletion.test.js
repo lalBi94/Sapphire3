@@ -21,10 +21,9 @@ test('suppression de module : contenu retiré, références externes conservées
   assert.equal(result.selection, null)
 })
 
-// Autorise le retrait du Main et refuse une cible absente ou ambiguë sans perte de données.
-test('suppression de module : Main, cibles invalides et doublons', () => {
+// Autorise le retrait du dernier module et refuse les cibles absentes ou ambiguës.
+test('suppression de module : dernier module, cibles invalides et doublons', () => {
   const source = program('m')
-  source.modules[0].kind = 'main'
   assert.equal(deleteSourceModule(source, 'm').project.modules.length, 0)
   for (const id of ['absent', null, '']) {
     const result = deleteSourceModule(source, id)

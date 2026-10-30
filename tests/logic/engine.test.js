@@ -25,17 +25,16 @@ test('module vide et identifiants stables', () => {
   assert.equal(result.semantic.scopes.length, 1)
 })
 
-test('zéro ou un Main autorisé ; plusieurs Main signalés sans perte des modules', () => {
+test('ancien module Main conservé mais diagnostiqué comme catégorie invalide', () => {
   const source = program('a', 'b', 'c')
   assertValid(analyzeProgram(source))
   source.modules[0].kind = 'main'
-  assertValid(analyzeProgram(source))
-  source.modules[1].kind = 'main'
-  source.modules[2].kind = 'main'
   const result = analyzeProgram(source)
   assert.equal(result.canGenerate, false)
   assert.equal(result.ast.modules.length, 3)
-  assert.deepEqual(result.diagnostics.filter((entry) => entry.code === codes.duplicateMain).map((entry) => entry.location.moduleId), ['b', 'c'])
+  assert.equal(result.ast.modules[0].moduleKind, 'main')
+  assert.deepEqual(result.diagnostics.filter((entry) => entry.code === codes.invalidModule).map((entry) => entry.location.moduleId), ['a'])
+  assert.equal(source.modules[0].kind, 'main')
 })
 
 test('plusieurs déclarations et références locales par nom et identifiant', () => {

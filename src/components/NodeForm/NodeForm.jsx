@@ -18,6 +18,7 @@ export default function NodeForm({ kind, initialNode = null, context, onSubmit, 
   const resolvedName = form.typeName === '@alias' ? context.index.nodeTypes.get(initialNode?.id)?.name : form.typeName
   const isNew = !initialNode
   const required = !form.allowIncomplete
+  const entryPointTaken = [...context.index.nodes.values()].some((node) => node.id !== initialNode?.id && node.kind === 'FunctionDeclaration' && node.properties?.entryPoint === true)
   const references = symbols.filter((symbol) => {
     if (kind === 'CallExpression') return symbol.type?.kind === 'function' && (!isNew || !context.expectedType || sameType(context.expectedType, symbol.type.returnType))
     if (context.record.kind === 'CallExpression' && context.slot?.name === 'callee') return symbol.type?.kind === 'function'
@@ -50,6 +51,10 @@ export default function NodeForm({ kind, initialNode = null, context, onSubmit, 
     <form className="node-form" onSubmit={handleSubmit}>
       {schema.named && <label>Name<input aria-label="Name" value={form.name} onChange={(event) => change('name', event.target.value)} required={required} autoComplete="off" /></label>}
       {schema.declaresType && <NodeTypeInput label={kind === 'FunctionDeclaration' ? 'Return type' : 'Type'} value={form.typeName} onChange={(value) => change('typeName', value)} required={required} allowVoid={kind === 'FunctionDeclaration'} alias={initialNode?.properties.type?.kind === 'named'} />}
+      {kind === 'FunctionDeclaration' && <>
+        <label className="node-form__check"><input type="checkbox" checked={form.entryPoint} disabled={entryPointTaken && !form.entryPoint} onChange={(event) => change('entryPoint', event.target.checked)} />Entry point</label>
+        {entryPointTaken && !form.entryPoint && <p className="node-form__hint">Another function is already the entry point. Unmark it first.</p>}
+      </>}
       {['BinaryExpression', 'UnaryExpression'].includes(kind) && <label>Operator
         <select aria-label="Operator" value={form.operator} onChange={(event) => change('operator', event.target.value)} required={required}>
           <option value="">Choose an operator</option>{operators.map(([operator]) => <option key={operator} value={operator}>{operator}</option>)}

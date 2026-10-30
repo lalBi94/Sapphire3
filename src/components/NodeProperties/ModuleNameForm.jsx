@@ -4,7 +4,7 @@ import { useState } from 'react'
 export default function ModuleNameForm({ module, onRename }) {
   const [name, setName] = useState(module.name)
   return <form className="node-form" onSubmit={(event) => { event.preventDefault(); if (name.trim()) onRename(module.id, name.trim()) }}>
-    <label>Name<input aria-label="Module name" value={name} disabled={module.kind === 'main'} required onChange={(event) => setName(event.target.value)} /></label>
-    {module.kind !== 'main' && <button type="submit">Save name</button>}
+    <label>Name<input aria-label="Module name" value={name} required onChange={(event) => setName(event.target.value)} /></label>
+    <button type="submit">Save name</button>
   </form>
 }

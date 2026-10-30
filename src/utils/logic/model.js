@@ -5,16 +5,17 @@
  * @typedef {{kind:'name', name:string}|{kind:'node', nodeId:string}|{kind:'import', importId:string}} SymbolReference
  * @typedef {{id:string, moduleId:string, nodeId:string, localName:string}} ModuleImport
  * @typedef {{nodeId:string, name:string}} ModuleExport
- * @typedef {{id:string, name:string, kind:'module'|'main', rootNodeIds:Array<string|null>, imports:ModuleImport[], exports:ModuleExport[]}} SourceModule
+ * @typedef {{id:string, name:string, kind:'module', rootNodeIds:Array<string|null>, imports:ModuleImport[], exports:ModuleExport[]}} SourceModule
  * @typedef {'VariableDeclaration'|'ConstantDeclaration'|'FunctionDeclaration'|'Parameter'|'TypeDeclaration'|'Block'|'ReturnStatement'|'IfStatement'|'WhileStatement'|'ForStatement'|'BreakStatement'|'ContinueStatement'|'ExpressionStatement'|'AssignmentStatement'|'BinaryExpression'|'UnaryExpression'|'Literal'|'Reference'|'CallExpression'|'CastExpression'|'Hole'} NodeKind
  * @typedef {{id:string, moduleId:string, kind:NodeKind, properties:Object, children:Object<string,string|null|Array<string|null>>, references:Object<string,SymbolReference>}} SourceNode
  * @typedef {{formatVersion:1, id:string, modules:SourceModule[], nodes:SourceNode[]}} SourceProject
+ * FunctionDeclaration accepte properties.entryPoint (booléen optionnel) ; true désigne l'unique point d'entrée du projet, sans imposer son nom ni sa signature cible.
  * Les données invalides restent acceptées en entrée des analyses ; les typedefs
  * décrivent la forme nominale, pas une obligation de validité pendant l'édition.
  */
 
 export const sourceFormatVersion = 1
-export const moduleKinds = Object.freeze({ module: 'module', main: 'main' })
+export const moduleKinds = Object.freeze({ module: 'module' })
 
 // Fournit un document vide ; les identifiants sont injectés, jamais générés par le moteur.
 export function createProject(id) {

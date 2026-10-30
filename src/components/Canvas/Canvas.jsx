@@ -9,7 +9,6 @@ import LogicTree from '../LogicTree/LogicTree.jsx'
 import LogicContextMenu from '../LogicContextMenu/LogicContextMenu.jsx'
 import NodeProperties from '../NodeProperties/NodeProperties.jsx'
 import { moduleTypes } from '../../utils/moduleTypes.js'
-import { moduleKinds } from '../../utils/logic/index.js'
 import './Canvas.css'
 
 // Assemble présentation, document source et interactions, sans confondre position et syntaxe.
@@ -18,8 +17,6 @@ export default function Canvas() {
   const [selected, setSelected] = useState(null)
   const document = useCanvasDocument()
   const { camera, zoom, canvasRef, isPanning, handlePointerDown, handlePointerMove, handlePointerEnd, handleKeyDown, handleRecenter } = useCanvasPan()
-
-  const hasMain = document.project.modules.some((module) => module.kind === moduleKinds.main)
 
   // Identifie le nœud le plus proche, puis le module ; les annotations restent hors du moteur.
   function handleContextMenu(event) {
@@ -101,7 +98,7 @@ export default function Canvas() {
       <CanvasStatus camera={camera} zoom={zoom} onRecenter={handleRecenter} />
       {selected && <NodeProperties selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={setSelected} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
       {contextMenu && (contextMenu.targetId ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} onInsert={handleInsert} onDelete={handleDeleteNode} onClose={handleCloseMenu} />
-        : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} hasMain={hasMain} onCreate={handleCreateModule} onClose={handleCloseMenu} />)}
+        : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} onCreate={handleCreateModule} onClose={handleCloseMenu} />)}
     </main>
   )
 }

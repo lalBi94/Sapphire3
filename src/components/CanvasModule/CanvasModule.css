@@ -8,10 +8,6 @@
   cursor: default;
 }
 
-.canvas-module--main {
-  border-color: var(--color-main-accent);
-}
-
 .canvas-module--selected { box-shadow: var(--shadow-selection), var(--shadow-card); }
 .canvas-module--selected .canvas-module__name { text-decoration: underline; text-underline-offset: 4px; }
 
@@ -122,11 +118,6 @@
 .canvas-module__comment:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: -3px;
-}
-
-.canvas-module--main .canvas-module__marker {
-  border-color: var(--color-main-accent);
-  background: var(--color-main-accent);
 }
 
 .canvas-module__resize {

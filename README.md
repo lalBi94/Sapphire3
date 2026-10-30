@@ -25,7 +25,7 @@ L'application contient une page unique avec un canvas plein écran : quadrillage
 
 La molette zoome autour du milieu de la vue, jusqu'à 400 %. Le dézoom n'a pas de minimum applicatif (hors limites numériques JavaScript), et la grille adapte sa densité. Une croix marque l'origine absolue (0, 0). En bas à droite : coordonnées du milieu de la vue, zoom et bouton pour revenir à l'origine en conservant le zoom. Aucune limite liée à un projet pour l'instant.
 
-Clic droit sur le canvas vide pour ouvrir le menu anglais « Create module » / « Create Main » / « Create comment ». Chaque action crée une zone rectangulaire à l'endroit visé. Glissez l'en-tête pour déplacer Module ou Main ; les flèches le déplacent aussi lorsque l'en-tête a le focus. La poignée inférieure droite permet de redimensionner la zone, également au clavier. Zéro ou un seul Main est autorisé : sa création est désactivée dès qu'il existe, et le moteur logique diagnostique les projets contenant plusieurs Main. Aucun comportement d'exécution ajouté. Ces zones restent en mémoire et disparaissent au rechargement ; pas de stockage sur disque.
+Clic droit sur le canvas vide pour ouvrir le menu anglais « Create module » / « Create comment ». Chaque action crée une zone à l'endroit visé. Glissez l'en-tête pour déplacer un module ; les flèches le déplacent aussi lorsque l'en-tête a le focus. La poignée inférieure droite permet de redimensionner la zone, également au clavier. Le type de module Main est retiré : à la création ou à l'édition d'une fonction, cochez « Entry point » pour la désigner comme point d'entrée du projet, indépendamment de son nom. Zéro ou une seule fonction peut porter ce rôle ; un badge la distingue dans l'arbre. Aucun comportement d'exécution ajouté. Ces zones restent en mémoire et disparaissent au rechargement ; pas de stockage sur disque.
 
 ### Édition contextuelle
 
@@ -37,13 +37,13 @@ Chaque insertion est atomique : slot unique occupé jamais remplacé, ordre des 
 
 Le bouton `▸`/`▾` de chaque nœud logique le plie ou le déplie. Tous les nœuds sont pliés par défaut ; seuls ceux que vous dépliez restent ouverts. Un nœud que vous créez s'affiche déplié, avec ses parents, pour que la nouvelle construction soit visible. Plié, le nœud tient sur une ligne avec ses données utiles (valeur, opérateur, cible, signature, nombre d'instructions) et masque ses slots ; déplié, il reprend le rendu complet. Ce pliage est purement visuel, local à la carte, non sauvegardé et sans effet sur l'AST.
 
-Un nœud peut être supprimé par « Delete node » dans son menu contextuel, ou depuis le panneau de propriétés avec une confirmation en deux temps. La suppression retire le nœud et tous ses descendants, puis sélectionne le parent logique. Les références vers le nœud supprimé restent dans la source et deviennent des diagnostics `REFERENCE_UNRESOLVED` ; aucune référence n'est réécrite silencieusement. Les cartes Module/Main ne sont pas supprimables ainsi, et il n'y a pas d'annulation.
+Un nœud peut être supprimé par « Delete node » dans son menu contextuel, ou depuis le panneau de propriétés avec une confirmation en deux temps. La suppression retire le nœud et tous ses descendants, puis sélectionne le parent logique. Les références vers le nœud supprimé restent dans la source et deviennent des diagnostics `REFERENCE_UNRESOLVED` ; aucune référence n'est réécrite silencieusement. Un module entier se retire par « Delete module » dans son panneau, avec confirmation. Supprimer la fonction point d'entrée ou son module libère le rôle. Il n'y a pas d'annulation.
 
 Chaque nœud affiche une bordure colorée selon sa catégorie logique : variable, type, fonction, paramètre, condition, boucle, retour, bloc, instruction, opérateur, valeur ou incomplet. Le groupe est défini avec le schéma de la construction, et les couleurs sont des variables CSS partagées.
 
 Les textes de l'application sont en anglais ; les commentaires et la documentation du projet sont en français.
 
-Double-cliquez sur le titre d'un Module pour le renommer (ou Entrée/F2 sur son en-tête). Entrée ou sortie du champ valide, Échap annule. Main garde son nom.
+Double-cliquez sur le titre d'un Module pour le renommer (ou Entrée/F2 sur son en-tête). Entrée ou sortie du champ valide, Échap annule.
 
 « Create comment » ajoute une carte d'annotation : titre renommable, texte multiligne dans le corps, déplacement par l'en-tête et redimensionnement par le coin. Ces notes sont uniquement visuelles : elles ne sont ni des modules logiques, ni des commentaires de code, et ne sont pas envoyées à l'AST. Noms et textes restent temporaires, sans sauvegarde sur disque.
 
@@ -60,7 +60,7 @@ Aucune API native exposée, stockage métier, backend ni service distant. Les sc
 - `ARCHITECTURE_AST.tex` et `ARCHITECTURE_AST.pdf` : rapport technique français de quatre pages.
 - `pnpm docs:ast` : recompile le PDF depuis le LaTeX (MiKTeX/pdfLaTeX, Latin Modern et PowerShell requis). Auxiliaires dans `build/latex/`, ignorés par Git.
 
-Les conteneurs graphiques et le modèle logique sont raccordés : chaque Module/Main visuel possède son module source de même identifiant, et les nœuds sont créés/édités via l'API contextuelle. Les positions/dimensions et les annotations Comment restent hors du moteur. Les données peuvent être sérialisées en mémoire, sans sauvegarde sur disque.
+Les conteneurs graphiques et le modèle logique sont raccordés : chaque Module visuel possède son module source de même identifiant, et les nœuds sont créés/édités via l'API contextuelle. Les positions/dimensions et les annotations Comment restent hors du moteur. Les données peuvent être sérialisées en mémoire, sans sauvegarde sur disque. Les anciennes sources contenant un module de catégorie `main` sont conservées mais diagnostiquées invalides, sans migration automatique.
 
 ### Documentation du projet
 

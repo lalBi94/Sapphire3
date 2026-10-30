@@ -1,6 +1,6 @@
 import { useReducer } from 'react'
 import { moduleTypes } from '../utils/moduleTypes.js'
-import { createProject, createModule, moduleKinds, analyzeProgram, createContextIndex, resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule } from '../utils/logic/index.js'
+import { createProject, createModule, analyzeProgram, createContextIndex, resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule } from '../utils/logic/index.js'
 
 // Recalcule les dérivés uniquement quand la source logique change.
 function withSource(state, project, analysis = analyzeProgram(project), index = createContextIndex(project, analysis)) {
@@ -17,7 +17,6 @@ function reduceDocument(state, action) {
   if (action.type === 'createCard') {
     const card = action.card
     if (state.cards.some((entry) => entry.id === card.id)) return state
-    if (card.type === moduleKinds.main && state.project.modules.some((module) => module.kind === moduleKinds.main)) return state
     const next = { ...state, cards: [...state.cards, card] }
     return card.type === 'comment' ? next : withSource(next, { ...state.project, modules: [...state.project.modules, createModule(card.id, card.name, card.type)] })
   }

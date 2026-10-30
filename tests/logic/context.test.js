@@ -24,14 +24,13 @@ function insert(source, targetId, slot, draft, idFactory) {
   return insertSourceNodes(source, { targetId, slot }, bundle, { index })
 }
 
-test('Module/Main : actions déterministes, racines adaptées et restrictions lexicales', () => {
-  const source = program('module', 'main')
-  source.modules[1].kind = 'main'
+test('modules : actions déterministes, racines adaptées et restrictions lexicales', () => {
+  const source = program('module', 'other')
   const index = indexed(source)
   const ordinary = getAvailableActions(source, 'module', undefined, { index })
-  const main = getAvailableActions(source, 'main', 'rootNodeIds', { index })
+  const other = getAvailableActions(source, 'other', 'rootNodeIds', { index })
   assert.equal(ordinary.slot.name, 'rootNodeIds')
-  assert.deepEqual(ordinary.actions, main.actions)
+  assert.deepEqual(ordinary.actions, other.actions)
   for (const kind of ['FunctionDeclaration', 'TypeDeclaration', 'VariableDeclaration', 'IfStatement', 'WhileStatement', 'ForStatement']) assert.ok(ordinary.actions.some((action) => action.kind === kind))
   for (const kind of ['Parameter', 'ReturnStatement', 'BreakStatement', 'Literal', 'Hole']) assert.ok(!ordinary.actions.some((action) => action.kind === kind))
   assert.equal(ordinary.index.analysis, index.analysis)

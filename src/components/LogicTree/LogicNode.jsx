@@ -34,6 +34,7 @@ export default function LogicNode({ id, index, selectedId, onSelect, ancestors, 
         </button>
         <button type="button" className="logic-node__heading" onClick={handleSelect} aria-pressed={selectedId === id}>
           <span>{kindLabel(node.kind)}{node.properties?.name ? ` · ${node.properties.name}` : ''}</span>
+          {node.kind === 'FunctionDeclaration' && node.properties?.entryPoint === true && <span className="logic-node__entry-point">Entry point</span>}
           {diagnostics.length > 0 && <span className="logic-node__issues" aria-label={`${diagnostics.length} diagnostics`}>{diagnostics.length}</span>}
         </button>
       </div>

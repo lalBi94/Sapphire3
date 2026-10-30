@@ -7,7 +7,7 @@ Point d'entrée : `src/utils/logic/index.js`. JavaScript pur, sans React, DOM, A
 | Fonction | Résultat |
 | --- | --- |
 | `createProject(id)` | `{formatVersion: 1, id, modules: [], nodes: []}` |
-| `createModule(id, name, kind = 'module')` | Module vide ; `kind` vaut `module` ou `main` |
+| `createModule(id, name, kind = 'module')` | Module vide ; seule catégorie valide : `module` |
 | `createNode(id, moduleId, kind, {properties, children, references})` | Nœud permissif, sans génération d'identifiant |
 | `buildLogicalAst(source)` | `{ast, diagnostics}` ; structure hiérarchique avec trous et fragments invalides |
 | `buildSemanticModel(ast)` | `{model, diagnostics, index}` ; entrée attendue : AST issu du constructeur ; `index` contient les Map temporaires des passes suivantes |
@@ -27,7 +27,7 @@ Point d'entrée : `src/utils/logic/index.js`. JavaScript pur, sans React, DOM, A
 | `deleteSourceNodes(project, targetId, {index})` | `{ok, project, analysis, index, removedNodeIds, selection}` ou code d'échec ; retrait du nœud et de son sous-arbre |
 | `deleteSourceModule(project, moduleId)` | Retrait atomique du module et de tous les nœuds dont il est propriétaire, y compris détachés ; réanalyse et `selection: null`. Références/imports externes conservés et diagnostiqués ; cible absente ou ambiguë refusée. |
 
-`diagnosticCodes`, `sourceFormatVersion`, `moduleKinds`, `nodeSchema`, `getNodeSchema`, `binaryOperators`, `unaryOperators`, `primitiveDefinitions`, `primitiveType(name)`, `sameType` et `acceptsOperand` sont également exportés. `primitiveType` renvoie uniquement un primitif autorisé, ou `null` comme absence de résultat. Aucun type de secours n'existe. Les catégories Module/Main sont définies dans `model.js` et réutilisées par les libellés visuels ; les cartes Module/Main partagent désormais l'identifiant de leur module source, tandis que les annotations Comment restent hors du moteur. Les contrats JSDoc sont dans `model.js`, `ast.js`, `semantics.js`, `diagnostics.js`, `contextResolver.js` et `sourceMutation.js` ; aucun TypeScript ajouté.
+`diagnosticCodes`, `sourceFormatVersion`, `moduleKinds`, `nodeSchema`, `getNodeSchema`, `binaryOperators`, `unaryOperators`, `primitiveDefinitions`, `primitiveType(name)`, `sameType` et `acceptsOperand` sont également exportés. `primitiveType` renvoie uniquement un primitif autorisé, ou `null` comme absence de résultat. Aucun type de secours n'existe. La catégorie Module est définie dans `model.js` et réutilisée par les libellés visuels ; les cartes Module partagent l'identifiant de leur module source, tandis que les annotations Comment restent hors du moteur. Les contrats JSDoc sont dans `model.js`, `ast.js`, `semantics.js`, `diagnostics.js`, `contextResolver.js` et `sourceMutation.js` ; aucun TypeScript ajouté.
 
 Les fonctions ne modifient pas les entrées. Les identifiants sont fournis par l'appelant, stables et jamais régénérés pendant les transformations. Les consommateurs doivent traiter les résultats comme des instantanés en lecture seule ; certains champs JSON sont partagés avec la source, sans copie profonde inutile.
 
@@ -39,7 +39,9 @@ Les fonctions ne modifient pas les entrées. Les identifiants sont fournis par l
 
 Un module possède `rootNodeIds`, `imports` et `exports`. L'ordre de `rootNodeIds` et des slots de listes est l'ordre syntaxique, pas celui du tableau global `nodes`. Pas de sous-modules dans cette version ; l'absence de hiérarchie de modules évite de la confondre avec les portées lexicales.
 
-Un projet valide contient zéro ou un seul module de catégorie `main`. Chaque Main supplémentaire produit `MAIN_DUPLICATE` sur son `moduleId` et le champ `kind`. La source et l'AST restent inspectables sans suppression automatique ; `canGenerate` est faux. Main ne possède pas encore de sémantique d'exécution.
+Un projet valide contient zéro ou une seule fonction portant `properties.entryPoint: true`. Le marqueur est un booléen optionnel réservé à `FunctionDeclaration` ; absent ou `false`, la fonction est ordinaire, même si elle s'appelle `main`. Toute fonction marquée supplémentaire produit `ENTRY_POINT_DUPLICATE`, sur son `nodeId` et `properties.entryPoint`, y compris dans les fragments détachés. Un marqueur non booléen ou placé sur une autre construction produit `ENTRY_POINT_INVALID`. Les données invalides restent inspectables et sérialisables sans suppression automatique ; `canGenerate` est faux. Aucun nom, signature cible, appel implicite ou comportement d'exécution n'est imposé ; les règles de types et de retour ordinaires s'appliquent.
+
+La catégorie de module `main` est retirée : une ancienne source v1 l'utilisant reste conservée et diagnostiquée `MODULE_INVALID`, jamais convertie silencieusement en module ou en fonction. Le format JSON reste v1 ; aucune migration ni persistance n'est ajoutée.
 
 ## Constructions et slots
 
@@ -49,7 +51,7 @@ Un projet valide contient zéro ou un seul module de catégorie `main`. Chaque M
 | --- | --- |
 | `VariableDeclaration` | `name`, `type` obligatoire ; `initializer?` expression |
 | `ConstantDeclaration` | `name`, `type` obligatoire ; `initializer` expression requis |
-| `FunctionDeclaration` | `name`, `type` obligatoire (retour) ; `parameters[]`, `body` Block |
+| `FunctionDeclaration` | `name`, `type` obligatoire (retour), `entryPoint?` booléen ; `parameters[]`, `body` Block |
 | `Parameter` | `name`, `type` obligatoire ; uniquement dans `parameters[]` |
 | `TypeDeclaration` | `name`, `type` obligatoire ; alias transparent d'un primitif, pas de classes/structures |
 | `Block` | `statements[]` : déclarations ou instructions |
@@ -155,17 +157,17 @@ const result = analyzeProgram(twoModules())
 const saved = serializeSource(result.source)
 ```
 
-Une intégration est désormais en place : les cartes Module/Main partagent l'identifiant de leur module source, les coordonnées/tailles restent dans un état de présentation séparé, et les annotations Comment restent hors du moteur. Les identifiants de nœuds sont des UUID stables fournis par l'interface.
+Une intégration est désormais en place : les cartes Module partagent l'identifiant de leur module source, les coordonnées/tailles restent dans un état de présentation séparé, et les annotations Comment restent hors du moteur. Les identifiants de nœuds sont des UUID stables fournis par l'interface. La case « Entry point » est proposée à la création et à l'édition d'une fonction ; lorsqu'une autre fonction est marquée, il faut d'abord retirer son rôle. Un badge textuel identifie le point d'entrée dans l'arbre.
 
 ### Insertion contextuelle
 
-`getAvailableActions` déduit les constructions insérables du schéma (`nodeSchema`) et du contexte lexical, jamais d'une liste codée en dur. `Module`/`Main` utilisent `rootNodeIds` ; les autres nœuds utilisent `children`. Les slots sont proposés avant les constructions ; un slot unique occupé ou malformé n'est pas remplaçable. `placement.js` partage les restrictions lexicales avec le validateur : fonctions et types aux racines du module, paramètres dans une liste de fonction, `return` dans une fonction, `break`/`continue` dans une boucle.
+`getAvailableActions` déduit les constructions insérables du schéma (`nodeSchema`) et du contexte lexical, jamais d'une liste codée en dur. Les modules utilisent `rootNodeIds` ; les autres nœuds utilisent `children`. Les slots sont proposés avant les constructions ; un slot unique occupé ou malformé n'est pas remplaçable. `placement.js` partage les restrictions lexicales avec le validateur : fonctions et types aux racines du module, paramètres dans une liste de fonction, `return` dans une fonction, `break`/`continue` dans une boucle.
 
-`createNodeBundle` construit uniquement de nouveaux enregistrements ; `insertSourceNodes` vérifie le slot, l'appartenance au module, l'unicité des identifiants, l'absence d'enfant existant, le type attendu et les nouvelles erreurs dures après réanalyse. Un échec renvoie la source inchangée. `updateSourceNode` ne modifie que `properties`/`references` et conserve les enfants. Les états incomplets (littéral sans valeur, appel partiel, retour sans argument) restent acceptés mais laissent `canGenerate` faux.
+`createNodeBundle` construit uniquement de nouveaux enregistrements ; `insertSourceNodes` vérifie le slot, l'appartenance au module, l'unicité des identifiants, l'absence d'enfant existant, le type attendu et les nouvelles erreurs dures après réanalyse, dont les marqueurs de point d'entrée invalides ou dupliqués. Un échec renvoie la source inchangée. `updateSourceNode` ne modifie que `properties`/`references` et conserve les enfants ; une nouvelle désignation en doublon est refusée avec `ENTRY_POINT_DUPLICATE` et la source inchangée. Les doublons déjà présents restent éditables pour correction. Retirer le marqueur, supprimer la fonction ou son module libère le rôle. Les états incomplets (littéral sans valeur, appel partiel, retour sans argument) restent acceptés mais laissent `canGenerate` faux.
 
 ### Suppression
 
-`deleteSourceNodes(project, targetId, {index})` exige une cible `{kind:'node', id}` reliée à un parent unique et refuse les modules (`MODULE_NOT_DELETABLE`), les identifiants absents ou ambigus, les nœuds détachés et les parents ambigus, en renvoyant la source d'origine. En cas de succès, le nœud et tous ses descendants syntaxiques sont retirés du tableau `nodes` ; son entrée est déliée du parent (slot unique remis à `null`, entrée filtrée dans une liste). Aucun autre identifiant, ordre ou référence n'est réécrit. Les références pointant vers un nœud supprimé restent dans la source et produisent `REFERENCE_UNRESOLVED` à la réanalyse. `selection` indique le parent logique (nœud ou module) à sélectionner dans l'interface. Aucune annulation ni suppression de Module/Main n'est fournie.
+`deleteSourceNodes(project, targetId, {index})` exige une cible `{kind:'node', id}` reliée à un parent unique et refuse les modules (`MODULE_NOT_DELETABLE`), les identifiants absents ou ambigus, les nœuds détachés et les parents ambigus, en renvoyant la source d'origine. En cas de succès, le nœud et tous ses descendants syntaxiques sont retirés du tableau `nodes` ; son entrée est déliée du parent (slot unique remis à `null`, entrée filtrée dans une liste). Aucun autre identifiant, ordre ou référence n'est réécrit. Les références pointant vers un nœud supprimé restent dans la source et produisent `REFERENCE_UNRESOLVED` à la réanalyse. `selection` indique le parent logique (nœud ou module) à sélectionner dans l'interface. Aucune annulation ; le retrait d'un module entier relève de `deleteSourceModule`.
 
 ```js
 import { deleteSourceNodes } from './src/utils/logic/index.js'

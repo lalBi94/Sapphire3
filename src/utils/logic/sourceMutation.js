@@ -10,6 +10,7 @@ const hardInsertionCodes = new Set([
   codes.invalidStructure, codes.missingNode, codes.invalidModule, codes.multipleParents, codes.cycle,
   codes.illegalPlacement, codes.typeMismatch, codes.invalidType, codes.voidNotAllowed,
   codes.invalidLiteral, codes.overflow, codes.underflow, codes.divisionByZero, codes.conflict,
+  codes.duplicateEntryPoint, codes.invalidEntryPoint,
 ])
 
 // Retire un module et tous ses nœuds propriétaires, sans effacer les références externes.
@@ -111,6 +112,9 @@ export function updateSourceNode(project, nodeId, patch) {
   if (!Array.isArray(project?.nodes)) return { ok: false, code: 'SOURCE_INVALID', project }
   const matches = project.nodes.filter((node) => node?.id === nodeId)
   if (matches.length !== 1) return { ok: false, code: 'TARGET_INVALID', project }
+  if (patch.properties?.entryPoint === true && matches[0].properties?.entryPoint !== true && project.nodes.some((node) => node?.id !== nodeId && node?.kind === 'FunctionDeclaration' && node.properties?.entryPoint === true)) {
+    return { ok: false, code: codes.duplicateEntryPoint, project }
+  }
   const candidate = { ...project, nodes: project.nodes.map((node) => node?.id === nodeId ? { ...node, ...patch } : node) }
   const analysis = analyzeProgram(candidate)
   return { ok: true, project: candidate, analysis, index: createContextIndex(candidate, analysis), nodeId }

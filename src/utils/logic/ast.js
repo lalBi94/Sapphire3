@@ -48,6 +48,18 @@ export function buildLogicalAst(source) {
 
   const modules = indexRecords(source.modules, 'modules')
   const nodes = indexRecords(source.nodes, 'nodes')
+  let entryPointFound = false
+  for (const node of nodes.values()) {
+    const marker = isRecord(node.properties) ? node.properties.entryPoint : undefined
+    if (marker === undefined) continue
+    const location = { moduleId: node.moduleId, nodeId: node.id, field: 'properties.entryPoint' }
+    if (node.kind !== 'FunctionDeclaration' || typeof marker !== 'boolean') {
+      report(codes.invalidEntryPoint, 'Le rôle de point d’entrée est un booléen réservé aux fonctions.', location)
+    } else if (marker) {
+      if (entryPointFound) report(codes.duplicateEntryPoint, 'Un projet peut contenir zéro ou une seule fonction point d’entrée.', location)
+      entryPointFound = true
+    }
+  }
   const attached = new Set()
   const active = new Set()
 
@@ -124,13 +136,8 @@ export function buildLogicalAst(source) {
     return { kind: schema ? node.kind : 'Invalid', sourceKind: node.kind, sourceId: id, moduleId, properties, references: isRecord(node.references) ? node.references : {}, children, location: ownLocation }
   }
 
-  let mainFound = false
   for (const module of modules.values()) {
     const location = { moduleId: module.id }
-    if (module.kind === moduleKinds.main) {
-      if (mainFound) report(codes.duplicateMain, 'Un projet peut contenir zéro ou un seul module Main.', { ...location, field: 'kind' })
-      mainFound = true
-    }
     if (!Object.values(moduleKinds).includes(module.kind)) report(codes.invalidModule, 'Catégorie de module inconnue.', location)
     if (!isId(module.name)) report(codes.incomplete, 'Nom de module manquant.', location)
     for (const field of ['rootNodeIds', 'imports', 'exports']) {

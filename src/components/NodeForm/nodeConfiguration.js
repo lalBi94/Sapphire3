@@ -10,7 +10,7 @@ export function initialNodeForm(kind, node, expectedType, symbols) {
     operator: properties.operator ?? '', value: properties.value === undefined ? '' : Object.is(properties.value, -0) ? '-0' : String(properties.value),
     empty: properties.type?.name === 'string' && properties.value === '', symbolId: symbol?.id ?? (target ? '@unresolved' : ''),
     initializer: { mode: '', value: '', empty: false, symbolId: '' }, condition: { mode: '', value: '', empty: false, symbolId: '' },
-    parameters: [], allowIncomplete: false,
+    parameters: [], entryPoint: properties.entryPoint === true, allowIncomplete: false,
   }
 }
 
@@ -40,6 +40,10 @@ export function nodeConfiguration(kind, form, symbols, initialNode = null) {
   const references = { ...initialNode?.references }
   const type = form.typeName === '@alias' ? initialNode?.properties.type : primitiveType(form.typeName)
   if (schema.named) properties.name = initialNode && form.name === initialNode.properties.name ? form.name : form.name.trim()
+  if (kind === 'FunctionDeclaration') {
+    if (form.entryPoint) properties.entryPoint = true
+    else delete properties.entryPoint
+  }
   if (schema.declaresType) {
     if (type) properties.type = type
     else delete properties.type

@@ -155,3 +155,11 @@
 - Action « Delete module » confirmée dans le panneau de propriétés, disponible pour Module et Main. Retrait atomique de la carte et de la source propriétaire ; références et imports externes conservés, réanalyse des diagnostics. Aucun retrait d'annotation Comment ajouté.
 - `deleteSourceModule` testé pour le contenu détaché, la conservation de la source et des autres modules, les références pendantes, le Main et les cibles absentes/ambiguës.
 - 83 tests Node et build réussis. Navigateur : annulation conservant le Main et sa variable, puis confirmation supprimant carte et nœud, fermant le panneau et restaurant le focus au canvas. Fenêtre native non revérifiée.
+
+## Fonction point d'entrée à la place du module Main — 30 octobre 2026
+
+- Retrait de la catégorie `main`, de sa création et de ses particularités d'édition/style. Les modules sont ordinaires et renommables. Règle permanente et documentation actualisées ; les anciens passages de cette archive décrivent les incréments antérieurs.
+- Désignation explicite d'une `FunctionDeclaration` par `properties.entryPoint: true`, booléen facultatif indépendant du nom et de la signature cible. Zéro ou une fonction marquée par projet ; pas d'exécution, de génération ni de migration automatique. Anciennes sources v1 avec module `main` conservées et diagnostiquées `MODULE_INVALID`.
+- L'analyse détecte marqueurs invalides et doublons sans supprimer les données ; insertions et nouvelles désignations concurrentes en doublon refusées atomiquement. Retrait du marqueur ou suppression de la fonction/du module libère le rôle.
+- Case « Entry point » dans les formulaires de création et d'édition, désactivée si une autre fonction porte le rôle, avec explication. Badge textuel jaune dans l'arbre, également plié.
+- `pnpm test` : 90 tests réussis. `pnpm build` réussi. Navigateur : menu de création sans Main, création de `start` marquée, seconde fonction `main` non marquée et case désactivée, retrait du rôle puis désignation de `main`, badge visible au pliage. Console sans erreur, captures contrôlées. Fenêtre native non revérifiée.
