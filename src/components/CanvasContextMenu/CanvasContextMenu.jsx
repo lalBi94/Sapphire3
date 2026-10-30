@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Box, MessageSquare } from 'lucide-react'
 import { moduleTypes } from '../../utils/moduleTypes.js'
+import DeleteAction from '../DeleteAction/DeleteAction.jsx'
 import './CanvasContextMenu.css'
 
 const menuIcons = {
@@ -9,7 +10,7 @@ const menuIcons = {
 }
 
 // Propose les créations disponibles et gère la fermeture ainsi que le focus clavier.
-export default function CanvasContextMenu({ x, y, onCreate, onClose }) {
+export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId = null, onDeleteComment, anchored = false }) {
   const menuRef = useRef(null)
 
   useEffect(() => {
@@ -49,13 +50,13 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose }) {
       className="canvas-context-menu"
       data-canvas-ui
       data-canvas-scroll
-      style={{ left: x, top: y }}
+      style={{ left: `min(${x}px, max(8px, calc(100% - 192px)))`, top: anchored ? y : commentId ? `min(${y}px, max(8px, calc(100% - 240px)))` : y, maxHeight: anchored ? `calc(100% - ${y + 8}px)` : undefined }}
       role="menu"
-      aria-label="Create a canvas item"
+      aria-label={commentId ? 'Comment menu' : 'Create a canvas item'}
       onPointerDown={(event) => event.stopPropagation()}
       onKeyDown={handleKeyDown}
     >
-      {Object.entries(moduleTypes).map(([type, definition]) => {
+      {commentId ? <DeleteAction targetId={commentId} kind="comment" onDelete={onDeleteComment} menu /> : Object.entries(moduleTypes).map(([type, definition]) => {
         const Icon = menuIcons[type]
         return <button key={type} type="button" role="menuitem" onClick={() => onCreate(type)}>
           <Icon className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />

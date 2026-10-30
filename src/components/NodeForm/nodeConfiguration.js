@@ -1,4 +1,23 @@
-import { primitiveType, getNodeSchema } from '../../utils/logic/index.js'
+import { primitiveType, getNodeSchema, binaryOperators, unaryOperators, acceptsOperand, sameType } from '../../utils/logic/index.js'
+
+// Fournit un brouillon vide sans inventer d'opérateur, de type ou de valeur.
+export function emptyExpression() {
+  return { mode: '', value: '', empty: false, symbolId: '', operator: '', operandTypeName: '' }
+}
+
+// Filtre les opérations par leur résultat attendu, depuis les règles du moteur.
+export function expressionOperators(mode, type) {
+  return Object.entries(mode === 'unary' ? unaryOperators : binaryOperators).filter(([, rule]) => !type || (rule.result === 'same' ? acceptsOperand(rule.operands, type) : sameType(primitiveType(rule.result), type)))
+}
+
+// Résout le type explicitement choisi des opérandes, ou celui imposé par l'opération.
+export function expressionOperandType(value, type) {
+  const operators = value.mode === 'unary' ? unaryOperators : binaryOperators
+  const rule = Object.hasOwn(operators, value.operator) ? operators[value.operator] : null
+  if (!rule) return null
+  const candidate = rule.operands === 'boolean' ? primitiveType('boolean') : rule.result === 'same' && type ? type : primitiveType(value.operandTypeName)
+  return candidate && acceptsOperand(rule.operands, candidate) ? candidate : null
+}
 
 // Prépare un brouillon UI à partir des seules propriétés existantes, sans valeur logique inventée.
 export function initialNodeForm(kind, node, expectedType, symbols) {
@@ -9,7 +28,7 @@ export function initialNodeForm(kind, node, expectedType, symbols) {
     name: properties.name ?? '', typeName: properties.type?.kind === 'named' ? '@alias' : properties.type?.name ?? (kind === 'Literal' || kind === 'CastExpression' ? expectedType?.name ?? '' : ''),
     operator: properties.operator ?? '', value: properties.value === undefined ? '' : Object.is(properties.value, -0) ? '-0' : String(properties.value),
     empty: properties.type?.name === 'string' && properties.value === '', symbolId: symbol?.id ?? (target ? '@unresolved' : ''),
-    initializer: { mode: '', value: '', empty: false, symbolId: '' }, condition: { mode: '', value: '', empty: false, symbolId: '' },
+    initializer: emptyExpression(), condition: emptyExpression(),
     parameters: [], entryPoint: properties.entryPoint === true, allowIncomplete: false,
   }
 }
@@ -26,11 +45,26 @@ function literalDraft(type, value, empty) {
   return { kind: 'Literal', properties }
 }
 
-// Ne génère un enfant que si l'utilisateur a choisi un mode d'expression.
-function expressionDraft(value, type, symbols) {
+// Construit toute l'expression choisie en une insertion, sans modifier d'enfant déjà existant.
+export function expressionDraft(value, type, symbols, depth = 0) {
+  if (!value || depth > 12) return null
   if (value.mode === 'literal') return literalDraft(type, value.value, value.empty)
   const symbol = symbols.find((entry) => entry.id === value.symbolId)
-  return value.mode === 'reference' && symbol ? { kind: 'Reference', references: { target: symbolTarget(symbol) } } : null
+  if (value.mode === 'reference') return symbol ? { kind: 'Reference', references: { target: symbolTarget(symbol) } } : null
+  if (value.mode === 'binary' || value.mode === 'unary') {
+    const operandType = expressionOperandType(value, type)
+    const child = (entry) => expressionDraft(entry, operandType, symbols, depth + 1)
+    return value.mode === 'binary'
+      ? { kind: 'BinaryExpression', properties: { operator: value.operator }, children: { left: child(value.left), right: child(value.right) } }
+      : { kind: 'UnaryExpression', properties: { operator: value.operator }, children: { operand: child(value.operand) } }
+  }
+  if (value.mode === 'call' && symbol?.type?.kind === 'function') {
+    return { kind: 'CallExpression', children: { callee: { kind: 'Reference', references: { target: symbolTarget(symbol) } }, arguments: symbol.type.parameters.map((parameter, index) => expressionDraft(value.arguments?.[index], parameter, symbols, depth + 1) ?? { kind: 'Hole' }) } }
+  }
+  if (value.mode === 'cast') {
+    return { kind: 'CastExpression', properties: { ...(type ? { type } : {}) }, children: { argument: expressionDraft(value.argument, primitiveType(value.operandTypeName), symbols, depth + 1) } }
+  }
+  return null
 }
 
 // Produit une configuration nouvelle ou une modification de propriétés, sans remplacer d'enfant existant.

@@ -13,11 +13,6 @@
 .node-properties__diagnostics strong { color: var(--color-diagnostic); font-weight: 400; }
 .node-properties__diagnostics small { color: var(--color-text-muted); }
 .node-properties__danger { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--color-border); display: grid; gap: 8px; }
-.node-properties__delete { display: inline-flex; align-items: center; gap: var(--space-small); justify-self: start; padding: 7px 9px; border: 1px solid var(--color-diagnostic); border-radius: var(--radius-control); background: transparent; color: var(--color-diagnostic); font: inherit; font-size: 11px; cursor: pointer; }
-.node-properties__confirm { display: grid; gap: 8px; }
-.node-properties__confirm p { margin: 0; font-size: 11px; }
-.node-properties__confirm div { display: flex; flex-wrap: wrap; gap: 6px; }
-.node-properties__confirm button:not(.node-properties__delete) { display: inline-flex; align-items: center; gap: var(--space-small); padding: 7px 9px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: transparent; color: var(--color-text); font: inherit; font-size: 11px; cursor: pointer; }
-.node-properties header button:hover, .node-properties__delete:hover, .node-properties__confirm button:hover { background: var(--color-hover); }
+.node-properties header button:hover { background: var(--color-hover); }
 .node-properties__children button:hover { border-color: var(--color-selection); text-decoration: underline; }
 .node-properties :is(input, select, button):focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }

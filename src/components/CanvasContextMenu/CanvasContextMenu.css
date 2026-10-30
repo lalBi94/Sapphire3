@@ -8,6 +8,8 @@
   background: var(--surface-reflection), var(--surface-floating);
   box-shadow: var(--shadow-panel);
   cursor: default;
+  overflow-y: auto;
+  max-height: calc(100% - 16px);
 }
 
 .canvas-context-menu button {

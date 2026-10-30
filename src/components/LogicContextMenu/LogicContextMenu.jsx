@@ -3,10 +3,11 @@ import { ArrowLeft, CircleDot, Plus, Trash2 } from 'lucide-react'
 import { getAvailableActions } from '../../utils/logic/index.js'
 import { kindLabel } from '../LogicTree/logicLabels.js'
 import NodeForm from '../NodeForm/NodeForm.jsx'
+import DeleteAction from '../DeleteAction/DeleteAction.jsx'
 import './LogicContextMenu.css'
 
 // Propose le slot, puis la construction compatible et son formulaire latéral.
-export default function LogicContextMenu({ project, index, targetId, initialSlot, x, y, onInsert, onDelete, onClose }) {
+export default function LogicContextMenu({ project, index, targetId, initialSlot, x, y, onInsert, onDelete, onDeleteModule, onClose, anchored = false }) {
   const [slotName, setSlotName] = useState(initialSlot ?? '')
   const [kind, setKind] = useState('')
   const menuRef = useRef(null)
@@ -41,7 +42,7 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
   }
 
   return (
-    <div ref={menuRef} className="logic-context-menu" data-canvas-ui data-canvas-scroll tabIndex={-1} aria-label="Node menu" style={{ left: `min(${x}px, max(8px, calc(100% - ${kind ? 540 : 220}px - 8px)))`, top: `min(${y}px, max(8px, calc(100% - ${kind ? 630 : 420}px)))` }} onPointerDown={(event) => event.stopPropagation()} onKeyDown={handleKeyDown}>
+    <div ref={menuRef} className="logic-context-menu" data-canvas-ui data-canvas-scroll tabIndex={-1} aria-label="Node menu" style={{ left: `min(${x}px, max(8px, calc(100% - ${kind ? 600 : 220}px - 8px)))`, top: anchored ? y : `min(${y}px, max(8px, calc(100% - ${kind ? 630 : 420}px)))`, maxHeight: anchored ? `calc(100% - ${y + 8}px)` : undefined }} onPointerDown={(event) => event.stopPropagation()} onKeyDown={handleKeyDown}>
       <div className="logic-context-menu__actions" role="menu" aria-label={selectedSlot ? `Add to ${selectedSlot}` : 'Choose a slot'}>
         <div className="logic-context-menu__title">{selectedSlot || 'Choose a slot'}</div>
         {selectedSlot && available.slots.length > 1 && <button type="button" role="menuitem" onClick={() => { setSlotName(''); setKind('') }}><ArrowLeft className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />Slots</button>}
@@ -50,6 +51,7 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
         {available.ok && selectedSlot && available.actions.map((action) => <button type="button" role="menuitem" key={action.id} aria-pressed={kind === action.kind} onClick={() => setKind(action.kind)}><Plus className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{kindLabel(action.kind)}</button>)}
         {available.ok && (available.slots.length === 0 || (selectedSlot && available.actions.length === 0)) && <p>No insertions available.</p>}
         {available.ok && available.target?.kind === 'node' && <button type="button" role="menuitem" className="logic-context-menu__delete" title="Also removes its child nodes." onClick={() => onDelete(targetId)}><Trash2 className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />Delete node</button>}
+        {available.ok && available.target?.kind === 'module' && <DeleteAction targetId={available.target.id} kind="module" onDelete={onDeleteModule} menu />}
       </div>
       {kind && <div className="logic-context-menu__form"><h3>{kindLabel(kind)}</h3><NodeForm key={`${selectedSlot}:${kind}`} kind={kind} context={available} onSubmit={(draft) => onInsert(targetId, selectedSlot, draft)} /></div>}
     </div>

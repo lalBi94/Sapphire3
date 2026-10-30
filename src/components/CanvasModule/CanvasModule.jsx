@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { minimumModuleSize, moduleTypes } from '../../utils/moduleTypes.js'
+import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
 import './CanvasModule.css'
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onRename, onTextChange, children, selected = false, onSelect }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onRename, onTextChange, children, selected = false, onSelect, onOpenActions, fitRequest = 0 }) {
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [draftName, setDraftName] = useState('')
@@ -12,6 +13,8 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
   const titleRef = useRef(null)
   const nameInputRef = useRef(null)
   const restoreNameFocusRef = useRef(false)
+  const contentRef = useRef(null)
+  const manuallySizedRef = useRef(0)
 
   useEffect(() => {
     if (editingName) {
@@ -22,6 +25,19 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
       restoreNameFocusRef.current = false
     }
   }, [editingName])
+
+  // Agrandit après insertion et dépliage ; un redimensionnement manuel suspend cet ajustement jusqu'à la prochaine insertion.
+  useLayoutEffect(() => {
+    if (!fitRequest || manuallySizedRef.current === fitRequest || !contentRef.current) return
+    const content = contentRef.current
+    const width = Math.max(module.width, 520, Math.ceil(content.scrollWidth + 2))
+    if (width > module.width) {
+      onResize(module.id, width, module.height)
+      return
+    }
+    const height = Math.max(module.height, Math.ceil(content.scrollHeight + 42))
+    if (height > module.height) onResize(module.id, width, height)
+  }, [fitRequest, children, module.id, module.width, module.height, onResize])
 
   const definition = moduleTypes[module.type]
   const name = module.name || definition.label
@@ -100,6 +116,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
   // Mémorise les dimensions initiales et capture le geste sur la poignée.
   function handleResizeStart(event) {
     if (event.button !== 0 || resizeRef.current || moveRef.current) return
+    manuallySizedRef.current = fitRequest
     event.preventDefault()
     event.currentTarget.focus({ preventScroll: true })
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -142,6 +159,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
     }
     const direction = directions[event.key]
     if (!direction) return
+    manuallySizedRef.current = fitRequest
     event.preventDefault()
     onResize(
       module.id,
@@ -155,6 +173,8 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
       className={`canvas-module canvas-module--${module.type}${isMoving ? ' canvas-module--moving' : ''}${selected ? ' canvas-module--selected' : ''}`}
       aria-label={name}
       data-source-module={definition.hasText ? undefined : module.id}
+      data-card-id={module.id}
+      data-card-type={module.type}
       style={{
         left: `calc(50% + ${(module.x - camera.x) * zoom}px)`,
         top: `calc(50% + ${(module.y - camera.y) * zoom}px)`,
@@ -166,6 +186,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
       onKeyDown={(event) => event.stopPropagation()}
       onClick={onSelect}
     >
+      <NodeMenuButton label={name} onOpen={onOpenActions} />
       <header className="canvas-module__header">
         <h2>
           {editingName ? (
@@ -208,7 +229,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
           onChange={(event) => onTextChange(module.id, event.target.value)}
           spellCheck={false}
         />
-      ) : children}
+      ) : <div ref={contentRef} className="canvas-module__content" data-canvas-scroll>{children}</div>}
       <button
         className="canvas-module__resize"
         type="button"

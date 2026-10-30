@@ -1,0 +1,7 @@
+.delete-action { display: grid; gap: var(--space-control); }
+.delete-action p { margin: 0; color: var(--color-text-muted); font-size: 11px; line-height: 1.5; }
+.delete-action__choices { display: flex; flex-wrap: wrap; gap: var(--space-small); }
+.delete-action .delete-action__button { display: inline-flex; align-items: center; gap: var(--space-small); justify-self: start; padding: 7px 9px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: transparent; color: var(--color-text); font: inherit; font-size: 11px; cursor: pointer; }
+.delete-action .delete-action__button--danger { border-color: var(--color-diagnostic); color: var(--color-diagnostic); }
+.delete-action .delete-action__button:hover { background: var(--color-hover); }
+.delete-action .delete-action__button:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }

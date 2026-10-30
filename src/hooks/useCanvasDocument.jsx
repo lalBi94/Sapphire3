@@ -32,6 +32,9 @@ function reduceDocument(state, action) {
       ? withSource({ ...state, cards: state.cards.filter((card) => card.id !== action.id) }, result.project, result.analysis, result.index)
       : { ...state, mutationError: result.code }
   }
+  if (action.type === 'deleteComment') {
+    return { ...state, cards: state.cards.filter((card) => card.id !== action.id || card.type !== 'comment') }
+  }
   if (action.type === 'rename') {
     const card = state.cards.find((entry) => entry.id === action.id)
     if (!card || !moduleTypes[card.type].renamable || !action.name.trim()) return state
@@ -108,6 +111,13 @@ export default function useCanvasDocument() {
     return prepared
   }
 
+  // Retire uniquement l'annotation visuelle, sans toucher à la source ni réanalyser le programme.
+  function deleteComment(id) {
+    if (!document.cards.some((card) => card.id === id && card.type === 'comment')) return { ok: false, code: 'TARGET_INVALID' }
+    dispatch({ type: 'deleteComment', id })
+    return { ok: true }
+  }
+
   // Conserve le pliage dans la présentation exportable, jamais dans la source logique.
   function setExpandedNodes(id, expandedNodeIds) {
     dispatch({ type: 'presentation', id, patch: { expandedNodeIds } })
@@ -118,5 +128,5 @@ export default function useCanvasDocument() {
     dispatch({ type: 'replaceWorkspace', workspace })
   }
 
-  return { ...document, createCard, updateGeometry, renameCard, updateComment, insertNode, configureNode, deleteNode, deleteModule, setExpandedNodes, replaceWorkspace }
+  return { ...document, createCard, updateGeometry, renameCard, updateComment, insertNode, configureNode, deleteNode, deleteModule, deleteComment, setExpandedNodes, replaceWorkspace }
 }
