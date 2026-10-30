@@ -12,9 +12,8 @@ export default function useCanvasPan() {
 
     // Zoome autour du milieu de la vue sans déclencher le défilement du WebView.
     function handleWheel(event) {
-      if (event.target.closest('input, textarea, [data-canvas-scroll]')) return
+      if (!dragRef.current && event.target.closest('input, textarea, [data-canvas-scroll]')) return
       event.preventDefault()
-      if (dragRef.current) return
 
       const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? element.clientHeight : 1
       const delta = Math.max(-240, Math.min(240, event.deltaY * unit))
@@ -43,21 +42,25 @@ export default function useCanvasPan() {
       pointerId: event.pointerId,
       x: event.clientX,
       y: event.clientY,
-      origin: camera,
-      zoom,
     }
     setIsPanning(true)
   }
 
-  // Calcule la translation depuis le début du geste, sans dépendre du rythme de rendu.
+  // Déplace depuis le dernier pointeur au zoom courant, sans annuler un zoom effectué pendant le glisser.
   function handlePointerMove(event) {
     const drag = dragRef.current
     if (!drag || drag.pointerId !== event.pointerId) return
 
-    const x = drag.origin.x - (event.clientX - drag.x) / drag.zoom
-    const y = drag.origin.y - (event.clientY - drag.y) / drag.zoom
-    if (!Number.isFinite(x) || !Number.isFinite(y)) return
-    setCamera({ ...drag.origin, x, y })
+    const deltaX = event.clientX - drag.x
+    const deltaY = event.clientY - drag.y
+    drag.x = event.clientX
+    drag.y = event.clientY
+    setCamera((current) => {
+      const scale = 2 ** current.zoomLevel
+      const x = current.x - deltaX / scale
+      const y = current.y - deltaY / scale
+      return Number.isFinite(x) && Number.isFinite(y) ? { ...current, x, y } : current
+    })
   }
 
   // Termine aussi les gestes annulés et les captures perdues.
