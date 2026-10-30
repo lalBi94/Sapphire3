@@ -1,12 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import './CanvasGrid.css'
 
-const width = 1600
-const height = 1000
-const spacing = 40
-
 // Écarte progressivement les points périphériques pour courber la grille.
-function distortPoint(x, y) {
+function distortPoint(x, y, width, height) {
   const normalizedX = (x - width / 2) / (width / 2)
   const normalizedY = (y - height / 2) / (height / 2)
   const distortion = 1 + 0.16 * (normalizedX ** 4 + normalizedY ** 4)
@@ -17,15 +13,17 @@ function distortPoint(x, y) {
   ]
 }
 
-// Trace une ligne échantillonnée, droite au centre et incurvée aux extrémités.
-function createLine(position, vertical) {
+// Trace une ligne échantillonnée dans la projection courbée du viewport.
+function createLine(position, vertical, width, height) {
   const length = vertical ? height : width
   const points = []
 
-  for (let offset = -spacing; offset <= length + spacing; offset += 10) {
+  for (let offset = -80; offset <= length + 80; offset += 10) {
     const [x, y] = distortPoint(
       vertical ? position : offset,
       vertical ? offset : position,
+      width,
+      height,
     )
     points.push(`${points.length === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`)
   }
@@ -33,30 +31,36 @@ function createLine(position, vertical) {
   return points.join(' ')
 }
 
-// Répète uniquement les lignes visibles, même très loin de l'origine.
-export default function CanvasGrid({ position }) {
-  const [scale, setScale] = useState(1)
+// Maintient une densité lisible quelle que soit l'échelle, avec une origine fixe.
+export default function CanvasGrid({ camera, zoom }) {
+  const [size, setSize] = useState({ width: 1600, height: 1000 })
   const gridRef = useRef(null)
 
   useEffect(() => {
     const observer = new ResizeObserver(([entry]) => {
-      const { width: viewportWidth, height: viewportHeight } = entry.contentRect
-      setScale(Math.max(viewportWidth / width, viewportHeight / height) || 1)
+      const { width, height } = entry.contentRect
+      if (width > 0 && height > 0) setSize({ width, height })
     })
     observer.observe(gridRef.current)
     return () => observer.disconnect()
   }, [])
 
-  const offsetX = (((position.x / scale) % spacing) + spacing) % spacing
-  const offsetY = (((position.y / scale) % spacing) + spacing) % spacing
+  const { width, height } = size
+  const spacing = 40 * 2 ** (camera.zoomLevel + Math.max(0, Math.ceil(-camera.zoomLevel)))
+  const originX = width / 2 - camera.x * zoom
+  const originY = height / 2 - camera.y * zoom
+  const offsetX = ((originX % spacing) + spacing) % spacing
+  const offsetY = ((originY % spacing) + spacing) % spacing
+  const originVisible = originX >= 0 && originX <= width && originY >= 0 && originY <= height
+  const [crossX, crossY] = originVisible ? distortPoint(originX, originY, width, height) : [0, 0]
   const lines = []
 
   for (let x = offsetX - spacing; x <= width + spacing; x += spacing) {
-    lines.push(createLine(x, true))
+    lines.push(createLine(x, true, width, height))
   }
 
-  for (let y = offsetY - spacing - 20; y <= height + spacing; y += spacing) {
-    lines.push(createLine(y, false))
+  for (let y = offsetY - spacing; y <= height + spacing; y += spacing) {
+    lines.push(createLine(y, false, width, height))
   }
 
   return (
@@ -64,11 +68,16 @@ export default function CanvasGrid({ position }) {
       ref={gridRef}
       className="canvas-grid"
       viewBox={`0 0 ${width} ${height}`}
-      preserveAspectRatio="xMidYMid slice"
       aria-hidden="true"
       focusable="false"
     >
       <path d={lines.join(' ')} />
+      {originVisible && (
+        <path
+          className="canvas-grid__origin"
+          d={`M${crossX - 7},${crossY}h14 M${crossX},${crossY - 7}v14`}
+        />
+      )}
     </svg>
   )
 }

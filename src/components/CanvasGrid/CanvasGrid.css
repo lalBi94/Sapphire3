@@ -13,3 +13,8 @@
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
+
+.canvas-grid .canvas-grid__origin {
+  stroke: var(--color-text-muted);
+  stroke-width: 1.5;
+}

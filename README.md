@@ -21,7 +21,9 @@ pnpm dev
 - `pnpm preview` : prévisualise le frontend compilé dans un navigateur.
 - `pnpm desktop:start` : compile puis ouvre le frontend compilé dans Neutralinojs, sans Vite.
 
-L'application contient une page unique avec un canvas plein écran : quadrillage discret, déformé aux bords. Glissez avec le bouton gauche ou central pour vous déplacer sans limite applicative, ou utilisez les flèches après avoir donné le focus au canvas. Aucun zoom ni limite dynamique pour l'instant.
+L'application contient une page unique avec un canvas plein écran : quadrillage discret, déformé aux bords. Glissez avec le bouton gauche ou central pour vous déplacer sans limite applicative, ou utilisez les flèches après avoir donné le focus au canvas.
+
+La molette zoome autour du milieu de la vue, jusqu'à 400 %. Le dézoom n'a pas de minimum applicatif (hors limites numériques JavaScript), et la grille adapte sa densité. Une croix marque l'origine absolue (0, 0). En bas à droite : coordonnées du milieu de la vue, zoom et bouton pour revenir à l'origine en conservant le zoom. Aucune limite liée à un projet pour l'instant.
 
 Aucune API native exposée, stockage métier, backend ni service distant. Les scripts d'installation de trois dépendances transitives de la CLI sont explicitement désactivés dans `pnpm-workspace.yaml` ; les accélérations WebSocket natives ne sont pas nécessaires ici.
 
