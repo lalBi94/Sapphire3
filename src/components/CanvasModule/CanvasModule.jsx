@@ -70,18 +70,18 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
       event.preventDefault()
       setEditingName(false)
     }
+  }
 
-    // Lit une image choisie localement afin qu'elle reste intégrée à l'espace de travail exporté.
-    function handleImageChange(event) {
-      const file = event.target.files?.[0]
-      if (!file || !file.type.startsWith('image/')) return
-      const reader = new FileReader()
-      reader.addEventListener('load', () => {
-        if (typeof reader.result === 'string') onImageChange(module.id, { image: reader.result })
-      })
-      reader.readAsDataURL(file)
-      event.target.value = ''
-    }
+  // Lit une image choisie localement afin qu'elle reste intégrée à l'espace de travail exporté.
+  function handleImageChange(event) {
+    const file = event.target.files?.[0]
+    if (!file || !file.type.startsWith('image/')) return
+    const reader = new FileReader()
+    reader.addEventListener('load', () => {
+      if (typeof reader.result === 'string') onImageChange(module.id, { image: reader.result })
+    })
+    reader.readAsDataURL(file)
+    event.target.value = ''
   }
 
   // Capture l'en-tête et mémorise la position ainsi que le zoom au début du geste.
