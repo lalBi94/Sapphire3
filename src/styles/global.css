@@ -47,7 +47,7 @@ body,
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :root { --surface-floating: var(--color-glass); }
 
-  .canvas-status, .canvas-context-menu, .logic-context-menu, .node-properties {
+  .canvas-status, .canvas-context-menu, .logic-context-menu, .node-properties, .project-navigation__menu, .project-navigation__confirmation {
     -webkit-backdrop-filter: blur(var(--blur-panel));
     backdrop-filter: blur(var(--blur-panel));
   }

@@ -98,6 +98,15 @@ export default function useCanvasPan() {
     canvasRef.current.focus({ preventScroll: true })
   }
 
+  // Restaure une vue validée sans conserver un éventuel geste de déplacement.
+  function restoreCamera(nextCamera) {
+    const pointerId = dragRef.current?.pointerId
+    if (pointerId !== undefined && canvasRef.current.hasPointerCapture(pointerId)) canvasRef.current.releasePointerCapture(pointerId)
+    dragRef.current = null
+    setIsPanning(false)
+    setCamera(nextCamera)
+  }
+
   return {
     camera,
     zoom,
@@ -108,5 +117,6 @@ export default function useCanvasPan() {
     handlePointerEnd,
     handleKeyDown,
     handleRecenter,
+    restoreCamera,
   }
 }

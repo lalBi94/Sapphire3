@@ -25,7 +25,11 @@ L'application contient une page unique avec un canvas plein écran : quadrillage
 
 La molette zoome autour du milieu de la vue, jusqu'à 400 %. Le dézoom n'a pas de minimum applicatif (hors limites numériques JavaScript), et la grille adapte sa densité. Une croix marque l'origine absolue (0, 0). En bas à droite : coordonnées du milieu de la vue, zoom et bouton pour revenir à l'origine en conservant le zoom. Aucune limite liée à un projet pour l'instant.
 
-Clic droit sur le canvas vide pour ouvrir le menu anglais « Create module » / « Create comment ». Chaque action crée une zone à l'endroit visé. Glissez l'en-tête pour déplacer un module ; les flèches le déplacent aussi lorsque l'en-tête a le focus. La poignée inférieure droite permet de redimensionner la zone, également au clavier. Le type de module Main est retiré : à la création ou à l'édition d'une fonction, cochez « Entry point » pour la désigner comme point d'entrée du projet, indépendamment de son nom. Zéro ou une seule fonction peut porter ce rôle ; un badge la distingue dans l'arbre. Aucun comportement d'exécution ajouté. Ces zones restent en mémoire et disparaissent au rechargement ; pas de stockage sur disque.
+Clic droit sur le canvas vide pour ouvrir le menu anglais « Create module » / « Create comment ». Chaque action crée une zone à l'endroit visé. Glissez l'en-tête pour déplacer un module ; les flèches le déplacent aussi lorsque l'en-tête a le focus. La poignée inférieure droite permet de redimensionner la zone, également au clavier. Le type de module Main est retiré : à la création ou à l'édition d'une fonction, cochez « Entry point » pour la désigner comme point d'entrée du projet, indépendamment de son nom. Zéro ou une seule fonction peut porter ce rôle ; un badge la distingue dans l'arbre. Aucun comportement d'exécution ajouté. Sans export manuel, le document disparaît au rechargement.
+
+La petite barre supérieure propose les volets **Edit**, **View** (réservés pour la suite) et **Settings**. Dans Settings : **Export .sp3**, **Export JSON**, **Import .sp3 / .json**. Le dialogue Windows permet de choisir l'emplacement et le fichier. Les deux exports conservent la source logique, les cartes/commentaires (y compris hors écran), positions, tailles, pliage, vue et sélection. L'import validé demande confirmation avant de remplacer le document ; annulations et erreurs conservent le travail courant. Une source logique JSON v1 seule est également importable, avec disposition initiale des modules. Aucun autosave ni stockage distant. Limite : 20 Mio. Voir `docs/WORKSPACE_FILES.md`.
+
+Les dialogues de fichiers nécessitent la fenêtre **Neutralinojs**, pas `pnpm dev:web`. Redémarrez une ancienne fenêtre desktop après cette évolution des permissions natives.
 
 ### Édition contextuelle
 
@@ -45,7 +49,7 @@ Les textes de l'application sont en anglais ; les commentaires et la documentati
 
 Double-cliquez sur le titre d'un Module pour le renommer (ou Entrée/F2 sur son en-tête). Entrée ou sortie du champ valide, Échap annule.
 
-« Create comment » ajoute une carte d'annotation : titre renommable, texte multiligne dans le corps, déplacement par l'en-tête et redimensionnement par le coin. Ces notes sont uniquement visuelles : elles ne sont ni des modules logiques, ni des commentaires de code, et ne sont pas envoyées à l'AST. Noms et textes restent temporaires, sans sauvegarde sur disque.
+« Create comment » ajoute une carte d'annotation : titre renommable, texte multiligne dans le corps, déplacement par l'en-tête et redimensionnement par le coin. Ces notes sont uniquement visuelles : elles ne sont ni des modules logiques, ni des commentaires de code, et ne sont pas envoyées à l'AST. Titres et textes sont inclus dans les exports workspace.
 
 Aucune API native exposée, stockage métier, backend ni service distant. Les scripts d'installation de trois dépendances transitives de la CLI sont explicitement désactivés dans `pnpm-workspace.yaml` ; les accélérations WebSocket natives ne sont pas nécessaires ici.
 
@@ -60,7 +64,7 @@ Aucune API native exposée, stockage métier, backend ni service distant. Les sc
 - `ARCHITECTURE_AST.tex` et `ARCHITECTURE_AST.pdf` : rapport technique français de quatre pages.
 - `pnpm docs:ast` : recompile le PDF depuis le LaTeX (MiKTeX/pdfLaTeX, Latin Modern et PowerShell requis). Auxiliaires dans `build/latex/`, ignorés par Git.
 
-Les conteneurs graphiques et le modèle logique sont raccordés : chaque Module visuel possède son module source de même identifiant, et les nœuds sont créés/édités via l'API contextuelle. Les positions/dimensions et les annotations Comment restent hors du moteur. Les données peuvent être sérialisées en mémoire, sans sauvegarde sur disque. Les anciennes sources contenant un module de catégorie `main` sont conservées mais diagnostiquées invalides, sans migration automatique.
+Les conteneurs graphiques et le modèle logique sont raccordés : chaque Module visuel possède son module source de même identifiant, et les nœuds sont créés/édités via l'API contextuelle. Les positions/dimensions et les annotations Comment restent hors du moteur, dans l'enveloppe workspace exportable. Le moteur peut conserver et diagnostiquer une ancienne source contenant un module `main` ; l'import UI refuse cette ancienne catégorie sans migration automatique.
 
 ### Documentation du projet
 

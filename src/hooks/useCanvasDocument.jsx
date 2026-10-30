@@ -9,18 +9,21 @@ function withSource(state, project, analysis = analyzeProgram(project), index = 
 
 // Initialise un document local ; aucune donnée utilisateur n'est écrite sur disque.
 function initialDocument() {
-  return withSource({ cards: [], mutationError: null }, createProject('workspace'))
+  return withSource({ cards: [], revision: 0, mutationError: null }, createProject('workspace'))
 }
 
 // Applique les changements atomiques en gardant les coordonnées séparées du modèle source.
 function reduceDocument(state, action) {
+  if (action.type === 'replaceWorkspace') {
+    return withSource({ cards: action.workspace.presentation.cards, revision: state.revision + 1, mutationError: null }, action.workspace.project)
+  }
   if (action.type === 'createCard') {
     const card = action.card
     if (state.cards.some((entry) => entry.id === card.id)) return state
     const next = { ...state, cards: [...state.cards, card] }
     return card.type === 'comment' ? next : withSource(next, { ...state.project, modules: [...state.project.modules, createModule(card.id, card.name, card.type)] })
   }
-  if (action.type === 'geometry' || action.type === 'text') {
+  if (action.type === 'geometry' || action.type === 'text' || action.type === 'presentation') {
     return { ...state, cards: state.cards.map((card) => card.id === action.id ? { ...card, ...action.patch } : card) }
   }
   if (action.type === 'deleteModule') {
@@ -54,7 +57,7 @@ export default function useCanvasDocument() {
   function createCard(type, position) {
     const definition = moduleTypes[type]
     if (!definition) return
-    dispatch({ type: 'createCard', card: { id: crypto.randomUUID(), type, name: definition.label, ...(definition.hasText ? { text: '' } : {}), ...position, width: definition.width, height: definition.height } })
+    dispatch({ type: 'createCard', card: { id: crypto.randomUUID(), type, name: definition.label, ...(definition.hasText ? { text: '' } : {}), ...position, width: definition.width, height: definition.height, expandedNodeIds: [] } })
   }
 
   // Modifie la présentation sans réanalyser le programme.
@@ -105,5 +108,15 @@ export default function useCanvasDocument() {
     return prepared
   }
 
-  return { ...document, createCard, updateGeometry, renameCard, updateComment, insertNode, configureNode, deleteNode, deleteModule }
+  // Conserve le pliage dans la présentation exportable, jamais dans la source logique.
+  function setExpandedNodes(id, expandedNodeIds) {
+    dispatch({ type: 'presentation', id, patch: { expandedNodeIds } })
+  }
+
+  // Charge un document validé et force le remontage des interactions locales des cartes.
+  function replaceWorkspace(workspace) {
+    dispatch({ type: 'replaceWorkspace', workspace })
+  }
+
+  return { ...document, createCard, updateGeometry, renameCard, updateComment, insertNode, configureNode, deleteNode, deleteModule, setExpandedNodes, replaceWorkspace }
 }

@@ -5,7 +5,7 @@
   "type": "module",
   "packageManager": "pnpm@11.5.0",
   "scripts": {
-    "test": "node --test tests/logic/*.test.js",
+    "test": "node --test tests/logic/*.test.js tests/workspace/*.test.js",
     "docs:ast": "powershell -NoProfile -File scripts/build-ast-doc.ps1",
     "dev": "neu run",
     "dev:web": "vite",
@@ -15,6 +15,7 @@
     "desktop:start": "pnpm build && .\\bin\\neutralino-win_x64.exe --load-dir-res --path=."
   },
   "dependencies": {
+    "@neutralinojs/lib": "6.10.0",
     "lucide-react": "^1.64.0",
     "react": "19.3.1",
     "react-dom": "19.3.1"

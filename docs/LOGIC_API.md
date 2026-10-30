@@ -41,7 +41,7 @@ Un module possède `rootNodeIds`, `imports` et `exports`. L'ordre de `rootNodeId
 
 Un projet valide contient zéro ou une seule fonction portant `properties.entryPoint: true`. Le marqueur est un booléen optionnel réservé à `FunctionDeclaration` ; absent ou `false`, la fonction est ordinaire, même si elle s'appelle `main`. Toute fonction marquée supplémentaire produit `ENTRY_POINT_DUPLICATE`, sur son `nodeId` et `properties.entryPoint`, y compris dans les fragments détachés. Un marqueur non booléen ou placé sur une autre construction produit `ENTRY_POINT_INVALID`. Les données invalides restent inspectables et sérialisables sans suppression automatique ; `canGenerate` est faux. Aucun nom, signature cible, appel implicite ou comportement d'exécution n'est imposé ; les règles de types et de retour ordinaires s'appliquent.
 
-La catégorie de module `main` est retirée : une ancienne source v1 l'utilisant reste conservée et diagnostiquée `MODULE_INVALID`, jamais convertie silencieusement en module ou en fonction. Le format JSON reste v1 ; aucune migration ni persistance n'est ajoutée.
+La catégorie de module `main` est retirée : une ancienne source v1 l'utilisant reste conservée et diagnostiquée `MODULE_INVALID`, jamais convertie silencieusement en module ou en fonction. Le format JSON logique reste v1 ; aucune migration automatique. L'import/export de fichiers est une responsabilité séparée du moteur : voir `docs/WORKSPACE_FILES.md` pour l'enveloppe workspace, la validation UI et les services natifs.
 
 ## Constructions et slots
 

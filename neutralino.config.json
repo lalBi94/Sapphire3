@@ -6,9 +6,10 @@
   "documentRoot": "/dist/",
   "url": "/",
   "enableServer": true,
-  "enableNativeAPI": false,
+  "enableNativeAPI": true,
+  "tokenSecurity": "one-time",
   "enableExtensions": false,
-  "nativeAllowList": [],
+  "nativeAllowList": ["os.showSaveDialog", "os.showOpenDialog", "os.showMessageBox", "filesystem.readFile", "filesystem.writeFile", "filesystem.getStats"],
   "dataLocation": "system",
   "storageLocation": "system",
   "logging": {
@@ -25,6 +26,7 @@
       "center": true,
       "resizable": true,
       "enableInspector": true,
+      "injectGlobals": true,
       "exitProcessOnClose": true,
       "useSavedState": false
     }

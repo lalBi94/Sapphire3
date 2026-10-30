@@ -14,12 +14,13 @@
 - Les Modules visuels sont renommables par double-clic sur le titre, Entrée ou F2 sur l'en-tête ; Entrée ou perte de focus valide, Échap annule, un titre vide conserve l'ancien.
 - Action « Create comment » : annotation visuelle avec titre renommable et texte multiligne, déplaçable et redimensionnable comme les autres cartes. Saisie et défilement du texte sans pan/zoom involontaire ; hors AST et hors commentaires de code.
 - Les cartes Module partagent l'identifiant de leur module source ; Comment reste hors du moteur. Les nœuds logiques s'affichent dans leurs conteneurs avec slots, types résolus et compteurs de diagnostics.
-- Chaque nœud logique peut être plié ou déplié par son bouton `▸`/`▾`. Tous les nœuds sont pliés par défaut à l'ouverture d'une carte ; un nœud nouvellement créé est déplié avec ses parents pour rester visible. Seuls les nœuds explicitement dépliés sont mémorisés. Plié, un nœud montre une seule ligne de données utiles (valeur, opérateur, cible, signature ou nombre d'instructions) et masque ses slots ; déplié, il reprend le rendu complet des slots. Le pliage est un état de présentation local à chaque carte, non persisté et absent de l'AST.
+- Chaque nœud logique peut être plié ou déplié par son bouton `▸`/`▾`. Les nœuds existants sont pliés par défaut, sauf restauration d'un fichier ; un nœud nouvellement créé est déplié avec ses parents pour rester visible. Plié, un nœud montre un résumé d'une ligne et masque ses slots ; déplié, il reprend le rendu complet. Le pliage reste une présentation par carte, désormais conservée par l'export workspace, hors source logique/AST.
 - Chaque nœud reçoit une bordure colorée selon son groupe logique stable : variable, type, fonction, paramètre, condition, boucle, retour, bloc, instruction, opérateur, valeur ou incomplet. Le groupe est défini dans `nodeSchema.js` et les couleurs sont centralisées dans `tokens.css`. La sélection ajoute un anneau sans masquer la couleur de catégorie.
 - Aucun type de module Main. Zéro ou une fonction explicitement marquée par `properties.entryPoint: true` par projet, indépendamment de son nom. Case « Entry point » à la création/édition des fonctions et badge textuel dans l'arbre. L'UI bloque une seconde désignation ; les mutations revérifient l'unicité, le moteur diagnostique les sources invalides (`ENTRY_POINT_DUPLICATE`, `ENTRY_POINT_INVALID`) sans les effacer. Pas de signature cible ni d'exécution ajoutée.
-- Moteur logique opérationnel et raccordé au canvas : modèle source JSON v1 Modules/Nodes, AST hiérarchique tolérant, portées, références locales/intermodules, alias de types simples, diagnostics structurels/sémantiques et API d'insertion contextuelle (`getAvailableActions`). Import/export logique en mémoire uniquement, sans accès aux fichiers.
+- Moteur logique opérationnel et raccordé au canvas : modèle source JSON v1 Modules/Nodes, AST hiérarchique tolérant, portées, références locales/intermodules, alias de types simples, diagnostics structurels/sémantiques et API d'insertion contextuelle (`getAvailableActions`). Moteur pur, sans accès aux fichiers ; enveloppe workspace et services natifs séparés.
 - Suppression d'un Module depuis son panneau de propriétés avec confirmation locale : carte, module source et tous ses nœuds retirés ensemble ; références/imports externes conservés et réanalysés. Retirer le marqueur ou supprimer la fonction point d'entrée ou son module libère le rôle. Comment n'est pas concerné.
-- Aucun simulateur, moteur de suggestions, génération de code, stockage sur disque ou backend implémenté ; pas encore de déplacement individuel, copier/coller ou annulation de suppression de nœuds logiques. Les prochains incréments nécessitent une demande.
+- Barre supérieure compacte, plaquée au bord haut : volets **Edit**, **View** (réservés, sans actions) et **Settings** avec import `.sp3`/`.json`, export `.sp3` et export JSON. Dialogues Windows pour choisir le chemin ; instantané complet du contenu, de la disposition, du pliage, de la vue et de la sélection. Validation puis confirmation avant remplacement ; erreurs visibles et annulation sans modification. Contrat dans `docs/WORKSPACE_FILES.md`.
+- Aucun simulateur, moteur de suggestions, génération de code, autosave ou backend implémenté ; pas encore de déplacement individuel, copier/coller ou annulation de suppression de nœuds logiques. Les prochains incréments nécessitent une demande.
 - Interface en anglais (y compris textes accessibles), commentaires et documentation en français.
 - Direction artistique Squircle + Glass UI : fonds noir/anthracite, actions principales et badge du point d'entrée jaunes, sélections violettes avec repères supplémentaires (anneau/soulignement ou barre latérale). Coins continus CSS `corner-shape: squircle` avec arrondis de repli ; surfaces flottantes translucides et floutées, reflets et ombres discrets. Cartes et nœuds sans flou imbriqué ; couleurs des catégories logiques conservées. Police système locale, aucun service distant à l'exécution.
 - Tokens communs pour palette, courbures, espacements partagés, verre, ombres et transitions de 180 ms. Repli opaque sans `backdrop-filter`, préférences de réduction du mouvement et de la transparence respectées.
@@ -34,6 +35,10 @@
 | `index.html`, `src/main.jsx` | Point d'entrée HTML et montage React |
 | `src/pages/App.jsx` | Assemblage de l'unique page |
 | `src/components/Canvas/Canvas.jsx`, `Canvas.css` | Surface plein écran, événements de navigation, curseur et vignette périphérique |
+| `src/components/ProjectNavigation/ProjectNavigation.jsx`, `ProjectNavigation.css` | Barre haute, volets dépliables, actions de fichiers, statuts et confirmation modale de remplacement |
+| `src/hooks/useWorkspaceFiles.jsx` | Opérations asynchrones de fichiers, validation, erreurs, annulation et import en attente de confirmation |
+| `src/utils/workspaceFile.js`, `docs/WORKSPACE_FILES.md` | Enveloppe workspace JSON v1, validation et sérialisation pures, reconstruction visuelle des sources logiques seules |
+| `src/services/workspaceFiles.js` | Client Neutralinojs local initialisé à la demande, dialogues, taille/extension, lecture et écriture confirmée |
 | `src/components/CanvasGrid/CanvasGrid.jsx`, `CanvasGrid.css` | Grille SVG à densité adaptative, croix d'origine et distorsion attachée au viewport ; dimensions suivies avec ResizeObserver |
 | `src/components/CanvasStatus/CanvasStatus.jsx`, `CanvasStatus.css` | Coordonnées, zoom et bouton de recentrage, sans connaissance du hook |
 | `src/components/CanvasContextMenu/CanvasContextMenu.jsx`, `CanvasContextMenu.css` | Menu de création, fermeture extérieure, focus et navigation clavier |
@@ -55,13 +60,14 @@
 | `src/utils/logic/primitives.js`, `numericConstants.js` | Dix primitifs, tailles/bornes, arrondis et contrôles statiques des littéraux/opérations/conversions constantes |
 | `src/utils/logic/diagnostics.js`, `serialization.js`, `index.js` | Diagnostics structurés, JSON versionné et API publique `analyzeProgram` |
 | `tests/logic/*.test.js`, `fixtures.js` | Tests Node automatisés et exemple de deux modules |
+| `tests/workspace/*.test.js` | Tests purs du format complet, validation et restauration sans perte |
 | `docs/LOGIC_API.md` | Référence des contrats, slots, règles de portée et points d'extension |
 | `ARCHITECTURE_AST.tex`, `ARCHITECTURE_AST.pdf` | Rapport technique français de quatre pages ; source LaTeX et PDF réellement compilé |
 | `scripts/build-ast-doc.ps1` | Compilation pdfLaTeX locale vers `build/latex/`, puis copie du PDF à la racine |
 | `src/hooks/useCanvasPan.jsx` | Caméra locale, capture du pointeur, annulation, clavier, zoom logarithmique à la molette et recentrage |
 | `src/styles/tokens.css`, `src/styles/global.css` | Thème Squircle + Glass, tokens partagés, géométrie et transitions communes, verre des surfaces flottantes et replis d'accessibilité/compatibilité |
 | `vite.config.js` | Intégration React et serveur local strict sur le port 5173 |
-| `neutralino.config.json` | Fenêtre native, ressources compilées, démarrage Vite ; API natives désactivées |
+| `neutralino.config.json` | Fenêtre native, ressources compilées, démarrage Vite ; globals injectés, auth one-time et permissions natives limitées aux opérations de fichiers autorisées |
 | `README.md` | Prérequis et démarrage |
 
 ## Commandes configurées
@@ -74,7 +80,7 @@ Scripts dans `package.json` :
 - `pnpm preview` : prévisualisation Vite du frontend compilé.
 - `pnpm desktop:setup` : téléchargement du runtime épinglé dans `bin/`.
 - `pnpm desktop:start` : compilation et lancement natif sans serveur Vite.
-- `pnpm test` : tests du moteur logique avec le runner natif Node, sans dépendance ajoutée.
+- `pnpm test` : tests du moteur logique et du format workspace avec le runner natif Node, sans bibliothèque de test ajoutée.
 - `pnpm docs:ast` : export du LaTeX en PDF via MiKTeX/pdfLaTeX installé ; pas d'installation automatique de paquets.
 
 ## Contrats et décisions
@@ -84,17 +90,17 @@ Scripts dans `package.json` :
 - Portées module/fonction/bloc/for ; déclarations précollectées, sans analyse générale de l'ordre d'initialisation. Typage explicite obligatoire (y compris littéraux), dix primitifs autorisés seulement, aucune conversion implicite ou valeur de type de secours. Alias transparents vers ces primitifs, signatures de fonctions complètes. Une expression non typable est absente de `semantic.nodeTypes` et présente dans `untypedNodeIds` ; symbole sans type résolu : propriété `type` absente.
 - `CastExpression` encode les conversions numériques explicites et identités non void ; entiers signés/non signés 16/32 bits exacts, flottants IEEE 754 32/64 bits. Contrôles statiques des dépassements, sous-flux vers zéro et divisions par zéro prouvables ; pas de wrap. Aucune analyse globale d'intervalles ni moteur d'exécution ; les vérifications de valeurs non constantes restent un contrat pour les futurs backends.
 - Fonction non void : retour exigé via contrôle conservateur des blocs et des deux branches d'un if, sans preuve via les boucles. `char` : scalaire Unicode unique. Format JSON v1 conservé, anciennes annotations désormais invalides mais jamais migrées silencieusement. Préférer les littéraux numériques textuels pour préserver leur écriture exacte, dont `'-0'`.
-- Les conteneurs visuels en mémoire dans `Canvas` ont un identifiant UUID, un type stable `module` ou `comment`, une position `x/y` de l'angle supérieur gauche et des dimensions `width/height` en unités monde. Valeurs initiales : 320 × 220. Aucun format de fichier ni contrat d'exécution n'en découle.
+- Les conteneurs visuels ont un identifiant UUID, un type stable `module` ou `comment`, une position `x/y` de l'angle supérieur gauche et des dimensions `width/height` en unités monde. Valeurs initiales : 320 × 220. Présentation exportée séparément de la source dans l'enveloppe workspace, sans contrat d'exécution.
 - Les cartes suivent la translation et le zoom, avec des rectangles non déformés ; la courbure reste un effet décoratif du quadrillage. Déplacement individuel et noms visuels personnalisables pour Module/Comment. Suppression confirmée des cartes Module, pas des annotations Comment.
 - Les cartes Module partagent l'identifiant de leur module source ; leur nom est synchronisé avec le module logique. Comment réutilise le cadre visuel sans entrer dans `moduleKinds` ni dans la source logique ; son titre et son texte restent purement UI.
 - Les positions et dimensions des cartes restent hors de la source logique. Les nœuds logiques sont rendus dans leur conteneur avec slots, types résolus et compteurs de diagnostics. Le pliage des nœuds reste un état UI local, sans effet sur la source ni l'AST.
 - Insertions : jamais de remplacement d'un slot unique occupé, jamais de réutilisation d'un enfant existant dans un bundle neuf, ordre conservé dans les listes, identifiants stables, réanalyse systématique avec comparaison des diagnostics pour rejeter atomiquement une insertion qui introduirait une erreur dure. Les états incomplets (littéral sans valeur, appel partiel, retour sans argument) restent éditables sans bloquer l'édition.
 - Contraintes de résultat connues (littéral typé, cast, opérateur déterminé) contrôlées même avant complétion des enfants ; opérateurs filtrés selon le type attendu du slot.
 - Suppression : `deleteSourceNodes` retire le nœud visé et toute son arborescence syntaxique, puis délie son entrée du parent (slot unique remis à `null`, entrée filtrée dans une liste). Les autres nœuds et identifiants restent inchangés ; les références vers le nœud supprimé sont conservées et deviennent `REFERENCE_UNRESOLVED`. Les cartes Module ne sont pas supprimables par cette action. Aucune annulation.
-- Caméra en mémoire React, sans persistance : `x` et `y` désignent le point du monde au milieu de la vue, axe Y positif vers le bas ; `zoomLevel` est un exposant en base 2 (0 = 100 %, 2 = 400 %). Le déplacement en pixels est converti selon le zoom.
+- Caméra en mémoire React, restaurable par import/export manuel : `x` et `y` désignent le point du monde au milieu de la vue, axe Y positif vers le bas ; `zoomLevel` est un exposant en base 2 (0 = 100 %, 2 = 400 %). Le déplacement en pixels est converti selon le zoom.
 - Seules les lignes visibles sont tracées via un décalage périodique ; leur espacement monde double progressivement au dézoom pour maintenir une densité raisonnable. Pas de surface géante ni d'accumulation. Les bornes dynamiques attendent une future demande.
 - Aucune bibliothèque de nœuds, UI ou gestion d'état ajoutée.
-- Pas de client Neutralinojs embarqué : aucune API native nécessaire pour cet écran. Fermeture du processus gérée par la fenêtre native.
+- Client Neutralinojs 6.10.0 embarqué pour les dialogues et fichiers uniquement ; API natives regroupées dans le service, sans réseau distant. Fermeture du processus toujours gérée par la fenêtre native.
 - Emplacements internes Neutralinojs configurés sur `system`, sans stockage métier. État de fenêtre non sauvegardé.
 - `bin/`, `dist/`, `build/` et fichiers temporaires ignorés par Git.
 
@@ -105,12 +111,13 @@ Scripts dans `package.json` :
 - Tests du moteur configurés avec Node ; pas de lint ni suite d'interactions UI automatisée configurés.
 - `pnpm preview` n'a pas été exécuté séparément.
 - Le « dézoom infini » reste soumis aux nombres JavaScript : les changements créant une échelle nulle ou une position non finie sont ignorés. Aucun seuil minimal de confort n'est imposé. Pas de zoom tactile par pincement.
-- Les modules disparaissent au rechargement : aucune sauvegarde demandée ni implémentée.
+- Aucun autosave : un rechargement vide le document en mémoire. Exporter manuellement pour le conserver, puis importer le fichier dans l'application desktop.
 - Pas de déplacement individuel, de copier/coller ni d'annulation de suppression de nœuds logiques ; pas d'édition directe des enfants dans le panneau (navigation seulement) ni de glisser-déposer entre slots. Aucune migration implicite des données UI.
-- Source JSON v1 sérialisable en mémoire uniquement. Ancienne catégorie de module `main` conservée et diagnostiquée `MODULE_INVALID`, sans conversion automatique. Version inconnue conservée et signalée ; aucune migration automatique. Profondeurs de sécurité de 200 niveaux environ pour les arbres, dépendances de types et données JSON ; diagnostics en cas de dépassement.
+- Moteur : source JSON v1, ancienne catégorie `main` conservée et diagnostiquée `MODULE_INVALID`, version inconnue conservée et signalée. Import UI : structure affichable et versions connues exigées, fichiers de 20 Mio maximum ; anciennes catégories Main et versions inconnues refusées sans remplacer le document. Aucune migration automatique. Profondeurs de sécurité autour de 200 niveaux.
 
 ## Vérifications
 
+- Import/export workspace : 97 tests Node et build réussis. Fenêtre native compilée : import `.sp3`, restauration du pliage/vue/sélection et d'une annotation Unicode, exports `.sp3` et `.json` comparés à l'instantané d'origine, lecture JSON préparée puis remplacement annulé, échec de lecture sans perte de contenu. Navigateur : barre au bord haut, canvas sous la barre, menus et message explicite pour les opérations natives indisponibles. Aucun autosave. Détails/limites dans l'archive.
 - Fonction point d'entrée : 90 tests Node et build frontend réussis. Navigateur : menu sans Main, création de `start` marquée, création de `main` ordinaire avec case désactivée, retrait puis réattribution du rôle et badge conservé au pliage ; console sans erreur. Fenêtre native non revérifiée.
 - Incrément visuel Squircle + Glass : build frontend réussi ; création/édition d'une variable et rendu des composants communs contrôlés dans le navigateur. Préférences système réduites constatées ; verre également contrôlé via surcharge temporaire des tokens dans le navigateur. Fenêtre Neutralinojs et anciens moteurs CSS non revérifiés pour cet incrément.
 - Interactions vérifiées dans le navigateur : tous les nœuds pliés par défaut, nœuds créés dépliés avec leurs parents, pliage/dépliage avec résumé d'une ligne et restitution complète des slots, suppression immédiate par le menu contextuel, suppression confirmée dans le panneau de propriétés, suppression d'une fonction avec tout son sous-arbre et sélection déplacée vers le parent. Bordures colorées vérifiées pour les douze groupes, y compris sous sélection. Console sans erreur. Fenêtre native non revérifiée pour cet incrément.

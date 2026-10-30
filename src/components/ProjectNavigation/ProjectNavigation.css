@@ -1,0 +1,28 @@
+.project-navigation { position: relative; z-index: 10; display: flex; align-items: center; gap: 2px; flex: 0 0 var(--navigation-height); height: var(--navigation-height); padding: 0 var(--space-control); border-bottom: 1px solid var(--color-border); background: var(--color-surface-raised); color: var(--color-text); font-size: 11px; }
+.project-navigation__brand { margin-right: var(--space-control); color: var(--color-primary); font-weight: 600; white-space: nowrap; }
+.project-navigation details { position: relative; }
+.project-navigation summary { display: flex; align-items: center; gap: 4px; padding: 5px 7px; border-radius: var(--radius-small); corner-shape: var(--corner-shape); cursor: pointer; list-style: none; }
+.project-navigation summary::-webkit-details-marker { display: none; }
+.project-navigation summary:hover, .project-navigation details[open] summary { background: var(--color-hover); }
+.project-navigation details[open] summary { text-decoration: underline; text-underline-offset: 3px; }
+.project-navigation__menu { position: absolute; top: calc(100% + 5px); left: 0; width: 208px; max-width: calc(100vw - 16px); padding: var(--space-small); border: 1px solid var(--color-border); border-radius: var(--radius-control); corner-shape: var(--corner-shape); background: var(--surface-reflection), var(--surface-floating); box-shadow: var(--shadow-panel); }
+.project-navigation__menu p { margin: var(--space-control); color: var(--color-text-muted); }
+.project-navigation button, .project-navigation__confirmation button { display: inline-flex; align-items: center; gap: var(--space-control); padding: 8px; border: 1px solid transparent; border-radius: var(--radius-control); background: transparent; color: var(--color-text); font: inherit; cursor: pointer; }
+.project-navigation__menu button { width: 100%; text-align: left; }
+.project-navigation button:hover:not(:disabled) { background: var(--color-hover); }
+.project-navigation button:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
+.project-navigation :is(button, summary):focus-visible, .project-navigation__confirmation button:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }
+.project-navigation__status { margin-left: auto; min-width: 0; color: var(--color-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-navigation__error { position: absolute; right: 8px; top: calc(100% + 8px); display: flex; align-items: flex-start; gap: 8px; max-width: min(440px, calc(100vw - 16px)); padding: 10px; border: 1px solid var(--color-diagnostic); border-radius: var(--radius-control); background: var(--color-surface-raised); color: var(--color-diagnostic); line-height: 1.5; overflow-wrap: anywhere; box-shadow: var(--shadow-panel); }
+.project-navigation__error button { flex-shrink: 0; padding: 2px; }
+.project-navigation__confirmation { width: 400px; max-width: calc(100vw - 32px); max-height: calc(100dvh - 32px); padding: var(--space-panel); border: 1px solid var(--color-border); border-radius: var(--radius-panel); corner-shape: var(--corner-shape); background: var(--surface-reflection), var(--surface-floating); color: var(--color-text); box-shadow: var(--shadow-panel); font: 12px var(--font-family); }
+.project-navigation__confirmation::backdrop { background: var(--color-modal-backdrop); }
+.project-navigation__confirmation h2 { margin: 0 0 12px; font-size: 14px; }
+.project-navigation__confirmation p { color: var(--color-text-muted); line-height: 1.6; }
+.project-navigation__path { overflow-wrap: anywhere; }
+.project-navigation__confirmation > div { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.project-navigation__confirmation button { border-color: var(--color-border); }
+.project-navigation__confirmation button:hover { background: var(--color-hover); }
+.project-navigation__confirmation .project-navigation__primary { background: var(--color-primary); color: var(--color-on-primary); }
+.project-navigation__confirmation .project-navigation__primary:hover { background: var(--color-primary-hover); }
+@media (max-width: 480px) { .project-navigation__brand { display: none; } }

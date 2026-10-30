@@ -49,6 +49,8 @@
   --shadow-card: 0 6px 20px #00000033, inset 0 1px 0 var(--color-glass-reflection);
   --shadow-selection: 0 0 0 2px var(--color-selection);
   --duration-fast: 180ms;
+  --navigation-height: 34px;
+  --color-modal-backdrop: #00000099;
   --easing-ui: ease-out;
   --color-node-variable: #6f9ff5;
   --color-node-type: #5fc9d8;

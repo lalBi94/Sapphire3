@@ -9,6 +9,8 @@ import LogicTree from '../LogicTree/LogicTree.jsx'
 import LogicContextMenu from '../LogicContextMenu/LogicContextMenu.jsx'
 import NodeProperties from '../NodeProperties/NodeProperties.jsx'
 import { moduleTypes } from '../../utils/moduleTypes.js'
+import ProjectNavigation from '../ProjectNavigation/ProjectNavigation.jsx'
+import useWorkspaceFiles from '../../hooks/useWorkspaceFiles.jsx'
 import './Canvas.css'
 
 // Assemble présentation, document source et interactions, sans confondre position et syntaxe.
@@ -16,7 +18,16 @@ export default function Canvas() {
   const [contextMenu, setContextMenu] = useState(null)
   const [selected, setSelected] = useState(null)
   const document = useCanvasDocument()
-  const { camera, zoom, canvasRef, isPanning, handlePointerDown, handlePointerMove, handlePointerEnd, handleKeyDown, handleRecenter } = useCanvasPan()
+  const { camera, zoom, canvasRef, isPanning, handlePointerDown, handlePointerMove, handlePointerEnd, handleKeyDown, handleRecenter, restoreCamera } = useCanvasPan()
+  const files = useWorkspaceFiles({ project: document.project, cards: document.cards, camera, selected, onReplace: handleReplaceWorkspace })
+
+  // Restaure source, présentation et vue ensemble après confirmation d'import.
+  function handleReplaceWorkspace(workspace) {
+    document.replaceWorkspace(workspace)
+    restoreCamera(workspace.presentation.camera)
+    setSelected(workspace.presentation.selected)
+    setContextMenu(null)
+  }
 
   // Identifie le nœud le plus proche, puis le module ; les annotations restent hors du moteur.
   function handleContextMenu(event) {
@@ -84,21 +95,24 @@ export default function Canvas() {
   }
 
   return (
+    <div className="canvas-workspace">
+    <ProjectNavigation busy={files.busy} message={files.message} error={files.error} pendingImport={files.pendingImport} onExport={files.handleExport} onImport={files.handleImport} onConfirmImport={files.handleConfirmImport} onCancelImport={files.handleCancelImport} onDismiss={files.handleDismiss} />
     <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label="Programming canvas. Drag to pan. Right-click a container or node to add inside it." tabIndex={0}
       onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerEnd} onPointerCancel={handlePointerEnd} onLostPointerCapture={handlePointerEnd} onKeyDown={handleKeyDown} onContextMenu={handleContextMenu}>
       <CanvasGrid camera={camera} zoom={zoom} />
-      {document.cards.map((card) => <CanvasModule key={card.id} module={card} camera={camera} zoom={zoom}
+      {document.cards.map((card) => <CanvasModule key={`${document.revision}:${card.id}`} module={card} camera={camera} zoom={zoom}
         selected={selected?.kind === 'module' && selected.id === card.id}
         onSelect={() => setSelected(card.type === 'comment' ? null : { kind: 'module', id: card.id })}
         onResize={(id, width, height) => document.updateGeometry(id, { width, height })}
         onMove={(id, x, y) => document.updateGeometry(id, { x, y })}
         onRename={document.renameCard} onTextChange={document.updateComment}>
-        {card.type !== 'comment' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} onSelect={setSelected} />}
+        {card.type !== 'comment' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} onSelect={setSelected} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} />}
       </CanvasModule>)}
       <CanvasStatus camera={camera} zoom={zoom} onRecenter={handleRecenter} />
-      {selected && <NodeProperties selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={setSelected} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
+      {selected && <NodeProperties key={`${document.revision}:${selected.kind}:${selected.id}`} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={setSelected} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
       {contextMenu && (contextMenu.targetId ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} onInsert={handleInsert} onDelete={handleDeleteNode} onClose={handleCloseMenu} />
         : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} onCreate={handleCreateModule} onClose={handleCloseMenu} />)}
     </main>
+    </div>
   )
 }
