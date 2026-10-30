@@ -124,3 +124,10 @@
 - `pnpm test` : **81 tests réussis, zéro échec**, avec un contrôle que chaque construction déclare un groupe non vide. `pnpm build` réussi.
 - Navigateur : variable, littéral, fonction, paramètre, bloc et type contrôlés avec leurs couleurs respectives ; les douze groupes mesurés sur des éléments `.logic-node` correspondent aux variables CSS, y compris pour la sélection. Console sans erreur.
 - Limites : couleurs statiques, sans légende ni personnalisation ; la catégorie reste une information de présentation et n'entre ni dans l'AST ni dans les diagnostics.
+
+## Nœuds pliés par défaut — 30 octobre 2026
+
+- `LogicTree` mémorise désormais les identifiants explicitement dépliés (`expandedIds`) au lieu des identifiants pliés : un nœud sans entrée est rendu plié. Un nœud nouvellement inséré apparaît donc plié, avec son résumé d'une ligne.
+- `LogicNode` dérive `expanded` de cet ensemble ; l'état `aria-expanded`, le chevron, la classe `logic-node--collapsed` et l'affichage des slots suivent cette valeur. Déplier un parent rend ses enfants, eux-mêmes pliés par défaut.
+- `pnpm test` : 81 tests réussis, zéro échec. `pnpm build` réussi. Navigateur : variable insérée directement pliée, dépliage affichant le slot `initializer` et le littéral enfant encore plié, repliage revenant au résumé. Console sans erreur.
+- Limite : l'état reste local à chaque carte et n'est pas sauvegardé ; fenêtre native non revérifiée.

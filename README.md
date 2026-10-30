@@ -35,7 +35,7 @@ Chaque insertion est atomique : slot unique occupé jamais remplacé, ordre des 
 
 ### Pliage et suppression
 
-Le bouton `▸`/`▾` de chaque nœud logique le plie ou le déplie. Plié, le nœud tient sur une ligne avec ses données utiles (valeur, opérateur, cible, signature, nombre d'instructions) et masque ses slots ; déplié, il reprend le rendu complet. Ce pliage est purement visuel, local à la carte, non sauvegardé et sans effet sur l'AST.
+Le bouton `▸`/`▾` de chaque nœud logique le plie ou le déplie. Tous les nœuds sont pliés par défaut ; seuls ceux que vous dépliez restent ouverts. Plié, le nœud tient sur une ligne avec ses données utiles (valeur, opérateur, cible, signature, nombre d'instructions) et masque ses slots ; déplié, il reprend le rendu complet. Ce pliage est purement visuel, local à la carte, non sauvegardé et sans effet sur l'AST.
 
 Un nœud peut être supprimé par « Delete node » dans son menu contextuel, ou depuis le panneau de propriétés avec une confirmation en deux temps. La suppression retire le nœud et tous ses descendants, puis sélectionne le parent logique. Les références vers le nœud supprimé restent dans la source et deviennent des diagnostics `REFERENCE_UNRESOLVED` ; aucune référence n'est réécrite silencieusement. Les cartes Module/Main ne sont pas supprimables ainsi, et il n'y a pas d'annulation.
 
