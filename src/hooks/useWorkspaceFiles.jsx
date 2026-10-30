@@ -1,7 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { serializeWorkspace, deserializeWorkspace } from '../utils/workspaceFile.js'
-import { exportWorkspaceFile, importWorkspaceFile, writeWorkspaceFile } from '../services/workspaceFiles.js'
+import { exportWorkspaceFile, importWorkspaceFile, readWorkspaceFile, writeWorkspaceFile } from '../services/workspaceFiles.js'
 import { useTranslation } from '../i18n.jsx'
+
+const recentFilesStorageKey = 'sapphire-recent-sp3-files'
+const maximumRecentFiles = 5
+
+// Charge les chemins récents en écartant les valeurs persistées invalides.
+function loadRecentFiles() {
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(recentFilesStorageKey) ?? '[]')
+    return Array.isArray(stored) ? stored.filter((path) => typeof path === 'string' && path.toLowerCase().endsWith('.sp3')).slice(0, maximumRecentFiles) : []
+  } catch {
+    return []
+  }
+}
 
 // Prépare les fichiers sans toucher au document actif avant validation et confirmation de remplacement.
 export default function useWorkspaceFiles({ project, cards, camera, selected, onReplace }) {
@@ -11,7 +24,24 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
   const [error, setError] = useState('')
   const [pendingImport, setPendingImport] = useState(null)
   const [currentPath, setCurrentPath] = useState(null)
+  const [recentFiles, setRecentFiles] = useState(loadRecentFiles)
   const operation = useRef(false)
+
+  // Ajoute un chemin en tête de liste et le conserve pour les prochaines sessions.
+  function rememberRecentFile(path) {
+    const next = [path, ...recentFiles.filter((entry) => entry.toLowerCase() !== path.toLowerCase())].slice(0, maximumRecentFiles)
+    setRecentFiles(next)
+    window.localStorage.setItem(recentFilesStorageKey, JSON.stringify(next))
+  }
+
+  // Retire un chemin devenu inaccessible de la liste persistante.
+  function forgetRecentFile(path) {
+    setRecentFiles((current) => {
+      const next = current.filter((entry) => entry.toLowerCase() !== path.toLowerCase())
+      window.localStorage.setItem(recentFilesStorageKey, JSON.stringify(next))
+      return next
+    })
+  }
 
   // Capture le document courant dans le format demandé et l'ecrit au chemin choisi.
   async function saveAs(extension = 'sp3') {
@@ -76,6 +106,25 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     }
   }
 
+  // Ouvre un chemin recent après avoir vérifié qu'il existe toujours.
+  async function handleOpenRecent(path) {
+    if (operation.current || pendingImport) return
+    operation.current = true
+    setBusy(true)
+    setError('')
+    setMessage('')
+    try {
+      const file = await readWorkspaceFile(path)
+      setPendingImport({ workspace: deserializeWorkspace(file.text), path: file.path })
+    } catch (failure) {
+      forgetRecentFile(path)
+      setError(`${t('errors.couldNotOpen')} ${failure.message || failure.code || t('errors.default')}`)
+    } finally {
+      operation.current = false
+      setBusy(false)
+    }
+  }
+
   // Associe le document au chemin du fichier uniquement après le remplacement confirmé.
   // Valide le fichier choisi avant de demander l'autorisation de remplacer le contenu affiché.
   async function handleImport() {
@@ -100,6 +149,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     if (!pendingImport) return
     onReplace(pendingImport.workspace)
     setCurrentPath(pendingImport.path.toLowerCase().endsWith('.sp3') ? pendingImport.path : null)
+    if (pendingImport.path.toLowerCase().endsWith('.sp3')) rememberRecentFile(pendingImport.path)
     setPendingImport(null)
     setMessage('Workspace opened.')
   }
@@ -124,5 +174,5 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     return () => document.removeEventListener('keydown', handleShortcut)
   })
 
-  return { busy, message, error, pendingImport, handleSave, saveAs, handleOpenSp3, handleImport, handleConfirmImport, handleCancelImport, handleDismiss }
+  return { busy, message, error, pendingImport, recentFiles, handleSave, saveAs, handleOpenSp3, handleOpenRecent, handleImport, handleConfirmImport, handleCancelImport, handleDismiss }
 }

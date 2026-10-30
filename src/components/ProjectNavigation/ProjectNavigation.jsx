@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Check, ChevronDown, Download, FolderOpen, Palette, Save, Upload, X } from 'lucide-react'
+import { Check, ChevronDown, Clock3, Download, FolderOpen, Palette, Save, Upload, X } from 'lucide-react'
 import { useTranslation } from '../../i18n.jsx'
 import { useTheme } from '../../theme.jsx'
 import './ProjectNavigation.css'
@@ -22,7 +22,7 @@ function ImportConfirmation({ path, onConfirm, onCancel }) {
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, message, error, pendingImport, onSave, onSaveAs, onOpenSp3, onImport, onConfirmImport, onCancelImport, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hasSelection, onOpenSelectionMenu }) {
+export default function ProjectNavigation({ busy, message, error, pendingImport, recentFiles, onSave, onSaveAs, onOpenSp3, onOpenRecent, onImport, onConfirmImport, onCancelImport, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hasSelection, onOpenSelectionMenu }) {
   const navigationRef = useRef(null)
   const { language, setLanguage, t } = useTranslation()
   const { theme, themes, setTheme } = useTheme()
@@ -69,6 +69,12 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
     onOpenSp3()
   }
 
+  // Ferme le volet avant la lecture d'un fichier recent.
+  function handleOpenRecent(path) {
+    closeMenus()
+    onOpenRecent(path)
+  }
+
   // Ferme le volet avant l'ecriture du fichier courant ou l'ouverture d'Enregistrer sous.
   function handleSave() {
     closeMenus()
@@ -87,6 +93,10 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
         <summary>{t('nav.settings')}<ChevronDown size={12} aria-hidden="true" /></summary>
         <div className="project-navigation__menu">
           <button type="button" disabled={busy || !!pendingImport} onClick={handleOpenSp3}><FolderOpen size={14} aria-hidden="true" />{t('nav.openSp3')}</button>
+          <p>{t('nav.recentFiles')}</p>
+          {recentFiles.length === 0
+            ? <p>{t('nav.noRecentFiles')}</p>
+            : recentFiles.map((path) => <button type="button" className="project-navigation__recent-file" title={path} disabled={busy || !!pendingImport} onClick={() => handleOpenRecent(path)} key={path}><Clock3 size={14} aria-hidden="true" /><span>{path}</span></button>)}
           <button type="button" disabled={busy || !!pendingImport} onClick={handleSave}><Save size={14} aria-hidden="true" />{t('nav.saveSp3')}</button>
           <button type="button" disabled={busy || !!pendingImport} onClick={handleImport}><Upload size={14} aria-hidden="true" />{t('nav.import')}</button>
           <button type="button" disabled={busy || !!pendingImport} onClick={() => handleSaveAs('json')}><Download size={14} aria-hidden="true" />{t('nav.exportJson')}</button>

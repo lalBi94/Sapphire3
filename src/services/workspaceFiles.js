@@ -57,3 +57,12 @@ export async function importWorkspaceFile(extensions = ['sp3', 'json']) {
   if (!info.isFile || info.size > maximumFileSize) throw new Error('Please choose a workspace file smaller than 20 MB.')
   return { path, text: await filesystem.readFile(path) }
 }
+
+// Relit un fichier recent connu sans afficher un second dialogue de sélection.
+export async function readWorkspaceFile(path, extension = 'sp3') {
+  if (typeof path !== 'string' || !path.toLowerCase().endsWith(`.${extension}`)) throw new Error(`Please choose a .${extension} file.`)
+  const { filesystem } = await getClient()
+  const info = await filesystem.getStats(path)
+  if (!info.isFile || info.size > maximumFileSize) throw new Error('Please choose a workspace file smaller than 20 MB.')
+  return { path, text: await filesystem.readFile(path) }
+}
