@@ -15,6 +15,7 @@
     "desktop:start": "pnpm build && .\\bin\\neutralino-win_x64.exe --load-dir-res --path=."
   },
   "dependencies": {
+    "lucide-react": "^1.64.0",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },

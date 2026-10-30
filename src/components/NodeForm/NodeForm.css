@@ -8,7 +8,7 @@
 .node-form fieldset { display: grid; gap: 10px; margin: 0; padding: 10px; min-width: 0; border: 1px solid var(--color-border); border-radius: 4px; }
 .node-form legend { color: var(--color-text-muted); padding: 0 4px; }
 .node-form .node-form__check { display: flex; align-items: center; gap: 7px; }
-.node-form button { padding: 8px; border: 1px solid var(--color-border); border-radius: 4px; color: var(--color-text); background: var(--color-surface-raised); cursor: pointer; }
+.node-form button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; border: 1px solid var(--color-border); border-radius: 4px; color: var(--color-text); background: var(--color-surface-raised); cursor: pointer; }
 .node-form .node-form__submit { background: var(--color-hover); }
 .node-form__parameter { display: grid; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--color-border); }
 .node-form__hint { margin: 0; color: var(--color-text-muted); line-height: 1.5; }

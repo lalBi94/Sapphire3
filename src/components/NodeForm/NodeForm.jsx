@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Plus, Save, Trash2 } from 'lucide-react'
 import { getNodeSchema, binaryOperators, unaryOperators, primitiveType, getVisibleSymbols, sameType, acceptsOperand } from '../../utils/logic/index.js'
 import { initialNodeForm, nodeConfiguration } from './nodeConfiguration.js'
 import NodeTypeInput from './NodeTypeInput.jsx'
@@ -68,15 +69,15 @@ export default function NodeForm({ kind, initialNode = null, context, onSubmit, 
         {form.parameters.map((parameter, index) => <div className="node-form__parameter" key={index}>
           <label>Parameter {index + 1} name<input aria-label={`Parameter ${index + 1} name`} value={parameter.name} required={required} onChange={(event) => change('parameters', form.parameters.map((entry, position) => position === index ? { ...entry, name: event.target.value } : entry))} /></label>
           <NodeTypeInput label={`Parameter ${index + 1} type`} value={parameter.typeName} required={required} onChange={(value) => change('parameters', form.parameters.map((entry, position) => position === index ? { ...entry, typeName: value } : entry))} />
-          <button type="button" onClick={() => change('parameters', form.parameters.filter((_, position) => position !== index))}>Remove draft parameter</button>
+          <button type="button" onClick={() => change('parameters', form.parameters.filter((_, position) => position !== index))}><Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />Remove draft parameter</button>
         </div>)}
-        <button type="button" onClick={() => change('parameters', [...form.parameters, { name: '', typeName: '' }])}>Add parameter</button>
+        <button type="button" onClick={() => change('parameters', [...form.parameters, { name: '', typeName: '' }])}><Plus size={16} strokeWidth={1.75} aria-hidden="true" />Add parameter</button>
       </fieldset>}
       {isNew && kind === 'ForStatement' && <p className="node-form__hint">Initializer and update are configured through their slots after creation.</p>}
       {isNew && <p className="node-form__hint">Unfilled child slots stay incomplete and keep their diagnostics. No values are generated.</p>}
       <label className="node-form__check"><input type="checkbox" checked={form.allowIncomplete} onChange={(event) => change('allowIncomplete', event.target.checked)} />Allow incomplete properties</label>
       {error && <p className="node-form__error" role="alert">{error}</p>}
-      <button type="submit" className="node-form__submit">{submitLabel}</button>
+      <button type="submit" className="node-form__submit">{initialNode ? <Save size={16} strokeWidth={1.75} aria-hidden="true" /> : <Plus size={16} strokeWidth={1.75} aria-hidden="true" />}{submitLabel}</button>
     </form>
   )
 }

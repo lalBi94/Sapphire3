@@ -1,3 +1,4 @@
+import { ChevronRight, X } from 'lucide-react'
 import { resolveContext, getNodeSchema } from '../../utils/logic/index.js'
 import { kindLabel } from '../LogicTree/logicLabels.js'
 import NodeForm from '../NodeForm/NodeForm.jsx'
@@ -15,13 +16,13 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
 
   return (
     <aside className="node-properties" data-canvas-ui data-canvas-scroll aria-label="Node properties" onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
-      <header><h2>{selected.kind === 'module' ? 'Module properties' : record ? kindLabel(record.kind) : 'Node properties'}</h2><button type="button" aria-label="Close properties" onClick={onClose}>×</button></header>
+      <header><h2>{selected.kind === 'module' ? 'Module properties' : record ? kindLabel(record.kind) : 'Node properties'}</h2><button type="button" aria-label="Close properties" onClick={onClose}><X size={18} strokeWidth={1.75} aria-hidden="true" /></button></header>
       {!context.ok ? <p>Selection is unavailable: {context.code}</p> : <>
         <p className="node-properties__id">{record.id}</p>
         {selected.kind === 'module' ? <ModuleNameForm key={`${record.id}:${record.name}`} module={record} onRename={onRename} /> : configurable ? <NodeForm key={`${record.id}:${JSON.stringify([record.properties, record.references])}`} kind={record.kind} initialNode={record} context={context} submitLabel="Save properties" onSubmit={(patch) => onConfigure(record.id, patch)} /> : <p>Configure this node through its child slots.</p>}
         <h3>{selected.kind === 'module' ? 'Root nodes' : 'Children'}</h3>
         {(selected.kind === 'module' ? [['rootNodeIds', record.rootNodeIds]] : Object.entries(record.children ?? {})).map(([slot, value]) => <div className="node-properties__children" key={slot}><span>{slot}</span>
-          {(Array.isArray(value) ? value : value ? [value] : []).map((id, position) => <button type="button" key={`${id}:${position}`} onClick={() => onSelect({ kind: 'node', id })}>{index.nodes.get(id)?.properties?.name || index.nodes.get(id)?.kind || 'Missing node'}</button>)}
+          {(Array.isArray(value) ? value : value ? [value] : []).map((id, position) => <button type="button" key={`${id}:${position}`} onClick={() => onSelect({ kind: 'node', id })}>{index.nodes.get(id)?.properties?.name || index.nodes.get(id)?.kind || 'Missing node'}<ChevronRight size={14} strokeWidth={1.75} aria-hidden="true" /></button>)}
           {(value === null || (Array.isArray(value) && value.length === 0)) && <small>Empty</small>}
         </div>)}
       </>}

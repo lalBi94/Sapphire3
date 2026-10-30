@@ -1,7 +1,14 @@
 import { useEffect, useRef } from 'react'
+import { Box, CirclePlay, MessageSquare } from 'lucide-react'
 import { moduleTypes } from '../../utils/moduleTypes.js'
 import { moduleKinds } from '../../utils/logic/model.js'
 import './CanvasContextMenu.css'
+
+const menuIcons = {
+  module: Box,
+  main: CirclePlay,
+  comment: MessageSquare,
+}
 
 // Propose les créations disponibles et gère la fermeture ainsi que le focus clavier.
 export default function CanvasContextMenu({ x, y, hasMain, onCreate, onClose }) {
@@ -50,11 +57,13 @@ export default function CanvasContextMenu({ x, y, hasMain, onCreate, onClose }) 
       onPointerDown={(event) => event.stopPropagation()}
       onKeyDown={handleKeyDown}
     >
-      {Object.entries(moduleTypes).map(([type, definition]) => (
-        <button key={type} type="button" role="menuitem" disabled={type === moduleKinds.main && hasMain} title={type === moduleKinds.main && hasMain ? 'Only one Main is allowed.' : undefined} onClick={() => onCreate(type)}>
+      {Object.entries(moduleTypes).map(([type, definition]) => {
+        const Icon = menuIcons[type]
+        return <button key={type} type="button" role="menuitem" disabled={type === moduleKinds.main && hasMain} title={type === moduleKinds.main && hasMain ? 'Only one Main is allowed.' : undefined} onClick={() => onCreate(type)}>
+          <Icon className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />
           {definition.action}
         </button>
-      ))}
+      })}
     </div>
   )
 }

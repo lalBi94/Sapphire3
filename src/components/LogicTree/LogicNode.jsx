@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { getNodeSchema } from '../../utils/logic/index.js'
 import { kindLabel, nodeSummary } from './logicLabels.js'
 
@@ -28,7 +29,9 @@ export default function LogicNode({ id, index, selectedId, onSelect, ancestors, 
   return (
     <section className={`logic-node${selectedId === id ? ' logic-node--selected' : ''}${expanded ? '' : ' logic-node--collapsed'}`} data-source-node={id} data-group={schema?.group ?? 'incomplete'} aria-label={name} onClick={handleSelect}>
       <div className="logic-node__header">
-        <button type="button" className="logic-node__toggle" aria-expanded={expanded} aria-label={`${expanded ? 'Collapse' : 'Expand'} ${name}`} onClick={handleToggle}>{expanded ? '▾' : '▸'}</button>
+        <button type="button" className="logic-node__toggle" aria-expanded={expanded} aria-label={`${expanded ? 'Collapse' : 'Expand'} ${name}`} onClick={handleToggle}>
+          {expanded ? <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" /> : <ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" />}
+        </button>
         <button type="button" className="logic-node__heading" onClick={handleSelect} aria-pressed={selectedId === id}>
           <span>{kindLabel(node.kind)}{node.properties?.name ? ` · ${node.properties.name}` : ''}</span>
           {diagnostics.length > 0 && <span className="logic-node__issues" aria-label={`${diagnostics.length} diagnostics`}>{diagnostics.length}</span>}

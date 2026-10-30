@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { ArrowLeft, CircleDot, Plus, Trash2 } from 'lucide-react'
 import { getAvailableActions } from '../../utils/logic/index.js'
 import { kindLabel } from '../LogicTree/logicLabels.js'
 import NodeForm from '../NodeForm/NodeForm.jsx'
@@ -43,12 +44,12 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
     <div ref={menuRef} className="logic-context-menu" data-canvas-ui data-canvas-scroll tabIndex={-1} aria-label="Node menu" style={{ left: `min(${x}px, max(8px, calc(100% - ${kind ? 540 : 220}px - 8px)))`, top: `min(${y}px, max(8px, calc(100% - ${kind ? 630 : 420}px)))` }} onPointerDown={(event) => event.stopPropagation()} onKeyDown={handleKeyDown}>
       <div className="logic-context-menu__actions" role="menu" aria-label={selectedSlot ? `Add to ${selectedSlot}` : 'Choose a slot'}>
         <div className="logic-context-menu__title">{selectedSlot || 'Choose a slot'}</div>
-        {selectedSlot && available.slots.length > 1 && <button type="button" role="menuitem" onClick={() => { setSlotName(''); setKind('') }}>← Slots</button>}
+        {selectedSlot && available.slots.length > 1 && <button type="button" role="menuitem" onClick={() => { setSlotName(''); setKind('') }}><ArrowLeft className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />Slots</button>}
         {!available.ok && <p>{available.code.replaceAll('_', ' ')}</p>}
-        {available.ok && !selectedSlot && available.slots.map((slot) => <button type="button" role="menuitem" key={slot.name} disabled={slot.occupied || slot.malformed} onClick={() => { setSlotName(slot.name); setKind('') }}>{slot.name}{slot.occupied ? ' · occupied' : slot.many ? ' · list' : ''}</button>)}
-        {available.ok && selectedSlot && available.actions.map((action) => <button type="button" role="menuitem" key={action.id} aria-pressed={kind === action.kind} onClick={() => setKind(action.kind)}>{kindLabel(action.kind)}</button>)}
+        {available.ok && !selectedSlot && available.slots.map((slot) => <button type="button" role="menuitem" key={slot.name} disabled={slot.occupied || slot.malformed} onClick={() => { setSlotName(slot.name); setKind('') }}><CircleDot className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{slot.name}{slot.occupied ? ' · occupied' : slot.many ? ' · list' : ''}</button>)}
+        {available.ok && selectedSlot && available.actions.map((action) => <button type="button" role="menuitem" key={action.id} aria-pressed={kind === action.kind} onClick={() => setKind(action.kind)}><Plus className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{kindLabel(action.kind)}</button>)}
         {available.ok && (available.slots.length === 0 || (selectedSlot && available.actions.length === 0)) && <p>No insertions available.</p>}
-        {available.ok && available.target?.kind === 'node' && <button type="button" role="menuitem" className="logic-context-menu__delete" title="Also removes its child nodes." onClick={() => onDelete(targetId)}>Delete node</button>}
+        {available.ok && available.target?.kind === 'node' && <button type="button" role="menuitem" className="logic-context-menu__delete" title="Also removes its child nodes." onClick={() => onDelete(targetId)}><Trash2 className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />Delete node</button>}
       </div>
       {kind && <div className="logic-context-menu__form"><h3>{kindLabel(kind)}</h3><NodeForm key={`${selectedSlot}:${kind}`} kind={kind} context={available} onSubmit={(draft) => onInsert(targetId, selectedSlot, draft)} /></div>}
     </div>

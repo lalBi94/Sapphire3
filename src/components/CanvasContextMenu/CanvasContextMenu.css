@@ -11,7 +11,9 @@
 }
 
 .canvas-context-menu button {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   min-height: 36px;
   padding: 8px 10px;
@@ -23,6 +25,11 @@
   font: inherit;
   font-size: 12px;
   cursor: pointer;
+}
+
+.menu-icon {
+  flex-shrink: 0;
+  color: currentColor;
 }
 
 .canvas-context-menu button:not(:disabled):hover,

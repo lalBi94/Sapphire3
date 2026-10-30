@@ -1,3 +1,4 @@
+import { Crosshair } from 'lucide-react'
 import './CanvasStatus.css'
 
 // Garde les valeurs extrêmes lisibles sans afficher de faux zéros.
@@ -26,10 +27,7 @@ export default function CanvasStatus({ camera, zoom, onRecenter }) {
         {formatValue(zoom * 100)} %
       </span>
       <button type="button" onClick={onRecenter} title="Return to origin (0, 0)" aria-label="Return to origin (0, 0)">
-        <svg viewBox="0 0 20 20" aria-hidden="true">
-          <circle cx="10" cy="10" r="4" />
-          <path d="M10 2v4m0 8v4M2 10h4m8 0h4" />
-        </svg>
+        <Crosshair size={18} strokeWidth={1.75} aria-hidden="true" />
       </button>
     </aside>
   )

@@ -2,20 +2,20 @@
 .node-properties header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
 .node-properties h2, .node-properties h3 { font-size: 12px; margin: 0; font-weight: 500; }
 .node-properties h3 { margin: 18px 0 10px; }
-.node-properties header button { border: 0; background: transparent; color: var(--color-text-muted); font-size: 22px; cursor: pointer; }
+.node-properties header button { display: grid; place-items: center; border: 0; background: transparent; color: var(--color-text-muted); cursor: pointer; }
 .node-properties p { color: var(--color-text-muted); line-height: 1.5; }
 .node-properties__id { font-size: 10px; overflow-wrap: anywhere; }
 .node-properties__children { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0; }
 .node-properties__children span, .node-properties__children small { color: var(--color-text-muted); }
-.node-properties__children button { padding: 4px 6px; border: 1px solid var(--color-border); border-radius: 3px; color: var(--color-text); background: var(--color-surface); font: inherit; font-size: 10px; cursor: pointer; }
+.node-properties__children button { display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; border: 1px solid var(--color-border); border-radius: 3px; color: var(--color-text); background: var(--color-surface); font: inherit; font-size: 10px; cursor: pointer; }
 .node-properties__diagnostics { margin: 0; padding: 0; list-style: none; }
 .node-properties__diagnostics li { display: grid; gap: 4px; margin-bottom: 10px; font-size: 10px; overflow-wrap: anywhere; }
 .node-properties__diagnostics strong { color: var(--color-diagnostic); font-weight: 400; }
 .node-properties__diagnostics small { color: var(--color-text-muted); }
 .node-properties__danger { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--color-border); display: grid; gap: 8px; }
-.node-properties__delete { justify-self: start; padding: 7px 9px; border: 1px solid var(--color-diagnostic); border-radius: 4px; background: transparent; color: var(--color-diagnostic); font: inherit; font-size: 11px; cursor: pointer; }
+.node-properties__delete { display: inline-flex; align-items: center; gap: 6px; justify-self: start; padding: 7px 9px; border: 1px solid var(--color-diagnostic); border-radius: 4px; background: transparent; color: var(--color-diagnostic); font: inherit; font-size: 11px; cursor: pointer; }
 .node-properties__confirm { display: grid; gap: 8px; }
 .node-properties__confirm p { margin: 0; font-size: 11px; }
 .node-properties__confirm div { display: flex; flex-wrap: wrap; gap: 6px; }
-.node-properties__confirm button:not(.node-properties__delete) { padding: 7px 9px; border: 1px solid var(--color-border); border-radius: 4px; background: transparent; color: var(--color-text); font: inherit; font-size: 11px; cursor: pointer; }
+.node-properties__confirm button:not(.node-properties__delete) { display: inline-flex; align-items: center; gap: 6px; padding: 7px 9px; border: 1px solid var(--color-border); border-radius: 4px; background: transparent; color: var(--color-text); font: inherit; font-size: 11px; cursor: pointer; }
 .node-properties :is(input, select, button):focus-visible { outline: 1px solid var(--color-text-muted); outline-offset: 2px; }

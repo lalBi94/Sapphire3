@@ -21,6 +21,7 @@
 - Aucun simulateur, moteur de suggestions, génération de code, stockage sur disque ou backend implémenté ; pas encore de déplacement individuel, copier/coller ou annulation de suppression de nœuds logiques. Les prochains incréments nécessitent une demande.
 - Interface en anglais (y compris textes accessibles), commentaires et documentation en français.
 - Style provisoire minimal, police système locale. Aucun service distant à l'exécution.
+- Les actions de menus, de statut, de propriétés et de formulaires utilisent des icônes Lucide React ciblées, avec tailles, épaisseur et attributs d'accessibilité cohérents.
 
 ## Cartographie
 
