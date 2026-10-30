@@ -115,6 +115,17 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
     }
   }
 
+  // Ajuste la hauteur de la carte au ratio naturel de l'image chargée.
+  function handleImageLoad(event) {
+    const { naturalWidth, naturalHeight } = event.currentTarget
+    if (!naturalWidth || !naturalHeight) return
+    const ratio = naturalWidth / naturalHeight
+    const contentHeight = module.width / ratio
+    const height = Math.ceil(contentHeight + 40)
+    if (!Number.isFinite(height) || Math.abs(module.height - height) < 1) return
+    onResize(module.id, module.width, height)
+  }
+
   // Capture l'en-tête et mémorise la position ainsi que le zoom au début du geste.
   function handleMoveStart(event) {
     if (event.button !== 0 || moveRef.current || resizeRef.current) return
@@ -290,7 +301,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
           onDragLeave={handleImageDragLeave}
           onDrop={handleImageDrop}
         >
-          {module.image ? <img className="canvas-module__image" src={module.image} alt={module.caption || name} /> : <span className="canvas-module__image-empty">{t('canvas.chooseImage')}</span>}
+          {module.image ? <img className="canvas-module__image" src={module.image} alt={module.caption || name} onLoad={handleImageLoad} /> : <span className="canvas-module__image-empty">{t('canvas.chooseImage')}</span>}
           <span className="canvas-module__image-overlay" aria-hidden="true">
             {isImageDragOver ? t('canvas.dropImage') : module.image ? t('canvas.replaceImage') : ''}
           </span>

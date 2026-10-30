@@ -143,7 +143,7 @@
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: inherit;
   background: var(--color-anthracite);
 }
