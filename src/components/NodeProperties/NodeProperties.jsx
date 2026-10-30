@@ -91,7 +91,7 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
   }
 
-  // Capture le coin inférieur gauche pour redimensionner le panneau sans déplacer le contenu.
+  // Capture le coin inférieur droit pour redimensionner le panneau sans déplacer son origine.
   function handleResizeStart(event) {
     if (event.button !== 0 || moveRef.current) return
     const panel = event.currentTarget.closest('.node-properties')
@@ -117,7 +117,7 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
     setSize({ width: panelBounds.width, height: panelBounds.height })
   }
 
-  // Applique les nouvelles dimensions en gardant le bord droit et le haut du panneau stables.
+  // Applique les nouvelles dimensions en gardant le bord gauche et le haut du panneau stables.
   function handleResize(event) {
     const resize = resizeRef.current
     if (!resize || resize.pointerId !== event.pointerId) return
@@ -125,10 +125,9 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
     const minimumHeight = 180
     const maximumWidth = Math.max(minimumWidth, resize.parentWidth - 16)
     const maximumHeight = Math.max(minimumHeight, resize.parentHeight - resize.origin.y - 16)
-    const width = Math.min(maximumWidth, Math.max(minimumWidth, resize.width - (event.clientX - resize.x)))
+    const width = Math.min(maximumWidth, Math.max(minimumWidth, resize.width + (event.clientX - resize.x)))
     const height = Math.min(maximumHeight, Math.max(minimumHeight, resize.height + (event.clientY - resize.y)))
-    const x = resize.origin.x + resize.width - width
-    setPosition({ x: Math.max(8, x), y: resize.origin.y })
+    setPosition(resize.origin)
     setSize({ width, height })
   }
 
@@ -142,7 +141,7 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
 
   // Redimensionne le panneau par petits pas lorsque la poignée possède le focus.
   function handleResizeKeyDown(event) {
-    const directions = { ArrowLeft: [16, 0], ArrowRight: [-16, 0], ArrowUp: [0, -16], ArrowDown: [0, 16] }
+    const directions = { ArrowLeft: [-16, 0], ArrowRight: [16, 0], ArrowUp: [0, -16], ArrowDown: [0, 16] }
     const direction = directions[event.key]
     if (!direction) return
     event.preventDefault()
@@ -154,7 +153,7 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
     const currentPosition = position ?? { x: bounds.left - parentBounds.left, y: bounds.top - parentBounds.top }
     const width = Math.max(240, bounds.width + direction[0])
     const height = Math.max(180, bounds.height + direction[1])
-    setPosition({ x: Math.max(8, currentPosition.x - (width - bounds.width)), y: currentPosition.y })
+    setPosition(currentPosition)
     setSize({ width, height })
   }
 

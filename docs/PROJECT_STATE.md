@@ -8,7 +8,7 @@
 - Étapes livrées : socle frontend et fenêtre native, page unique avec canvas plein écran et déplacement sans borne applicative. Quadrillage discret, courbé sur les bords et assombri en périphérie.
 - Navigation : glisser avec le bouton gauche ou central (également gestes tactiles), ou utiliser les flèches quand le canvas a le focus. Molette : zoom centré sur le milieu de la vue, plafonné à 400 %, sans minimum applicatif de dézoom. Glisser et zoomer simultanément est possible : les déplacements successifs utilisent le zoom courant, sans saut ni réinitialisation du zoom.
 - Les fenêtres flottantes de propriétés et d'ajout peuvent être détachées de leur position initiale puis déplacées à la souris, au pointeur ou avec les flèches du clavier depuis leur poignée.
-- La fenêtre de propriétés est redimensionnable depuis son coin inférieur gauche, avec une taille minimale et un ajustement possible au clavier.
+- La fenêtre de propriétés est redimensionnable depuis son coin inférieur droit, avec une taille minimale et un ajustement possible au clavier.
 - Le panneau de propriétés affiche aussi en bas la hiérarchie compacte du projet (modules puis descendants) ; chaque élément est cliquable pour afficher ses propriétés.
 - Les menus contextuels restent au-dessus de la scène ; une carte touchée passe devant les autres cartes, et le nœud sélectionné devant les autres nœuds de sa carte.
 - Croix à l'origine absolue (0, 0), projetée avec la grille. En bas à droite : X/Y du milieu de la vue, pourcentage de zoom et bouton de retour à l'origine conservant le zoom.

@@ -27,7 +27,7 @@
 .node-properties header button:hover { background: var(--color-hover); }
 .node-properties__children button:hover { border-color: var(--color-selection); text-decoration: underline; }
 .node-properties :is(input, select, button):focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
-.node-properties__resize { position: absolute; left: 3px; bottom: 3px; display: grid; place-items: center; width: 22px; height: 22px; padding: 4px; border: 0; border-radius: var(--radius-small); color: var(--color-text-muted); background: transparent; cursor: nesw-resize; touch-action: none; }
+.node-properties__resize { position: absolute; right: 3px; bottom: 3px; display: grid; place-items: center; width: 22px; height: 22px; padding: 4px; border: 0; border-radius: var(--radius-small); color: var(--color-text-muted); background: transparent; cursor: nwse-resize; touch-action: none; }
 .node-properties__resize:hover { color: var(--color-text); background: var(--color-hover); }
 .node-properties__resize:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }
 .node-properties__resize svg { width: 100%; height: 100%; fill: none; stroke: currentColor; }
