@@ -167,7 +167,7 @@ export default function Canvas() {
         fitRequest={growthRequest.moduleId === card.id ? growthRequest.revision : 0}
         onOpenActions={(event) => handleOpenActions(event, { kind: card.type, id: card.id })}
         selected={selected?.kind === 'module' && selected.id === card.id}
-        onSelect={() => handleSelect(card.type === 'comment' ? null : { kind: 'module', id: card.id })}
+        onSelect={() => handleSelect(card.type === 'module' ? { kind: 'module', id: card.id } : null)}
         onResize={(id, width, height) => document.updateGeometry(id, { width, height })}
         onMove={(id, x, y) => document.updateGeometry(id, { x, y })}
         onRename={document.renameCard} onTextChange={document.updateComment} onImageChange={document.updateImage}>
