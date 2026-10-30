@@ -1,0 +1,44 @@
+{
+  "applicationId": "local.sapphire3.app",
+  "version": "0.1.0",
+  "defaultMode": "window",
+  "port": 0,
+  "documentRoot": "/dist/",
+  "url": "/",
+  "enableServer": true,
+  "enableNativeAPI": false,
+  "enableExtensions": false,
+  "nativeAllowList": [],
+  "dataLocation": "system",
+  "storageLocation": "system",
+  "logging": {
+    "enabled": true,
+    "writeToLogFile": false
+  },
+  "modes": {
+    "window": {
+      "title": "Sapphire 3",
+      "width": 1100,
+      "height": 760,
+      "minWidth": 480,
+      "minHeight": 320,
+      "center": true,
+      "resizable": true,
+      "enableInspector": true,
+      "exitProcessOnClose": true,
+      "useSavedState": false
+    }
+  },
+  "cli": {
+    "binaryName": "sapphire3",
+    "binaryVersion": "6.10.0",
+    "resourcesPath": "/dist/",
+    "distributionPath": "/build/",
+    "frontendLibrary": {
+      "projectPath": "/",
+      "devUrl": "http://127.0.0.1:5173",
+      "devCommand": "pnpm dev:web",
+      "buildCommand": "pnpm build"
+    }
+  }
+}

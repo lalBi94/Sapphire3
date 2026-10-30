@@ -1,0 +1,24 @@
+{
+  "name": "sapphire-3",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@11.5.0",
+  "scripts": {
+    "dev": "neu run",
+    "dev:web": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "desktop:setup": "neu update",
+    "desktop:start": "pnpm build && .\\bin\\neutralino-win_x64.exe --load-dir-res --path=."
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@neutralinojs/neu": "11.8.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "vite": "8.3.5"
+  }
+}

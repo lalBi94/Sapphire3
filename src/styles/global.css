@@ -1,0 +1,33 @@
+@import './tokens.css';
+
+:root {
+  font-family: var(--font-family);
+  color: var(--color-text);
+  background: var(--color-surface);
+  color-scheme: dark;
+  font-synthesis: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 280px;
+}
+
+main {
+  padding: clamp(24px, 5vw, 64px);
+}
+
+h1 {
+  margin: 0 0 12px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+p {
+  margin: 0;
+  color: var(--color-text-muted);
+}
