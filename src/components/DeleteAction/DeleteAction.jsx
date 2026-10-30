@@ -11,6 +11,7 @@ export default function DeleteAction({ targetId, kind = 'node', onDelete, menu =
   const cancelRef = useRef(null)
   const triggerRef = useRef(null)
   const restoreFocusRef = useRef(false)
+  const targetLabel = kind === 'comment' ? t('canvas.note') : kind === 'image' ? t('canvas.image') : kind
 
   useEffect(() => {
     if (confirming) cancelRef.current.focus({ preventScroll: true })
@@ -33,10 +34,10 @@ export default function DeleteAction({ targetId, kind = 'node', onDelete, menu =
     setError('')
   }
 
-  if (!confirming) return <div className="delete-action"><button ref={triggerRef} type="button" role={menu ? 'menuitem' : undefined} className="delete-action__button delete-action__button--danger" onClick={() => setConfirming(true)}><Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.delete')} {kind}</button></div>
+  if (!confirming) return <div className="delete-action"><button ref={triggerRef} type="button" role={menu ? 'menuitem' : undefined} className="delete-action__button delete-action__button--danger" onClick={() => setConfirming(true)}><Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.delete')} {targetLabel}</button></div>
   return (
     <div className="delete-action" role="group" aria-label="Confirm delete">
-      <p>{kind === 'comment' ? t('canvas.deleteNote') : `${kind === 'module' ? t('canvas.deleteModule') : t('canvas.deleteInside')} ${t('canvas.brokenLinks')}`}</p>
+      <p>{kind === 'comment' ? t('canvas.deleteNote') : kind === 'image' ? t('canvas.deleteImage') : `${kind === 'module' ? t('canvas.deleteModule') : t('canvas.deleteInside')} ${t('canvas.brokenLinks')}`}</p>
       <div className="delete-action__choices">
         <button type="button" role={menu ? 'menuitem' : undefined} className="delete-action__button delete-action__button--danger" onClick={handleConfirm}><Check size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.delete')}</button>
         <button ref={cancelRef} type="button" role={menu ? 'menuitem' : undefined} className="delete-action__button" onClick={handleCancel}><X size={16} strokeWidth={1.75} aria-hidden="true" />{t('import.cancel')}</button>

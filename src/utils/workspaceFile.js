@@ -50,7 +50,9 @@ function validatePresentation(project, presentation) {
     if (!isRecord(card) || !isId(card.id) || ids.has(card.id) || !Object.hasOwn(moduleTypes, card.type) || typeof card.name !== 'string' || !['x', 'y', 'width', 'height'].every((key) => Number.isFinite(card[key])) || card.width < minimumModuleSize.width || card.height < minimumModuleSize.height) {
       throw new Error('Invalid card data or geometry.')
     }
-    if (card.type === 'module' ? !modules.has(card.id) || modules.get(card.id).name !== card.name : modules.has(card.id) || typeof card.text !== 'string') {
+    if (card.type === 'module'
+      ? !modules.has(card.id) || modules.get(card.id).name !== card.name
+      : modules.has(card.id) || (card.type === 'comment' && typeof card.text !== 'string') || (card.type === 'image' && (typeof card.image !== 'string' || typeof card.caption !== 'string'))) {
       throw new Error('Cards do not match the logical project.')
     }
     if (!Array.isArray(card.expandedNodeIds) || new Set(card.expandedNodeIds).size !== card.expandedNodeIds.length || card.expandedNodeIds.some((id) => !isId(id) || nodes.get(id)?.moduleId !== card.id || card.type !== 'module')) {

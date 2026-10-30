@@ -143,7 +143,7 @@ export default function Canvas() {
 
   // Supprime une annotation confirmée sans modifier la sélection logique existante.
   function handleDeleteComment(commentId) {
-    const result = document.deleteComment(commentId)
+    const result = document.deleteComment(typeof commentId === 'object' ? commentId.id : commentId)
     if (result.ok) {
       menuTriggerRef.current = null
       handleCloseMenu(true)
@@ -170,13 +170,13 @@ export default function Canvas() {
         onSelect={() => handleSelect(card.type === 'comment' ? null : { kind: 'module', id: card.id })}
         onResize={(id, width, height) => document.updateGeometry(id, { width, height })}
         onMove={(id, x, y) => document.updateGeometry(id, { x, y })}
-        onRename={document.renameCard} onTextChange={document.updateComment}>
-        {card.type !== 'comment' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} />}
+        onRename={document.renameCard} onTextChange={document.updateComment} onImageChange={document.updateImage}>
+        {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} />}
       </CanvasModule>)}
       <CanvasStatus camera={camera} zoom={zoom} onRecenter={handleRecenter} />
       {selected && <NodeProperties key={`${document.revision}:${selected.kind}:${selected.id}`} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={setSelected} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
-      {contextMenu && (contextMenu.targetId && contextMenu.targetId.kind !== 'comment' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} anchored={contextMenu.anchored} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={handleCloseMenu} />
-        : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} onCreate={handleCreateModule} onClose={handleCloseMenu} anchored={contextMenu.anchored} commentId={contextMenu.targetId?.id} onDeleteComment={handleDeleteComment} />)}
+      {contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} anchored={contextMenu.anchored} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={handleCloseMenu} />
+        : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} onCreate={handleCreateModule} onClose={handleCloseMenu} anchored={contextMenu.anchored} commentId={contextMenu.targetId ? { id: contextMenu.targetId.id, type: contextMenu.targetId.kind } : null} onDeleteComment={handleDeleteComment} />)}
     </main>
     </div>
   )

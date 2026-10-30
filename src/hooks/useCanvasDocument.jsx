@@ -21,7 +21,7 @@ function reduceDocument(state, action) {
     const card = action.card
     if (state.cards.some((entry) => entry.id === card.id)) return state
     const next = { ...state, cards: [...state.cards, card] }
-    return card.type === 'comment' ? next : withSource(next, { ...state.project, modules: [...state.project.modules, createModule(card.id, card.name, card.type)] })
+    return card.type === 'module' ? withSource(next, { ...state.project, modules: [...state.project.modules, createModule(card.id, card.name)] }) : next
   }
   if (action.type === 'geometry' || action.type === 'text' || action.type === 'presentation') {
     return { ...state, cards: state.cards.map((card) => card.id === action.id ? { ...card, ...action.patch } : card) }
@@ -39,7 +39,7 @@ function reduceDocument(state, action) {
     const card = state.cards.find((entry) => entry.id === action.id)
     if (!card || !moduleTypes[card.type].renamable || !action.name.trim()) return state
     const next = { ...state, cards: state.cards.map((entry) => entry.id === card.id ? { ...entry, name: action.name } : entry) }
-    return card.type === 'comment' ? next : withSource(next, { ...state.project, modules: state.project.modules.map((module) => module.id === card.id ? { ...module, name: action.name } : module) })
+    return card.type === 'module' ? withSource(next, { ...state.project, modules: state.project.modules.map((module) => module.id === card.id ? { ...module, name: action.name } : module) }) : next
   }
   if (action.type === 'insert' || action.type === 'configure' || action.type === 'delete') {
     const result = state.project === action.previousProject ? action.prepared : action.type === 'insert'
@@ -79,7 +79,7 @@ export default function useCanvasDocument() {
   function createCard(type, position) {
     const definition = moduleTypes[type]
     if (!definition) return
-    dispatch({ type: 'createCard', card: { id: crypto.randomUUID(), type, name: definition.label, ...(definition.hasText ? { text: '' } : {}), ...position, width: definition.width, height: definition.height, expandedNodeIds: [] } })
+    dispatch({ type: 'createCard', card: { id: crypto.randomUUID(), type, name: definition.label, ...(definition.hasText ? { text: '' } : {}), ...(definition.hasImage ? { image: '', caption: '' } : {}), ...position, width: definition.width, height: definition.height, expandedNodeIds: [] } })
   }
 
   // Modifie la présentation sans réanalyser le programme.
@@ -95,6 +95,11 @@ export default function useCanvasDocument() {
   // Ne transmet jamais le texte d'une annotation au moteur logique.
   function updateComment(id, text) {
     dispatch({ type: 'text', id, patch: { text } })
+  }
+
+  // Conserve l'image et sa légende dans la présentation, sans toucher à la source logique.
+  function updateImage(id, patch) {
+    dispatch({ type: 'text', id, patch })
   }
 
   // Prépare puis insère une nouvelle arborescence ; un état concurrent est revérifié par le reducer.
@@ -132,7 +137,7 @@ export default function useCanvasDocument() {
 
   // Retire uniquement l'annotation visuelle, sans toucher à la source ni réanalyser le programme.
   function deleteComment(id) {
-    if (!document.cards.some((card) => card.id === id && card.type === 'comment')) return { ok: false, code: 'TARGET_INVALID' }
+    if (!document.cards.some((card) => card.id === id && ['comment', 'image'].includes(card.type))) return { ok: false, code: 'TARGET_INVALID' }
     dispatch({ type: 'deleteComment', id })
     return { ok: true }
   }
@@ -157,5 +162,5 @@ export default function useCanvasDocument() {
     dispatch({ type: 'redo' })
   }
 
-  return { ...document, createCard, updateGeometry, renameCard, updateComment, insertNode, configureNode, deleteNode, deleteModule, deleteComment, setExpandedNodes, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
+  return { ...document, createCard, updateGeometry, renameCard, updateComment, updateImage, insertNode, configureNode, deleteNode, deleteModule, deleteComment, setExpandedNodes, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
 }

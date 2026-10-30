@@ -5,7 +5,7 @@ import { useTranslation } from '../../i18n.jsx'
 import './CanvasModule.css'
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onRename, onTextChange, children, selected = false, onSelect, onOpenActions, onActivate, zIndex = 1, fitRequest = 0 }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onRename, onTextChange, onImageChange, children, selected = false, onSelect, onOpenActions, onActivate, zIndex = 1, fitRequest = 0 }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -14,6 +14,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
   const moveRef = useRef(null)
   const titleRef = useRef(null)
   const nameInputRef = useRef(null)
+  const imageInputRef = useRef(null)
   const restoreNameFocusRef = useRef(false)
   const contentRef = useRef(null)
   const manuallySizedRef = useRef(0)
@@ -68,6 +69,18 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
     } else if (event.key === 'Escape') {
       event.preventDefault()
       setEditingName(false)
+    }
+
+    // Lit une image choisie localement afin qu'elle reste intégrée à l'espace de travail exporté.
+    function handleImageChange(event) {
+      const file = event.target.files?.[0]
+      if (!file || !file.type.startsWith('image/')) return
+      const reader = new FileReader()
+      reader.addEventListener('load', () => {
+        if (typeof reader.result === 'string') onImageChange(module.id, { image: reader.result })
+      })
+      reader.readAsDataURL(file)
+      event.target.value = ''
     }
   }
 
@@ -174,7 +187,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
     <section
       className={`canvas-module canvas-module--${module.type}${isMoving ? ' canvas-module--moving' : ''}${selected ? ' canvas-module--selected' : ''}`}
       aria-label={name}
-      data-source-module={definition.hasText ? undefined : module.id}
+      data-source-module={definition.hasText || definition.hasImage ? undefined : module.id}
       data-card-id={module.id}
       data-card-type={module.type}
       style={{
@@ -232,6 +245,16 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
           onChange={(event) => onTextChange(module.id, event.target.value)}
           spellCheck={false}
         />
+      ) : definition.hasImage ? (
+        <div ref={contentRef} className="canvas-module__image-content" data-canvas-scroll>
+          {module.image ? <img className="canvas-module__image" src={module.image} alt={module.caption || name} /> : <button type="button" className="canvas-module__image-empty" onClick={() => imageInputRef.current?.click()}>{t('canvas.chooseImage')}</button>}
+          <label className="canvas-module__caption">
+            <span>{t('canvas.imageCaption')}</span>
+            <textarea value={module.caption ?? ''} placeholder={t('canvas.imageCaptionPlaceholder')} onChange={(event) => onImageChange(module.id, { caption: event.target.value })} />
+          </label>
+          <input ref={imageInputRef} className="canvas-module__image-input" type="file" accept="image/*" onChange={handleImageChange} />
+          {module.image && <button type="button" className="canvas-module__replace-image" onClick={() => imageInputRef.current?.click()}>{t('canvas.replaceImage')}</button>}
+        </div>
       ) : <div ref={contentRef} className="canvas-module__content" data-canvas-scroll>{children}</div>}
       <button
         className="canvas-module__resize"
