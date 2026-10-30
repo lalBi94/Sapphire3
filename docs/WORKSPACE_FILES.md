@@ -37,7 +37,7 @@ La lecture et la validation précèdent la confirmation **Replace and import**. 
 
 - Barre supérieure compacte : **Edit** et **View** réservent des volets sans actions ; **Settings** propose **Import .sp3 / .json**, **Export .sp3**, **Export JSON**.
 - Dialogues de choix de fichier Neutralinojs ; aucun chemin de projet imposé, autosave, accès distant ou stockage navigateur.
-- Extension choisie garantie à l'export ; confirmation avant écrasement du chemin final. Succès affiché uniquement après écriture terminée.
+- Extension choisie garantie à l'export ; confirmation avant écrasement du chemin final. Après ouverture confirmée d'un `.sp3`, son chemin est conservé en mémoire : **Ctrl+S** et **Save .sp3** écrivent directement ce fichier. Un workspace sans chemin ouvre « Enregistrer sous » avec le filtre `.sp3`, puis mémorise le chemin après écriture. Succès affiché uniquement après écriture terminée.
 - Limite actuelle : 20 Mio en import/export. Annulations silencieuses ; erreurs de lecture, permission, données ou écriture affichées, sans blocage des fonctionnalités hors fichier.
 - Services natifs dans `src/services/workspaceFiles.js` ; client `@neutralinojs/lib` 6.10.0. Authentification `one-time`, globals injectés dans la fenêtre et permissions explicites pour les dialogues, `getStats`, `readFile`, `writeFile` seulement.
 - `pnpm dev:web` sert au contrôle du frontend : les opérations de fichier affichent qu'elles nécessitent l'application desktop. Redémarrer une ancienne fenêtre Neutralinojs après un changement de permissions/configuration.

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Check, ChevronDown, Download, Palette, Upload, X } from 'lucide-react'
+import { Check, ChevronDown, Download, FolderOpen, Palette, Save, Upload, X } from 'lucide-react'
 import { useTranslation } from '../../i18n.jsx'
 import { useTheme } from '../../theme.jsx'
 import './ProjectNavigation.css'
@@ -22,7 +22,7 @@ function ImportConfirmation({ path, onConfirm, onCancel }) {
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, message, error, pendingImport, onExport, onImport, onConfirmImport, onCancelImport, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hasSelection, onOpenSelectionMenu }) {
+export default function ProjectNavigation({ busy, message, error, pendingImport, onSave, onSaveAs, onOpenSp3, onImport, onConfirmImport, onCancelImport, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hasSelection, onOpenSelectionMenu }) {
   const navigationRef = useRef(null)
   const { language, setLanguage, t } = useTranslation()
   const { theme, themes, setTheme } = useTheme()
@@ -58,12 +58,24 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
   }
 
   // Ferme le volet avant l'ouverture du dialogue de fichier.
-  function handleExport(extension) {
+  function handleSaveAs(extension) {
     closeMenus()
-    onExport(extension)
+    onSaveAs(extension)
   }
 
-  // Lance l'import sans laisser de volet flottant sous le dialogue de confirmation.
+  // Ferme le volet avant l'ouverture du dialogue de fichier.
+  function handleOpenSp3() {
+    closeMenus()
+    onOpenSp3()
+  }
+
+  // Ferme le volet avant l'ecriture du fichier courant ou l'ouverture d'Enregistrer sous.
+  function handleSave() {
+    closeMenus()
+    onSave()
+  }
+
+  // Conserve un menu ferme avant toute operation native.
   function handleImport() {
     closeMenus()
     onImport()
@@ -74,9 +86,10 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
       <details name="workspace-menu" onToggle={handleToggle}>
         <summary>{t('nav.settings')}<ChevronDown size={12} aria-hidden="true" /></summary>
         <div className="project-navigation__menu">
+          <button type="button" disabled={busy || !!pendingImport} onClick={handleOpenSp3}><FolderOpen size={14} aria-hidden="true" />{t('nav.openSp3')}</button>
+          <button type="button" disabled={busy || !!pendingImport} onClick={handleSave}><Save size={14} aria-hidden="true" />{t('nav.saveSp3')}</button>
           <button type="button" disabled={busy || !!pendingImport} onClick={handleImport}><Upload size={14} aria-hidden="true" />{t('nav.import')}</button>
-          <button type="button" disabled={busy || !!pendingImport} onClick={() => handleExport('sp3')}><Download size={14} aria-hidden="true" />{t('nav.exportSp3')}</button>
-          <button type="button" disabled={busy || !!pendingImport} onClick={() => handleExport('json')}><Download size={14} aria-hidden="true" />{t('nav.exportJson')}</button>
+          <button type="button" disabled={busy || !!pendingImport} onClick={() => handleSaveAs('json')}><Download size={14} aria-hidden="true" />{t('nav.exportJson')}</button>
         </div>
       </details>
       <details name="workspace-menu" onToggle={handleToggle}>
