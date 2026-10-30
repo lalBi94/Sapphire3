@@ -1,6 +1,6 @@
 import { useReducer } from 'react'
 import { moduleTypes } from '../utils/moduleTypes.js'
-import { createProject, createModule, moduleKinds, analyzeProgram, createContextIndex, resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes } from '../utils/logic/index.js'
+import { createProject, createModule, moduleKinds, analyzeProgram, createContextIndex, resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule } from '../utils/logic/index.js'
 
 // Recalcule les dérivés uniquement quand la source logique change.
 function withSource(state, project, analysis = analyzeProgram(project), index = createContextIndex(project, analysis)) {
@@ -23,6 +23,12 @@ function reduceDocument(state, action) {
   }
   if (action.type === 'geometry' || action.type === 'text') {
     return { ...state, cards: state.cards.map((card) => card.id === action.id ? { ...card, ...action.patch } : card) }
+  }
+  if (action.type === 'deleteModule') {
+    const result = deleteSourceModule(state.project, action.id)
+    return result.ok
+      ? withSource({ ...state, cards: state.cards.filter((card) => card.id !== action.id) }, result.project, result.analysis, result.index)
+      : { ...state, mutationError: result.code }
   }
   if (action.type === 'rename') {
     const card = state.cards.find((entry) => entry.id === action.id)
@@ -93,5 +99,12 @@ export default function useCanvasDocument() {
     return prepared
   }
 
-  return { ...document, createCard, updateGeometry, renameCard, updateComment, insertNode, configureNode, deleteNode }
+  // Retire ensemble la carte et sa source ; le reducer revérifie le document courant.
+  function deleteModule(id) {
+    const prepared = deleteSourceModule(document.project, id)
+    if (prepared.ok) dispatch({ type: 'deleteModule', id })
+    return prepared
+  }
+
+  return { ...document, createCard, updateGeometry, renameCard, updateComment, insertNode, configureNode, deleteNode, deleteModule }
 }

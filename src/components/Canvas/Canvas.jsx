@@ -76,6 +76,16 @@ export default function Canvas() {
     return result
   }
 
+  // Ferme la sélection et le menu après le retrait confirmé d'un module.
+  function handleDeleteModule(moduleId) {
+    const result = document.deleteModule(moduleId)
+    if (result.ok) {
+      setSelected(null)
+      handleCloseMenu(true)
+    }
+    return result
+  }
+
   return (
     <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label="Programming canvas. Drag to pan. Right-click a container or node to add inside it." tabIndex={0}
       onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerEnd} onPointerCancel={handlePointerEnd} onLostPointerCapture={handlePointerEnd} onKeyDown={handleKeyDown} onContextMenu={handleContextMenu}>
@@ -89,7 +99,7 @@ export default function Canvas() {
         {card.type !== 'comment' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} onSelect={setSelected} />}
       </CanvasModule>)}
       <CanvasStatus camera={camera} zoom={zoom} onRecenter={handleRecenter} />
-      {selected && <NodeProperties selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={setSelected} onDelete={handleDeleteNode} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
+      {selected && <NodeProperties selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={setSelected} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
       {contextMenu && (contextMenu.targetId ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} onInsert={handleInsert} onDelete={handleDeleteNode} onClose={handleCloseMenu} />
         : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} hasMain={hasMain} onCreate={handleCreateModule} onClose={handleCloseMenu} />)}
     </main>

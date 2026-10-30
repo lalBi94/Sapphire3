@@ -1,7 +1,40 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { analyzeProgram, deleteSourceNodes, deserializeSource, serializeSource, diagnosticCodes as codes } from '../../src/utils/logic/index.js'
+import { analyzeProgram, deleteSourceNodes, deleteSourceModule, deserializeSource, serializeSource, diagnosticCodes as codes } from '../../src/utils/logic/index.js'
 import { program, root, node, intType } from './fixtures.js'
+
+// Supprime aussi les fragments propriétaires sans toucher aux autres modules ni à la source initiale.
+test('suppression de module : contenu retiré, références externes conservées', () => {
+  const source = program('m', 'other')
+  root(source, 'm', 'target', 'VariableDeclaration', { name: 'target', type: intType })
+  node(source, 'm', 'detached', 'Literal', { type: intType, value: 1 })
+  root(source, 'other', 'consumer', 'VariableDeclaration', { name: 'consumer', type: intType }, { initializer: 'reference' })
+  node(source, 'other', 'reference', 'Reference', {}, {}, { target: { kind: 'node', nodeId: 'target' } })
+  const before = structuredClone(source)
+  const result = deleteSourceModule(source, 'm')
+  assert.equal(result.ok, true)
+  assert.deepEqual(source, before)
+  assert.deepEqual(result.project.modules.map((entry) => entry.id), ['other'])
+  assert.deepEqual(result.project.nodes.map((entry) => entry.id), ['consumer', 'reference'])
+  assert.deepEqual(result.project.nodes[1].references.target, { kind: 'node', nodeId: 'target' })
+  assert.equal(result.analysis.diagnostics.some((entry) => entry.code === codes.unresolved), true)
+  assert.equal(result.selection, null)
+})
+
+// Autorise le retrait du Main et refuse une cible absente ou ambiguë sans perte de données.
+test('suppression de module : Main, cibles invalides et doublons', () => {
+  const source = program('m')
+  source.modules[0].kind = 'main'
+  assert.equal(deleteSourceModule(source, 'm').project.modules.length, 0)
+  for (const id of ['absent', null, '']) {
+    const result = deleteSourceModule(source, id)
+    assert.equal(result.ok, false)
+    assert.equal(result.project, source)
+  }
+  const duplicate = { ...source, modules: [...source.modules, source.modules[0]] }
+  assert.equal(deleteSourceModule(duplicate, 'm').ok, false)
+  assert.equal(deleteSourceModule({}, 'm').ok, false)
+})
 
 // Supprime un nœud sans toucher au parent ni aux autres enfants.
 test('suppression d’un enfant unique : lien remis à null et identifiants conservés', () => {

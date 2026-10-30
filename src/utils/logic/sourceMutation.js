@@ -12,6 +12,22 @@ const hardInsertionCodes = new Set([
   codes.invalidLiteral, codes.overflow, codes.underflow, codes.divisionByZero, codes.conflict,
 ])
 
+// Retire un module et tous ses nœuds propriétaires, sans effacer les références externes.
+export function deleteSourceModule(project, moduleId) {
+  const failure = (code) => ({ ok: false, code, project })
+  if (!Array.isArray(project?.modules) || !Array.isArray(project?.nodes)) return failure('SOURCE_INVALID')
+  if (!isId(moduleId)) return failure('TARGET_INVALID')
+  const matches = project.modules.filter((module) => module?.id === moduleId)
+  if (matches.length !== 1) return failure(matches.length ? 'TARGET_AMBIGUOUS' : 'TARGET_MISSING')
+  const candidate = {
+    ...project,
+    modules: project.modules.filter((module) => module?.id !== moduleId),
+    nodes: project.nodes.filter((node) => node?.moduleId !== moduleId),
+  }
+  const analysis = analyzeProgram(candidate)
+  return { ok: true, project: candidate, analysis, index: createContextIndex(candidate, analysis), selection: null }
+}
+
 // Compare les diagnostics par localisation stable, sans dépendre du texte traduit.
 function diagnosticKey(diagnostic) {
   return JSON.stringify([diagnostic.code, diagnostic.location])

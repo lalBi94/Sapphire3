@@ -149,3 +149,9 @@
 - Calcul conservateur des contrastes sur le verre posé sur du blanc, reflet compris : texte principal 9,44:1, texte secondaire 5,11:1 ; violet sélectionné sur son fond teinté 4,65:1. Texte sombre du bouton jaune 13,29:1.
 - `pnpm build` et `git diff --check` réussis. Tests du moteur non relancés pour ce changement uniquement CSS ; 81 tests avaient réussi juste avant cet incrément.
 - Limites : fenêtre Neutralinojs, petits viewports et anciens moteurs CSS non revérifiés ; replis prévus dans les styles. La tentative de second serveur Vite a échoué car le port était déjà occupé ; serveur existant conservé.
+
+## Suppression des modules — 30 octobre 2026
+
+- Action « Delete module » confirmée dans le panneau de propriétés, disponible pour Module et Main. Retrait atomique de la carte et de la source propriétaire ; références et imports externes conservés, réanalyse des diagnostics. Aucun retrait d'annotation Comment ajouté.
+- `deleteSourceModule` testé pour le contenu détaché, la conservation de la source et des autres modules, les références pendantes, le Main et les cibles absentes/ambiguës.
+- 83 tests Node et build réussis. Navigateur : annulation conservant le Main et sa variable, puis confirmation supprimant carte et nœud, fermant le panneau et restaurant le focus au canvas. Fenêtre native non revérifiée.

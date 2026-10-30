@@ -25,6 +25,7 @@ Point d'entrée : `src/utils/logic/index.js`. JavaScript pur, sans React, DOM, A
 | `insertSourceNodes(project, {targetId, slot}, bundle, {index})` | `{ok, project, analysis, index, nodeId}` ou code d'échec ; insertion atomique |
 | `updateSourceNode(project, nodeId, {properties?, references?})` | Édition des propriétés seules, enfants et identifiants conservés |
 | `deleteSourceNodes(project, targetId, {index})` | `{ok, project, analysis, index, removedNodeIds, selection}` ou code d'échec ; retrait du nœud et de son sous-arbre |
+| `deleteSourceModule(project, moduleId)` | Retrait atomique du module et de tous les nœuds dont il est propriétaire, y compris détachés ; réanalyse et `selection: null`. Références/imports externes conservés et diagnostiqués ; cible absente ou ambiguë refusée. |
 
 `diagnosticCodes`, `sourceFormatVersion`, `moduleKinds`, `nodeSchema`, `getNodeSchema`, `binaryOperators`, `unaryOperators`, `primitiveDefinitions`, `primitiveType(name)`, `sameType` et `acceptsOperand` sont également exportés. `primitiveType` renvoie uniquement un primitif autorisé, ou `null` comme absence de résultat. Aucun type de secours n'existe. Les catégories Module/Main sont définies dans `model.js` et réutilisées par les libellés visuels ; les cartes Module/Main partagent désormais l'identifiant de leur module source, tandis que les annotations Comment restent hors du moteur. Les contrats JSDoc sont dans `model.js`, `ast.js`, `semantics.js`, `diagnostics.js`, `contextResolver.js` et `sourceMutation.js` ; aucun TypeScript ajouté.
 
