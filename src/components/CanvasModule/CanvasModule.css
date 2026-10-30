@@ -1,8 +1,9 @@
 .canvas-module {
   position: absolute;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-module-surface);
+  border-radius: var(--radius-panel);
+  background: var(--surface-reflection), var(--color-module-surface);
+  box-shadow: var(--shadow-card);
   transform-origin: top left;
   cursor: default;
 }
@@ -11,10 +12,11 @@
   border-color: var(--color-main-accent);
 }
 
-.canvas-module--selected { box-shadow: 0 0 0 1px var(--color-main-accent); }
+.canvas-module--selected { box-shadow: var(--shadow-selection), var(--shadow-card); }
+.canvas-module--selected .canvas-module__name { text-decoration: underline; text-underline-offset: 4px; }
 
 .canvas-module--comment {
-  background: var(--color-comment-surface);
+  background: var(--surface-reflection), var(--color-comment-surface);
   border-style: dashed;
 }
 
@@ -44,7 +46,7 @@
   height: 39px;
   padding: 0 14px;
   border: 0;
-  border-radius: 7px 7px 0 0;
+  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
   background: transparent;
   color: inherit;
   font: inherit;
@@ -57,8 +59,10 @@
   cursor: grabbing;
 }
 
+.canvas-module__move:hover { background: var(--color-hover); }
+
 .canvas-module__move:focus-visible {
-  outline: 1px solid var(--color-text-muted);
+  outline: 2px solid var(--color-focus);
   outline-offset: -3px;
 }
 
@@ -67,7 +71,7 @@
   width: 6px;
   height: 6px;
   border: 1px solid var(--color-text-muted);
-  border-radius: 2px;
+  border-radius: var(--radius-small);
 }
 
 .canvas-module__name {
@@ -83,13 +87,16 @@
   margin: 5px 6px;
   padding: 0 7px;
   border: 1px solid var(--color-text-muted);
-  border-radius: 4px;
-  background: var(--color-surface);
+  border-radius: var(--radius-control);
+  background: var(--color-input);
   color: var(--color-text);
   font: inherit;
   outline-offset: 1px;
   user-select: text;
 }
+
+.canvas-module__name-input:hover { border-color: var(--color-border-hover); }
+.canvas-module__name-input:focus-visible { outline: 2px solid var(--color-focus); }
 
 .canvas-module__comment {
   display: block;
@@ -97,7 +104,7 @@
   height: calc(100% - 40px);
   padding: 14px 14px 28px;
   border: 0;
-  border-radius: 0 0 7px 7px;
+  border-radius: 0 0 var(--radius-panel) var(--radius-panel);
   resize: none;
   background: transparent;
   color: var(--color-text);
@@ -113,7 +120,7 @@
 }
 
 .canvas-module__comment:focus-visible {
-  outline: 1px solid var(--color-text-muted);
+  outline: 2px solid var(--color-focus);
   outline-offset: -3px;
 }
 
@@ -130,7 +137,7 @@
   height: 24px;
   padding: 4px;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--radius-small);
   color: var(--color-text-muted);
   background: transparent;
   cursor: nwse-resize;
@@ -142,7 +149,7 @@
 }
 
 .canvas-module__resize:focus-visible {
-  outline: 1px solid var(--color-text-muted);
+  outline: 2px solid var(--color-focus);
   outline-offset: -3px;
 }
 

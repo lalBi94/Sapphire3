@@ -139,3 +139,13 @@
 - `pnpm test` : 81 tests réussis, zéro échec. `pnpm build` réussi.
 - Navigateur : variable avec initialiseur créée dépliée, nouveau nœud racine déplié alors que les autres restent pliés, insertion d'un littéral dans une variable préalablement pliée dépliant la variable et le littéral. Console sans erreur.
 - Limite : fenêtre native non revérifiée ; le pliage n'est toujours pas sauvegardé.
+
+## Socle Squircle + Glass UI — 30 octobre 2026
+
+- Palette, courbures, espacements partagés, opacité des surfaces, flou, reflets, ombres et durée de transition centralisés dans les tokens existants. Adaptation CSS des menus, statut, cartes, nœuds, formulaires et panneau de propriétés ; aucun JavaScript, contrat logique ou mécanisme de navigation modifié, aucune dépendance ajoutée.
+- Coins `squircle` pris en charge par le Chromium utilisé ; `border-radius` sert de repli. Verre réservé aux surfaces flottantes, cartes quasi opaques avec reflets et nœuds sans flou. Anneau et soulignement pour les sélections ; barre latérale et graisse pour l'action active du menu.
+- Navigateur sur le serveur Vite déjà actif sur 5173 : création d'un Main, ouverture du menu logique, sélection d'une construction, création d'une variable `int`, édition du nom, pliage du nœud, fermeture du panneau et focus clavier contrôlés. Captures visuelles du menu/formulaire et du panneau. Console sans erreur.
+- Préférences système `prefers-reduced-motion` et `prefers-reduced-transparency` actives : transitions calculées à 0 s, surfaces opaques et flou à 0 px. Branche verre contrôlée en surchargeant temporairement les tokens dans le navigateur : panneau à 16 px de flou, cartes et nœuds sans flou ; surcharges retirées ensuite.
+- Calcul conservateur des contrastes sur le verre posé sur du blanc, reflet compris : texte principal 9,44:1, texte secondaire 5,11:1 ; violet sélectionné sur son fond teinté 4,65:1. Texte sombre du bouton jaune 13,29:1.
+- `pnpm build` et `git diff --check` réussis. Tests du moteur non relancés pour ce changement uniquement CSS ; 81 tests avaient réussi juste avant cet incrément.
+- Limites : fenêtre Neutralinojs, petits viewports et anciens moteurs CSS non revérifiés ; replis prévus dans les styles. La tentative de second serveur Vite a échoué car le port était déjà occupé ; serveur existant conservé.

@@ -20,7 +20,8 @@
 - Moteur logique opérationnel et raccordé au canvas : modèle source JSON v1 Modules/Nodes, AST hiérarchique tolérant, portées, références locales/intermodules, alias de types simples, diagnostics structurels/sémantiques et API d'insertion contextuelle (`getAvailableActions`). Import/export logique en mémoire uniquement, sans accès aux fichiers.
 - Aucun simulateur, moteur de suggestions, génération de code, stockage sur disque ou backend implémenté ; pas encore de déplacement individuel, copier/coller ou annulation de suppression de nœuds logiques. Les prochains incréments nécessitent une demande.
 - Interface en anglais (y compris textes accessibles), commentaires et documentation en français.
-- Style provisoire minimal, police système locale. Aucun service distant à l'exécution.
+- Direction artistique Squircle + Glass UI : fonds noir/anthracite, actions principales et Main jaunes, sélections violettes avec repères supplémentaires (anneau/soulignement ou barre latérale). Coins continus CSS `corner-shape: squircle` avec arrondis de repli ; surfaces flottantes translucides et floutées, reflets et ombres discrets. Cartes et nœuds sans flou imbriqué ; couleurs des catégories logiques conservées. Police système locale, aucun service distant à l'exécution.
+- Tokens communs pour palette, courbures, espacements partagés, verre, ombres et transitions de 180 ms. Repli opaque sans `backdrop-filter`, préférences de réduction du mouvement et de la transparence respectées.
 - Les actions de menus, de statut, de propriétés et de formulaires utilisent des icônes Lucide React ciblées, avec tailles, épaisseur et attributs d'accessibilité cohérents.
 
 ## Cartographie
@@ -57,7 +58,7 @@
 | `ARCHITECTURE_AST.tex`, `ARCHITECTURE_AST.pdf` | Rapport technique français de quatre pages ; source LaTeX et PDF réellement compilé |
 | `scripts/build-ast-doc.ps1` | Compilation pdfLaTeX locale vers `build/latex/`, puis copie du PDF à la racine |
 | `src/hooks/useCanvasPan.jsx` | Caméra locale, capture du pointeur, annulation, clavier, zoom logarithmique à la molette et recentrage |
-| `src/styles/tokens.css`, `src/styles/global.css` | Variables partagées et styles globaux minimaux |
+| `src/styles/tokens.css`, `src/styles/global.css` | Thème Squircle + Glass, tokens partagés, géométrie et transitions communes, verre des surfaces flottantes et replis d'accessibilité/compatibilité |
 | `vite.config.js` | Intégration React et serveur local strict sur le port 5173 |
 | `neutralino.config.json` | Fenêtre native, ressources compilées, démarrage Vite ; API natives désactivées |
 | `README.md` | Prérequis et démarrage |
@@ -109,7 +110,8 @@ Scripts dans `package.json` :
 
 ## Vérifications
 
-- Dernier incrément : 81 tests Node réussis, dont 1 pour la présence d'un groupe visuel sur chaque construction. Build frontend réussi.
+- Incrément visuel Squircle + Glass : build frontend réussi ; création/édition d'une variable et rendu des composants communs contrôlés dans le navigateur. Préférences système réduites constatées ; verre également contrôlé via surcharge temporaire des tokens dans le navigateur. Fenêtre Neutralinojs et anciens moteurs CSS non revérifiés pour cet incrément.
+- Dernière vérification du moteur : 81 tests Node réussis, dont 1 pour la présence d'un groupe visuel sur chaque construction. Aucun JavaScript modifié par l'incrément visuel.
 - Interactions vérifiées dans le navigateur : tous les nœuds pliés par défaut, nœuds créés dépliés avec leurs parents, pliage/dépliage avec résumé d'une ligne et restitution complète des slots, suppression immédiate par le menu contextuel, suppression confirmée dans le panneau de propriétés, suppression d'une fonction avec tout son sous-arbre et sélection déplacée vers le parent. Bordures colorées vérifiées pour les douze groupes, y compris sous sélection. Console sans erreur. Fenêtre native non revérifiée pour cet incrément.
 - Installation des dépendances et du runtime réussie ; build frontend réussi.
 - Fenêtre native de développement contrôlée avec l'accessibilité Windows : titre « Sapphire 3 » et contenu React « Tout commence ici. » présents ; fermeture native demandée avec succès.

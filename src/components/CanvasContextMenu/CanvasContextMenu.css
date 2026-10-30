@@ -2,23 +2,23 @@
   position: absolute;
   z-index: 3;
   width: 184px;
-  padding: 6px;
+  padding: var(--space-small);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface-raised);
-  box-shadow: 0 8px 24px #00000033;
+  border-radius: var(--radius-panel);
+  background: var(--surface-reflection), var(--surface-floating);
+  box-shadow: var(--shadow-panel);
   cursor: default;
 }
 
 .canvas-context-menu button {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-control);
   width: 100%;
   min-height: 36px;
   padding: 8px 10px;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   color: var(--color-text);
   background: transparent;
   text-align: left;
@@ -32,14 +32,18 @@
   color: currentColor;
 }
 
-.canvas-context-menu button:not(:disabled):hover,
+.canvas-context-menu button:not(:disabled):hover {
+  background: var(--color-hover);
+}
+
 .canvas-context-menu button:focus-visible {
-  outline: none;
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
   background: var(--color-hover);
 }
 
 .canvas-context-menu button:disabled {
   color: var(--color-text-muted);
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
   cursor: not-allowed;
 }

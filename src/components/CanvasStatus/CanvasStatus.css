@@ -1,17 +1,18 @@
 .canvas-status {
   position: absolute;
   z-index: 2;
-  right: 16px;
-  bottom: 16px;
+  right: var(--space-panel);
+  bottom: var(--space-panel);
   display: flex;
   align-items: center;
   gap: 14px;
   max-width: calc(100% - 32px);
   padding: 6px 6px 6px 14px;
-  border: 1px solid var(--color-grid);
-  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
   color: var(--color-text-muted);
-  background: var(--color-surface);
+  background: var(--surface-reflection), var(--surface-floating);
+  box-shadow: var(--shadow-panel);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   cursor: default;
@@ -30,6 +31,7 @@
 
 .canvas-status__zoom {
   white-space: nowrap;
+  color: var(--color-primary);
 }
 
 .canvas-status button {
@@ -40,19 +42,19 @@
   height: 30px;
   padding: 6px;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: var(--radius-control);
   color: var(--color-text-muted);
   background: transparent;
   cursor: pointer;
 }
 
 .canvas-status button:hover {
-  color: var(--color-text);
-  background: var(--color-grid);
+  color: var(--color-primary);
+  background: var(--color-yellow-soft);
 }
 
 .canvas-status button:focus-visible {
-  outline: 1px solid var(--color-text-muted);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
