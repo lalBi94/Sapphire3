@@ -31,6 +31,22 @@ export default function useCanvasPan() {
 
   const zoom = 2 ** camera.zoomLevel
 
+  // Modifie le niveau de zoom sans changer le centre de la vue.
+  function setZoomLevel(nextZoomLevel) {
+    setCamera((current) => ({ ...current, zoomLevel: Math.max(-12, Math.min(2, nextZoomLevel)) }))
+    canvasRef.current?.focus({ preventScroll: true })
+  }
+
+  // Ajoute un facteur de zoom à la vue courante.
+  function zoomBy(factor) {
+    setZoomLevel(camera.zoomLevel + Math.log2(factor))
+  }
+
+  // Restaure un affichage à taille réelle.
+  function resetZoom() {
+    setZoomLevel(0)
+  }
+
   // Capture le pointeur pour poursuivre le déplacement hors de la surface.
   function handlePointerDown(event) {
     if (dragRef.current || (event.button !== 0 && event.button !== 1)) return
@@ -120,6 +136,9 @@ export default function useCanvasPan() {
     handlePointerEnd,
     handleKeyDown,
     handleRecenter,
+    setZoomLevel,
+    zoomBy,
+    resetZoom,
     restoreCamera,
   }
 }

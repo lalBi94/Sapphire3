@@ -1,5 +1,6 @@
 import { Crosshair } from 'lucide-react'
 import './CanvasStatus.css'
+import { useTranslation } from '../../i18n.jsx'
 
 // Garde les valeurs extrêmes lisibles sans afficher de faux zéros.
 function formatValue(value, maximumFractionDigits = 1) {
@@ -12,6 +13,7 @@ function formatValue(value, maximumFractionDigits = 1) {
 
 // Présente la position du milieu de la vue et l'action de retour à l'origine.
 export default function CanvasStatus({ camera, zoom, onRecenter }) {
+  const { t } = useTranslation()
   return (
     <aside
       className="canvas-status"
@@ -26,7 +28,7 @@ export default function CanvasStatus({ camera, zoom, onRecenter }) {
       <span className="canvas-status__zoom" aria-label="Zoom">
         {formatValue(zoom * 100)} %
       </span>
-      <button type="button" onClick={onRecenter} title="Center the view" aria-label="Center the view">
+      <button type="button" onClick={onRecenter} title={t('canvas.center')} aria-label={t('canvas.center')}>
         <Crosshair size={18} strokeWidth={1.75} aria-hidden="true" />
       </button>
     </aside>

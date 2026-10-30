@@ -1,10 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { minimumModuleSize, moduleTypes } from '../../utils/moduleTypes.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
+import { useTranslation } from '../../i18n.jsx'
 import './CanvasModule.css'
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
 export default function CanvasModule({ module, camera, zoom, onResize, onMove, onRename, onTextChange, children, selected = false, onSelect, onOpenActions, fitRequest = 0 }) {
+  const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [draftName, setDraftName] = useState('')
@@ -224,7 +226,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         <textarea
           className="canvas-module__comment"
           aria-label={`${name} text`}
-          placeholder="Write a note…"
+          placeholder={t('canvas.notePlaceholder')}
           value={module.text ?? ''}
           onChange={(event) => onTextChange(module.id, event.target.value)}
           spellCheck={false}

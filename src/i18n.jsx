@@ -1,0 +1,232 @@
+import { createContext, useContext, useState } from 'react'
+
+const translations = {
+  en: {
+    'nav.edit': 'Edit',
+    'nav.view': 'View',
+    'nav.settings': 'Settings',
+    'nav.language': 'Language',
+    'nav.english': 'English',
+    'nav.french': 'Français',
+    'nav.import': 'Import .sp3 / .json',
+    'nav.exportSp3': 'Export .sp3',
+    'nav.exportJson': 'Export JSON',
+    'nav.undo': 'Undo',
+    'nav.redo': 'Redo',
+    'nav.noActions': 'Nothing here yet.',
+    'nav.addToSelection': 'Edit selected block…',
+    'nav.createModule': 'Create module',
+    'nav.createComment': 'Create comment',
+    'nav.zoom': 'Zoom',
+    'nav.zoomIn': 'Zoom in',
+    'nav.zoomOut': 'Zoom out',
+    'nav.zoom100': 'Zoom 100%',
+    'nav.center': 'Center the view',
+    'nav.distortion': 'Curved grid',
+    'nav.dismiss': 'Dismiss error',
+    'nav.working': 'Working…',
+    'import.title': 'Replace this workspace?',
+    'import.body': 'This will replace your modules, notes and layout. Export first if you want to keep them.',
+    'import.cancel': 'Cancel',
+    'import.confirm': 'Replace and import',
+    'canvas.aria': 'Canvas. Drag to move around. Use + or right-click to open a menu.',
+    'canvas.addFirst': 'Use + to add your first block.',
+    'canvas.notePlaceholder': 'Write a note…',
+    'canvas.center': 'Center the view',
+    'canvas.startHere': 'Start here',
+    'canvas.addWhere': 'Choose where to add',
+    'canvas.back': 'Back',
+    'canvas.alreadyUsed': ' · already used',
+    'canvas.several': ' · several',
+    'canvas.nothingToAdd': 'Nothing can be added here.',
+    'canvas.deleteBlock': 'Delete block',
+    'canvas.deleteNote': 'Delete this note?',
+    'canvas.deleteInside': 'Delete this block and everything inside it?',
+    'canvas.deleteModule': 'Delete this module and everything inside it?',
+    'canvas.brokenLinks': 'Existing links will be marked as broken.',
+    'canvas.delete': 'Delete',
+    'canvas.blockMissing': 'This block is missing.',
+    'canvas.blockHidden': 'This block cannot be shown here.',
+    'form.save': 'Save',
+    'form.create': 'Create block',
+    'form.name': 'Name',
+    'form.type': 'Type',
+    'form.returnType': 'Return type',
+    'form.startProgram': 'Start program here',
+    'form.chooseOperation': 'Choose an operation',
+    'form.chooseName': 'Choose a name',
+    'form.keepLink': 'Keep this link',
+    'form.startingValue': 'Starting value',
+    'form.condition': 'Condition',
+    'form.parameters': 'Inputs',
+    'form.addInput': 'Add input',
+    'form.removeInput': 'Remove input',
+    'form.leaveEmpty': 'Leave parts empty for now',
+    'form.saveHint': 'Add a name and a type before saving.',
+    'form.startProgramHint': 'Another function already starts the program. Turn that off first.',
+    'form.loopHint': 'Add the start and update parts after creating this block.',
+    'form.incompleteHint': 'You can leave parts empty and fill them in later.',
+    'form.notAvailable': 'This block is not available yet.',
+    'details.title': 'Details',
+    'details.module': 'Module',
+    'details.block': 'Block',
+    'details.topBlocks': 'Top-level blocks',
+    'details.parts': 'Parts',
+    'details.nothingAdded': 'Nothing added',
+    'details.addParts': 'Add or change parts from the + menu.',
+    'details.issues': 'Issues',
+    'details.noIssues': 'No issues here.',
+    'details.close': 'Close details',
+    'details.missingBlock': 'Missing block',
+    'details.saveName': 'Save',
+    'errors.couldNotDelete': 'This item could not be deleted.',
+    'errors.couldNotExport': "Couldn't export:",
+    'errors.couldNotImport': "Couldn't import:",
+    'errors.onlyOneEntry': 'Only one function can start the program.',
+    'errors.typeFit': 'This type does not fit here.',
+    'errors.nameNotFound': 'This name cannot be found.',
+    'errors.nameUsed': 'This name is already used.',
+    'errors.somethingMissing': 'Something is missing.',
+    'errors.invalidChange': 'This change would make the program invalid.',
+    'errors.default': 'Something went wrong.',
+  },
+  fr: {
+    'nav.edit': 'Édition',
+    'nav.view': 'Affichage',
+    'nav.settings': 'Réglages',
+    'nav.language': 'Langue',
+    'nav.english': 'English',
+    'nav.french': 'Français',
+    'nav.import': 'Importer .sp3 / .json',
+    'nav.exportSp3': 'Exporter .sp3',
+    'nav.exportJson': 'Exporter JSON',
+    'nav.undo': 'Annuler',
+    'nav.redo': 'Rétablir',
+    'nav.noActions': 'Rien ici pour le moment.',
+    'nav.addToSelection': 'Modifier le bloc sélectionné…',
+    'nav.createModule': 'Créer un module',
+    'nav.createComment': 'Créer une note',
+    'nav.zoom': 'Zoom',
+    'nav.zoomIn': 'Agrandir',
+    'nav.zoomOut': 'Réduire',
+    'nav.zoom100': 'Zoom 100 %',
+    'nav.center': 'Recentrer la vue',
+    'nav.distortion': 'Grille courbée',
+    'nav.dismiss': 'Fermer le message',
+    'nav.working': 'En cours…',
+    'import.title': 'Remplacer cet espace de travail ?',
+    'import.body': 'Cela remplacera vos modules, notes et disposition. Exportez-les d’abord si vous voulez les garder.',
+    'import.cancel': 'Annuler',
+    'import.confirm': 'Remplacer et importer',
+    'canvas.aria': 'Canvas. Faites glisser pour vous déplacer. Utilisez + ou un clic droit pour ouvrir un menu.',
+    'canvas.addFirst': 'Utilisez + pour ajouter votre premier bloc.',
+    'canvas.notePlaceholder': 'Écrire une note…',
+    'canvas.center': 'Recentrer la vue',
+    'canvas.startHere': 'Démarrer ici',
+    'canvas.addWhere': 'Choisir où ajouter',
+    'canvas.back': 'Retour',
+    'canvas.alreadyUsed': ' · déjà utilisé',
+    'canvas.several': ' · plusieurs',
+    'canvas.nothingToAdd': 'Rien ne peut être ajouté ici.',
+    'canvas.deleteBlock': 'Supprimer le bloc',
+    'canvas.deleteNote': 'Supprimer cette note ?',
+    'canvas.deleteInside': 'Supprimer ce bloc et tout ce qu’il contient ?',
+    'canvas.deleteModule': 'Supprimer ce module et tout ce qu’il contient ?',
+    'canvas.brokenLinks': 'Les liens existants seront signalés comme cassés.',
+    'canvas.delete': 'Supprimer',
+    'canvas.blockMissing': 'Ce bloc est introuvable.',
+    'canvas.blockHidden': 'Ce bloc ne peut pas être affiché ici.',
+    'form.save': 'Enregistrer',
+    'form.create': 'Créer le bloc',
+    'form.name': 'Nom',
+    'form.type': 'Type',
+    'form.returnType': 'Type de retour',
+    'form.startProgram': 'Démarrer le programme ici',
+    'form.chooseOperation': 'Choisir une opération',
+    'form.chooseName': 'Choisir un nom',
+    'form.keepLink': 'Garder ce lien',
+    'form.startingValue': 'Valeur de départ',
+    'form.condition': 'Condition',
+    'form.parameters': 'Entrées',
+    'form.addInput': 'Ajouter une entrée',
+    'form.removeInput': 'Supprimer l’entrée',
+    'form.leaveEmpty': 'Laisser des parties vides pour le moment',
+    'form.saveHint': 'Ajoutez un nom et un type avant d’enregistrer.',
+    'form.startProgramHint': 'Une autre fonction démarre déjà le programme. Désactivez-la d’abord.',
+    'form.loopHint': 'Ajoutez le début et la mise à jour après la création du bloc.',
+    'form.incompleteHint': 'Vous pouvez laisser des parties vides et les remplir plus tard.',
+    'form.notAvailable': 'Ce bloc n’est pas encore disponible.',
+    'details.title': 'Détails',
+    'details.module': 'Module',
+    'details.block': 'Bloc',
+    'details.topBlocks': 'Blocs principaux',
+    'details.parts': 'Parties',
+    'details.nothingAdded': 'Rien pour le moment',
+    'details.addParts': 'Ajoutez ou modifiez des parties avec le menu +.',
+    'details.issues': 'Problèmes',
+    'details.noIssues': 'Aucun problème ici.',
+    'details.close': 'Fermer les détails',
+    'details.missingBlock': 'Bloc introuvable',
+    'details.saveName': 'Enregistrer',
+    'errors.couldNotDelete': 'Cet élément n’a pas pu être supprimé.',
+    'errors.couldNotExport': 'Impossible d’exporter :',
+    'errors.couldNotImport': 'Impossible d’importer :',
+    'errors.onlyOneEntry': 'Une seule fonction peut démarrer le programme.',
+    'errors.typeFit': 'Ce type ne convient pas ici.',
+    'errors.nameNotFound': 'Ce nom est introuvable.',
+    'errors.nameUsed': 'Ce nom est déjà utilisé.',
+    'errors.somethingMissing': 'Il manque quelque chose.',
+    'errors.invalidChange': 'Cette modification rendrait le programme invalide.',
+    'errors.default': 'Une erreur est survenue.',
+  },
+}
+
+let currentLanguage = 'en'
+const LanguageContext = createContext(null)
+
+// Retourne la langue active pour les utilitaires qui ne sont pas des composants React.
+export function getCurrentLanguage() {
+  return currentLanguage
+}
+
+// Fournit la langue et les textes à toute l’interface.
+export function LanguageProvider({ children }) {
+  const [language, setLanguageState] = useState(() => {
+    const saved = window.localStorage.getItem('sapphire-language')
+    return saved === 'fr' || saved === 'en' ? saved : 'en'
+  })
+  currentLanguage = language
+
+  // Change la langue et conserve uniquement cette préférence d’interface.
+  function setLanguage(nextLanguage) {
+    currentLanguage = nextLanguage
+    setLanguageState(nextLanguage)
+    window.localStorage.setItem('sapphire-language', nextLanguage)
+  }
+
+  // Cherche un texte traduit et retombe sur l’anglais si une langue est incomplète.
+  function translate(key) {
+    return translations[language][key] ?? translations.en[key] ?? key
+  }
+
+  return <LanguageContext.Provider value={{ language, setLanguage, t: translate }}>{children}</LanguageContext.Provider>
+}
+
+// Accède aux textes et à la langue depuis un composant React.
+export function useTranslation() {
+  return useContext(LanguageContext)
+}
+
+// Traduit un code moteur lorsqu’il arrive directement dans un utilitaire ou un composant.
+export function translateError(code) {
+  const key = {
+    ENTRY_POINT_DUPLICATE: 'errors.onlyOneEntry',
+    TYPE_MISMATCH: 'errors.typeFit',
+    REFERENCE_UNRESOLVED: 'errors.nameNotFound',
+    DECLARATION_CONFLICT: 'errors.nameUsed',
+    NODE_INCOMPLETE: 'errors.somethingMissing',
+    DRAFT_INVALID: 'errors.invalidChange',
+    SOURCE_INVALID: 'errors.invalidChange',
+  }[code]
+  return key ? translations[currentLanguage][key] : code.replaceAll('_', ' ').toLowerCase()
+}

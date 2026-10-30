@@ -1,9 +1,11 @@
 import { useRef, useState } from 'react'
 import { serializeWorkspace, deserializeWorkspace } from '../utils/workspaceFile.js'
 import { exportWorkspaceFile, importWorkspaceFile } from '../services/workspaceFiles.js'
+import { useTranslation } from '../i18n.jsx'
 
 // Prépare les fichiers sans toucher au document actif avant validation et confirmation de remplacement.
 export default function useWorkspaceFiles({ project, cards, camera, selected, onReplace }) {
+  const { t } = useTranslation()
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -22,7 +24,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
       const path = await exportWorkspaceFile(extension, text)
       if (path) setMessage('Workspace exported.')
     } catch (failure) {
-      setError(`Couldn't export: ${failure.message || failure.code || 'Unknown error.'}`)
+      setError(`${t('errors.couldNotExport')} ${failure.message || failure.code || t('errors.default')}`)
     } finally {
       operation.current = false
       setBusy(false)
@@ -40,7 +42,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
       const file = await importWorkspaceFile()
       if (file) setPendingImport({ workspace: deserializeWorkspace(file.text), path: file.path })
     } catch (failure) {
-      setError(`Couldn't import: ${failure.message || failure.code || 'Unknown error.'}`)
+      setError(`${t('errors.couldNotImport')} ${failure.message || failure.code || t('errors.default')}`)
     } finally {
       operation.current = false
       setBusy(false)

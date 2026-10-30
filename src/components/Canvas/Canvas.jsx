@@ -11,6 +11,7 @@ import NodeProperties from '../NodeProperties/NodeProperties.jsx'
 import { moduleTypes } from '../../utils/moduleTypes.js'
 import ProjectNavigation from '../ProjectNavigation/ProjectNavigation.jsx'
 import useWorkspaceFiles from '../../hooks/useWorkspaceFiles.jsx'
+import { useTranslation } from '../../i18n.jsx'
 import './Canvas.css'
 
 // Assemble présentation, document source et interactions, sans confondre position et syntaxe.
@@ -18,9 +19,11 @@ export default function Canvas() {
   const [contextMenu, setContextMenu] = useState(null)
   const [selected, setSelected] = useState(null)
   const [growthRequest, setGrowthRequest] = useState({ moduleId: null, revision: 0 })
+  const [distorted, setDistorted] = useState(true)
   const menuTriggerRef = useRef(null)
+  const { t } = useTranslation()
   const document = useCanvasDocument()
-  const { camera, zoom, canvasRef, isPanning, handlePointerDown, handlePointerMove, handlePointerEnd, handleKeyDown, handleRecenter, restoreCamera } = useCanvasPan()
+  const { camera, zoom, canvasRef, isPanning, handlePointerDown, handlePointerMove, handlePointerEnd, handleKeyDown, handleRecenter, zoomBy, resetZoom, restoreCamera } = useCanvasPan()
   const files = useWorkspaceFiles({ project: document.project, cards: document.cards, camera, selected, onReplace: handleReplaceWorkspace })
 
   // Restaure source, présentation et vue ensemble après confirmation d'import.
@@ -62,6 +65,13 @@ export default function Canvas() {
     const button = event.currentTarget.getBoundingClientRect()
     menuTriggerRef.current = event.currentTarget
     setContextMenu({ id: crypto.randomUUID(), targetId, x: Math.max(8, button.left - bounds.left), y: Math.max(8, Math.min(button.bottom - bounds.top + 4, bounds.height - 16)), anchored: true })
+  }
+
+  // Ouvre le même menu logique depuis la barre d’édition pour la cible sélectionnée.
+  function handleOpenSelectionMenu() {
+    if (!selected || selected.kind === 'comment') return
+    menuTriggerRef.current = null
+    setContextMenu({ id: crypto.randomUUID(), targetId: selected, x: 16, y: 12 })
   }
 
   // Ferme le menu sans voler le focus lorsqu'une autre interaction commence.
@@ -123,10 +133,14 @@ export default function Canvas() {
 
   return (
     <div className="canvas-workspace">
-    <ProjectNavigation busy={files.busy} message={files.message} error={files.error} pendingImport={files.pendingImport} onExport={files.handleExport} onImport={files.handleImport} onConfirmImport={files.handleConfirmImport} onCancelImport={files.handleCancelImport} onDismiss={files.handleDismiss} />
-    <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label="Canvas. Drag to move around. Use + or right-click to open a menu." tabIndex={0}
+    <ProjectNavigation busy={files.busy} message={files.message} error={files.error} pendingImport={files.pendingImport} onExport={files.handleExport} onImport={files.handleImport} onConfirmImport={files.handleConfirmImport} onCancelImport={files.handleCancelImport} onDismiss={files.handleDismiss}
+      canUndo={document.canUndo} canRedo={document.canRedo} onUndo={document.undo} onRedo={document.redo}
+      onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={handleRecenter}
+      distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)}
+      hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} />
+    <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label={t('canvas.aria')} tabIndex={0}
       onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerEnd} onPointerCancel={handlePointerEnd} onLostPointerCapture={handlePointerEnd} onKeyDown={handleKeyDown} onContextMenu={handleContextMenu}>
-      <CanvasGrid camera={camera} zoom={zoom} />
+      <CanvasGrid camera={camera} zoom={zoom} distorted={distorted} />
       {document.cards.map((card) => <CanvasModule key={`${document.revision}:${card.id}`} module={card} camera={camera} zoom={zoom}
         fitRequest={growthRequest.moduleId === card.id ? growthRequest.revision : 0}
         onOpenActions={(event) => handleOpenActions(event, { kind: card.type, id: card.id })}

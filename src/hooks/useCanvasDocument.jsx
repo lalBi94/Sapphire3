@@ -52,9 +52,28 @@ function reduceDocument(state, action) {
   return state
 }
 
+// Encapsule les mutations du document pour permettre un retour arrière local.
+function reduceHistory(state, action) {
+  if (action.type === 'undo') {
+    if (state.past.length === 0) return state
+    const previous = state.past[state.past.length - 1]
+    return { past: state.past.slice(0, -1), present: previous, future: [state.present, ...state.future] }
+  }
+  if (action.type === 'redo') {
+    if (state.future.length === 0) return state
+    const next = state.future[0]
+    return { past: [...state.past, state.present], present: next, future: state.future.slice(1) }
+  }
+  const next = reduceDocument(state.present, action)
+  if (next === state.present) return state
+  if (['geometry', 'text', 'presentation'].includes(action.type)) return { ...state, present: next }
+  return { past: [...state.past, state.present], present: next, future: [] }
+}
+
 // Expose les éditions de document ; sélection et navigation restent dans les composants UI.
 export default function useCanvasDocument() {
-  const [document, dispatch] = useReducer(reduceDocument, undefined, initialDocument)
+  const [history, dispatch] = useReducer(reduceHistory, undefined, () => ({ past: [], present: initialDocument(), future: [] }))
+  const document = history.present
 
   // Produit l'identifiant une seule fois dans le handler, jamais dans un rendu ou un reducer.
   function createCard(type, position) {
@@ -128,5 +147,15 @@ export default function useCanvasDocument() {
     dispatch({ type: 'replaceWorkspace', workspace })
   }
 
-  return { ...document, createCard, updateGeometry, renameCard, updateComment, insertNode, configureNode, deleteNode, deleteModule, deleteComment, setExpandedNodes, replaceWorkspace }
+  // Revient à l’état précédent sans toucher aux fichiers exportés.
+  function undo() {
+    dispatch({ type: 'undo' })
+  }
+
+  // Rejoue l’état annulé le plus récent.
+  function redo() {
+    dispatch({ type: 'redo' })
+  }
+
+  return { ...document, createCard, updateGeometry, renameCard, updateComment, insertNode, configureNode, deleteNode, deleteModule, deleteComment, setExpandedNodes, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
 }

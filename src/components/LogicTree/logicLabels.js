@@ -1,3 +1,5 @@
+import { getCurrentLanguage, translateError } from '../../i18n.jsx'
+
 // Présente les discriminants du langage sans dupliquer son catalogue de constructions.
 export function kindLabel(kind) {
   const labels = {
@@ -19,7 +21,13 @@ export function kindLabel(kind) {
     CastExpression: 'Convert a value',
     TypeDeclaration: 'Type',
   }
-  return labels[kind] ?? kind.replace(/([a-z])([A-Z])/g, '$1 $2')
+  const french = {
+    FunctionDeclaration: 'Fonction', VariableDeclaration: 'Variable', ConstantDeclaration: 'Constante', Parameter: 'Entrée',
+    BinaryExpression: 'Opération', UnaryExpression: 'Opération', Literal: 'Valeur', Reference: 'Utiliser une valeur',
+    CallExpression: 'Appel de fonction', IfStatement: 'Si', WhileStatement: 'Boucle tant que', ForStatement: 'Boucle pour',
+    ReturnStatement: 'Retour', AssignmentStatement: 'Modifier une valeur', Block: 'Étapes', CastExpression: 'Convertir une valeur', TypeDeclaration: 'Type',
+  }
+  return (getCurrentLanguage() === 'fr' ? french[kind] : labels[kind]) ?? kind.replace(/([a-z])([A-Z])/g, '$1 $2')
 }
 
 // Remplace les noms internes des emplacements par des mots utiles dans l'interface.
@@ -42,7 +50,12 @@ export function slotLabel(slot) {
     target: 'Value to change',
     callee: 'Function',
   }
-  return labels[slot] ?? slot.replace(/([a-z])([A-Z])/g, '$1 $2')
+  const french = {
+    rootNodeIds: 'Blocs', parameters: 'Entrées', initializer: 'Valeur de départ', condition: 'Condition', test: 'Condition',
+    consequent: 'Alors', alternate: 'Sinon', body: 'Dans', statements: 'Étapes', argument: 'Valeur', arguments: 'Entrées',
+    operand: 'Valeur', left: 'Valeur de gauche', right: 'Valeur de droite', target: 'Valeur à modifier', callee: 'Fonction',
+  }
+  return (getCurrentLanguage() === 'fr' ? french[slot] : labels[slot]) ?? slot.replace(/([a-z])([A-Z])/g, '$1 $2')
 }
 
 // Traduit les codes du moteur en messages courts adaptés à l'interface.
@@ -68,7 +81,7 @@ export function diagnosticLabel(code) {
     RETURN_MISSING: 'This function needs a return value.',
     PLACEMENT_ILLEGAL: 'This block cannot go here.',
   }
-  return labels[code] ?? code.replaceAll('_', ' ').toLowerCase()
+  return labels[code] ?? translateError(code)
 }
 
 // Affiche seulement une information de type déjà résolue, jamais un type de remplacement.

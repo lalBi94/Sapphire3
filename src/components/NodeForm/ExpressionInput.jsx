@@ -1,9 +1,11 @@
 import { sameType, acceptsOperand, primitiveDefinitions, primitiveType } from '../../utils/logic/index.js'
 import NodeValueInput from './NodeValueInput.jsx'
 import { emptyExpression, expressionOperators, expressionOperandType } from './nodeConfiguration.js'
+import { useTranslation } from '../../i18n.jsx'
 
 // Configure les expressions imbriquées directement dans le formulaire de création, avec typage strict.
 export default function ExpressionInput({ label, value = emptyExpression(), onChange, type, symbols, required, allowIncomplete = false, depth = 0 }) {
+  const { t } = useTranslation()
   const matching = symbols.filter((symbol) => sameType(type, symbol.type))
   const functions = symbols.filter((symbol) => symbol.type?.kind === 'function' && sameType(type, symbol.type.returnType))
   const functionSymbol = functions.find((symbol) => symbol.id === value.symbolId)
@@ -28,7 +30,7 @@ export default function ExpressionInput({ label, value = emptyExpression(), onCh
       <legend>{label}</legend>
       <label>Value
         <select aria-label={`${label} expression`} value={value.mode} onChange={handleModeChange} required={required} disabled={!type}>
-          <option value="">{required ? 'Choose a value' : 'Leave empty for now'}</option>
+          <option value="">{required ? t('form.chooseName') : t('form.leaveEmpty')}</option>
           <option value="literal">Literal</option><option value="reference">Reference</option>
           {nested && expressionOperators('binary', type).length > 0 && <option value="binary">Operation</option>}
           {nested && expressionOperators('unary', type).length > 0 && <option value="unary">Operation on one value</option>}
@@ -39,13 +41,13 @@ export default function ExpressionInput({ label, value = emptyExpression(), onCh
       {value.mode === 'literal' && <NodeValueInput label={`${label} value`} typeName={type?.name} value={value.value} empty={value.empty} onEmptyChange={(empty) => onChange({ ...value, empty })} required={!allowIncomplete} onChange={(next) => onChange({ ...value, value: next })} />}
       {value.mode === 'reference' && <label>Symbol
         <select aria-label={`${label} symbol`} value={value.symbolId} required={!allowIncomplete} onChange={(event) => onChange({ ...value, symbolId: event.target.value })}>
-          <option value="">Choose a name</option>
+          <option value="">{t('form.chooseName')}</option>
           {matching.map((symbol) => <option key={symbol.id} value={symbol.id}>{symbol.name}</option>)}
         </select>
       </label>}
       {['binary', 'unary'].includes(value.mode) && <>
         <label>Operator<select aria-label={`${label} operator`} value={value.operator} required={!allowIncomplete} onChange={(event) => onChange({ ...value, operator: event.target.value })}>
-          <option value="">Choose an operation</option>
+          <option value="">{t('form.chooseOperation')}</option>
           {operators.map(([operator]) => <option key={operator} value={operator}>{operator}</option>)}
         </select></label>
         {chooseOperandType && <label>Operand type<select aria-label={`${label} operand type`} value={value.operandTypeName} required={!allowIncomplete} onChange={(event) => onChange({ ...value, operandTypeName: event.target.value })}>

@@ -1,26 +1,29 @@
 import { useEffect, useRef } from 'react'
 import { ChevronDown, Download, Upload, X } from 'lucide-react'
+import { useTranslation } from '../../i18n.jsx'
 import './ProjectNavigation.css'
 
 // Bloque le remplacement du document tant qu'il n'a pas été confirmé explicitement.
 function ImportConfirmation({ path, onConfirm, onCancel }) {
   const dialogRef = useRef(null)
+  const { t } = useTranslation()
 
   useEffect(() => {
     dialogRef.current.showModal()
   }, [])
 
   return <dialog ref={dialogRef} className="project-navigation__confirmation" aria-labelledby="import-title" onCancel={onCancel}>
-    <h2 id="import-title">Replace this workspace?</h2>
-    <p>This will replace your modules, notes and layout. Export first if you want to keep them.</p>
+    <h2 id="import-title">{t('import.title')}</h2>
+    <p>{t('import.body')}</p>
     <p className="project-navigation__path">{path}</p>
-    <div><button type="button" autoFocus onClick={onCancel}>Cancel</button><button type="button" className="project-navigation__primary" onClick={onConfirm}>Replace and import</button></div>
+    <div><button type="button" autoFocus onClick={onCancel}>{t('import.cancel')}</button><button type="button" className="project-navigation__primary" onClick={onConfirm}>{t('import.confirm')}</button></div>
   </dialog>
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, message, error, pendingImport, onExport, onImport, onConfirmImport, onCancelImport, onDismiss }) {
+export default function ProjectNavigation({ busy, message, error, pendingImport, onExport, onImport, onConfirmImport, onCancelImport, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hasSelection, onOpenSelectionMenu }) {
   const navigationRef = useRef(null)
+  const { language, setLanguage, t } = useTranslation()
 
   useEffect(() => {
     // Ferme les volets lorsque l'utilisateur interagit ailleurs dans l'application.
@@ -66,21 +69,41 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
 
   return <>
     <nav ref={navigationRef} className="project-navigation" aria-label="Workspace navigation" onKeyDown={handleKeyDown}>
-      <span className="project-navigation__brand">Sapphire 3</span>
-      {['Edit', 'View'].map((label) => <details key={label} name="workspace-menu" onToggle={handleToggle}>
-        <summary>{label}<ChevronDown size={12} aria-hidden="true" /></summary>
-        <div className="project-navigation__menu"><p>Nothing here yet.</p></div>
-      </details>)}
       <details name="workspace-menu" onToggle={handleToggle}>
-        <summary>Settings<ChevronDown size={12} aria-hidden="true" /></summary>
+        <summary>{t('nav.settings')}<ChevronDown size={12} aria-hidden="true" /></summary>
         <div className="project-navigation__menu">
-          <button type="button" disabled={busy || !!pendingImport} onClick={handleImport}><Upload size={14} aria-hidden="true" />Import .sp3 / .json</button>
-          <button type="button" disabled={busy || !!pendingImport} onClick={() => handleExport('sp3')}><Download size={14} aria-hidden="true" />Export .sp3</button>
-          <button type="button" disabled={busy || !!pendingImport} onClick={() => handleExport('json')}><Download size={14} aria-hidden="true" />Export JSON</button>
+          <button type="button" disabled={busy || !!pendingImport} onClick={handleImport}><Upload size={14} aria-hidden="true" />{t('nav.import')}</button>
+          <button type="button" disabled={busy || !!pendingImport} onClick={() => handleExport('sp3')}><Download size={14} aria-hidden="true" />{t('nav.exportSp3')}</button>
+          <button type="button" disabled={busy || !!pendingImport} onClick={() => handleExport('json')}><Download size={14} aria-hidden="true" />{t('nav.exportJson')}</button>
         </div>
       </details>
-      <span className="project-navigation__status" role="status">{busy ? 'Working…' : message}</span>
-      {error && <div className="project-navigation__error" role="alert"><span>{error}</span><button type="button" aria-label="Dismiss error" onClick={onDismiss}><X size={14} aria-hidden="true" /></button></div>}
+      <details name="workspace-menu" onToggle={handleToggle}>
+        <summary>{t('nav.edit')}<ChevronDown size={12} aria-hidden="true" /></summary>
+        <div className="project-navigation__menu">
+          <button type="button" disabled={!canUndo} onClick={onUndo}>{t('nav.undo')}</button>
+          <button type="button" disabled={!canRedo} onClick={onRedo}>{t('nav.redo')}</button>
+          {hasSelection && <button type="button" onClick={onOpenSelectionMenu}>{t('nav.addToSelection')}</button>}
+        </div>
+      </details>
+      <details name="workspace-menu" onToggle={handleToggle}>
+        <summary>{t('nav.view')}<ChevronDown size={12} aria-hidden="true" /></summary>
+        <div className="project-navigation__menu">
+          <p>{t('nav.zoom')}</p>
+          <button type="button" onClick={onZoomIn}>{t('nav.zoomIn')}</button>
+          <button type="button" onClick={onZoomOut}>{t('nav.zoomOut')}</button>
+          <button type="button" onClick={onZoom100}>{t('nav.zoom100')}</button>
+          <button type="button" onClick={onCenter}>{t('nav.center')}</button>
+          <label className="project-navigation__check"><input type="checkbox" checked={distorted} onChange={onToggleDistortion} />{t('nav.distortion')}</label>
+        </div>
+      </details>
+      <span className="project-navigation__status" role="status">{busy ? t('nav.working') : message}</span>
+      <label className="project-navigation__language">{t('nav.language')}
+        <select value={language} onChange={(event) => setLanguage(event.target.value)} aria-label={t('nav.language')}>
+          <option value="en">{t('nav.english')}</option>
+          <option value="fr">{t('nav.french')}</option>
+        </select>
+      </label>
+      {error && <div className="project-navigation__error" role="alert"><span>{error}</span><button type="button" aria-label={t('nav.dismiss')} onClick={onDismiss}><X size={14} aria-hidden="true" /></button></div>}
     </nav>
     {pendingImport && <ImportConfirmation path={pendingImport.path} onConfirm={onConfirmImport} onCancel={onCancelImport} />}
   </>

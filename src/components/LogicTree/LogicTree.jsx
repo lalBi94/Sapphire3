@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import LogicNode from './LogicNode.jsx'
+import { useTranslation } from '../../i18n.jsx'
 import './LogicTree.css'
 
 // Rassemble les nœuds du module pour repérer ceux réellement ajoutés entre deux rendus.
@@ -14,6 +15,7 @@ function moduleNodeIds(module, index) {
 // Parcourt les racines source dans leur ordre ; les nœuds sont pliés tant qu'ils ne sont pas dépliés.
 export default function LogicTree({ module, index, selectedId, onSelect, expandedNodeIds, onExpandedChange, onOpenActions }) {
   const knownIds = useRef(null)
+  const { t } = useTranslation()
 
   // Déplie les nœuds ajoutés après le montage, ainsi que leurs parents, sans rouvrir l'existant.
   useEffect(() => {
@@ -49,7 +51,7 @@ export default function LogicTree({ module, index, selectedId, onSelect, expande
 
   return (
     <div className="logic-tree" data-canvas-scroll>
-      {module.rootNodeIds.length === 0 && <p className="logic-tree__empty">Use + to add your first block.</p>}
+      {module.rootNodeIds.length === 0 && <p className="logic-tree__empty">{t('canvas.addFirst')}</p>}
       {module.rootNodeIds.map((id, position) => <LogicNode key={`${id}:${position}`} id={id} index={index} selectedId={selectedId} onSelect={onSelect} ancestors={[]} expandedIds={expandedIds} onToggle={handleToggle} onOpenActions={onOpenActions} />)}
     </div>
   )

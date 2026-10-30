@@ -32,7 +32,7 @@ function createLine(position, vertical, width, height) {
 }
 
 // Maintient une densité lisible quelle que soit l'échelle, avec une origine fixe.
-export default function CanvasGrid({ camera, zoom }) {
+export default function CanvasGrid({ camera, zoom, distorted = true }) {
   const [size, setSize] = useState({ width: 1600, height: 1000 })
   const gridRef = useRef(null)
 
@@ -56,11 +56,11 @@ export default function CanvasGrid({ camera, zoom }) {
   const lines = []
 
   for (let x = offsetX - spacing; x <= width + spacing; x += spacing) {
-    lines.push(createLine(x, true, width, height))
+    lines.push(distorted ? createLine(x, true, width, height) : `M${x},0 L${x},${height}`)
   }
 
   for (let y = offsetY - spacing; y <= height + spacing; y += spacing) {
-    lines.push(createLine(y, false, width, height))
+    lines.push(distorted ? createLine(y, false, width, height) : `M0,${y} L${width},${y}`)
   }
 
   return (

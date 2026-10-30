@@ -3,6 +3,7 @@ import { Box, MessageSquare } from 'lucide-react'
 import { moduleTypes } from '../../utils/moduleTypes.js'
 import DeleteAction from '../DeleteAction/DeleteAction.jsx'
 import './CanvasContextMenu.css'
+import { useTranslation } from '../../i18n.jsx'
 
 const menuIcons = {
   module: Box,
@@ -12,6 +13,7 @@ const menuIcons = {
 // Propose les créations disponibles et gère la fermeture ainsi que le focus clavier.
 export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId = null, onDeleteComment, anchored = false }) {
   const menuRef = useRef(null)
+  const { t } = useTranslation()
 
   useEffect(() => {
     menuRef.current.querySelector('button:not(:disabled)').focus()
@@ -60,7 +62,7 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId =
         const Icon = menuIcons[type]
         return <button key={type} type="button" role="menuitem" onClick={() => onCreate(type)}>
           <Icon className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />
-          {definition.action}
+          {t(type === 'module' ? 'nav.createModule' : 'nav.createComment')}
         </button>
       })}
     </div>
