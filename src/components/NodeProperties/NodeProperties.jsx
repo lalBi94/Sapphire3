@@ -1,7 +1,7 @@
 import { ChevronRight, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { resolveContext, getNodeSchema } from '../../utils/logic/index.js'
-import { diagnosticLabel, kindLabel, slotLabel } from '../LogicTree/logicLabels.js'
+import { diagnosticLabel, kindLabel, nodeSummary, slotLabel } from '../LogicTree/logicLabels.js'
 import NodeForm from '../NodeForm/NodeForm.jsx'
 import ModuleNameForm from './ModuleNameForm.jsx'
 import DeleteAction from '../DeleteAction/DeleteAction.jsx'
@@ -10,7 +10,9 @@ import './NodeProperties.css'
 
 // Construit une étiquette courte pour un élément de la hiérarchie.
 function hierarchyLabel(record) {
-  return record?.properties?.name || kindLabel(record?.kind ?? '')
+  const name = record?.properties?.name
+  const kind = kindLabel(record?.kind ?? '')
+  return name ? `${name} · ${kind}` : kind
 }
 
 // Rend récursivement les descendants source sans laisser un cycle bloquer le panneau.
@@ -18,10 +20,14 @@ function HierarchyNode({ id, index, selected, onSelect, ancestors = [] }) {
   const node = index.nodes.get(id)
   if (!node || ancestors.includes(id)) return null
   const childIds = Object.values(node.children ?? {}).flatMap((value) => Array.isArray(value) ? value : value ? [value] : [])
+  const summary = nodeSummary(node, index, getNodeSchema(node.kind))
   return (
     <li>
       <button type="button" className={`node-properties__hierarchy-item${selected?.kind === 'node' && selected.id === id ? ' node-properties__hierarchy-item--selected' : ''}`} aria-current={selected?.kind === 'node' && selected.id === id ? 'true' : undefined} onClick={() => onSelect({ kind: 'node', id })}>
-        <span>{hierarchyLabel(node)}</span>
+        <span>
+          <strong>{hierarchyLabel(node)}</strong>
+          {summary && <small>{summary}</small>}
+        </span>
         {childIds.length > 0 && <small>{childIds.length}</small>}
       </button>
       {childIds.length > 0 && <ul>{childIds.map((childId, position) => <HierarchyNode key={`${childId}:${position}`} id={childId} index={index} selected={selected} onSelect={onSelect} ancestors={[...ancestors, id]} />)}</ul>}
