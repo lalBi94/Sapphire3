@@ -35,3 +35,14 @@
 - Contrôle visuel par capture navigateur du quadrillage, de la croix et du statut. `pnpm build` réussi.
 - Une tentative d'évaluation dans un onglet inactif a expiré en attendant requestAnimationFrame ; l'onglet a été inspecté puis activé, et le contrôle a été réalisé dans l'onglet visible. Aucun succès n'est déduit de cette expiration.
 - Limites : pas de nouvelle vérification native, de molette physique ni de pincement tactile. Pas de limites liées à un projet implémentées.
+
+## Conteneurs Module et Main — 30 octobre 2026
+
+- Menu de création au clic droit avec deux actions anglaises, définitions centralisées dans `src/utils/moduleTypes.js`. Zones vides créées au point monde visé, dimensions initiales 320 × 220, minimum 180 × 120.
+- Main est une variante visuelle uniquement. Liste locale dans Canvas, sans sauvegarde, déplacement individuel, suppression, AST ou exécution.
+- Modules UI séparés pour le menu et le conteneur ; poignée de redimensionnement avec capture du pointeur et flèches clavier. Menu utilisable avec flèches, Enter et Escape, refermé par clic extérieur ; position bornée au viewport.
+- Interface passée en anglais, y compris `lang="en"`, formats numériques et textes accessibles ; commentaires et documentation conservés en français.
+- Tests navigateur par événements synthétiques dans un onglet distinct : création des deux types ; premier rectangle à (120, 130), dimensions 320 × 220 ; geste de 80 × 50 px à 100 % donnant 400 × 270, sans activer le pan du canvas ; flèche droite donnant largeur 410.
+- À 400 %, geste horizontal de 80 px donnant +20 unités monde (410 vers 430). Menu au coin inférieur droit contenu dans le viewport, fermeture via Escape avec focus rendu au canvas, fermeture par appui extérieur sur un module également confirmée.
+- Capture visuelle contrôlée pour les deux variantes. Build frontend réussi et absence d'erreur console contrôlée.
+- Limites : tests DOM synthétiques, pas de nouvelle vérification native ou tactile réelle. Les conteneurs restent temporaires et sans contenu logique.

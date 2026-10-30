@@ -8,7 +8,10 @@
 - Étapes livrées : socle frontend et fenêtre native, page unique avec canvas plein écran et déplacement sans borne applicative. Quadrillage discret, courbé sur les bords et assombri en périphérie.
 - Navigation : glisser avec le bouton gauche ou central (également gestes tactiles), ou utiliser les flèches quand le canvas a le focus. Molette : zoom centré sur le milieu de la vue, plafonné à 400 %, sans minimum applicatif de dézoom.
 - Croix à l'origine absolue (0, 0), projetée avec la grille. En bas à droite : X/Y du milieu de la vue, pourcentage de zoom et bouton de retour à l'origine conservant le zoom.
-- Aucun éditeur, graphe, AST, génération de code, stockage, import ou backend implémenté. Les prochains incréments nécessitent une demande.
+- Clic droit : menu « Create module » / « Create Main », création d'un conteneur vide au point visé. Poignée inférieure droite redimensionnable au pointeur et aux flèches du clavier, avec dimensions minimales de 180 × 120 unités monde.
+- Main se distingue uniquement par son titre et un accent discret. Aucun comportement d'exécution ni unicité imposée.
+- Aucun éditeur de logique, graphe, AST, génération de code, stockage, import ou backend implémenté. Les prochains incréments nécessitent une demande.
+- Interface en anglais (y compris textes accessibles), commentaires et documentation en français.
 - Style provisoire minimal, police système locale. Aucun service distant à l'exécution.
 
 ## Cartographie
@@ -22,6 +25,9 @@
 | `src/components/Canvas/Canvas.jsx`, `Canvas.css` | Surface plein écran, événements de navigation, curseur et vignette périphérique |
 | `src/components/CanvasGrid/CanvasGrid.jsx`, `CanvasGrid.css` | Grille SVG à densité adaptative, croix d'origine et distorsion attachée au viewport ; dimensions suivies avec ResizeObserver |
 | `src/components/CanvasStatus/CanvasStatus.jsx`, `CanvasStatus.css` | Coordonnées, zoom et bouton de recentrage, sans connaissance du hook |
+| `src/components/CanvasContextMenu/CanvasContextMenu.jsx`, `CanvasContextMenu.css` | Menu de création, fermeture extérieure, focus et navigation clavier |
+| `src/components/CanvasModule/CanvasModule.jsx`, `CanvasModule.css` | Conteneur visuel redimensionnable, positionné dans le monde et mis à l'échelle avec la caméra |
+| `src/utils/moduleTypes.js` | Types stables `module` et `main`, libellés anglais, dimensions par défaut et minimum commun |
 | `src/hooks/useCanvasPan.jsx` | Caméra locale, capture du pointeur, annulation, clavier, zoom logarithmique à la molette et recentrage |
 | `src/styles/tokens.css`, `src/styles/global.css` | Variables partagées et styles globaux minimaux |
 | `vite.config.js` | Intégration React et serveur local strict sur le port 5173 |
@@ -42,6 +48,8 @@ Scripts dans `package.json` :
 ## Contrats et décisions
 
 - Aucun contrat métier ou format d'AST arrêté. Ne pas confondre direction future et fonctionnalité disponible.
+- Les conteneurs visuels en mémoire dans `Canvas` ont un identifiant UUID, un type stable `module` ou `main`, une position `x/y` de l'angle supérieur gauche et des dimensions `width/height` en unités monde. Valeurs initiales : 320 × 220. Aucun format de fichier ni contrat d'exécution n'en découle.
+- Les modules suivent la translation et le zoom, avec des rectangles non déformés ; la courbure reste un effet décoratif du quadrillage. Pas de déplacement individuel, suppression, renommage ou contenu interne à ce stade.
 - Caméra en mémoire React, sans persistance : `x` et `y` désignent le point du monde au milieu de la vue, axe Y positif vers le bas ; `zoomLevel` est un exposant en base 2 (0 = 100 %, 2 = 400 %). Le déplacement en pixels est converti selon le zoom.
 - Seules les lignes visibles sont tracées via un décalage périodique ; leur espacement monde double progressivement au dézoom pour maintenir une densité raisonnable. Pas de surface géante ni d'accumulation. Les bornes dynamiques attendent une future demande.
 - Aucune bibliothèque de nœuds, UI ou gestion d'état ajoutée.
@@ -56,10 +64,11 @@ Scripts dans `package.json` :
 - Pas de suite de tests ou lint configurée à ce stade ; pas de test métier pertinent pour l'écran statique.
 - `pnpm preview` n'a pas été exécuté séparément.
 - Le « dézoom infini » reste soumis aux nombres JavaScript : les changements créant une échelle nulle ou une position non finie sont ignorés. Aucun seuil minimal de confort n'est imposé. Pas de zoom tactile par pincement.
+- Les modules disparaissent au rechargement : aucune sauvegarde demandée ni implémentée.
 
 ## Vérifications
 
-- Dernier incrément : build réussi ; rendu navigateur contrôlé et événements synthétiques vérifiant plafond 400 %, dézoom profond, stabilité du centre pendant le zoom, translation selon l'échelle et recentrage conservant le zoom. Gestes réels et fenêtre native non revérifiés pour cet incrément.
+- Dernier incrément : build réussi ; contrôle visuel navigateur et événements synthétiques vérifiant création des deux types, position initiale, redimensionnement à 100 % et 400 %, ajustement clavier, fermeture extérieure/Escape du menu et maintien dans le viewport. Console sans erreur. Gestes réels et fenêtre native non revérifiés pour cet incrément.
 - Installation des dépendances et du runtime réussie ; build frontend réussi.
 - Fenêtre native de développement contrôlée avec l'accessibilité Windows : titre « Sapphire 3 » et contenu React « Tout commence ici. » présents ; fermeture native demandée avec succès.
 - `pnpm desktop:start` également contrôlé dans la fenêtre native : même contenu React servi depuis le build local. Cette commande cible Windows x64.

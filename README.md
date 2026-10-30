@@ -25,6 +25,10 @@ L'application contient une page unique avec un canvas plein écran : quadrillage
 
 La molette zoome autour du milieu de la vue, jusqu'à 400 %. Le dézoom n'a pas de minimum applicatif (hors limites numériques JavaScript), et la grille adapte sa densité. Une croix marque l'origine absolue (0, 0). En bas à droite : coordonnées du milieu de la vue, zoom et bouton pour revenir à l'origine en conservant le zoom. Aucune limite liée à un projet pour l'instant.
 
+Clic droit pour ouvrir le menu anglais « Create module » / « Create Main ». Chaque action crée une zone rectangulaire vide à l'endroit visé. La poignée inférieure droite permet de la redimensionner ; les flèches ajustent aussi la taille lorsque la poignée a le focus. Main se distingue visuellement, sans logique d'exécution. Ces zones restent en mémoire et disparaissent au rechargement. Aucun déplacement individuel, contenu logique ou stockage n'est implémenté.
+
+Les textes de l'application sont en anglais ; les commentaires et la documentation du projet sont en français.
+
 Aucune API native exposée, stockage métier, backend ni service distant. Les scripts d'installation de trois dépendances transitives de la CLI sont explicitement désactivés dans `pnpm-workspace.yaml` ; les accélérations WebSocket natives ne sont pas nécessaires ici.
 
 ## Repères

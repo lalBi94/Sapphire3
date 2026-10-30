@@ -1,0 +1,71 @@
+.canvas-module {
+  position: absolute;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-module-surface);
+  transform-origin: top left;
+  cursor: default;
+}
+
+.canvas-module--main {
+  border-color: var(--color-main-accent);
+}
+
+.canvas-module__header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 40px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.canvas-module__header h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.canvas-module__marker {
+  width: 6px;
+  height: 6px;
+  border: 1px solid var(--color-text-muted);
+  border-radius: 2px;
+}
+
+.canvas-module--main .canvas-module__marker {
+  border-color: var(--color-main-accent);
+  background: var(--color-main-accent);
+}
+
+.canvas-module__resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  border: 0;
+  border-radius: 4px;
+  color: var(--color-text-muted);
+  background: transparent;
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.canvas-module__resize:hover {
+  color: var(--color-text);
+}
+
+.canvas-module__resize:focus-visible {
+  outline: 1px solid var(--color-text-muted);
+  outline-offset: -3px;
+}
+
+.canvas-module__resize svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+}

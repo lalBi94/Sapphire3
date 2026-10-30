@@ -1,0 +1,32 @@
+.canvas-context-menu {
+  position: absolute;
+  z-index: 3;
+  width: 184px;
+  padding: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-raised);
+  box-shadow: 0 8px 24px #00000033;
+  cursor: default;
+}
+
+.canvas-context-menu button {
+  display: block;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 4px;
+  color: var(--color-text);
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.canvas-context-menu button:hover,
+.canvas-context-menu button:focus-visible {
+  outline: none;
+  background: var(--color-hover);
+}

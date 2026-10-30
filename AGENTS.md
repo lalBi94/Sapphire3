@@ -20,7 +20,7 @@ Ne propose ni n'implémente de fonctionnalité supplémentaire sans demande expl
 ## Périmètre fonctionnel et direction du produit
 
 - Avancer par petites étapes demandées : une demande de base visuelle, de dossiers ou de documentation n'autorise pas à implémenter le stockage, l'import ou le métier complet.
-- Première étape autorisée : socle React/Vite et fenêtre Neutralinojs seulement. Aucun éditeur de nœuds, AST, générateur de code, stockage ou import à implémenter à ce stade.
+- Incréments autorisés : socle React/Vite et fenêtre Neutralinojs, canvas navigable avec zoom et repères, menu de création de conteneurs visuels redimensionnables Module et Main. Aucune logique interne, AST, génération de code, persistance ou import à implémenter à ce stade.
 - Direction à terme : représentation visuelle de la programmation, AST indépendant des langages et traductions vers des langages cibles. Concepts de base souhaités ; modèle objet à discuter, aucun contrat décidé.
 - Une direction de conception n'est ni une fonctionnalité déjà livrée ni une autorisation de commencer son implémentation.
 - Lorsqu'un même concept est partagé entre interface, rangement et règles métier, utiliser une définition centralisée simple avec des identifiants stables, distincts des libellés affichés. Ne pas dupliquer les listes de référence dans l'application.
@@ -80,6 +80,7 @@ Un fichier = une responsabilité principale. Ne pas multiplier les fichiers ou l
 
 ## Interface et CSS
 
+- Écrire les textes de l'application en anglais ; conserver les commentaires et la documentation du projet en français.
 - Le style est **à définir au fur et à mesure du projet**.
 - Une fois une direction validée, la préserver sans refonte visuelle non demandée.
 - Utiliser des polices disponibles localement ou embarquées dans le projet ; jamais de chargement distant à l'exécution.

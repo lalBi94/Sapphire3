@@ -1,5 +1,6 @@
 .canvas-status {
   position: absolute;
+  z-index: 2;
   right: 16px;
   bottom: 16px;
   display: flex;

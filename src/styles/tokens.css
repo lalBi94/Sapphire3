@@ -5,4 +5,9 @@
   --color-canvas-edge: #0b0e1466;
   --color-text: #e8e9ed;
   --color-text-muted: #a6aab5;
+  --color-surface-raised: #23262d;
+  --color-module-surface: #1c2026f5;
+  --color-border: #343a44;
+  --color-hover: #ffffff0a;
+  --color-main-accent: #829dba;
 }
