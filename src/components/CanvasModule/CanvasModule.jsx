@@ -10,6 +10,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [draftName, setDraftName] = useState('')
+  const [isImageDragOver, setIsImageDragOver] = useState(false)
   const resizeRef = useRef(null)
   const moveRef = useRef(null)
   const titleRef = useRef(null)
@@ -72,16 +73,46 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
     }
   }
 
-  // Lit une image choisie localement afin qu'elle reste intégrée à l'espace de travail exporté.
-  function handleImageChange(event) {
-    const file = event.target.files?.[0]
+  // Enregistre une image locale sous forme de données intégrées à la carte.
+  function readImageFile(file) {
     if (!file || !file.type.startsWith('image/')) return
     const reader = new FileReader()
     reader.addEventListener('load', () => {
       if (typeof reader.result === 'string') onImageChange(module.id, { image: reader.result })
     })
     reader.readAsDataURL(file)
+  }
+
+  // Ouvre le sélecteur d'image depuis la zone de dépôt.
+  function handleImageChange(event) {
+    readImageFile(event.target.files?.[0])
     event.target.value = ''
+  }
+
+  // Accepte une image déposée depuis l'explorateur de fichiers.
+  function handleImageDrop(event) {
+    event.preventDefault()
+    setIsImageDragOver(false)
+    readImageFile(event.dataTransfer.files?.[0])
+  }
+
+  // Maintient l'indicateur visible pendant le survol d'une image à déposer.
+  function handleImageDragOver(event) {
+    event.preventDefault()
+    if (event.dataTransfer.types.includes('Files')) setIsImageDragOver(true)
+  }
+
+  // Retire l'indicateur quand le pointeur quitte la zone de dépôt.
+  function handleImageDragLeave(event) {
+    if (!event.currentTarget.contains(event.relatedTarget)) setIsImageDragOver(false)
+  }
+
+  // Déclenche le choix d'une image au clavier sans gêner la légende.
+  function handleImageAreaKeyDown(event) {
+    if (['Enter', ' '].includes(event.key)) {
+      event.preventDefault()
+      imageInputRef.current?.click()
+    }
   }
 
   // Capture l'en-tête et mémorise la position ainsi que le zoom au début du geste.
@@ -246,14 +277,28 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
           spellCheck={false}
         />
       ) : definition.hasImage ? (
-        <div ref={contentRef} className="canvas-module__image-content" data-canvas-scroll>
-          {module.image ? <img className="canvas-module__image" src={module.image} alt={module.caption || name} /> : <button type="button" className="canvas-module__image-empty" onClick={() => imageInputRef.current?.click()}>{t('canvas.chooseImage')}</button>}
+        <div
+          ref={contentRef}
+          className={`canvas-module__image-content${module.image ? '' : ' canvas-module__image-content--empty'}${isImageDragOver ? ' canvas-module__image-content--drag-over' : ''}`}
+          data-canvas-scroll
+          role="button"
+          tabIndex={0}
+          aria-label={module.image ? t('canvas.replaceImage') : t('canvas.chooseImage')}
+          onClick={(event) => { if (!event.target.closest('textarea')) imageInputRef.current?.click() }}
+          onKeyDown={handleImageAreaKeyDown}
+          onDragOver={handleImageDragOver}
+          onDragLeave={handleImageDragLeave}
+          onDrop={handleImageDrop}
+        >
+          {module.image ? <img className="canvas-module__image" src={module.image} alt={module.caption || name} /> : <span className="canvas-module__image-empty">{t('canvas.chooseImage')}</span>}
+          <span className="canvas-module__image-overlay" aria-hidden="true">
+            {isImageDragOver ? t('canvas.dropImage') : module.image ? t('canvas.replaceImage') : ''}
+          </span>
           <label className="canvas-module__caption">
-            <span>{t('canvas.imageCaption')}</span>
-            <textarea value={module.caption ?? ''} placeholder={t('canvas.imageCaptionPlaceholder')} onChange={(event) => onImageChange(module.id, { caption: event.target.value })} />
+            <span className="canvas-module__caption-label">{t('canvas.imageCaption')}</span>
+            <textarea aria-label={t('canvas.imageCaption')} value={module.caption ?? ''} placeholder={t('canvas.imageCaptionPlaceholder')} onChange={(event) => onImageChange(module.id, { caption: event.target.value })} />
           </label>
           <input ref={imageInputRef} className="canvas-module__image-input" type="file" accept="image/*" onChange={handleImageChange} />
-          {module.image && <button type="button" className="canvas-module__replace-image" onClick={() => imageInputRef.current?.click()}>{t('canvas.replaceImage')}</button>}
         </div>
       ) : <div ref={contentRef} className="canvas-module__content" data-canvas-scroll>{children}</div>}
       <button
