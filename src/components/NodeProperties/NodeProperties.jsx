@@ -8,6 +8,47 @@ import DeleteAction from '../DeleteAction/DeleteAction.jsx'
 import { useTranslation } from '../../i18n.jsx'
 import './NodeProperties.css'
 
+// Construit une étiquette courte pour un élément de la hiérarchie.
+function hierarchyLabel(record) {
+  return record?.properties?.name || kindLabel(record?.kind ?? '')
+}
+
+// Rend récursivement les descendants source sans laisser un cycle bloquer le panneau.
+function HierarchyNode({ id, index, selected, onSelect, ancestors = [] }) {
+  const node = index.nodes.get(id)
+  if (!node || ancestors.includes(id)) return null
+  const childIds = Object.values(node.children ?? {}).flatMap((value) => Array.isArray(value) ? value : value ? [value] : [])
+  return (
+    <li>
+      <button type="button" className={`node-properties__hierarchy-item${selected?.kind === 'node' && selected.id === id ? ' node-properties__hierarchy-item--selected' : ''}`} aria-current={selected?.kind === 'node' && selected.id === id ? 'true' : undefined} onClick={() => onSelect({ kind: 'node', id })}>
+        <span>{hierarchyLabel(node)}</span>
+        {childIds.length > 0 && <small>{childIds.length}</small>}
+      </button>
+      {childIds.length > 0 && <ul>{childIds.map((childId, position) => <HierarchyNode key={`${childId}:${position}`} id={childId} index={index} selected={selected} onSelect={onSelect} ancestors={[...ancestors, id]} />)}</ul>}
+    </li>
+  )
+}
+
+// Affiche tous les modules et leurs blocs sous forme compacte et navigable.
+function ProjectHierarchy({ project, index, selected, onSelect, t }) {
+  return (
+    <section className="node-properties__hierarchy" aria-label={t('details.hierarchy')}>
+      <h3>{t('details.hierarchy')}</h3>
+      {project.modules.length === 0 ? <p>{t('details.noModules')}</p> : <ul>
+        {project.modules.map((module) => (
+          <li key={module.id}>
+            <button type="button" className={`node-properties__hierarchy-item node-properties__hierarchy-module${selected?.kind === 'module' && selected.id === module.id ? ' node-properties__hierarchy-item--selected' : ''}`} aria-current={selected?.kind === 'module' && selected.id === module.id ? 'true' : undefined} onClick={() => onSelect({ kind: 'module', id: module.id })}>
+              <span>{module.name}</span>
+              {module.rootNodeIds.length > 0 && <small>{module.rootNodeIds.length}</small>}
+            </button>
+            {module.rootNodeIds.length > 0 && <ul>{module.rootNodeIds.map((id, position) => <HierarchyNode key={`${id}:${position}`} id={id} index={index} selected={selected} onSelect={onSelect} />)}</ul>}
+          </li>
+        ))}
+      </ul>}
+    </section>
+  )
+}
+
 // Affiche les propriétés du ciblage actuel et les diagnostics dérivés de la dernière mutation.
 export default function NodeProperties({ selected, project, index, onConfigure, onRename, onSelect, onDelete, onDeleteModule, onClose, mutationError }) {
   const { t } = useTranslation()
@@ -83,6 +124,7 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
       {mutationError && <p role="alert">{diagnosticLabel(mutationError)}</p>}
       {diagnostics.length === 0 ? <p>{t('details.noIssues')}</p> : <ul className="node-properties__diagnostics">{diagnostics.map((entry, position) => <li key={position}><strong>{diagnosticLabel(entry.code)}</strong>{entry.location.field && <small>{slotLabel(entry.location.field)}</small>}</li>)}</ul>}
       {context.ok && record && <div className="node-properties__danger"><DeleteAction key={`${selected.kind}:${record.id}`} targetId={record.id} kind={selected.kind} onDelete={selected.kind === 'module' ? onDeleteModule : onDelete} /></div>}
+      <ProjectHierarchy project={project} index={index} selected={selected} onSelect={onSelect} t={t} />
     </aside>
   )
 }
