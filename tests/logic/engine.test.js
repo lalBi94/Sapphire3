@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { analyzeProgram, buildLogicalAst, findAstNode, walkAst, serializeSource, deserializeSource, diagnosticCodes as codes } from '../../src/utils/logic/index.js'
+import { analyzeProgram, buildLogicalAst, findAstNode, walkAst, serializeSource, deserializeSource, nodeSchema, diagnosticCodes as codes } from '../../src/utils/logic/index.js'
 import { program, node, root, intType, booleanType, stringType, twoModules } from './fixtures.js'
 
 // Rend les erreurs de scénario visibles sans dépendre du texte des diagnostics.
@@ -269,4 +269,12 @@ test('données JSON malformées et clés hostiles : erreurs contrôlées plutôt
   const hostile = program('__proto__')
   root(hostile, '__proto__', 'constructor', 'VariableDeclaration', { name: '__proto__', type: stringType })
   assertValid(analyzeProgram(hostile))
+})
+
+// Chaque construction déclare un groupe visuel stable, sans dépendre des libellés affichés.
+test('groupes visuels : chaque construction possède un groupe non vide', () => {
+  for (const [kind, schema] of Object.entries(nodeSchema)) {
+    assert.equal(typeof schema.group, 'string', kind)
+    assert.ok(schema.group.length > 0, kind)
+  }
 })

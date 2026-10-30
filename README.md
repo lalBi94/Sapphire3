@@ -39,6 +39,8 @@ Le bouton `▸`/`▾` de chaque nœud logique le plie ou le déplie. Plié, le n
 
 Un nœud peut être supprimé par « Delete node » dans son menu contextuel, ou depuis le panneau de propriétés avec une confirmation en deux temps. La suppression retire le nœud et tous ses descendants, puis sélectionne le parent logique. Les références vers le nœud supprimé restent dans la source et deviennent des diagnostics `REFERENCE_UNRESOLVED` ; aucune référence n'est réécrite silencieusement. Les cartes Module/Main ne sont pas supprimables ainsi, et il n'y a pas d'annulation.
 
+Chaque nœud affiche une bordure colorée selon sa catégorie logique : variable, type, fonction, paramètre, condition, boucle, retour, bloc, instruction, opérateur, valeur ou incomplet. Le groupe est défini avec le schéma de la construction, et les couleurs sont des variables CSS partagées.
+
 Les textes de l'application sont en anglais ; les commentaires et la documentation du projet sont en français.
 
 Double-cliquez sur le titre d'un Module pour le renommer (ou Entrée/F2 sur son en-tête). Entrée ou sortie du champ valide, Échap annule. Main garde son nom.

@@ -2,7 +2,19 @@
 .logic-tree__empty, .logic-tree__missing { margin: 4px; color: var(--color-text-muted); font-size: 11px; line-height: 1.5; }
 .logic-tree__missing { color: var(--color-diagnostic); overflow-wrap: anywhere; }
 .logic-node { margin: 6px 0; padding: 7px; border: 1px solid var(--color-border); border-radius: 5px; background: var(--color-surface); min-width: 0; }
-.logic-node--selected { border-color: var(--color-main-accent); }
+.logic-node--selected { box-shadow: 0 0 0 1px var(--color-main-accent); }
+.logic-node[data-group='variable'] { border-color: var(--color-node-variable); }
+.logic-node[data-group='type'] { border-color: var(--color-node-type); }
+.logic-node[data-group='function'] { border-color: var(--color-node-function); }
+.logic-node[data-group='parameter'] { border-color: var(--color-node-parameter); }
+.logic-node[data-group='condition'] { border-color: var(--color-node-condition); }
+.logic-node[data-group='loop'] { border-color: var(--color-node-loop); }
+.logic-node[data-group='return'] { border-color: var(--color-node-return); }
+.logic-node[data-group='block'] { border-color: var(--color-node-block); }
+.logic-node[data-group='statement'] { border-color: var(--color-node-statement); }
+.logic-node[data-group='operator'] { border-color: var(--color-node-operator); }
+.logic-node[data-group='value'] { border-color: var(--color-node-value); }
+.logic-node[data-group='incomplete'] { border-color: var(--color-node-incomplete); }
 .logic-node--collapsed { padding: 5px 7px; }
 .logic-node__header { display: flex; align-items: flex-start; gap: 4px; min-width: 0; }
 .logic-node__toggle { flex: 0 0 auto; width: 16px; height: 16px; padding: 0; border: 0; background: transparent; color: var(--color-text-muted); font: inherit; font-size: 10px; line-height: 16px; cursor: pointer; }

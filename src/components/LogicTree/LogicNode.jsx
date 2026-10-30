@@ -26,7 +26,7 @@ export default function LogicNode({ id, index, selectedId, onSelect, ancestors, 
   if (!node) return <p className="logic-tree__missing">Missing node: {String(id)}</p>
   if (ancestors.includes(id) || ancestors.length >= 60) return <p className="logic-tree__missing">Cyclic or deeply nested fragment: {id}</p>
   return (
-    <section className={`logic-node${selectedId === id ? ' logic-node--selected' : ''}${collapsed ? ' logic-node--collapsed' : ''}`} data-source-node={id} aria-label={name} onClick={handleSelect}>
+    <section className={`logic-node${selectedId === id ? ' logic-node--selected' : ''}${collapsed ? ' logic-node--collapsed' : ''}`} data-source-node={id} data-group={schema?.group ?? 'incomplete'} aria-label={name} onClick={handleSelect}>
       <div className="logic-node__header">
         <button type="button" className="logic-node__toggle" aria-expanded={!collapsed} aria-label={`${collapsed ? 'Expand' : 'Collapse'} ${name}`} onClick={handleToggle}>{collapsed ? '▸' : '▾'}</button>
         <button type="button" className="logic-node__heading" onClick={handleSelect} aria-pressed={selectedId === id}>

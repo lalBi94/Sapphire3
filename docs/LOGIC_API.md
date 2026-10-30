@@ -67,7 +67,7 @@ Un projet valide contient zéro ou un seul module de catégorie `main`. Chaque M
 | `CastExpression` | `type` cible obligatoire, `argument` expression ; conversion explicitement demandée |
 | `Hole` | Incomplétude explicite, diagnostic bloquant mais représentation conservée |
 
-`nodeSchema.js` centralise catégories, slots et opérateurs. Le champ `declaresType` identifie les constructions portant une annotation ; une annotation sur un opérateur ou une référence est une erreur structurelle et ne peut pas forcer son type. Les règles détaillées des opérateurs et conversions sont ci-dessous.
+`nodeSchema.js` centralise catégories, slots et opérateurs. Le champ `declaresType` identifie les constructions portant une annotation ; une annotation sur un opérateur ou une référence est une erreur structurelle et ne peut pas forcer son type. Chaque schéma porte aussi un `group` stable (`variable`, `type`, `function`, `parameter`, `condition`, `loop`, `return`, `block`, `statement`, `operator`, `value`, `incomplete`) utilisé uniquement par l'interface pour la couleur de bordure ; il ne participe ni à la validation ni au typage. Les règles détaillées des opérateurs et conversions sont ci-dessous.
 
 ## Portées, imports et types
 

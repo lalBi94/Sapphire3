@@ -12,4 +12,16 @@
   --color-hover: #ffffff0a;
   --color-main-accent: #829dba;
   --color-diagnostic: #d8b184;
+  --color-node-variable: #6f9ff5;
+  --color-node-type: #5fc9d8;
+  --color-node-function: #b58cf0;
+  --color-node-parameter: #e39ad0;
+  --color-node-condition: #d9a441;
+  --color-node-loop: #e07a3f;
+  --color-node-return: #e05c6e;
+  --color-node-block: #7d8798;
+  --color-node-statement: #7fb069;
+  --color-node-operator: #4fb3a8;
+  --color-node-value: #b5c95a;
+  --color-node-incomplete: #d8b184;
 }

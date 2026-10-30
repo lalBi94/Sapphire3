@@ -115,3 +115,12 @@
 - Navigateur : pliage/dépliage d'une variable et d'une fonction (`(int) → void`), slots masqués puis restitués, suppression du littéral par le menu (slot `initializer` vide, sélection du parent), suppression confirmée dans les propriétés, suppression d'une fonction avec paramètre/corps/retour et retour à la sélection du module. Console sans erreur.
 - Incident de vérification : le serveur Vite a servi des modules obsolètes après des éditions structurelles, puis s'est arrêté ; il a été relancé et la page rechargée avant de conclure. Un premier script a aussi cliqué un bouton absent (menu déjà fermé) ; l'état a été inspecté avant de reprendre. Un accès non optionnel à `index.references`/`index.symbols` a été corrigé en accès optionnel.
 - Limites : pas d'annulation, pas de suppression de Module/Main, pas de persistance du pliage. Fenêtre native non revérifiée pour cet incrément.
+
+## Couleurs par catégorie logique — 30 octobre 2026
+
+- `nodeSchema.js` ajoute un champ `group` stable à chaque construction, distinct de `category` qui continue de piloter la compatibilité syntaxique : `variable`, `type`, `function`, `parameter`, `condition`, `loop`, `return`, `block`, `statement`, `operator`, `value`, `incomplete`. Variables et constantes partagent `variable` ; appels et fonctions `function` ; `while`/`for`/`break`/`continue` `loop` ; littéraux et références `value`.
+- `LogicNode` expose ce groupe via `data-group`; `LogicTree.css` applique la couleur de bordure correspondante. Les douze couleurs sont des variables `--color-node-*` dans `tokens.css`, sans couleur codée en dur dans le composant.
+- La sélection conserve la couleur de catégorie et ajoute un anneau `box-shadow` avec l'accent existant, au lieu de remplacer la bordure.
+- `pnpm test` : **81 tests réussis, zéro échec**, avec un contrôle que chaque construction déclare un groupe non vide. `pnpm build` réussi.
+- Navigateur : variable, littéral, fonction, paramètre, bloc et type contrôlés avec leurs couleurs respectives ; les douze groupes mesurés sur des éléments `.logic-node` correspondent aux variables CSS, y compris pour la sélection. Console sans erreur.
+- Limites : couleurs statiques, sans légende ni personnalisation ; la catégorie reste une information de présentation et n'entre ni dans l'AST ni dans les diagnostics.
