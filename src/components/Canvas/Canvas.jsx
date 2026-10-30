@@ -18,6 +18,7 @@ import './Canvas.css'
 export default function Canvas() {
   const [contextMenu, setContextMenu] = useState(null)
   const [selected, setSelected] = useState(null)
+  const [activeCardId, setActiveCardId] = useState(null)
   const [growthRequest, setGrowthRequest] = useState({ moduleId: null, revision: 0 })
   const [distorted, setDistorted] = useState(true)
   const menuTriggerRef = useRef(null)
@@ -31,9 +32,25 @@ export default function Canvas() {
     document.replaceWorkspace(workspace)
     restoreCamera(workspace.presentation.camera)
     setSelected(workspace.presentation.selected)
+    setActiveCardId(workspace.presentation.selected?.kind === 'module' ? workspace.presentation.selected.id : null)
     setGrowthRequest({ moduleId: null, revision: 0 })
     menuTriggerRef.current = null
     setContextMenu(null)
+  }
+
+  // Place la carte touchée au-dessus des autres cartes sans modifier le document source.
+  function bringCardToFront(targetId) {
+    if (!targetId) return
+    const cardId = targetId.kind === 'module' || targetId.kind === 'comment'
+      ? targetId.id
+      : document.index.nodes.get(targetId.id)?.moduleId
+    if (cardId) setActiveCardId(cardId)
+  }
+
+  // Sélectionne une cible et place sa carte au premier plan.
+  function handleSelect(targetId) {
+    bringCardToFront(targetId)
+    setSelected(targetId)
   }
 
   // Identifie le nœud le plus proche, puis le module ; les annotations restent hors du moteur.
@@ -47,6 +64,7 @@ export default function Canvas() {
     const node = event.target.closest('[data-source-node]')
     const card = event.target.closest('[data-card-id]')
     const targetId = node ? { kind: 'node', id: node.dataset.sourceNode } : card ? { kind: card.dataset.cardType, id: card.dataset.cardId } : null
+    bringCardToFront(targetId)
     const slot = event.target.closest('[data-slot]')
     const initialSlot = node && slot?.closest('[data-source-node]') === node ? slot.dataset.slot : undefined
     menuTriggerRef.current = null
@@ -63,6 +81,7 @@ export default function Canvas() {
   function handleOpenActions(event, targetId) {
     const bounds = canvasRef.current.getBoundingClientRect()
     const button = event.currentTarget.getBoundingClientRect()
+    bringCardToFront(targetId)
     menuTriggerRef.current = event.currentTarget
     setContextMenu({ id: crypto.randomUUID(), targetId, x: Math.max(8, button.left - bounds.left), y: Math.max(8, Math.min(button.bottom - bounds.top + 4, bounds.height - 16)), anchored: true })
   }
@@ -70,6 +89,7 @@ export default function Canvas() {
   // Ouvre le même menu logique depuis la barre d’édition pour la cible sélectionnée.
   function handleOpenSelectionMenu() {
     if (!selected || selected.kind === 'comment') return
+    bringCardToFront(selected)
     menuTriggerRef.current = null
     setContextMenu({ id: crypto.randomUUID(), targetId: selected, x: 16, y: 12 })
   }
@@ -142,14 +162,16 @@ export default function Canvas() {
       onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerEnd} onPointerCancel={handlePointerEnd} onLostPointerCapture={handlePointerEnd} onKeyDown={handleKeyDown} onContextMenu={handleContextMenu}>
       <CanvasGrid camera={camera} zoom={zoom} distorted={distorted} />
       {document.cards.map((card) => <CanvasModule key={`${document.revision}:${card.id}`} module={card} camera={camera} zoom={zoom}
+        zIndex={activeCardId === card.id ? 2 : 1}
+        onActivate={() => bringCardToFront({ kind: card.type, id: card.id })}
         fitRequest={growthRequest.moduleId === card.id ? growthRequest.revision : 0}
         onOpenActions={(event) => handleOpenActions(event, { kind: card.type, id: card.id })}
         selected={selected?.kind === 'module' && selected.id === card.id}
-        onSelect={() => setSelected(card.type === 'comment' ? null : { kind: 'module', id: card.id })}
+        onSelect={() => handleSelect(card.type === 'comment' ? null : { kind: 'module', id: card.id })}
         onResize={(id, width, height) => document.updateGeometry(id, { width, height })}
         onMove={(id, x, y) => document.updateGeometry(id, { x, y })}
         onRename={document.renameCard} onTextChange={document.updateComment}>
-        {card.type !== 'comment' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} onSelect={setSelected} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} />}
+        {card.type !== 'comment' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} />}
       </CanvasModule>)}
       <CanvasStatus camera={camera} zoom={zoom} onRecenter={handleRecenter} />
       {selected && <NodeProperties key={`${document.revision}:${selected.kind}:${selected.id}`} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={setSelected} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={() => setSelected(null)} mutationError={document.mutationError} />}

@@ -5,7 +5,7 @@ import { useTranslation } from '../../i18n.jsx'
 import './CanvasModule.css'
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onRename, onTextChange, children, selected = false, onSelect, onOpenActions, fitRequest = 0 }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onRename, onTextChange, children, selected = false, onSelect, onOpenActions, onActivate, zIndex = 1, fitRequest = 0 }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -182,9 +182,10 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         top: `calc(50% + ${(module.y - camera.y) * zoom}px)`,
         width: module.width,
         height: module.height,
+        zIndex,
         transform: `scale(${zoom})`,
       }}
-      onPointerDown={(event) => event.stopPropagation()}
+      onPointerDown={(event) => { onActivate?.(); event.stopPropagation() }}
       onKeyDown={(event) => event.stopPropagation()}
       onClick={onSelect}
     >

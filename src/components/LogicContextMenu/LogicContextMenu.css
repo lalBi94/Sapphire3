@@ -1,4 +1,4 @@
-.logic-context-menu { position: absolute; z-index: 5; display: flex; align-items: flex-start; gap: var(--space-control); max-width: calc(100% - 16px); max-height: calc(100% - 16px); overflow: auto; border: 1px solid var(--color-border); border-radius: var(--radius-panel); background: var(--surface-reflection), var(--surface-floating); box-shadow: var(--shadow-panel); padding: var(--space-small); cursor: default; }
+.logic-context-menu { position: absolute; z-index: 100; display: flex; align-items: flex-start; gap: var(--space-control); max-width: calc(100% - 16px); max-height: calc(100% - 16px); overflow: auto; border: 1px solid var(--color-border); border-radius: var(--radius-panel); background: var(--surface-reflection), var(--surface-floating); box-shadow: var(--shadow-panel); padding: var(--space-small); cursor: default; }
 .logic-context-menu { cursor: grab; touch-action: none; }
 .logic-context-menu:active { cursor: grabbing; }
 .logic-context-menu__actions { width: 206px; max-height: min(400px, calc(100dvh - var(--navigation-height) - 36px)); overflow-y: auto; flex-shrink: 0; }
