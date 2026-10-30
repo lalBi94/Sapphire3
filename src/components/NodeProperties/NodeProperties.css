@@ -5,7 +5,6 @@
 .node-properties h2, .node-properties h3 { font-size: 12px; margin: 0; font-weight: 500; }
 .node-properties h3 { margin: 18px 0 10px; }
 .node-properties header button { display: grid; place-items: center; width: 28px; height: 28px; flex-shrink: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--color-text-muted); cursor: pointer; }
-.node-properties__move { cursor: grab !important; }
 .node-properties p { color: var(--color-text-muted); line-height: 1.5; }
 .node-properties__children { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0; }
 .node-properties__children span, .node-properties__children small { color: var(--color-text-muted); }

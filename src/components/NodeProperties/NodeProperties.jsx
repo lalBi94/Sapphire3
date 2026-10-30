@@ -1,4 +1,4 @@
-import { ChevronRight, Move, X } from 'lucide-react'
+import { ChevronRight, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { resolveContext, getNodeSchema } from '../../utils/logic/index.js'
 import { diagnosticLabel, kindLabel, slotLabel } from '../LogicTree/logicLabels.js'
@@ -67,10 +67,7 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
 
   return (
     <aside className="node-properties" style={panelStyle} data-canvas-ui data-canvas-scroll aria-label={t('details.title')} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
-      <header className="node-properties__header" onPointerDown={handleMoveStart} onPointerMove={handleMove} onPointerUp={handleMoveEnd} onPointerCancel={handleMoveEnd} onLostPointerCapture={handleMoveEnd}>
-        <button type="button" className="node-properties__move" aria-label={t('details.move')} title={t('details.moveHint')} onPointerDown={(event) => event.stopPropagation()} onKeyDown={handleMoveKeyDown}>
-          <Move size={14} strokeWidth={1.75} aria-hidden="true" />
-        </button>
+      <header className="node-properties__header" tabIndex={0} aria-label={t('details.move')} title={t('details.moveHint')} onPointerDown={handleMoveStart} onPointerMove={handleMove} onPointerUp={handleMoveEnd} onPointerCancel={handleMoveEnd} onLostPointerCapture={handleMoveEnd} onKeyDown={handleMoveKeyDown}>
         <h2>{selected.kind === 'module' ? t('details.module') : record ? kindLabel(record.kind) : t('details.block')}</h2>
         <button type="button" aria-label={t('details.close')} onClick={onClose}><X size={18} strokeWidth={1.75} aria-hidden="true" /></button>
       </header>

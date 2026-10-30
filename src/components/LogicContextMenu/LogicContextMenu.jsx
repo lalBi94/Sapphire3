@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, CircleDot, Move, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, CircleDot, Plus, Trash2 } from 'lucide-react'
 import { getAvailableActions } from '../../utils/logic/index.js'
 import { diagnosticLabel, kindLabel, slotLabel } from '../LogicTree/logicLabels.js'
 import NodeForm from '../NodeForm/NodeForm.jsx'
@@ -84,10 +84,7 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
 
   return (
     <div ref={menuRef} className="logic-context-menu" data-canvas-ui data-canvas-scroll tabIndex={-1} aria-label="Block menu" style={menuStyle} onPointerDown={(event) => event.stopPropagation()} onKeyDown={handleKeyDown}>
-      <header className="logic-context-menu__header" onPointerDown={handleMoveStart} onPointerMove={handleMove} onPointerUp={handleMoveEnd} onPointerCancel={handleMoveEnd} onLostPointerCapture={handleMoveEnd}>
-        <button type="button" className="logic-context-menu__move" aria-label={t('canvas.moveMenu')} title={t('canvas.moveMenuHint')} onPointerDown={(event) => event.stopPropagation()} onKeyDown={handleMoveKeyDown}>
-          <Move size={14} strokeWidth={1.75} aria-hidden="true" />
-        </button>
+      <header className="logic-context-menu__header" tabIndex={0} aria-label={t('canvas.moveMenu')} title={t('canvas.moveMenuHint')} onPointerDown={handleMoveStart} onPointerMove={handleMove} onPointerUp={handleMoveEnd} onPointerCancel={handleMoveEnd} onLostPointerCapture={handleMoveEnd} onKeyDown={(event) => { event.stopPropagation(); handleMoveKeyDown(event) }}>
         <span>{t('canvas.addMenu')}</span>
       </header>
       <div className="logic-context-menu__actions" role="menu" aria-label={selectedSlot ? `Add to ${selectedSlot}` : 'Choose where to add'}>

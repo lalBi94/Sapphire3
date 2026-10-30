@@ -1,9 +1,6 @@
 .logic-context-menu { position: absolute; z-index: 5; display: flex; align-items: flex-start; gap: var(--space-control); max-width: calc(100% - 16px); max-height: calc(100% - 16px); overflow: auto; border: 1px solid var(--color-border); border-radius: var(--radius-panel); background: var(--surface-reflection), var(--surface-floating); box-shadow: var(--shadow-panel); padding: var(--space-small); cursor: default; }
 .logic-context-menu__header { display: flex; align-items: center; gap: 6px; position: absolute; top: 6px; right: 6px; z-index: 1; color: var(--color-text-muted); font-size: 10px; cursor: grab; touch-action: none; user-select: none; }
 .logic-context-menu__header:active { cursor: grabbing; }
-.logic-context-menu__move { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--radius-control); color: inherit; background: transparent; cursor: grab; }
-.logic-context-menu__move:hover { background: var(--color-hover); }
-.logic-context-menu__move:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 1px; }
 .logic-context-menu__actions { width: 206px; max-height: min(400px, calc(100dvh - var(--navigation-height) - 36px)); overflow-y: auto; flex-shrink: 0; }
 .logic-context-menu__title { color: var(--color-text-muted); padding: 9px; font-size: 11px; }
 .logic-context-menu__actions button { display: flex; align-items: center; gap: var(--space-control); width: 100%; min-height: 32px; padding: 7px 9px; border: 0; border-radius: var(--radius-control); text-align: left; color: var(--color-text); background: transparent; font: inherit; font-size: 12px; cursor: pointer; }
