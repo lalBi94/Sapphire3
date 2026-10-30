@@ -53,7 +53,9 @@ function ProjectHierarchy({ project, index, selected, onSelect, t }) {
 export default function NodeProperties({ selected, project, index, onConfigure, onRename, onSelect, onDelete, onDeleteModule, onClose, mutationError }) {
   const { t } = useTranslation()
   const [position, setPosition] = useState(null)
+  const [size, setSize] = useState(null)
   const moveRef = useRef(null)
+  const resizeRef = useRef(null)
   const context = resolveContext(project, selected, undefined, index)
   const record = context.record
   const schema = selected.kind === 'node' && record ? getNodeSchema(record.kind) : null
@@ -62,7 +64,7 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
 
   // Capture le panneau et le rend librement déplaçable dans le canvas.
   function handleMoveStart(event) {
-    if (event.button !== 0 || event.target.closest('button')) return
+    if (event.button !== 0 || event.target.closest('button') || resizeRef.current) return
     const panel = event.currentTarget.closest('.node-properties')
     const parent = panel?.offsetParent
     if (!panel || !parent) return
@@ -89,6 +91,73 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
   }
 
+  // Capture le coin inférieur gauche pour redimensionner le panneau sans déplacer le contenu.
+  function handleResizeStart(event) {
+    if (event.button !== 0 || moveRef.current) return
+    const panel = event.currentTarget.closest('.node-properties')
+    const parent = panel?.offsetParent
+    if (!panel || !parent) return
+    const panelBounds = panel.getBoundingClientRect()
+    const parentBounds = parent.getBoundingClientRect()
+    const currentPosition = position ?? { x: panelBounds.left - parentBounds.left, y: panelBounds.top - parentBounds.top }
+    event.preventDefault()
+    event.stopPropagation()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    resizeRef.current = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      origin: currentPosition,
+      width: panelBounds.width,
+      height: panelBounds.height,
+      parentWidth: parentBounds.width,
+      parentHeight: parentBounds.height,
+    }
+    setPosition(currentPosition)
+    setSize({ width: panelBounds.width, height: panelBounds.height })
+  }
+
+  // Applique les nouvelles dimensions en gardant le bord droit et le haut du panneau stables.
+  function handleResize(event) {
+    const resize = resizeRef.current
+    if (!resize || resize.pointerId !== event.pointerId) return
+    const minimumWidth = 240
+    const minimumHeight = 180
+    const maximumWidth = Math.max(minimumWidth, resize.parentWidth - 16)
+    const maximumHeight = Math.max(minimumHeight, resize.parentHeight - resize.origin.y - 16)
+    const width = Math.min(maximumWidth, Math.max(minimumWidth, resize.width - (event.clientX - resize.x)))
+    const height = Math.min(maximumHeight, Math.max(minimumHeight, resize.height + (event.clientY - resize.y)))
+    const x = resize.origin.x + resize.width - width
+    setPosition({ x: Math.max(8, x), y: resize.origin.y })
+    setSize({ width, height })
+  }
+
+  // Termine le redimensionnement après relâchement ou perte de capture.
+  function handleResizeEnd(event) {
+    if (resizeRef.current?.pointerId !== event.pointerId) return
+    resizeRef.current = null
+    event.stopPropagation()
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+  }
+
+  // Redimensionne le panneau par petits pas lorsque la poignée possède le focus.
+  function handleResizeKeyDown(event) {
+    const directions = { ArrowLeft: [16, 0], ArrowRight: [-16, 0], ArrowUp: [0, -16], ArrowDown: [0, 16] }
+    const direction = directions[event.key]
+    if (!direction) return
+    event.preventDefault()
+    const panel = event.currentTarget.closest('.node-properties')
+    const parent = panel?.offsetParent
+    if (!panel || !parent) return
+    const bounds = panel.getBoundingClientRect()
+    const parentBounds = parent.getBoundingClientRect()
+    const currentPosition = position ?? { x: bounds.left - parentBounds.left, y: bounds.top - parentBounds.top }
+    const width = Math.max(240, bounds.width + direction[0])
+    const height = Math.max(180, bounds.height + direction[1])
+    setPosition({ x: Math.max(8, currentPosition.x - (width - bounds.width)), y: currentPosition.y })
+    setSize({ width, height })
+  }
+
   // Déplace le panneau par petits pas lorsque sa poignée possède le focus.
   function handleMoveKeyDown(event) {
     const directions = { ArrowLeft: [-16, 0], ArrowRight: [16, 0], ArrowUp: [0, -16], ArrowDown: [0, 16] }
@@ -104,7 +173,14 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
     setPosition({ x: Math.max(8, origin.x + direction[0]), y: Math.max(8, origin.y + direction[1]) })
   }
 
-  const panelStyle = position ? { left: position.x, top: position.y, right: 'auto', bottom: 'auto' } : undefined
+  const panelStyle = position || size ? {
+    left: position?.x,
+    top: position?.y,
+    right: 'auto',
+    bottom: 'auto',
+    width: size?.width,
+    height: size?.height,
+  } : undefined
 
   return (
     <aside className="node-properties" style={panelStyle} data-canvas-ui data-canvas-scroll aria-label={t('details.title')} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
@@ -125,6 +201,22 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
       {diagnostics.length === 0 ? <p>{t('details.noIssues')}</p> : <ul className="node-properties__diagnostics">{diagnostics.map((entry, position) => <li key={position}><strong>{diagnosticLabel(entry.code)}</strong>{entry.location.field && <small>{slotLabel(entry.location.field)}</small>}</li>)}</ul>}
       {context.ok && record && <div className="node-properties__danger"><DeleteAction key={`${selected.kind}:${record.id}`} targetId={record.id} kind={selected.kind} onDelete={selected.kind === 'module' ? onDeleteModule : onDelete} /></div>}
       <ProjectHierarchy project={project} index={index} selected={selected} onSelect={onSelect} t={t} />
+      <button
+        className="node-properties__resize"
+        type="button"
+        aria-label={t('details.resize')}
+        title={t('details.resizeHint')}
+        onPointerDown={handleResizeStart}
+        onPointerMove={handleResize}
+        onPointerUp={handleResizeEnd}
+        onPointerCancel={handleResizeEnd}
+        onLostPointerCapture={handleResizeEnd}
+        onKeyDown={handleResizeKeyDown}
+      >
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M4 12l8-8M8 12l4-4" />
+        </svg>
+      </button>
     </aside>
   )
 }
