@@ -131,3 +131,11 @@
 - `LogicNode` dérive `expanded` de cet ensemble ; l'état `aria-expanded`, le chevron, la classe `logic-node--collapsed` et l'affichage des slots suivent cette valeur. Déplier un parent rend ses enfants, eux-mêmes pliés par défaut.
 - `pnpm test` : 81 tests réussis, zéro échec. `pnpm build` réussi. Navigateur : variable insérée directement pliée, dépliage affichant le slot `initializer` et le littéral enfant encore plié, repliage revenant au résumé. Console sans erreur.
 - Limite : l'état reste local à chaque carte et n'est pas sauvegardé ; fenêtre native non revérifiée.
+
+## Nœuds créés dépliés — 30 octobre 2026
+
+- `LogicTree` conserve la référence des identifiants déjà connus lors du montage, puis compare cet ensemble à chaque changement de source. Les nœuds réellement ajoutés sont dépliés, ainsi que leur chaîne de parents, sans rouvrir les nœuds existants ni modifier les nœuds présents au premier rendu.
+- L'état reste local à la carte et fondé sur les identifiants stables ; aucune information de pliage n'entre dans la source, l'AST ou le document.
+- `pnpm test` : 81 tests réussis, zéro échec. `pnpm build` réussi.
+- Navigateur : variable avec initialiseur créée dépliée, nouveau nœud racine déplié alors que les autres restent pliés, insertion d'un littéral dans une variable préalablement pliée dépliant la variable et le littéral. Console sans erreur.
+- Limite : fenêtre native non revérifiée ; le pliage n'est toujours pas sauvegardé.
