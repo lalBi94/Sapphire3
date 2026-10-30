@@ -3,10 +3,16 @@
 .logic-tree__missing { color: var(--color-diagnostic); overflow-wrap: anywhere; }
 .logic-node { margin: 6px 0; padding: 7px; border: 1px solid var(--color-border); border-radius: 5px; background: var(--color-surface); min-width: 0; }
 .logic-node--selected { border-color: var(--color-main-accent); }
-.logic-node__heading { width: 100%; display: flex; justify-content: space-between; gap: 8px; padding: 0; border: 0; background: transparent; color: var(--color-text); text-align: left; font: inherit; font-size: 11px; cursor: pointer; overflow-wrap: anywhere; }
+.logic-node--collapsed { padding: 5px 7px; }
+.logic-node__header { display: flex; align-items: flex-start; gap: 4px; min-width: 0; }
+.logic-node__toggle { flex: 0 0 auto; width: 16px; height: 16px; padding: 0; border: 0; background: transparent; color: var(--color-text-muted); font: inherit; font-size: 10px; line-height: 16px; cursor: pointer; }
+.logic-node__toggle:focus-visible { outline: 1px solid var(--color-text-muted); outline-offset: 2px; }
+.logic-node__heading { flex: 1; min-width: 0; display: flex; justify-content: space-between; gap: 8px; padding: 0; border: 0; background: transparent; color: var(--color-text); text-align: left; font: inherit; font-size: 11px; cursor: pointer; overflow-wrap: anywhere; }
 .logic-node__heading:focus-visible { outline: 1px solid var(--color-text-muted); outline-offset: 3px; }
-.logic-node__issues { color: var(--color-diagnostic); }
+.logic-node__issues { flex: 0 0 auto; color: var(--color-diagnostic); }
 .logic-node__summary { display: flex; flex-wrap: wrap; gap: 6px; color: var(--color-text-muted); font-size: 10px; margin-top: 4px; overflow-wrap: anywhere; }
+.logic-node__summary--collapsed { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.logic-node--collapsed .logic-node__heading > span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .logic-node__slot { margin-top: 7px; padding-left: 7px; border-left: 1px solid var(--color-border); }
 .logic-node__slot-label, .logic-node__empty { color: var(--color-text-muted); font-size: 10px; }
 .logic-node__empty { margin-left: 8px; font-style: italic; }

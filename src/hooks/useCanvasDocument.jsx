@@ -1,6 +1,6 @@
 import { useReducer } from 'react'
 import { moduleTypes } from '../utils/moduleTypes.js'
-import { createProject, createModule, moduleKinds, analyzeProgram, createContextIndex, resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode } from '../utils/logic/index.js'
+import { createProject, createModule, moduleKinds, analyzeProgram, createContextIndex, resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes } from '../utils/logic/index.js'
 
 // Recalcule les dérivés uniquement quand la source logique change.
 function withSource(state, project, analysis = analyzeProgram(project), index = createContextIndex(project, analysis)) {
@@ -30,10 +30,12 @@ function reduceDocument(state, action) {
     const next = { ...state, cards: state.cards.map((entry) => entry.id === card.id ? { ...entry, name: action.name } : entry) }
     return card.type === 'comment' ? next : withSource(next, { ...state.project, modules: state.project.modules.map((module) => module.id === card.id ? { ...module, name: action.name } : module) })
   }
-  if (action.type === 'insert' || action.type === 'configure') {
+  if (action.type === 'insert' || action.type === 'configure' || action.type === 'delete') {
     const result = state.project === action.previousProject ? action.prepared : action.type === 'insert'
       ? insertSourceNodes(state.project, action.request, action.bundle, { index: state.index })
-      : updateSourceNode(state.project, action.id, action.patch)
+      : action.type === 'configure'
+        ? updateSourceNode(state.project, action.id, action.patch)
+        : deleteSourceNodes(state.project, action.targetId, { index: state.index })
     return result.ok ? withSource(state, result.project, result.analysis, result.index) : { ...state, mutationError: result.code }
   }
   return state
@@ -83,5 +85,13 @@ export default function useCanvasDocument() {
     return prepared
   }
 
-  return { ...document, createCard, updateGeometry, renameCard, updateComment, insertNode, configureNode }
+  // Supprime le nœud et ses descendants ; les références restantes produisent leurs diagnostics.
+  function deleteNode(id) {
+    const targetId = id && typeof id === 'object' ? id : { kind: 'node', id }
+    const prepared = deleteSourceNodes(document.project, targetId, { index: document.index })
+    if (prepared.ok) dispatch({ type: 'delete', previousProject: document.project, prepared, targetId })
+    return prepared
+  }
+
+  return { ...document, createCard, updateGeometry, renameCard, updateComment, insertNode, configureNode, deleteNode }
 }

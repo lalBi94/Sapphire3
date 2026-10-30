@@ -1,6 +1,6 @@
 # Sapphire 3
 
-Application desktop de programmation visuelle en construction. Le canvas visuel et les fondations d'un moteur AST indépendant des langages sont présents ; l'éditeur de logique et l'intégration du moteur au canvas restent à développer.
+Application desktop de programmation visuelle en construction. Le canvas visuel, l'édition contextuelle des nœuds et les fondations d'un moteur AST indépendant des langages sont présents.
 
 ## Installation et démarrage
 
@@ -31,7 +31,13 @@ Clic droit sur le canvas vide pour ouvrir le menu anglais « Create module » / 
 
 Clic droit sur un conteneur ou un nœud : le menu propose d'abord le slot libre, puis les constructions compatibles avec le contexte lexical (fonctions et types seulement aux racines du module, paramètres uniquement dans une liste de fonction, break/continue seulement dans une boucle…). Un formulaire latéral permet de renseigner nom, types et expression avant confirmation. Clic gauche : sélection et panneau de propriétés avec enfants et diagnostics.
 
-Chaque insertion est atomique : slot unique occupé jamais remplacé, ordre des listes conservé, identifiants stables, projet réanalysé et insertion rejetée si elle introduit une erreur dure (type incompatible, dépassement de bornes…). Un nœud incomplet reste représentable et éditable, avec ses diagnostics. Les possibilités du menu sont déduites du moteur (`getAvailableActions`), jamais codées en dur dans l'interface. Pas encore de suppression, déplacement individuel ni copier/coller de nœuds logiques.
+Chaque insertion est atomique : slot unique occupé jamais remplacé, ordre des listes conservé, identifiants stables, projet réanalysé et insertion rejetée si elle introduit une erreur dure (type incompatible, dépassement de bornes…). Un nœud incomplet reste représentable et éditable, avec ses diagnostics. Les possibilités du menu sont déduites du moteur (`getAvailableActions`), jamais codées en dur dans l'interface. Pas encore de déplacement individuel, copier/coller ni annulation de suppression de nœuds logiques.
+
+### Pliage et suppression
+
+Le bouton `▸`/`▾` de chaque nœud logique le plie ou le déplie. Plié, le nœud tient sur une ligne avec ses données utiles (valeur, opérateur, cible, signature, nombre d'instructions) et masque ses slots ; déplié, il reprend le rendu complet. Ce pliage est purement visuel, local à la carte, non sauvegardé et sans effet sur l'AST.
+
+Un nœud peut être supprimé par « Delete node » dans son menu contextuel, ou depuis le panneau de propriétés avec une confirmation en deux temps. La suppression retire le nœud et tous ses descendants, puis sélectionne le parent logique. Les références vers le nœud supprimé restent dans la source et deviennent des diagnostics `REFERENCE_UNRESOLVED` ; aucune référence n'est réécrite silencieusement. Les cartes Module/Main ne sont pas supprimables ainsi, et il n'y a pas d'annulation.
 
 Les textes de l'application sont en anglais ; les commentaires et la documentation du projet sont en français.
 

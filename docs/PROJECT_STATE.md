@@ -9,14 +9,15 @@
 - Navigation : glisser avec le bouton gauche ou central (également gestes tactiles), ou utiliser les flèches quand le canvas a le focus. Molette : zoom centré sur le milieu de la vue, plafonné à 400 %, sans minimum applicatif de dézoom.
 - Croix à l'origine absolue (0, 0), projetée avec la grille. En bas à droite : X/Y du milieu de la vue, pourcentage de zoom et bouton de retour à l'origine conservant le zoom.
 - Clic droit sur le canvas vide : menu « Create module » / « Create Main » / « Create comment », création d'un conteneur au point visé. Poignée inférieure droite redimensionnable au pointeur et aux flèches du clavier, avec dimensions minimales de 180 × 120 unités monde.
-- Clic droit sur un conteneur ou un nœud logique : menu piloté par le moteur. Sélection du slot libre puis de la construction compatible avec le contexte lexical, formulaire latéral de configuration, insertion atomique validée par réanalyse. Clic gauche : sélection et panneau de propriétés (enfants, diagnostics, édition des propriétés).
+- Clic droit sur un conteneur ou un nœud logique : menu piloté par le moteur. Sélection du slot libre puis de la construction compatible avec le contexte lexical, formulaire latéral de configuration, insertion atomique validée par réanalyse. Sur un nœud, l'action « Delete node » retire immédiatement le nœud et ses descendants. Clic gauche : sélection et panneau de propriétés (enfants, diagnostics, édition des propriétés, suppression avec confirmation locale).
 - Module et Main se déplacent par glisser sur l'en-tête, ou avec les flèches quand celui-ci a le focus. Le déplacement est converti en unités monde selon le zoom ; redimensionnement indépendant.
 - Les Modules visuels sont renommables par double-clic sur le titre, Entrée ou F2 sur l'en-tête ; Entrée ou perte de focus valide, Échap annule, un titre vide conserve l'ancien. Main reste fixe en nom.
 - Action « Create comment » : annotation visuelle avec titre renommable et texte multiligne, déplaçable et redimensionnable comme les autres cartes. Saisie et défilement du texte sans pan/zoom involontaire ; hors AST et hors commentaires de code.
 - Les cartes Module/Main partagent l'identifiant de leur module source ; Comment reste hors du moteur. Les nœuds logiques s'affichent dans leurs conteneurs avec slots, types résolus et compteurs de diagnostics.
+- Chaque nœud logique peut être plié ou déplié par son bouton `▸`/`▾`. Plié, il montre une seule ligne de données utiles (valeur, opérateur, cible, signature ou nombre d'instructions) et masque ses slots ; déplié, il reprend le rendu complet des slots. Le pliage est un état de présentation local à chaque carte, non persisté et absent de l'AST.
 - Zéro ou un Main au maximum par projet : action de création désactivée après le premier et garde-fou dans la mise à jour d'état. Le moteur signale chaque Main supplémentaire avec `MAIN_DUPLICATE`, sans supprimer la source ni les modules AST. Aucun comportement d'exécution ajouté.
 - Moteur logique opérationnel et raccordé au canvas : modèle source JSON v1 Modules/Nodes, AST hiérarchique tolérant, portées, références locales/intermodules, alias de types simples, diagnostics structurels/sémantiques et API d'insertion contextuelle (`getAvailableActions`). Import/export logique en mémoire uniquement, sans accès aux fichiers.
-- Aucun simulateur, moteur de suggestions, génération de code, stockage sur disque ou backend implémenté ; pas encore de suppression, déplacement individuel ni copier/coller de nœuds logiques. Les prochains incréments nécessitent une demande.
+- Aucun simulateur, moteur de suggestions, génération de code, stockage sur disque ou backend implémenté ; pas encore de déplacement individuel, copier/coller ou annulation de suppression de nœuds logiques. Les prochains incréments nécessitent une demande.
 - Interface en anglais (y compris textes accessibles), commentaires et documentation en français.
 - Style provisoire minimal, police système locale. Aucun service distant à l'exécution.
 
@@ -34,14 +35,14 @@
 | `src/components/CanvasContextMenu/CanvasContextMenu.jsx`, `CanvasContextMenu.css` | Menu de création, fermeture extérieure, focus et navigation clavier |
 | `src/components/CanvasModule/CanvasModule.jsx`, `CanvasModule.css` | Conteneur visuel redimensionnable, positionné dans le monde et mis à l'échelle avec la caméra ; accepte l'arbre logique en enfant |
 | `src/components/LogicContextMenu/LogicContextMenu.jsx`, `LogicContextMenu.css` | Menu d'insertion piloté par le moteur : choix du slot, puis construction, puis formulaire latéral |
-| `src/components/LogicTree/LogicTree.jsx`, `LogicNode.jsx`, `logicLabels.js`, `LogicTree.css` | Rendu des nœuds source dans les conteneurs, avec slots, types résolus et diagnostics |
-| `src/components/NodeProperties/NodeProperties.jsx`, `ModuleNameForm.jsx`, `NodeProperties.css` | Panneau de propriétés : édition, enfants, diagnostics |
+| `src/components/LogicTree/LogicTree.jsx`, `LogicNode.jsx`, `logicLabels.js`, `LogicTree.css` | Rendu des nœuds source dans les conteneurs, avec slots, types résolus, diagnostics, pliage local et résumé d'une ligne |
+| `src/components/NodeProperties/NodeProperties.jsx`, `ModuleNameForm.jsx`, `DeleteNodeButton.jsx`, `NodeProperties.css` | Panneau de propriétés : édition, enfants, diagnostics, suppression confirmée d'un nœud |
 | `src/components/NodeForm/NodeForm.jsx`, `NodeTypeInput.jsx`, `NodeValueInput.jsx`, `ExpressionInput.jsx`, `nodeConfiguration.js`, `NodeForm.css` | Formulaires de configuration typée, sans valeur par défaut masquant les diagnostics |
 | `src/hooks/useCanvasDocument.jsx` | Document React : cartes, source logique, mutations atomiques et cache d'analyse |
 | `src/utils/logic/contextResolver.js` | Cible, parenté, slots et contexte lexical sans reconstruire l'AST |
 | `src/utils/logic/actionResolver.js` | Actions disponibles par slot et contexte (`getAvailableActions`) |
 | `src/utils/logic/nodeFactory.js` | Construction de bundles source depuis un brouillon |
-| `src/utils/logic/sourceMutation.js` | Insertions/éditions atomiques avec réanalyse et rejet des régressions |
+| `src/utils/logic/sourceMutation.js` | Insertions, éditions et suppressions atomiques avec réanalyse et rejet des régressions |
 | `src/utils/logic/placement.js` | Restrictions lexicales partagées entre validateur et suggestions |
 | `src/utils/moduleTypes.js` | Cartes visuelles Module/Main/Comment, libellés anglais, capacités d'édition et dimensions ; Comment n'est pas une catégorie logique |
 | `src/utils/logic/model.js`, `nodeSchema.js` | Contrats source JSDoc, catégories stables Module/Main partagées avec l'UI, fabriques et schémas de slots/opérateurs |
@@ -82,9 +83,10 @@ Scripts dans `package.json` :
 - Les conteneurs visuels en mémoire dans `Canvas` ont un identifiant UUID, un type stable `module` ou `main`, une position `x/y` de l'angle supérieur gauche et des dimensions `width/height` en unités monde. Valeurs initiales : 320 × 220. Aucun format de fichier ni contrat d'exécution n'en découle.
 - Les cartes suivent la translation et le zoom, avec des rectangles non déformés ; la courbure reste un effet décoratif du quadrillage. Déplacement individuel et noms visuels personnalisables pour Module/Comment. Pas de suppression de carte.
 - Les cartes Module/Main partagent l'identifiant de leur module source ; le nom d'un Module est synchronisé avec le module logique, Main reste fixe. Comment réutilise le cadre visuel sans entrer dans `moduleKinds` ni dans la source logique ; son titre et son texte restent purement UI.
-- Les positions et dimensions des cartes restent hors de la source logique. Les nœuds logiques sont rendus dans leur conteneur avec slots, types résolus et compteurs de diagnostics.
+- Les positions et dimensions des cartes restent hors de la source logique. Les nœuds logiques sont rendus dans leur conteneur avec slots, types résolus et compteurs de diagnostics. Le pliage des nœuds reste un état UI local, sans effet sur la source ni l'AST.
 - Insertions : jamais de remplacement d'un slot unique occupé, jamais de réutilisation d'un enfant existant dans un bundle neuf, ordre conservé dans les listes, identifiants stables, réanalyse systématique avec comparaison des diagnostics pour rejeter atomiquement une insertion qui introduirait une erreur dure. Les états incomplets (littéral sans valeur, appel partiel, retour sans argument) restent éditables sans bloquer l'édition.
 - Contraintes de résultat connues (littéral typé, cast, opérateur déterminé) contrôlées même avant complétion des enfants ; opérateurs filtrés selon le type attendu du slot.
+- Suppression : `deleteSourceNodes` retire le nœud visé et toute son arborescence syntaxique, puis délie son entrée du parent (slot unique remis à `null`, entrée filtrée dans une liste). Les autres nœuds et identifiants restent inchangés ; les références vers le nœud supprimé sont conservées et deviennent `REFERENCE_UNRESOLVED`. Les cartes Module/Main ne sont pas supprimables par cette action. Aucune annulation.
 - Caméra en mémoire React, sans persistance : `x` et `y` désignent le point du monde au milieu de la vue, axe Y positif vers le bas ; `zoomLevel` est un exposant en base 2 (0 = 100 %, 2 = 400 %). Le déplacement en pixels est converti selon le zoom.
 - Seules les lignes visibles sont tracées via un décalage périodique ; leur espacement monde double progressivement au dézoom pour maintenir une densité raisonnable. Pas de surface géante ni d'accumulation. Les bornes dynamiques attendent une future demande.
 - Aucune bibliothèque de nœuds, UI ou gestion d'état ajoutée.
@@ -100,13 +102,13 @@ Scripts dans `package.json` :
 - `pnpm preview` n'a pas été exécuté séparément.
 - Le « dézoom infini » reste soumis aux nombres JavaScript : les changements créant une échelle nulle ou une position non finie sont ignorés. Aucun seuil minimal de confort n'est imposé. Pas de zoom tactile par pincement.
 - Les modules disparaissent au rechargement : aucune sauvegarde demandée ni implémentée.
-- Pas de suppression, déplacement individuel ni copier/coller de nœuds logiques ; pas d'édition directe des enfants dans le panneau (navigation seulement) ni de glisser-déposer entre slots. Aucune migration implicite des données UI.
+- Pas de suppression de carte Module/Main, de déplacement individuel, de copier/coller ni d'annulation de suppression de nœuds logiques ; pas d'édition directe des enfants dans le panneau (navigation seulement) ni de glisser-déposer entre slots. Aucune migration implicite des données UI.
 - Source JSON sérialisable en mémoire uniquement. Version inconnue conservée et signalée ; aucune migration automatique. Profondeurs de sécurité de 200 niveaux environ pour les arbres, dépendances de types et données JSON ; diagnostics en cas de dépassement.
 
 ## Vérifications
 
-- Dernier incrément : 75 tests Node réussis, dont 15 pour l'API contextuelle (actions racine, slots simples/multiples, fonction/boucle/condition, contraintes de résultat, arité d'appel, identifiants ambigus, préservation UI). Build frontend réussi.
-- Interactions vérifiées dans le navigateur : création de cartes, formulaires typés, insertion variable/fonction/while/if/binaire, opérateurs filtrés par type attendu, nom vide refusé, slots occupés, références lexicales, renommages conservant les identifiants, littéral hors bornes rejeté avec code visible. Console sans erreur. Fenêtre native non revérifiée pour cet incrément.
+- Dernier incrément : 80 tests Node réussis, dont 5 pour la suppression (slot unique, ordre de liste, sous-arbre, références conservées, cibles invalides). Build frontend réussi.
+- Interactions vérifiées dans le navigateur : pliage/dépliage avec résumé d'une ligne et restitution complète des slots, suppression immédiate par le menu contextuel, suppression confirmée dans le panneau de propriétés, suppression d'une fonction avec tout son sous-arbre et sélection déplacée vers le parent. Console sans erreur. Fenêtre native non revérifiée pour cet incrément.
 - Installation des dépendances et du runtime réussie ; build frontend réussi.
 - Fenêtre native de développement contrôlée avec l'accessibilité Windows : titre « Sapphire 3 » et contenu React « Tout commence ici. » présents ; fermeture native demandée avec succès.
 - `pnpm desktop:start` également contrôlé dans la fenêtre native : même contenu React servi depuis le build local. Cette commande cible Windows x64.

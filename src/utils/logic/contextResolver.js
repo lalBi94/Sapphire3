@@ -39,6 +39,8 @@ export function createContextIndex(project, analysis = null) {
     nodeTypes: new Map((analysis?.semantic.nodeTypes ?? []).map((entry) => [entry.nodeId, entry.type])),
     nodeScopes: new Map((analysis?.semantic.nodeScopes ?? []).map((entry) => [entry.nodeId, entry.scopeId])),
     scopes: new Map((analysis?.semantic.scopes ?? []).map((scope) => [scope.id, scope])),
+    symbols: new Map((analysis?.semantic.symbols ?? []).map((symbol) => [symbol.id, symbol])),
+    references: new Map((analysis?.semantic.references ?? []).map((reference) => [reference.nodeId, reference])),
   }
 }
 

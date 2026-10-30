@@ -12,4 +12,10 @@
 .node-properties__diagnostics li { display: grid; gap: 4px; margin-bottom: 10px; font-size: 10px; overflow-wrap: anywhere; }
 .node-properties__diagnostics strong { color: var(--color-diagnostic); font-weight: 400; }
 .node-properties__diagnostics small { color: var(--color-text-muted); }
+.node-properties__danger { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--color-border); display: grid; gap: 8px; }
+.node-properties__delete { justify-self: start; padding: 7px 9px; border: 1px solid var(--color-diagnostic); border-radius: 4px; background: transparent; color: var(--color-diagnostic); font: inherit; font-size: 11px; cursor: pointer; }
+.node-properties__confirm { display: grid; gap: 8px; }
+.node-properties__confirm p { margin: 0; font-size: 11px; }
+.node-properties__confirm div { display: flex; flex-wrap: wrap; gap: 6px; }
+.node-properties__confirm button:not(.node-properties__delete) { padding: 7px 9px; border: 1px solid var(--color-border); border-radius: 4px; background: transparent; color: var(--color-text); font: inherit; font-size: 11px; cursor: pointer; }
 .node-properties :is(input, select, button):focus-visible { outline: 1px solid var(--color-text-muted); outline-offset: 2px; }

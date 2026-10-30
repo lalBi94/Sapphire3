@@ -17,13 +17,14 @@ Point d'entrée : `src/utils/logic/index.js`. JavaScript pur, sans React, DOM, A
 | `serializeSource(source)` | `{json, diagnostics}` ; `json: null` si une valeur n'est pas représentable sans perte en JSON |
 | `deserializeSource(json)` | `{source, diagnostics}` ; `source: null` si JSON illisible ; version future conservée et signalée |
 | `hasBlockingDiagnostics(diagnostics)` | Vrai si au moins une gravité `error` est présente |
-| `createContextIndex(project, analysis?)` | Cache lecture seule : modules, nœuds, parentés, doublons, types et portées déjà analysés |
+| `createContextIndex(project, analysis?)` | Cache lecture seule : modules, nœuds, parentés, doublons, types, portées, symboles et références déjà analysés |
 | `resolveContext(project, targetId, slot?, index?)` | Cible résolue, slots, contexte lexical, portée et type attendu, sans reconstruire l'AST |
 | `getAvailableActions(project, targetId, slot?, {index})` | `{ok, actions, slots, slot, …}` ; constructions insérables dans le slot demandé |
 | `getVisibleSymbols(context)` | Symboles lexicaux visibles depuis la portée d'insertion |
 | `createNodeBundle(moduleId, draft, idFactory)` | `{ok, rootId, nodes}` ; arborescence source neuve, sans toucher aux nœuds existants |
 | `insertSourceNodes(project, {targetId, slot}, bundle, {index})` | `{ok, project, analysis, index, nodeId}` ou code d'échec ; insertion atomique |
 | `updateSourceNode(project, nodeId, {properties?, references?})` | Édition des propriétés seules, enfants et identifiants conservés |
+| `deleteSourceNodes(project, targetId, {index})` | `{ok, project, analysis, index, removedNodeIds, selection}` ou code d'échec ; retrait du nœud et de son sous-arbre |
 
 `diagnosticCodes`, `sourceFormatVersion`, `moduleKinds`, `nodeSchema`, `getNodeSchema`, `binaryOperators`, `unaryOperators`, `primitiveDefinitions`, `primitiveType(name)`, `sameType` et `acceptsOperand` sont également exportés. `primitiveType` renvoie uniquement un primitif autorisé, ou `null` comme absence de résultat. Aucun type de secours n'existe. Les catégories Module/Main sont définies dans `model.js` et réutilisées par les libellés visuels ; les cartes Module/Main partagent désormais l'identifiant de leur module source, tandis que les annotations Comment restent hors du moteur. Les contrats JSDoc sont dans `model.js`, `ast.js`, `semantics.js`, `diagnostics.js`, `contextResolver.js` et `sourceMutation.js` ; aucun TypeScript ajouté.
 
@@ -161,6 +162,17 @@ Une intégration est désormais en place : les cartes Module/Main partagent l'id
 
 `createNodeBundle` construit uniquement de nouveaux enregistrements ; `insertSourceNodes` vérifie le slot, l'appartenance au module, l'unicité des identifiants, l'absence d'enfant existant, le type attendu et les nouvelles erreurs dures après réanalyse. Un échec renvoie la source inchangée. `updateSourceNode` ne modifie que `properties`/`references` et conserve les enfants. Les états incomplets (littéral sans valeur, appel partiel, retour sans argument) restent acceptés mais laissent `canGenerate` faux.
 
+### Suppression
+
+`deleteSourceNodes(project, targetId, {index})` exige une cible `{kind:'node', id}` reliée à un parent unique et refuse les modules (`MODULE_NOT_DELETABLE`), les identifiants absents ou ambigus, les nœuds détachés et les parents ambigus, en renvoyant la source d'origine. En cas de succès, le nœud et tous ses descendants syntaxiques sont retirés du tableau `nodes` ; son entrée est déliée du parent (slot unique remis à `null`, entrée filtrée dans une liste). Aucun autre identifiant, ordre ou référence n'est réécrit. Les références pointant vers un nœud supprimé restent dans la source et produisent `REFERENCE_UNRESOLVED` à la réanalyse. `selection` indique le parent logique (nœud ou module) à sélectionner dans l'interface. Aucune annulation ni suppression de Module/Main n'est fournie.
+
+```js
+import { deleteSourceNodes } from './src/utils/logic/index.js'
+
+const removed = deleteSourceNodes(project, { kind: 'node', id: 'literal-id' }, { index })
+// removed.ok === true ; removed.removedNodeIds, removed.selection et removed.analysis sont à jour.
+```
+
 ```js
 import { createContextIndex, resolveContext, getAvailableActions, createNodeBundle, insertSourceNodes, primitiveType } from './src/utils/logic/index.js'
 
@@ -176,6 +188,6 @@ Simulation, suggestions et codegen pourront consommer `ast`, `semantic` et `diag
 
 ## Vérification et documentation compilée
 
-`pnpm test` : runner natif Node, sans dépendance de test. Les tests couvrent les scénarios valides, invalides et incomplets, les localisations, les identifiants, la conservation JSON, la non-mutation, l'indépendance des imports du moteur et l'API contextuelle (actions, factory, mutations atomiques, cache). `pnpm build` vérifie que le frontend compile avec l'intégration ; les passes du moteur sont vérifiées par les tests Node, pas par le build.
+`pnpm test` : runner natif Node, sans dépendance de test. Les tests couvrent les scénarios valides, invalides et incomplets, les localisations, les identifiants, la conservation JSON, la non-mutation, l'indépendance des imports du moteur et l'API contextuelle (actions, factory, mutations atomiques, suppression, cache). `pnpm build` vérifie que le frontend compile avec l'intégration ; les passes du moteur sont vérifiées par les tests Node, pas par le build.
 
 Rapport court : `ARCHITECTURE_AST.tex` et `ARCHITECTURE_AST.pdf` à la racine. Compilation reproductible avec le script `pnpm docs:ast` (MiKTeX/pdfLaTeX installé requis). Les fichiers auxiliaires restent dans `build/latex/`, ignoré par Git.

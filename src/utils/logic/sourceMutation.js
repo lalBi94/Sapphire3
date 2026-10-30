@@ -1,10 +1,10 @@
 import { analyzeProgram } from './analysis.js'
 import { getAvailableActions } from './actionResolver.js'
-import { createContextIndex } from './contextResolver.js'
+import { createContextIndex, resolveContext } from './contextResolver.js'
 import { diagnosticCodes as codes } from './diagnostics.js'
 import { isId, isRecord } from './model.js'
 import { sameType, primitiveType, acceptsOperand } from './primitives.js'
-import { binaryOperators, unaryOperators } from './nodeSchema.js'
+import { binaryOperators, unaryOperators, getNodeSchema } from './nodeSchema.js'
 
 const hardInsertionCodes = new Set([
   codes.invalidStructure, codes.missingNode, codes.invalidModule, codes.multipleParents, codes.cycle,
@@ -98,4 +98,52 @@ export function updateSourceNode(project, nodeId, patch) {
   const candidate = { ...project, nodes: project.nodes.map((node) => node?.id === nodeId ? { ...node, ...patch } : node) }
   const analysis = analyzeProgram(candidate)
   return { ok: true, project: candidate, analysis, index: createContextIndex(candidate, analysis), nodeId }
+}
+
+// Retire un identifiant d'un slot unique ou multiple sans déplacer les autres entrées.
+function withoutChild(children, slot, id, many) {
+  if (!isRecord(children)) return children
+  if (many) return { ...children, [slot]: Array.isArray(children[slot]) ? children[slot].filter((entry) => entry !== id) : children[slot] }
+  return { ...children, [slot]: null }
+}
+
+// Supprime une arborescence syntaxique et son lien parent, sans réécrire les références des autres nœuds.
+export function deleteSourceNodes(project, targetId, options = {}) {
+  if (!Array.isArray(project?.modules) || !Array.isArray(project?.nodes)) return { ok: false, code: 'SOURCE_INVALID', project }
+  const context = resolveContext(project, targetId, undefined, options.index)
+  if (!context.ok) return { ok: false, code: context.code, project }
+  if (context.target.kind !== 'node') return { ok: false, code: 'MODULE_NOT_DELETABLE', project }
+  const parent = context.index.parents.get(context.target.id)?.[0]
+  if (!parent) return { ok: false, code: 'TARGET_INVALID', project }
+
+  // Parcourt sans récursion pour retirer aussi les descendants et résister aux cycles déjà présents.
+  const removed = new Set()
+  const pending = [context.target.id]
+  while (pending.length > 0) {
+    const id = pending.pop()
+    if (!isId(id) || removed.has(id)) continue
+    removed.add(id)
+    const node = context.index.nodes.get(id)
+    if (!node || !isRecord(node.children)) continue
+    for (const value of Object.values(node.children)) {
+      for (const childId of Array.isArray(value) ? value : [value]) pending.push(childId)
+    }
+  }
+
+  let nodes = project.nodes.filter((node) => !removed.has(node?.id))
+  let modules = project.modules
+  if (parent.kind === 'module') {
+    modules = modules.map((module) => module?.id === parent.id
+      ? { ...module, rootNodeIds: Array.isArray(module.rootNodeIds) ? module.rootNodeIds.filter((id) => id !== context.target.id) : module.rootNodeIds }
+      : module)
+  } else {
+    const many = Boolean(getNodeSchema(context.index.nodes.get(parent.id)?.kind)?.slots?.[parent.slot]?.many)
+    nodes = nodes.map((node) => node?.id === parent.id ? { ...node, children: withoutChild(node.children, parent.slot, context.target.id, many) } : node)
+  }
+  const candidate = { ...project, modules, nodes }
+  const analysis = analyzeProgram(candidate)
+  return {
+    ok: true, project: candidate, analysis, index: createContextIndex(candidate, analysis), removedNodeIds: [...removed],
+    selection: parent.kind === 'module' ? { kind: 'module', id: parent.id } : { kind: 'node', id: parent.id },
+  }
 }

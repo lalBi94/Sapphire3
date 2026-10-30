@@ -2,10 +2,11 @@ import { resolveContext, getNodeSchema } from '../../utils/logic/index.js'
 import { kindLabel } from '../LogicTree/logicLabels.js'
 import NodeForm from '../NodeForm/NodeForm.jsx'
 import ModuleNameForm from './ModuleNameForm.jsx'
+import DeleteNodeButton from './DeleteNodeButton.jsx'
 import './NodeProperties.css'
 
 // Affiche les propriétés du ciblage actuel et les diagnostics dérivés de la dernière mutation.
-export default function NodeProperties({ selected, project, index, onConfigure, onRename, onSelect, onClose, mutationError }) {
+export default function NodeProperties({ selected, project, index, onConfigure, onRename, onSelect, onDelete, onClose, mutationError }) {
   const context = resolveContext(project, selected, undefined, index)
   const record = context.record
   const schema = selected.kind === 'node' && record ? getNodeSchema(record.kind) : null
@@ -27,6 +28,7 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
       <h3>Diagnostics · {diagnostics.length}</h3>
       {mutationError && <p role="alert">{mutationError.replaceAll('_', ' ')}</p>}
       {diagnostics.length === 0 ? <p>No diagnostics for this selection.</p> : <ul className="node-properties__diagnostics">{diagnostics.map((entry, position) => <li key={position}><strong>{entry.code.replaceAll('_', ' ')}</strong><small>{entry.location.nodeId ?? selected.id} · {entry.location.field ?? ''}</small></li>)}</ul>}
+      {selected.kind === 'node' && context.ok && record && <div className="node-properties__danger"><DeleteNodeButton key={record.id} nodeId={record.id} onDelete={onDelete} /></div>}
     </aside>
   )
 }
