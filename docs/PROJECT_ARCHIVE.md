@@ -10,3 +10,10 @@
 - Aucune fonctionnalité métier, persistance ou API native à tester. Pas de publication, packaging de distribution, test sur autre OS ni vérification séparée de `pnpm preview`.
 - `pnpm desktop:start` : tentative initiale rejetée car neu 11 ne propose plus `--frontend-lib-dev`. Script corrigé pour lancer directement le runtime Windows x64 après compilation. Fenêtre compilée contrôlée par l'accessibilité Windows : titre et contenu React présents, sans dépendre de Vite. Fenêtre laissée ouverte.
 - `git diff --check` : aucune erreur d'espacement ; avertissement Windows de conversion LF/CRLF uniquement.
+
+## Premier jet du canvas visuel — 30 octobre 2026
+
+- Page unique décomposée en modules `Canvas` et `CanvasGrid`, sans fonctionnalité interactive ni dépendance supplémentaire.
+- Quadrillage SVG à distorsion progressive, vignette CSS, surface plein viewport.
+- Navigateur sur Vite : capture contrôlée visuellement ; viewport 752 × 670, surface 752 × 670,4 (arrondi des unités CSS), aucune dimension de défilement supplémentaire. Aucun message console de niveau erreur.
+- `pnpm build` réussi. Pas de nouvelle vérification de la fenêtre native pour cet incrément visuel.

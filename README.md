@@ -21,7 +21,7 @@ pnpm dev
 - `pnpm preview` : prévisualise le frontend compilé dans un navigateur.
 - `pnpm desktop:start` : compile puis ouvre le frontend compilé dans Neutralinojs, sans Vite.
 
-L'application ne contient qu'un écran de départ, sans API native exposée, stockage métier, backend ni service distant. Les scripts d'installation de trois dépendances transitives de la CLI sont explicitement désactivés dans `pnpm-workspace.yaml` ; les accélérations WebSocket natives ne sont pas nécessaires ici.
+L'application contient une page unique avec un canvas visuel plein écran : quadrillage discret, déformé aux bords, sans interaction. Aucune API native exposée, stockage métier, backend ni service distant. Les scripts d'installation de trois dépendances transitives de la CLI sont explicitement désactivés dans `pnpm-workspace.yaml` ; les accélérations WebSocket natives ne sont pas nécessaires ici.
 
 ## Repères
 

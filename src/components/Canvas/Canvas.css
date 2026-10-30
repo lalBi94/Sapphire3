@@ -1,0 +1,21 @@
+.canvas {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--color-surface);
+}
+
+.canvas::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: '';
+  background: radial-gradient(
+    ellipse at center,
+    transparent 30%,
+    var(--color-canvas-edge) 100%
+  );
+}

@@ -1,6 +1,8 @@
 :root {
   --font-family: system-ui, sans-serif;
-  --color-surface: #181a1f;
+  --color-surface: #181b20;
+  --color-grid: #ffffff0d;
+  --color-canvas-edge: #0b0e1466;
   --color-text: #e8e9ed;
   --color-text-muted: #a6aab5;
 }

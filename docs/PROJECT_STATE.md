@@ -5,7 +5,7 @@
 - Application desktop Windows : React 19, Vite 8, JavaScript/JSX, CSS, pnpm et Neutralinojs 6.10.0.
 - Nom de travail repris du dossier : Sapphire 3.
 - Direction produit : programmation visuelle fidèle aux concepts du code, futur AST indépendant des langages et traductions vers des langages cibles. Modèle objet évoqué, non défini.
-- Étape autorisée et livrée : socle frontend et fenêtre native avec écran de départ uniquement.
+- Étapes livrées : socle frontend et fenêtre native, puis page unique occupée par un canvas visuel plein écran. Quadrillage discret, courbé sur les bords et assombri en périphérie ; aucune interaction.
 - Aucun éditeur, graphe, AST, génération de code, stockage, import ou backend implémenté. Les prochains incréments nécessitent une demande.
 - Style provisoire minimal, police système locale. Aucun service distant à l'exécution.
 
@@ -16,7 +16,9 @@
 | `package.json`, `pnpm-lock.yaml` | Dépendances et commandes du socle |
 | `pnpm-workspace.yaml` | Désactivation explicite de trois scripts transitifs de la CLI |
 | `index.html`, `src/main.jsx` | Point d'entrée HTML et montage React |
-| `src/pages/App.jsx` | Écran de départ sans interaction métier |
+| `src/pages/App.jsx` | Assemblage de l'unique page |
+| `src/components/Canvas/Canvas.jsx`, `Canvas.css` | Surface plein écran et vignette périphérique |
+| `src/components/CanvasGrid/CanvasGrid.jsx`, `CanvasGrid.css` | Quadrillage SVG décoratif avec distorsion progressive, calculé une fois au chargement du module |
 | `src/styles/tokens.css`, `src/styles/global.css` | Variables partagées et styles globaux minimaux |
 | `vite.config.js` | Intégration React et serveur local strict sur le port 5173 |
 | `neutralino.config.json` | Fenêtre native, ressources compilées, démarrage Vite ; API natives désactivées |
@@ -50,6 +52,7 @@ Scripts dans `package.json` :
 
 ## Vérifications
 
+- Dernier incrément : build réussi, rendu navigateur contrôlé visuellement, canvas aux dimensions du viewport sans défilement et aucune erreur console. Pas de nouvelle vérification native pour ce changement uniquement visuel.
 - Installation des dépendances et du runtime réussie ; build frontend réussi.
 - Fenêtre native de développement contrôlée avec l'accessibilité Windows : titre « Sapphire 3 » et contenu React « Tout commence ici. » présents ; fermeture native demandée avec succès.
 - `pnpm desktop:start` également contrôlé dans la fenêtre native : même contenu React servi depuis le build local. Cette commande cible Windows x64.
