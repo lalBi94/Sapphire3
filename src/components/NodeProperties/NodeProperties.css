@@ -1,8 +1,11 @@
 .node-properties { position: absolute; z-index: 3; right: var(--space-panel); top: var(--space-panel); bottom: 74px; width: 300px; max-width: calc(100% - 32px); padding: var(--space-panel); overflow: auto; border: 1px solid var(--color-border); border-radius: var(--radius-panel); color: var(--color-text); background: var(--surface-reflection), var(--surface-floating); box-shadow: var(--shadow-panel); cursor: default; font-size: 12px; }
-.node-properties header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.node-properties__header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: grab; touch-action: none; user-select: none; }
+.node-properties__header:active { cursor: grabbing; }
+.node-properties__header h2 { flex: 1; }
 .node-properties h2, .node-properties h3 { font-size: 12px; margin: 0; font-weight: 500; }
 .node-properties h3 { margin: 18px 0 10px; }
 .node-properties header button { display: grid; place-items: center; width: 28px; height: 28px; flex-shrink: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--color-text-muted); cursor: pointer; }
+.node-properties__move { cursor: grab !important; }
 .node-properties p { color: var(--color-text-muted); line-height: 1.5; }
 .node-properties__children { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0; }
 .node-properties__children span, .node-properties__children small { color: var(--color-text-muted); }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, CircleDot, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, CircleDot, Move, Plus, Trash2 } from 'lucide-react'
 import { getAvailableActions } from '../../utils/logic/index.js'
 import { diagnosticLabel, kindLabel, slotLabel } from '../LogicTree/logicLabels.js'
 import NodeForm from '../NodeForm/NodeForm.jsx'
@@ -12,7 +12,9 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
   const { t } = useTranslation()
   const [slotName, setSlotName] = useState(initialSlot ?? '')
   const [kind, setKind] = useState('')
+  const [position, setPosition] = useState({ x, y })
   const menuRef = useRef(null)
+  const moveRef = useRef(null)
   const available = getAvailableActions(project, targetId, slotName || undefined, { index })
   const selectedSlot = available.slot?.name ?? ''
 
@@ -43,8 +45,51 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
     buttons[(current + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length].focus()
   }
 
+  // Capture le menu pour le détacher de son ancrage et le déplacer librement.
+  function handleMoveStart(event) {
+    if (event.button !== 0 || event.target.closest('button')) return
+    event.preventDefault()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    moveRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, origin: position }
+  }
+
+  // Suit le déplacement du menu sans déclencher le déplacement du canvas.
+  function handleMove(event) {
+    const move = moveRef.current
+    if (!move || move.pointerId !== event.pointerId) return
+    setPosition({ x: Math.max(8, move.origin.x + event.clientX - move.x), y: Math.max(8, move.origin.y + event.clientY - move.y) })
+  }
+
+  // Termine le déplacement après relâchement ou perte de capture.
+  function handleMoveEnd(event) {
+    if (moveRef.current?.pointerId !== event.pointerId) return
+    moveRef.current = null
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+  }
+
+  // Déplace le menu par petits pas lorsque sa poignée possède le focus.
+  function handleMoveKeyDown(event) {
+    const directions = { ArrowLeft: [-16, 0], ArrowRight: [16, 0], ArrowUp: [0, -16], ArrowDown: [0, 16] }
+    const direction = directions[event.key]
+    if (!direction) return
+    event.preventDefault()
+    setPosition((current) => ({ x: Math.max(8, current.x + direction[0]), y: Math.max(8, current.y + direction[1]) }))
+  }
+
+  const menuStyle = {
+    left: position.x,
+    top: position.y,
+    maxHeight: anchored ? `calc(100% - ${position.y + 8}px)` : undefined,
+  }
+
   return (
-    <div ref={menuRef} className="logic-context-menu" data-canvas-ui data-canvas-scroll tabIndex={-1} aria-label="Block menu" style={{ left: `min(${x}px, max(8px, calc(100% - ${kind ? 600 : 220}px - 8px)))`, top: anchored ? y : `min(${y}px, max(8px, calc(100% - ${kind ? 630 : 420}px)))`, maxHeight: anchored ? `calc(100% - ${y + 8}px)` : undefined }} onPointerDown={(event) => event.stopPropagation()} onKeyDown={handleKeyDown}>
+    <div ref={menuRef} className="logic-context-menu" data-canvas-ui data-canvas-scroll tabIndex={-1} aria-label="Block menu" style={menuStyle} onPointerDown={(event) => event.stopPropagation()} onKeyDown={handleKeyDown}>
+      <header className="logic-context-menu__header" onPointerDown={handleMoveStart} onPointerMove={handleMove} onPointerUp={handleMoveEnd} onPointerCancel={handleMoveEnd} onLostPointerCapture={handleMoveEnd}>
+        <button type="button" className="logic-context-menu__move" aria-label={t('canvas.moveMenu')} title={t('canvas.moveMenuHint')} onPointerDown={(event) => event.stopPropagation()} onKeyDown={handleMoveKeyDown}>
+          <Move size={14} strokeWidth={1.75} aria-hidden="true" />
+        </button>
+        <span>{t('canvas.addMenu')}</span>
+      </header>
       <div className="logic-context-menu__actions" role="menu" aria-label={selectedSlot ? `Add to ${selectedSlot}` : 'Choose where to add'}>
         <div className="logic-context-menu__title">{selectedSlot ? slotLabel(selectedSlot) : t('canvas.addWhere')}</div>
         {selectedSlot && available.slots.length > 1 && <button type="button" role="menuitem" onClick={() => { setSlotName(''); setKind('') }}><ArrowLeft className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.back')}</button>}
