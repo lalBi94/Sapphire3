@@ -1,5 +1,15 @@
 # PROJECT_ARCHIVE.md — Sapphire 3
 
+## Distribution Windows alpha 0.1.0 — 31 octobre 2026
+
+- `package.json` passe à `0.1.0-alpha.1` et expose `pnpm dist:win` (`scripts/build-windows.mjs`). Le script lit la version du paquet, génère `build/production/neutralino.config.json` sans modifier la configuration de développement, compile Vite, supprime `dist/verify/`, refuse sources maps/fixtures `.sp3`/dossiers de développement, construit `resources.neu` et les binaires avec la CLI Neutralinojs 11.8.0, prépare le dossier portable et compresse son contenu sans dossier parent.
+- Configuration de production : `version` stable `0.1.0`, `logging.enabled: false`, `enableInspector: false`, `cli.frontendLibrary` absent, `distributionPath: "/build/neutralino/"`, `resourcesExclude: "\\.map$"`. Les permissions natives de fichiers et de dialogues restent identiques à la configuration de développement.
+- Contenu du ZIP : `Sapphire3.exe`, `resources.neu`, `VERSION.txt`, `CREDITS.md`, `LIRE-MOI.txt`, `README.txt`, `licenses/` (React, React DOM, Lucide React, client Neutralinojs, core Neutralinojs, libtrashcan). Les licences du runtime ont été récupérées depuis leurs dépôts officiels et versionnées dans `scripts/licenses/`.
+- Audit `resources.neu` avec `@electron/asar` : uniquement `dist/index.html`, `dist/assets/*` et `neutralino.config.json`. Aucune source map, aucun dossier `verify` ni fixture `.sp3`. Audit `tar -tf` du ZIP : 12 entrées attendues, sans dossier parent.
+- Vérifications exécutées : `pnpm test` (**200 tests réussis**), `pnpm build`, `pnpm dist:win`. Lancement de `Sapphire3.exe` depuis le dossier préparé : fenêtre `Sapphire 3` active.
+- Sauvegarde native vérifiée dans la fenêtre Neutralinojs : `Ctrl+S` ouvre le dialogue `Export workspace`, la saisie d'un chemin crée un `.sp3` JSON valide ; un second `Ctrl+S` réécrit directement le fichier existant (horodatage modifié), sans dialogue ni fichier `.tmp` résiduel. L'activation fiable de la fenêtre a nécessité `AttachThreadInput` + `SetForegroundWindow` ; `AppActivate` seul ne suffisait pas.
+- Notes de version : `docs/releases/v0.1.0-alpha.1.md`. `docs/DISTRIBUTION.md` est réécrit pour le dépôt unique et l'absence d'updater. Aucune release publiée : seul un brouillon GitHub est créé, en attente de validation explicite.
+
 ## Sauvegarde atomique des workspaces — 31 octobre 2026
 
 - `src/services/workspaceFiles.js` écrit un brouillon unique dans le dossier cible, vérifie sa taille UTF-8 via `getStats`, puis le remplace par `filesystem.move`. Aucun fallback destructif : si le remplacement échoue, l'original reste intact et le brouillon vérifié est conservé ; son chemin est exposé dans l'erreur `ATOMIC_REPLACE_FAILED`. Un échec d'écriture ou de vérification nettoie le brouillon et laisse l'original intact.

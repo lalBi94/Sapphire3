@@ -1,7 +1,7 @@
 {
   "name": "sapphire-3",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.0-alpha.1",
   "type": "module",
   "packageManager": "pnpm@11.5.0",
   "scripts": {
@@ -10,6 +10,7 @@
     "dev": "neu run",
     "dev:web": "vite",
     "build": "vite build",
+    "dist:win": "node scripts/build-windows.mjs",
     "preview": "vite preview",
     "desktop:setup": "neu update",
     "desktop:start": "pnpm build && .\\bin\\neutralino-win_x64.exe --load-dir-res --path=."

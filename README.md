@@ -20,6 +20,7 @@ pnpm dev
 - `pnpm build` : compile le frontend dans `dist/`.
 - `pnpm preview` : prévisualise le frontend compilé dans un navigateur.
 - `pnpm desktop:start` : compile puis ouvre le frontend compilé dans Neutralinojs, sans Vite.
+- `pnpm dist:win` : construit le paquet portable Windows et son ZIP dans `build/release/`.
 
 L'application contient une page unique avec un canvas plein écran : quadrillage discret, déformé aux bords. Glissez avec le bouton gauche ou central pour vous déplacer sans limite applicative, ou utilisez les flèches après avoir donné le focus au canvas.
 
@@ -90,4 +91,5 @@ Les conteneurs graphiques et le modèle logique sont raccordés : chaque Module 
 - `AGENTS.md` : règles de développement et périmètre.
 - `docs/PROJECT_STATE.md` : état actuel et cartographie.
 - `docs/PROJECT_ARCHIVE.md` : vérifications détaillées.
-- `PROMPT_INITIALISATION.md` et `docs/DISTRIBUTION.md` : kit d'origine conservé ; la distribution n'est pas configurée et aucune publication n'est autorisée implicitement.
+- `PROMPT_INITIALISATION.md` : kit d'origine conservé.
+- `docs/DISTRIBUTION.md` : construction reproductible et publication des paquets portables Windows via les GitHub Releases du dépôt unique. Aucun updater.
