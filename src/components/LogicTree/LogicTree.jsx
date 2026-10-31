@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import LogicNode from './LogicNode.jsx'
-import { useTranslation } from '../../i18n.jsx'
+import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './LogicTree.css'
 
 // Rassemble les nœuds du module pour repérer ceux réellement ajoutés entre deux rendus.

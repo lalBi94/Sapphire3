@@ -2,8 +2,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './pages/App.jsx'
 import './styles/global.css'
-import { LanguageProvider } from './i18n.jsx'
-import { ThemeProvider } from './theme.jsx'
+import LanguageProvider from './contexts/LanguageContext.jsx'
+import ThemeProvider from './contexts/ThemeContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

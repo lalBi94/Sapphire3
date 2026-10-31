@@ -9,10 +9,10 @@ export default function useCanvasDocument() {
   const document = history.present
 
   // Produit l'identifiant une seule fois dans le handler, jamais dans un rendu ou un reducer.
-  function createCard(type, position) {
+  function createCard(type, position, name = moduleTypes[type]?.label) {
     const definition = moduleTypes[type]
     if (!definition) return
-    dispatch({ type: 'createCard', card: { id: crypto.randomUUID(), type, name: definition.label, ...(definition.hasText ? { text: '' } : {}), ...(definition.hasImage ? { image: '', caption: '' } : {}), ...position, width: definition.width, height: definition.height, expandedNodeIds: [] } })
+    dispatch({ type: 'createCard', card: { id: crypto.randomUUID(), type, name, ...(definition.hasText ? { text: '' } : {}), ...(definition.hasImage ? { image: '', caption: '' } : {}), ...position, width: definition.width, height: definition.height, expandedNodeIds: [] } })
   }
 
   // Modifie la présentation sans réanalyser le programme.

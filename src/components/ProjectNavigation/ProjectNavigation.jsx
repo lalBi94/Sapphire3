@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Check, ChevronDown, Clock3, Download, FolderOpen, Palette, Play, Save, Upload, X } from 'lucide-react'
-import { useTranslation } from '../../i18n.jsx'
-import { useTheme } from '../../theme.jsx'
+import { useTranslation } from '../../contexts/LanguageContext.jsx'
+import { useTheme } from '../../contexts/ThemeContext.jsx'
 import './ProjectNavigation.css'
 
 // Bloque le remplacement du document tant qu'il n'a pas été confirmé explicitement.
@@ -88,7 +88,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
   }
 
   return <>
-    <nav ref={navigationRef} className="project-navigation" aria-label="Workspace navigation" onKeyDown={handleKeyDown}>
+    <nav ref={navigationRef} className="project-navigation" aria-label={t('nav.aria')} onKeyDown={handleKeyDown}>
       <details name="workspace-menu" onToggle={handleToggle}>
         <summary>{t('nav.settings')}<ChevronDown size={12} aria-hidden="true" /></summary>
         <div className="project-navigation__menu">

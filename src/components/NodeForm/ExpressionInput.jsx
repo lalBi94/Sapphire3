@@ -1,7 +1,7 @@
 import { sameType, acceptsOperand, primitiveDefinitions, primitiveType } from '../../utils/logic/index.js'
 import NodeValueInput from './NodeValueInput.jsx'
 import { emptyExpression, expressionOperators, expressionOperandType } from './nodeConfiguration.js'
-import { useTranslation } from '../../i18n.jsx'
+import { useTranslation } from '../../contexts/LanguageContext.jsx'
 
 // Configure les expressions imbriquées directement dans le formulaire de création, avec typage strict.
 export default function ExpressionInput({ label, value = emptyExpression(), onChange, type, symbols, required, allowIncomplete = false, depth = 0 }) {
@@ -28,49 +28,49 @@ export default function ExpressionInput({ label, value = emptyExpression(), onCh
   return (
     <fieldset className="expression-input">
       <legend>{label}</legend>
-      <label>Value
-        <select aria-label={`${label} expression`} value={value.mode} onChange={handleModeChange} required={required} disabled={!type}>
+      <label>{t('form.value')}
+        <select aria-label={t('expression.expression', { label })} value={value.mode} onChange={handleModeChange} required={required} disabled={!type}>
           <option value="">{required ? t('form.chooseName') : t('form.leaveEmpty')}</option>
-          <option value="literal">Literal</option><option value="reference">Reference</option>
-          {nested && expressionOperators('binary', type).length > 0 && <option value="binary">Operation</option>}
-          {nested && expressionOperators('unary', type).length > 0 && <option value="unary">Operation on one value</option>}
-          {nested && <option value="call" disabled={functions.length === 0}>Use a function</option>}
-          {nested && acceptsOperand('numeric', type) && <option value="cast">Convert the type</option>}
+          <option value="literal">{t('expression.literal')}</option><option value="reference">{t('expression.reference')}</option>
+          {nested && expressionOperators('binary', type).length > 0 && <option value="binary">{t('expression.binary')}</option>}
+          {nested && expressionOperators('unary', type).length > 0 && <option value="unary">{t('expression.unary')}</option>}
+          {nested && <option value="call" disabled={functions.length === 0}>{t('expression.call')}</option>}
+          {nested && acceptsOperand('numeric', type) && <option value="cast">{t('expression.cast')}</option>}
         </select>
       </label>
-      {value.mode === 'literal' && <NodeValueInput label={`${label} value`} typeName={type?.name} value={value.value} empty={value.empty} onEmptyChange={(empty) => onChange({ ...value, empty })} required={!allowIncomplete} onChange={(next) => onChange({ ...value, value: next })} />}
-      {value.mode === 'reference' && <label>Symbol
-        <select aria-label={`${label} symbol`} value={value.symbolId} required={!allowIncomplete} onChange={(event) => onChange({ ...value, symbolId: event.target.value })}>
+      {value.mode === 'literal' && <NodeValueInput label={t('expression.value', { label })} typeName={type?.name} value={value.value} empty={value.empty} onEmptyChange={(empty) => onChange({ ...value, empty })} required={!allowIncomplete} onChange={(next) => onChange({ ...value, value: next })} />}
+      {value.mode === 'reference' && <label>{t('form.symbol')}
+        <select aria-label={t('expression.symbol', { label })} value={value.symbolId} required={!allowIncomplete} onChange={(event) => onChange({ ...value, symbolId: event.target.value })}>
           <option value="">{t('form.chooseName')}</option>
           {matching.map((symbol) => <option key={symbol.id} value={symbol.id}>{symbol.name}</option>)}
         </select>
       </label>}
       {['binary', 'unary'].includes(value.mode) && <>
-        <label>Operator<select aria-label={`${label} operator`} value={value.operator} required={!allowIncomplete} onChange={(event) => onChange({ ...value, operator: event.target.value })}>
+        <label>{t('form.operator')}<select aria-label={t('expression.operator', { label })} value={value.operator} required={!allowIncomplete} onChange={(event) => onChange({ ...value, operator: event.target.value })}>
           <option value="">{t('form.chooseOperation')}</option>
           {operators.map(([operator]) => <option key={operator} value={operator}>{operator}</option>)}
         </select></label>
-        {chooseOperandType && <label>Operand type<select aria-label={`${label} operand type`} value={value.operandTypeName} required={!allowIncomplete} onChange={(event) => onChange({ ...value, operandTypeName: event.target.value })}>
-          <option value="">Choose a type</option>
+        {chooseOperandType && <label>{t('expression.operandTypeLabel')}<select aria-label={t('expression.operandType', { label })} value={value.operandTypeName} required={!allowIncomplete} onChange={(event) => onChange({ ...value, operandTypeName: event.target.value })}>
+          <option value="">{t('expression.chooseType')}</option>
           {Object.keys(primitiveDefinitions).filter((name) => acceptsOperand(rule.operands, primitiveType(name))).map((name) => <option key={name} value={name}>{name}</option>)}
         </select></label>}
-        {value.operator && (value.mode === 'binary' ? ['left', 'right'] : ['operand']).map((field) => <ExpressionInput key={field} label={`${label} ${field}`} value={value[field]} onChange={(next) => changeOperand(field, next)} type={operandType} symbols={symbols} required={!allowIncomplete} allowIncomplete={allowIncomplete} depth={depth + 1} />)}
+        {value.operator && (value.mode === 'binary' ? ['left', 'right'] : ['operand']).map((field) => <ExpressionInput key={field} label={t('expression.part', { label, part: t(`slot.${field}`) })} value={value[field]} onChange={(next) => changeOperand(field, next)} type={operandType} symbols={symbols} required={!allowIncomplete} allowIncomplete={allowIncomplete} depth={depth + 1} />)}
       </>}
       {value.mode === 'call' && <>
-        <label>Function<select aria-label={`${label} function`} value={value.symbolId} required={!allowIncomplete} onChange={(event) => onChange({ ...value, symbolId: event.target.value, arguments: [] })}>
-          <option value="">Choose a function</option>
+        <label>{t('form.function')}<select aria-label={t('expression.function', { label })} value={value.symbolId} required={!allowIncomplete} onChange={(event) => onChange({ ...value, symbolId: event.target.value, arguments: [] })}>
+          <option value="">{t('expression.chooseFunction')}</option>
           {functions.map((symbol) => <option key={symbol.id} value={symbol.id}>{symbol.name}</option>)}
         </select></label>
-        {functionSymbol?.type.parameters.map((parameter, index) => <ExpressionInput key={index} label={`${label} argument ${index + 1}`} value={value.arguments?.[index]} onChange={(next) => onChange({ ...value, arguments: functionSymbol.type.parameters.map((_, position) => position === index ? next : value.arguments?.[position] ?? emptyExpression()) })} type={parameter} symbols={symbols} required={!allowIncomplete} allowIncomplete={allowIncomplete} depth={depth + 1} />)}
+        {functionSymbol?.type.parameters.map((parameter, index) => <ExpressionInput key={index} label={t('expression.argument', { label, number: index + 1 })} value={value.arguments?.[index]} onChange={(next) => onChange({ ...value, arguments: functionSymbol.type.parameters.map((_, position) => position === index ? next : value.arguments?.[position] ?? emptyExpression()) })} type={parameter} symbols={symbols} required={!allowIncomplete} allowIncomplete={allowIncomplete} depth={depth + 1} />)}
       </>}
       {value.mode === 'cast' && <>
-        <label>From type<select aria-label={`${label} source type`} value={value.operandTypeName} required={!allowIncomplete} onChange={(event) => onChange({ ...value, operandTypeName: event.target.value })}>
-          <option value="">Choose a number type</option>
+        <label>{t('expression.fromType')}<select aria-label={t('expression.sourceType', { label })} value={value.operandTypeName} required={!allowIncomplete} onChange={(event) => onChange({ ...value, operandTypeName: event.target.value })}>
+          <option value="">{t('expression.chooseNumericType')}</option>
           {Object.keys(primitiveDefinitions).filter((name) => acceptsOperand('numeric', primitiveType(name))).map((name) => <option key={name} value={name}>{name}</option>)}
         </select></label>
-        <ExpressionInput label={`${label} argument`} value={value.argument} onChange={(next) => changeOperand('argument', next)} type={primitiveType(value.operandTypeName)} symbols={symbols} required={!allowIncomplete} allowIncomplete={allowIncomplete} depth={depth + 1} />
+        <ExpressionInput label={t('expression.part', { label, part: t('slot.argument') })} value={value.argument} onChange={(next) => changeOperand('argument', next)} type={primitiveType(value.operandTypeName)} symbols={symbols} required={!allowIncomplete} allowIncomplete={allowIncomplete} depth={depth + 1} />
       </>}
-      {!nested && <p className="node-form__hint">For a more complex expression, add another block after creating this one.</p>}
+      {!nested && <p className="node-form__hint">{t('expression.depthHint')}</p>}
     </fieldset>
   )
 }

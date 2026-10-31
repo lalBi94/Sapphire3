@@ -70,6 +70,7 @@ test('calculs runtime : dépassement, division par zéro et sous-flux refusés',
   ]) {
     const result = simulateProgram(project)
     assert.equal(result.ok, false)
+    assert.equal(result.errorCode, code)
     assert.match(result.error, new RegExp(code))
   }
 })
@@ -103,6 +104,7 @@ test('for vide sans condition : le budget borne réellement les itérations', ()
   const result = simulateProgram(project, { maxSteps: 20 })
   assert.equal(result.ok, false)
   assert.match(result.error, /step limit/)
+  assert.equal(result.errorCode, 'SIMULATION_STEP_LIMIT')
   assert.equal(result.trace.length, 20)
   for (const maxSteps of [NaN, Infinity, 0, -1, 1.5, 100001]) assert.equal(simulateProgram(project, { maxSteps }).ok, false)
 })
@@ -147,6 +149,7 @@ test('appels récursifs : arrêt contrôlé avant de déborder la pile JavaScrip
   const result = simulateProgram(project)
   assert.equal(result.ok, false)
   assert.match(result.error, /call depth limit/)
+  assert.equal(result.errorCode, 'SIMULATION_CALL_LIMIT')
   assert.ok(result.steps < 10000)
 })
 

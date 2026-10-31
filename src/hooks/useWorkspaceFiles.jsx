@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { serializeWorkspace, deserializeWorkspace } from '../utils/workspaceFile.js'
 import { exportWorkspaceFile, importWorkspaceFile, readWorkspaceFile, writeWorkspaceFile } from '../services/workspaceFiles.js'
-import { useTranslation } from '../i18n.jsx'
+import { useTranslation } from '../contexts/LanguageContext.jsx'
 import { readPreference, writePreference } from '../services/preferences.js'
+import { failureLabel } from '../utils/translations.js'
 
 const recentFilesStorageKey = 'sapphire-recent-sp3-files'
 const maximumRecentFiles = 5
@@ -19,10 +20,10 @@ function loadRecentFiles() {
 
 // Prépare les fichiers sans toucher au document actif avant validation et confirmation de remplacement.
 export default function useWorkspaceFiles({ project, cards, camera, selected, onReplace }) {
-  const { t } = useTranslation()
+  const { language, t } = useTranslation()
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useState(null)
   const [pendingImport, setPendingImport] = useState(null)
   const [currentPath, setCurrentPath] = useState(null)
   const [recentFiles, setRecentFiles] = useState(loadRecentFiles)
@@ -47,20 +48,20 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     if (operation.current || pendingImport) return
     operation.current = true
     setBusy(true)
-    setError('')
+    setError(null)
     setMessage('')
     try {
       const text = serializeWorkspace(project, cards, camera, selected)
-      const path = await exportWorkspaceFile(extension, text)
+      const path = await exportWorkspaceFile(extension, text, language)
       if (path) {
         if (extension === 'sp3') {
           setCurrentPath(path)
           rememberRecentFile(path)
         }
-        setMessage('Workspace saved.')
+        setMessage('files.saved')
       }
     } catch (failure) {
-      setError(`${t('errors.couldNotSave')} ${failure.message || failure.code || t('errors.default')}`)
+      setError({ prefix: 'errors.couldNotSave', failure })
     } finally {
       operation.current = false
       setBusy(false)
@@ -73,14 +74,14 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
       if (operation.current || pendingImport) return
       operation.current = true
       setBusy(true)
-      setError('')
+      setError(null)
       setMessage('')
       try {
         const text = serializeWorkspace(project, cards, camera, selected)
         await writeWorkspaceFile(currentPath, text)
-        setMessage('Workspace saved.')
+        setMessage('files.saved')
       } catch (failure) {
-        setError(`${t('errors.couldNotSave')} ${failure.message || failure.code || t('errors.default')}`)
+        setError({ prefix: 'errors.couldNotSave', failure })
       } finally {
         operation.current = false
         setBusy(false)
@@ -95,13 +96,13 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     if (operation.current || pendingImport) return
     operation.current = true
     setBusy(true)
-    setError('')
+    setError(null)
     setMessage('')
     try {
-      const file = await importWorkspaceFile(['sp3'])
+      const file = await importWorkspaceFile(['sp3'], language)
       if (file) setPendingImport({ workspace: deserializeWorkspace(file.text), path: file.path })
     } catch (failure) {
-      setError(`${t('errors.couldNotOpen')} ${failure.message || failure.code || t('errors.default')}`)
+      setError({ prefix: 'errors.couldNotOpen', failure })
     } finally {
       operation.current = false
       setBusy(false)
@@ -113,14 +114,14 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     if (operation.current || pendingImport) return
     operation.current = true
     setBusy(true)
-    setError('')
+    setError(null)
     setMessage('')
     try {
       const file = await readWorkspaceFile(path)
       setPendingImport({ workspace: deserializeWorkspace(file.text), path: file.path })
     } catch (failure) {
       forgetRecentFile(path)
-      setError(`${t('errors.couldNotOpen')} ${failure.message || failure.code || t('errors.default')}`)
+      setError({ prefix: 'errors.couldNotOpen', failure })
     } finally {
       operation.current = false
       setBusy(false)
@@ -132,13 +133,13 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     if (operation.current || pendingImport) return
     operation.current = true
     setBusy(true)
-    setError('')
+    setError(null)
     setMessage('')
     try {
-      const file = await importWorkspaceFile()
+      const file = await importWorkspaceFile(['sp3', 'json'], language)
       if (file) setPendingImport({ workspace: deserializeWorkspace(file.text), path: file.path })
     } catch (failure) {
-      setError(`${t('errors.couldNotImport')} ${failure.message || failure.code || t('errors.default')}`)
+      setError({ prefix: 'errors.couldNotImport', failure })
     } finally {
       operation.current = false
       setBusy(false)
@@ -152,7 +153,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     setCurrentPath(pendingImport.path.toLowerCase().endsWith('.sp3') ? pendingImport.path : null)
     if (pendingImport.path.toLowerCase().endsWith('.sp3')) rememberRecentFile(pendingImport.path)
     setPendingImport(null)
-    setMessage('Workspace opened.')
+    setMessage('files.opened')
   }
 
   // Conserve intégralement le document courant lorsque l'import est abandonné.
@@ -162,7 +163,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
 
   // Efface un message d'échec sans relancer l'opération de fichier.
   function handleDismiss() {
-    setError('')
+    setError(null)
   }
 
   useEffect(() => {
@@ -176,5 +177,5 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     return () => document.removeEventListener('keydown', handleShortcut)
   })
 
-  return { busy, message, error, pendingImport, recentFiles, handleSave, saveAs, handleOpenSp3, handleOpenRecent, handleImport, handleConfirmImport, handleCancelImport, handleDismiss }
+  return { busy, message: message ? t(message) : '', error: error ? `${t(error.prefix)} ${failureLabel(error.failure, t)}` : '', pendingImport, recentFiles, handleSave, saveAs, handleOpenSp3, handleOpenRecent, handleImport, handleConfirmImport, handleCancelImport, handleDismiss }
 }

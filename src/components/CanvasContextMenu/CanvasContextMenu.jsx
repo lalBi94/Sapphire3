@@ -3,7 +3,7 @@ import { Box, Image, MessageSquare } from 'lucide-react'
 import { moduleTypes } from '../../utils/moduleTypes.js'
 import DeleteAction from '../DeleteAction/DeleteAction.jsx'
 import './CanvasContextMenu.css'
-import { useTranslation } from '../../i18n.jsx'
+import { useTranslation } from '../../contexts/LanguageContext.jsx'
 
 const menuIcons = {
   module: Box,
@@ -55,7 +55,7 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId =
       data-canvas-scroll
       style={{ left: `min(${x}px, max(8px, calc(100% - 192px)))`, top: anchored ? y : commentId ? `min(${y}px, max(8px, calc(100% - 240px)))` : y, maxHeight: anchored ? `calc(100% - ${y + 8}px)` : undefined }}
       role="menu"
-      aria-label={commentId ? 'Visual item menu' : 'Add to canvas'}
+      aria-label={t(commentId ? 'canvas.visualMenu' : 'canvas.addMenu')}
       onPointerDown={(event) => event.stopPropagation()}
       onKeyDown={handleKeyDown}
     >

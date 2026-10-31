@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { readPreference, writePreference } from './services/preferences.js'
+import { readPreference, writePreference } from '../services/preferences.js'
 
 const themes = [
   {
@@ -45,7 +45,6 @@ const themes = [
       '--color-node-value': '#b5c95a',
       '--color-node-incomplete': '#d8b184',
     },
-    simulation: {},
   },
   {
     id: 'neon',
@@ -90,7 +89,6 @@ const themes = [
       '--color-node-value': '#d8ed58',
       '--color-node-incomplete': '#e3b56c',
     },
-    simulation: {},
   },
   {
     id: 'mono',
@@ -135,7 +133,6 @@ const themes = [
       '--color-node-value': '#d0d0d0',
       '--color-node-incomplete': '#9f9f9f',
     },
-    simulation: {},
   },
   {
     id: 'rose',
@@ -180,7 +177,6 @@ const themes = [
       '--color-node-value': '#d9e86a',
       '--color-node-incomplete': '#e5b68c',
     },
-    simulation: {},
   },
   {
     id: 'pro',
@@ -225,7 +221,6 @@ const themes = [
       '--color-node-value': '#b3c572',
       '--color-node-incomplete': '#c5a77f',
     },
-    simulation: {},
   },
   {
     id: 'educational',
@@ -270,7 +265,6 @@ const themes = [
       '--color-node-value': '#859b28',
       '--color-node-incomplete': '#a66f3d',
     },
-    simulation: {},
   },
 ]
 
@@ -290,7 +284,7 @@ function applyTheme(theme) {
 }
 
 // Fournit le thème actif et sa préférence d'interface à toute l'application.
-export function ThemeProvider({ children }) {
+export default function ThemeProvider({ children }) {
   const [themeId, setThemeId] = useState(() => readPreference('sapphire-theme') ?? themes[0].id)
   const theme = findTheme(themeId)
 

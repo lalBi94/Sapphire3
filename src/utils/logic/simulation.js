@@ -1,11 +1,16 @@
 import { analyzeProgram } from './analysis.js'
 import { validateLiteral, convertConstant, evaluateBinary, evaluateUnary } from './numericConstants.js'
 
+// Ajoute un code stable sans introduire de traduction ni de dépendance UI dans le moteur.
+function simulationError(code, message) {
+  return Object.assign(new Error(message), { code })
+}
+
 // Exécute le sous-ensemble déterministe du langage sans accéder au DOM ni au système.
 export function simulateProgram(project, { maxSteps = 10000 } = {}) {
-  if (!Number.isSafeInteger(maxSteps) || maxSteps < 1 || maxSteps > 100000) return { ok: false, output: [], trace: [], error: 'The step budget must be an integer between 1 and 100000.' }
+  if (!Number.isSafeInteger(maxSteps) || maxSteps < 1 || maxSteps > 100000) return { ok: false, output: [], trace: [], errorCode: 'SIMULATION_BUDGET_INVALID', error: 'The step budget must be an integer between 1 and 100000.' }
   const analysis = analyzeProgram(project)
-  if (!analysis.canGenerate) return { ok: false, output: [], trace: [], error: 'The program has blocking diagnostics.', diagnostics: analysis.diagnostics }
+  if (!analysis.canGenerate) return { ok: false, output: [], trace: [], errorCode: 'SIMULATION_DIAGNOSTICS', error: 'The program has blocking diagnostics.', diagnostics: analysis.diagnostics }
   const nodes = new Map(project.nodes.map((node) => [node.id, node]))
   const symbols = new Map(analysis.semantic.symbols.map((symbol) => [symbol.id, symbol]))
   const references = new Map(analysis.semantic.references.map((reference) => [reference.nodeId, reference]))
@@ -20,13 +25,13 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
   const uninitialized = Symbol('uninitialized')
   let callDepth = 0
 
-  if (!entry) return { ok: false, output, trace, error: 'No entry point is marked.' }
-  if ((entry.children.parameters ?? []).length > 0) return { ok: false, output, trace, error: 'The entry point must not require inputs.' }
+  if (!entry) return { ok: false, output, trace, errorCode: 'SIMULATION_ENTRY_MISSING', error: 'No entry point is marked.' }
+  if ((entry.children.parameters ?? []).length > 0) return { ok: false, output, trace, errorCode: 'SIMULATION_ENTRY_INPUTS', error: 'The entry point must not require inputs.' }
 
   // Compte aussi les itérations sans condition ni instruction pour garantir l'arrêt.
   function step(node) {
     steps += 1
-    if (steps > maxSteps) throw new Error('Simulation step limit reached.')
+    if (steps > maxSteps) throw simulationError('SIMULATION_STEP_LIMIT', 'Simulation step limit reached.')
     trace.push(node.id)
     return node
   }
@@ -35,11 +40,11 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
   function readBinding(nodeId, environment) {
     if (environment.values.has(nodeId)) {
       const value = environment.values.get(nodeId)
-      if (value === uninitialized) throw new Error('A value was read before it was initialized.')
+      if (value === uninitialized) throw simulationError('SIMULATION_UNINITIALIZED', 'A value was read before it was initialized.')
       return value
     }
     if (environment.parent) return readBinding(nodeId, environment.parent)
-    throw new Error('A value was read before it was initialized.')
+    throw simulationError('SIMULATION_UNINITIALIZED', 'A value was read before it was initialized.')
   }
 
   // Modifie uniquement une déclaration existante dans la chaîne lexicale.
@@ -52,12 +57,12 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
       writeBinding(nodeId, value, environment.parent)
       return
     }
-    throw new Error('A value was changed before it was initialized.')
+    throw simulationError('SIMULATION_UNINITIALIZED', 'A value was changed before it was initialized.')
   }
 
   // Réutilise les contrôles numériques statiques sur les valeurs calculées à l'exécution.
   function checked(result) {
-    if (result.code) throw new Error(`${result.code}: ${result.message}`)
+    if (result.code) throw simulationError(result.code, `${result.code}: ${result.message}`)
     return result.value
   }
 
@@ -67,7 +72,7 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
     if (node.kind === 'Literal') return checked(validateLiteral(types.get(node.id)?.name, node.properties.value))
     if (node.kind === 'Reference') {
       const symbol = symbols.get(references.get(node.id)?.symbolId)
-      if (!symbol) throw new Error('The reference cannot be resolved.')
+      if (!symbol) throw simulationError('SIMULATION_REFERENCE', 'The reference cannot be resolved.')
       return readBinding(symbol.nodeId, environment)
     }
     if (node.kind === 'BinaryExpression') {
@@ -88,10 +93,10 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
       const callee = nodes.get(node.children.callee)
       const symbol = symbols.get(references.get(callee?.id)?.symbolId)
       const target = symbol ? functions.get(symbol.nodeId) : null
-      if (!target) throw new Error('The called function cannot be resolved.')
+      if (!target) throw simulationError('SIMULATION_REFERENCE', 'The called function cannot be resolved.')
       return executeFunction(target, (node.children.arguments ?? []).map((id) => valueOf(nodes.get(id), environment)))
     }
-    throw new Error(`Unsupported expression: ${node.kind}.`)
+    throw simulationError('SIMULATION_UNSUPPORTED', `Unsupported expression: ${node.kind}.`)
   }
 
   // Exécute une instruction et propage les contrôles de flux jusqu'à leur propriétaire.
@@ -108,7 +113,7 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
     if (node.kind === 'AssignmentStatement') {
       const target = nodes.get(node.children.target)
       const symbol = symbols.get(references.get(target?.id)?.symbolId)
-      if (!symbol) throw new Error('The assignment target cannot be resolved.')
+      if (!symbol) throw simulationError('SIMULATION_REFERENCE', 'The assignment target cannot be resolved.')
       writeBinding(symbol.nodeId, valueOf(nodes.get(node.children.value), environment), environment)
       return
     }
@@ -151,7 +156,7 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
     if (node.kind === 'BreakStatement') throw breakSignal
     if (node.kind === 'ContinueStatement') throw continueSignal
     if (node.kind === 'Block') executeBlock(node, environment)
-    else if (!['FunctionDeclaration', 'TypeDeclaration', 'Parameter'].includes(node.kind)) throw new Error(`Unsupported statement: ${node.kind}.`)
+    else if (!['FunctionDeclaration', 'TypeDeclaration', 'Parameter'].includes(node.kind)) throw simulationError('SIMULATION_UNSUPPORTED', `Unsupported statement: ${node.kind}.`)
   }
 
   // Recrée les variables d'un bloc à chaque entrée, notamment dans les boucles.
@@ -163,7 +168,7 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
   // Isole chaque appel du contexte de l'appelant et borne la récursion avant la pile JavaScript.
   function executeFunction(node, args) {
     callDepth += 1
-    if (callDepth > 200) throw new Error('Simulation call depth limit reached.')
+    if (callDepth > 200) throw simulationError('SIMULATION_CALL_LIMIT', 'Simulation call depth limit reached.')
     const environment = { values: new Map(), parent: global }
     for (const [index, parameterId] of (node.children.parameters ?? []).entries()) environment.values.set(parameterId, args[index])
     try { executeBlock(nodes.get(node.children.body), environment) } catch (signal) {
@@ -186,7 +191,7 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
     const result = executeFunction(entry, [])
     return { ok: true, output, trace, result: typeof result === 'bigint' ? Number(result) : result, steps }
   } catch (error) {
-    return { ok: false, output, trace, error: error instanceof Error ? error.message : 'Simulation stopped.', steps }
+    return { ok: false, output, trace, errorCode: error?.code ?? 'SIMULATION_FAILED', error: error instanceof Error ? error.message : 'Simulation stopped.', steps }
   }
 }
 

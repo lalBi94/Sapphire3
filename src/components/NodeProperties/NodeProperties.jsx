@@ -5,27 +5,28 @@ import { diagnosticLabel, kindLabel, nodeSummary, slotLabel } from '../LogicTree
 import NodeForm from '../NodeForm/NodeForm.jsx'
 import ModuleNameForm from './ModuleNameForm.jsx'
 import DeleteAction from '../DeleteAction/DeleteAction.jsx'
-import { useTranslation } from '../../i18n.jsx'
+import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './NodeProperties.css'
 
 // Construit une étiquette courte pour un élément de la hiérarchie.
-function hierarchyLabel(record) {
+function hierarchyLabel(record, t) {
   const name = record?.properties?.name
-  const kind = kindLabel(record?.kind ?? '')
+  const kind = kindLabel(record?.kind ?? '', t)
   return name ? `${name} · ${kind}` : kind
 }
 
 // Rend récursivement les descendants source sans laisser un cycle bloquer le panneau.
 function HierarchyNode({ id, index, selected, onSelect, ancestors = [] }) {
+  const { t } = useTranslation()
   const node = index.nodes.get(id)
   if (!node || ancestors.includes(id) || ancestors.length >= 60) return null
   const childIds = Object.values(node.children ?? {}).flatMap((value) => Array.isArray(value) ? value : value ? [value] : [])
-  const summary = nodeSummary(node, index, getNodeSchema(node.kind))
+  const summary = nodeSummary(node, index, getNodeSchema(node.kind), t)
   return (
     <li>
       <button type="button" className={`node-properties__hierarchy-item${selected?.kind === 'node' && selected.id === id ? ' node-properties__hierarchy-item--selected' : ''}`} aria-current={selected?.kind === 'node' && selected.id === id ? 'true' : undefined} onClick={() => onSelect({ kind: 'node', id })}>
         <span>
-          <strong>{hierarchyLabel(node)}</strong>
+          <strong>{hierarchyLabel(node, t)}</strong>
           {summary && <small>{summary}</small>}
         </span>
         {childIds.length > 0 && <small>{childIds.length}</small>}
@@ -212,20 +213,20 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
   return (
     <aside className="node-properties" style={panelStyle} data-canvas-ui data-canvas-scroll aria-label={t('details.title')} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
       <header className="node-properties__header" tabIndex={0} aria-label={t('details.move')} title={t('details.moveHint')} onPointerDown={handleMoveStart} onPointerMove={handleMove} onPointerUp={handleMoveEnd} onPointerCancel={handleMoveEnd} onLostPointerCapture={handleMoveEnd} onKeyDown={handleMoveKeyDown}>
-        <h2>{selected.kind === 'module' ? t('details.module') : record ? kindLabel(record.kind) : t('details.block')}</h2>
+        <h2>{selected.kind === 'module' ? t('details.module') : record ? kindLabel(record.kind, t) : t('details.block')}</h2>
         <button type="button" aria-label={t('details.close')} onClick={onClose}><X size={18} strokeWidth={1.75} aria-hidden="true" /></button>
       </header>
       {!context.ok ? <p>{t('details.missingBlock')}</p> : <>
-        {selected.kind === 'module' ? <ModuleNameForm key={`${record.id}:${record.name}`} module={record} onRename={onRename} /> : configurable ? <NodeForm key={`${record.id}:${JSON.stringify([record.properties, record.references])}`} kind={record.kind} initialNode={record} context={context} submitLabel="Save" onSubmit={(patch) => onConfigure(record.id, patch)} /> : <p>Add or change parts from the + menu.</p>}
+        {selected.kind === 'module' ? <ModuleNameForm key={`${record.id}:${record.name}`} module={record} onRename={onRename} /> : configurable ? <NodeForm key={`${record.id}:${JSON.stringify([record.properties, record.references])}`} kind={record.kind} initialNode={record} context={context} onSubmit={(patch) => onConfigure(record.id, patch)} /> : <p>{t('details.addParts')}</p>}
         <h3>{selected.kind === 'module' ? t('details.topBlocks') : t('details.parts')}</h3>
-        {(selected.kind === 'module' ? [['rootNodeIds', record.rootNodeIds]] : Object.entries(record.children ?? {})).map(([slot, value]) => <div className="node-properties__children" key={slot}><span>{slotLabel(slot)}</span>
-          {(Array.isArray(value) ? value : value ? [value] : []).map((id, position) => <button type="button" key={`${id}:${position}`} onClick={() => onSelect({ kind: 'node', id })}>{index.nodes.get(id)?.properties?.name || (index.nodes.get(id) ? kindLabel(index.nodes.get(id).kind) : 'Missing block')}<ChevronRight size={14} strokeWidth={1.75} aria-hidden="true" /></button>)}
+        {(selected.kind === 'module' ? [['rootNodeIds', record.rootNodeIds]] : Object.entries(record.children ?? {})).map(([slot, value]) => <div className="node-properties__children" key={slot}><span>{slotLabel(slot, t)}</span>
+          {(Array.isArray(value) ? value : value ? [value] : []).map((id, position) => <button type="button" key={`${id}:${position}`} onClick={() => onSelect({ kind: 'node', id })}>{index.nodes.get(id)?.properties?.name || (index.nodes.get(id) ? kindLabel(index.nodes.get(id).kind, t) : t('details.missingBlock'))}<ChevronRight size={14} strokeWidth={1.75} aria-hidden="true" /></button>)}
           {(value === null || (Array.isArray(value) && value.length === 0)) && <small>{t('details.nothingAdded')}</small>}
         </div>)}
       </>}
       <h3>{t('details.issues')} · {diagnostics.length}</h3>
-      {mutationError && <p role="alert">{diagnosticLabel(mutationError)}</p>}
-      {diagnostics.length === 0 ? <p>{t('details.noIssues')}</p> : <ul className="node-properties__diagnostics">{diagnostics.map((entry, position) => <li key={position}><strong>{diagnosticLabel(entry.code)}</strong>{entry.location.field && <small>{slotLabel(entry.location.field)}</small>}</li>)}</ul>}
+      {mutationError && <p role="alert">{diagnosticLabel(mutationError, t)}</p>}
+      {diagnostics.length === 0 ? <p>{t('details.noIssues')}</p> : <ul className="node-properties__diagnostics">{diagnostics.map((entry, position) => <li key={position}><strong>{diagnosticLabel(entry.code, t)}</strong>{entry.location.field && <small>{slotLabel(entry.location.field, t)}</small>}</li>)}</ul>}
       {context.ok && record && <div className="node-properties__danger"><DeleteAction key={`${selected.kind}:${record.id}`} targetId={record.id} kind={selected.kind} onDelete={selected.kind === 'module' ? onDeleteModule : onDelete} /></div>}
       <ProjectHierarchy project={project} index={index} selected={selected} onSelect={onSelect} t={t} />
       <button

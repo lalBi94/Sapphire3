@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { minimumModuleSize, moduleTypes } from '../../utils/moduleTypes.js'
 import { isEmbeddedImage } from '../../utils/embeddedImage.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
-import { useTranslation } from '../../i18n.jsx'
+import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './CanvasModule.css'
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
@@ -45,7 +45,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
   }, [fitRequest, children, module.id, module.width, module.height, onResize])
 
   const definition = moduleTypes[module.type]
-  const name = module.name || definition.label
+  const name = module.name || t(definition.labelKey)
 
   // Ouvre un brouillon de titre sans modifier le nom tant qu'il n'est pas validé.
   function handleRenameStart() {
@@ -253,7 +253,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
             <input
               ref={nameInputRef}
               className="canvas-module__name-input"
-              aria-label={`${definition.label} name`}
+              aria-label={t('canvas.name', { kind: t(definition.labelKey) })}
               value={draftName}
               onChange={(event) => setDraftName(event.target.value)}
               onBlur={handleRenameCommit}
@@ -264,8 +264,8 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
               ref={titleRef}
               type="button"
               className="canvas-module__move"
-              aria-label={`Move ${name}`}
-              title={definition.renamable ? 'Drag to move. Double-click or press F2 to rename.' : 'Drag to move. Use the arrow keys to adjust.'}
+              aria-label={t('canvas.move', { name })}
+              title={t(definition.renamable ? 'canvas.renameHint' : 'canvas.moveHint')}
               onDoubleClick={handleRenameStart}
               onPointerDown={handleMoveStart}
               onPointerMove={handleMove}
@@ -283,7 +283,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
       {definition.hasText ? (
         <textarea
           className="canvas-module__comment"
-          aria-label={`${name} text`}
+          aria-label={t('canvas.text', { name })}
           placeholder={t('canvas.notePlaceholder')}
           value={module.text ?? ''}
           onChange={(event) => onTextChange(module.id, event.target.value)}
@@ -317,8 +317,8 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
       <button
         className="canvas-module__resize"
         type="button"
-        aria-label={`Resize ${name}`}
-        title="Drag to resize. Use the arrow keys to adjust."
+        aria-label={t('canvas.resize', { name })}
+        title={t('canvas.resizeHint')}
         onPointerDown={handleResizeStart}
         onPointerMove={handleResizeMove}
         onPointerUp={handleResizeEnd}

@@ -1,9 +1,16 @@
+import { translate } from '../utils/translations.js'
+
 let clientPromise
 const maximumFileSize = 20 * 1024 * 1024
 
+// Transporte un code et ses paramètres sans lier les accès natifs à React ou à une langue globale.
+function fileError(code, values = {}) {
+  return Object.assign(new Error(code), { code, values })
+}
+
 // Initialise uniquement le client natif local, au premier accès depuis la fenêtre desktop.
 async function getClient() {
-  if (typeof window.NL_TOKEN !== 'string' || !window.NL_PORT) throw new Error('File dialogs are available in the Sapphire desktop app. Open the desktop app to import or export.')
+  if (typeof window === 'undefined' || typeof window.NL_TOKEN !== 'string' || !window.NL_PORT) throw fileError('DESKTOP_REQUIRED')
   if (!clientPromise) {
     clientPromise = import('@neutralinojs/lib').then((client) => {
       client.init()
@@ -14,55 +21,55 @@ async function getClient() {
 }
 
 // Enregistre un texte au chemin choisi, avec extension garantie et confirmation d'écrasement.
-export async function exportWorkspaceFile(extension, text) {
-  if (!['sp3', 'json'].includes(extension)) throw new Error('Unsupported export format.')
-  if (new TextEncoder().encode(text).length > maximumFileSize) throw new Error('The workspace is larger than the supported 20 MB file size.')
+export async function exportWorkspaceFile(extension, text, language = 'en') {
+  if (!['sp3', 'json'].includes(extension)) throw fileError('EXPORT_FORMAT_INVALID')
+  if (new TextEncoder().encode(text).length > maximumFileSize) throw fileError('FILE_TOO_LARGE')
   const { os, filesystem } = await getClient()
-  let path = await os.showSaveDialog('Export workspace', { defaultPath: `workspace.${extension}`, filters: [{ name: extension === 'sp3' ? 'Sapphire 3 workspace' : 'JSON workspace', extensions: [extension] }] })
+  let path = await os.showSaveDialog(translate(language, 'files.exportTitle'), { defaultPath: `workspace.${extension}`, filters: [{ name: translate(language, extension === 'sp3' ? 'files.sp3Filter' : 'files.jsonFilter'), extensions: [extension] }] })
   if (!path) return null
   if (!path.toLowerCase().endsWith(`.${extension}`)) path += `.${extension}`
   let exists = false
   try {
     const info = await filesystem.getStats(path)
-    if (info.isDirectory) throw new Error('Please choose a file, not a folder.')
+    if (info.isDirectory) throw fileError('FILE_REQUIRED')
     exists = true
   } catch (error) {
     if (error.code !== 'NE_FS_NOPATHE') throw error
   }
-  if (exists && await os.showMessageBox('Replace file?', 'The selected file already exists. Replace it?', 'YES_NO', 'WARNING') !== 'YES') return null
+  if (exists && await os.showMessageBox(translate(language, 'files.replaceTitle'), translate(language, 'files.replaceBody'), 'YES_NO', 'WARNING') !== 'YES') return null
   return writeWorkspaceFile(path, text, { filesystem, extension })
 }
 
 // Ecrit directement un workspace déjà associé à un chemin connu.
 export async function writeWorkspaceFile(path, text, client = null) {
   const extension = client?.extension || 'sp3'
-  if (typeof path !== 'string' || !path.toLowerCase().endsWith(`.${extension}`)) throw new Error(`Only .${extension} workspaces can be saved.`)
-  if (new TextEncoder().encode(text).length > maximumFileSize) throw new Error('The workspace is larger than the supported 20 MB file size.')
+  if (typeof path !== 'string' || !path.toLowerCase().endsWith(`.${extension}`)) throw fileError('FILE_EXTENSION_INVALID', { extension })
+  if (new TextEncoder().encode(text).length > maximumFileSize) throw fileError('FILE_TOO_LARGE')
   const { filesystem } = client || await getClient()
   await filesystem.writeFile(path, text)
   return path
 }
 
 // Ne lit que le fichier choisi avec les extensions autorisees ; une annulation ne modifie pas le document.
-export async function importWorkspaceFile(extensions = ['sp3', 'json']) {
+export async function importWorkspaceFile(extensions = ['sp3', 'json'], language = 'en') {
   const { os, filesystem } = await getClient()
   const filters = extensions.includes('json')
-    ? [{ name: 'Sapphire 3 / JSON', extensions }]
-    : [{ name: 'Sapphire 3 workspace', extensions }]
-  const paths = await os.showOpenDialog('Open workspace', { multiSelections: false, filters })
+    ? [{ name: translate(language, 'files.combinedFilter'), extensions }]
+    : [{ name: translate(language, 'files.sp3Filter'), extensions }]
+  const paths = await os.showOpenDialog(translate(language, 'files.openTitle'), { multiSelections: false, filters })
   if (!paths.length) return null
   const path = paths[0]
-  if (!new RegExp(`\\.(${extensions.join('|')})$`, 'i').test(path)) throw new Error(`Please choose a .${extensions[0]} file.`)
+  if (!new RegExp(`\\.(${extensions.join('|')})$`, 'i').test(path)) throw fileError('FILE_EXTENSION_INVALID', { extension: extensions[0] })
   const info = await filesystem.getStats(path)
-  if (!info.isFile || info.size > maximumFileSize) throw new Error('Please choose a workspace file smaller than 20 MB.')
+  if (!info.isFile || info.size > maximumFileSize) throw fileError('FILE_INVALID')
   return { path, text: await filesystem.readFile(path) }
 }
 
 // Relit un fichier recent connu sans afficher un second dialogue de sélection.
 export async function readWorkspaceFile(path, extension = 'sp3') {
-  if (typeof path !== 'string' || !path.toLowerCase().endsWith(`.${extension}`)) throw new Error(`Please choose a .${extension} file.`)
+  if (typeof path !== 'string' || !path.toLowerCase().endsWith(`.${extension}`)) throw fileError('FILE_EXTENSION_INVALID', { extension })
   const { filesystem } = await getClient()
   const info = await filesystem.getStats(path)
-  if (!info.isFile || info.size > maximumFileSize) throw new Error('Please choose a workspace file smaller than 20 MB.')
+  if (!info.isFile || info.size > maximumFileSize) throw fileError('FILE_INVALID')
   return { path, text: await filesystem.readFile(path) }
 }

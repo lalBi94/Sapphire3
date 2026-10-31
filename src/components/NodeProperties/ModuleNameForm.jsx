@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useTranslation } from '../../i18n.jsx'
+import { useTranslation } from '../../contexts/LanguageContext.jsx'
 
 // Édite le nom d'un module sans transformer son identité ou ses racines.
 export default function ModuleNameForm({ module, onRename }) {

@@ -11,7 +11,7 @@ import NodeProperties from '../NodeProperties/NodeProperties.jsx'
 import { moduleTypes } from '../../utils/moduleTypes.js'
 import ProjectNavigation from '../ProjectNavigation/ProjectNavigation.jsx'
 import useWorkspaceFiles from '../../hooks/useWorkspaceFiles.jsx'
-import { useTranslation } from '../../i18n.jsx'
+import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { simulateProgram } from '../../utils/logic/index.js'
 import SimulationPanel from '../SimulationPanel/SimulationPanel.jsx'
 import './Canvas.css'
@@ -128,7 +128,7 @@ export default function Canvas() {
   // Crée une carte et, sauf pour Comment, son module source de même identifiant.
   function handleCreateModule(type) {
     if (!contextMenu) return
-    document.createCard(type, { x: contextMenu.worldX, y: contextMenu.worldY })
+    document.createCard(type, { x: contextMenu.worldX, y: contextMenu.worldY }, t(moduleTypes[type].labelKey))
     handleCloseMenu(true)
   }
 

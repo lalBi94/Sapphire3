@@ -1,120 +1,58 @@
-import { getCurrentLanguage, translateError } from '../../i18n.jsx'
+import { failureLabel, translations } from '../../utils/translations.js'
 
 // Présente les discriminants du langage sans dupliquer son catalogue de constructions.
-export function kindLabel(kind) {
-  const labels = {
-    FunctionDeclaration: 'Function',
-    VariableDeclaration: 'Variable',
-    ConstantDeclaration: 'Constant',
-    Parameter: 'Input',
-    BinaryExpression: 'Operation',
-    UnaryExpression: 'Operation',
-    Literal: 'Value',
-    Reference: 'Use a value',
-    CallExpression: 'Function call',
-    IfStatement: 'If',
-    WhileStatement: 'While loop',
-    ForStatement: 'For loop',
-    ReturnStatement: 'Return',
-    PrintStatement: 'Print',
-    AssignmentStatement: 'Change a value',
-    Block: 'Steps',
-    CastExpression: 'Convert a value',
-    TypeDeclaration: 'Type',
-  }
-  const french = {
-    FunctionDeclaration: 'Fonction', VariableDeclaration: 'Variable', ConstantDeclaration: 'Constante', Parameter: 'Entrée',
-    BinaryExpression: 'Opération', UnaryExpression: 'Opération', Literal: 'Valeur', Reference: 'Utiliser une valeur',
-    CallExpression: 'Appel de fonction', IfStatement: 'Si', WhileStatement: 'Boucle tant que', ForStatement: 'Boucle pour',
-    ReturnStatement: 'Retour', PrintStatement: 'Afficher', AssignmentStatement: 'Modifier une valeur', Block: 'Étapes', CastExpression: 'Convertir une valeur', TypeDeclaration: 'Type',
-  }
-  return (getCurrentLanguage() === 'fr' ? french[kind] : labels[kind]) ?? kind.replace(/([a-z])([A-Z])/g, '$1 $2')
+export function kindLabel(kind, t) {
+  return Object.hasOwn(translations.en, `kind.${kind}`) ? t(`kind.${kind}`) : t('labels.unknownKind', { kind })
 }
 
 // Remplace les noms internes des emplacements par des mots utiles dans l'interface.
-export function slotLabel(slot) {
-  const labels = {
-    rootNodeIds: 'Blocks',
-    parameters: 'Inputs',
-    initializer: 'Starting value',
-    condition: 'Condition',
-    test: 'Condition',
-    consequent: 'Then',
-    alternate: 'Otherwise',
-    body: 'Inside',
-    statements: 'Steps',
-    argument: 'Value',
-    value: 'Value',
-    arguments: 'Inputs',
-    operand: 'Value',
-    left: 'Left value',
-    right: 'Right value',
-    target: 'Value to change',
-    callee: 'Function',
-  }
-  const french = {
-    rootNodeIds: 'Blocs', parameters: 'Entrées', initializer: 'Valeur de départ', condition: 'Condition', test: 'Condition',
-    consequent: 'Alors', alternate: 'Sinon', body: 'Dans', statements: 'Étapes', argument: 'Valeur', arguments: 'Entrées',
-    operand: 'Valeur', value: 'Valeur', left: 'Valeur de gauche', right: 'Valeur de droite', target: 'Valeur à modifier', callee: 'Fonction',
-  }
-  return (getCurrentLanguage() === 'fr' ? french[slot] : labels[slot]) ?? slot.replace(/([a-z])([A-Z])/g, '$1 $2')
+export function slotLabel(slot, t) {
+  const field = slot.replace(/^children\./, '').replace(/\[\d+\].*$/, '')
+  if (Object.hasOwn(translations.en, `slot.${field}`)) return t(`slot.${field}`)
+  const property = field.replace(/^(properties|references)\./, '').split('.')[0]
+  return Object.hasOwn(translations.en, `field.${property}`) ? t(`field.${property}`) : t('labels.field', { field: slot })
 }
 
 // Traduit les codes du moteur en messages courts adaptés à l'interface.
-export function diagnosticLabel(code) {
-  const labels = {
-    SOURCE_INVALID: 'This program cannot be saved yet.',
-    DRAFT_INVALID: 'This change would make the program invalid.',
-    NODE_NOT_FOUND: 'This block no longer exists.',
-    MODULE_INVALID: 'This module is not valid.',
-    ENTRY_POINT_DUPLICATE: 'Only one function can start the program.',
-    ENTRY_POINT_INVALID: 'Only a function can start the program.',
-    REFERENCE_UNRESOLVED: 'This name cannot be found.',
-    DECLARATION_CONFLICT: 'This name is already used.',
-    TYPE_MISMATCH: 'This type does not fit here.',
-    TYPE_REQUIRED: 'Choose a type.',
-    TYPE_INVALID: 'This type is not valid here.',
-    EXPRESSION_UNTYPED: 'This value needs a type.',
-    NODE_INCOMPLETE: 'Something is missing.',
-    LITERAL_INVALID: 'This value is not valid.',
-    NUMERIC_OVERFLOW: 'This number is too large.',
-    NUMERIC_UNDERFLOW: 'This number is too small.',
-    DIVISION_BY_ZERO: 'A value cannot be divided by zero.',
-    RETURN_MISSING: 'This function needs a return value.',
-    PLACEMENT_ILLEGAL: 'This block cannot go here.',
-  }
-  return labels[code] ?? translateError(code)
+export function diagnosticLabel(code, t) {
+  return failureLabel({ code }, t)
 }
 
 // Affiche seulement une information de type déjà résolue, jamais un type de remplacement.
-export function typeLabel(type) {
+export function typeLabel(type, t) {
   if (type?.kind === 'primitive') return type.name
-  if (type?.kind === 'function') return `(${type.parameters.map(typeLabel).join(', ')}) → ${typeLabel(type.returnType)}`
-  return 'Type not set'
+  if (type?.kind === 'function') return `(${type.parameters.map((parameter) => typeLabel(parameter, t)).join(', ')}) → ${typeLabel(type.returnType, t)}`
+  return t('labels.typeUnset')
 }
 
 // Résume une seule ligne de données utiles, sans reconstruire l'AST ni inventer de valeur.
-export function nodeSummary(node, index, schema) {
+export function nodeSummary(node, index, schema, t) {
   const type = index.nodeTypes.get(node.id)
   const parts = []
   const targetName = (referenceNodeId) => {
     const reference = index.references?.get(referenceNodeId)
     const symbol = reference?.symbolId ? index.symbols?.get(reference.symbolId) : null
-    return symbol?.name ?? 'Not found'
+    return symbol?.name ?? t('labels.notFound')
   }
   const valueText = (value) => String(value).replace(/\s+/g, ' ')
 
-  if (node.kind === 'Literal') parts.push(Object.hasOwn(node.properties ?? {}, 'value') ? valueText(node.properties.value) : 'Value missing')
-  if (['BinaryExpression', 'UnaryExpression'].includes(node.kind)) parts.push(node.properties?.operator || 'Operation missing')
+  if (node.kind === 'Literal') parts.push(Object.hasOwn(node.properties ?? {}, 'value') ? valueText(node.properties.value) : t('labels.valueMissing'))
+  if (['BinaryExpression', 'UnaryExpression'].includes(node.kind)) parts.push(node.properties?.operator || t('labels.operationMissing'))
   if (node.kind === 'Reference') parts.push(targetName(node.id))
-  if (node.kind === 'CallExpression') parts.push(node.children?.callee ? targetName(node.children.callee) : 'Function missing')
-  if (node.kind === 'AssignmentStatement') parts.push(node.children?.target ? targetName(node.children.target) : 'Target missing')
-  if (node.kind === 'Block') parts.push(`${Array.isArray(node.children?.statements) ? node.children.statements.length : 0} steps`)
-  if (node.kind === 'ReturnStatement') parts.push(node.children?.argument ? 'with value' : 'no value')
-  if (node.kind === 'PrintStatement') parts.push(node.children?.value ? 'value' : 'Value missing')
-  if (node.kind === 'FunctionDeclaration' && !type) parts.push(`${Array.isArray(node.children?.parameters) ? node.children.parameters.length : 0} inputs`)
+  if (node.kind === 'CallExpression') parts.push(node.children?.callee ? targetName(node.children.callee) : t('labels.functionMissing'))
+  if (node.kind === 'AssignmentStatement') parts.push(node.children?.target ? targetName(node.children.target) : t('labels.targetMissing'))
+  if (node.kind === 'Block') {
+    const count = Array.isArray(node.children?.statements) ? node.children.statements.length : 0
+    parts.push(t(count === 1 ? 'labels.step' : 'labels.steps', { count }))
+  }
+  if (node.kind === 'ReturnStatement') parts.push(t(node.children?.argument ? 'labels.withValue' : 'labels.noValue'))
+  if (node.kind === 'PrintStatement') parts.push(t(node.children?.value ? 'labels.value' : 'labels.valueMissing'))
+  if (node.kind === 'FunctionDeclaration' && !type) {
+    const count = Array.isArray(node.children?.parameters) ? node.children.parameters.length : 0
+    parts.push(t(count === 1 ? 'labels.input' : 'labels.inputs', { count }))
+  }
 
   // Les nœuds nommés et les expressions affichent leur type, même absent, pour révéler un problème.
-  if (type || schema?.category === 'expression' || schema?.named) parts.push(typeLabel(type))
+  if (type || schema?.category === 'expression' || schema?.named) parts.push(typeLabel(type, t))
   return parts.join(' · ')
 }

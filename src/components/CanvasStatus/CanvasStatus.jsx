@@ -1,6 +1,6 @@
 import { Crosshair } from 'lucide-react'
 import './CanvasStatus.css'
-import { useTranslation } from '../../i18n.jsx'
+import { useTranslation } from '../../contexts/LanguageContext.jsx'
 
 // Garde les valeurs extrêmes lisibles sans afficher de faux zéros.
 function formatValue(value, maximumFractionDigits = 1) {
@@ -17,7 +17,7 @@ export default function CanvasStatus({ camera, zoom, onRecenter }) {
   return (
     <aside
       className="canvas-status"
-      aria-label="Canvas view"
+      aria-label={t('canvas.view')}
       onPointerDown={(event) => event.stopPropagation()}
       onKeyDown={(event) => event.stopPropagation()}
     >
@@ -25,7 +25,7 @@ export default function CanvasStatus({ camera, zoom, onRecenter }) {
         <span>X <output>{formatValue(camera.x)}</output></span>
         <span>Y <output>{formatValue(camera.y)}</output></span>
       </span>
-      <span className="canvas-status__zoom" aria-label="Zoom">
+      <span className="canvas-status__zoom" aria-label={t('nav.zoom')}>
         {formatValue(zoom * 100)} %
       </span>
       <button type="button" onClick={onRecenter} title={t('canvas.center')} aria-label={t('canvas.center')}>
