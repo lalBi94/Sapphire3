@@ -111,9 +111,9 @@ export default function useCanvasPan() {
     })
   }
 
-  // Replace le milieu de la vue sur l'origine sans modifier le zoom choisi.
+  // Replace le milieu de la vue sur l'origine et restaure l'échelle réelle.
   function handleRecenter() {
-    setCamera((current) => ({ ...current, x: 0, y: 0 }))
+    setCamera((current) => ({ ...current, x: 0, y: 0, zoomLevel: 0 }))
     canvasRef.current.focus({ preventScroll: true })
   }
 
