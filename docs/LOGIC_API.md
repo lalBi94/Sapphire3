@@ -152,7 +152,7 @@ La simulation écrit uniquement dans un résultat mémoire `{ok, output, trace, 
 
 Forme : `{code, severity, message, location:{projectId, moduleId, nodeId, field}}`. Les identifiants inapplicables valent `null`. Les messages techniques sont en français ; une future UI anglaise pourra localiser les codes sans parser ces messages.
 
-Un lien syntaxique manquant devient un `Hole` ; un cycle, parent multiple, lien étranger ou identifiant absent produit un `Invalid`. La source complète est toujours conservée dans le résultat, y compris les enregistrements dupliqués ou malformés qui ne peuvent pas devenir des nœuds AST. Les fragments non rattachés sont présents dans `detachedNodes`, les propriétaires absents dans `unassignedNodes`. Tous ces défauts bloquent `canGenerate`, mais pas l'inspection. Ce booléen n'est pas une garantie d'exécutabilité et aucun générateur n'est implémenté.
+Un lien syntaxique manquant devient un `Hole` ; un cycle, parent multiple, lien étranger ou identifiant absent produit un `Invalid`. La source complète est toujours conservée dans le résultat, y compris les enregistrements dupliqués ou malformés qui ne peuvent pas devenir des nœuds AST. Les fragments non rattachés sont présents dans `detachedNodes`, les propriétaires absents dans `unassignedNodes`. Tous ces défauts bloquent `canGenerate`, mais pas l'inspection. Ce booléen n'est pas une garantie d'exécutabilité.
 
 Limites de sécurité : profondeur syntaxique et de dépendances de types autour de 200 niveaux, avec diagnostic plutôt qu'un débordement de pile ; sérialisation JSON également bornée à 200 niveaux. Proxies hostiles, accesseurs arbitraires pendant l'analyse et quotas globaux mémoire/temps ne font pas partie du contrat de données JSON. La sérialisation refuse les accesseurs sans les appeler.
 
@@ -213,6 +213,12 @@ La simulation locale consomme l'analyse validée et les identifiants source. Sug
 Les littéraux, calculs et conversions réutilisent les contrôles de `numericConstants.js` : division entière tronquée, division flottante préservée, arrondi binaire32 à chaque opération, dépassement/sous-flux et division par zéro refusés. `and`/`or` court-circuitent. Une variable sans initialiseur ne reçoit aucune valeur implicite et sa lecture échoue. Les alias de types ne sont pas exécutés. Les appels ont leur environnement propre relié aux variables globales, jamais à celui de l'appelant ; blocs et boucles recréent leurs variables locales.
 
 Le budget accepte un entier de 1 à 100 000 ; même un `for` sans condition ni corps consomme ce budget. La profondeur d'appel est bornée à 200 avant débordement de pile. L'initialisation globale suit l'ordre source des modules et racines ; pas de tri automatique des dépendances. Sorties et trace restent en mémoire ; aucun input, fichier, réseau, génération de code ou effet natif depuis le moteur. L'animation UI est une relecture de cette trace calculée, pas une exécution asynchrone ni un débogueur.
+
+## Transpilation
+
+`transpileProgram(project, {target: 'javascript'})` réutilise `analyzeProgram()` puis délègue la génération à un backend enregistré. La première cible est JavaScript, produite dans un fichier unique sans `import` ni `export`. Les déclarations de modules et de fonctions sont écrites avant `main()`, l'initialisation globale est exécutée dans `main()`, puis le point d'entrée Sapphire marqué `properties.entryPoint: true` est appelé. Le backend exige exactement un point d'entrée et renvoie des diagnostics stables sans modifier la source.
+
+Le backend JavaScript couvre le sous-ensemble des constructions du schéma logique déjà prises en charge par la simulation : déclarations, fonctions, paramètres, blocs, retours, affichage via `console.log`, conditions, boucles, affectations, appels, opérateurs, littéraux, références et conversions numériques explicites. Les noms générés sont déterministes et désambiguïsés dans le fichier unique. Les tableaux ne font pas partie de cette première version et produisent un diagnostic lorsqu'ils seront ajoutés au modèle.
 
 ## Debug SP3 et accessibilité
 

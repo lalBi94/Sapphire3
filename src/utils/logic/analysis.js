@@ -11,7 +11,7 @@ export function analyzeProgram(source) {
   const diagnostics = [...built.diagnostics, ...semantic.diagnostics, ...typed.diagnostics]
   return {
     source, ast: built.ast,
-    semantic: { ...semantic.model, symbols: typed.symbols, nodeTypes: typed.nodeTypes, untypedNodeIds: typed.untypedNodeIds },
+    semantic: { ...semantic.model, symbols: typed.symbols, nodeTypes: typed.nodeTypes, untypedNodeIds: typed.untypedNodeIds, index: semantic.index },
     diagnostics, canGenerate: !hasBlockingDiagnostics(diagnostics),
   }
 }

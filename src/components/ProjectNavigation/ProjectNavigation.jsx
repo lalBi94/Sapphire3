@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Bug, Check, ChevronDown, Clock3, Download, FolderOpen, Palette, Play, Save, Upload, X } from 'lucide-react'
+import { Bug, Check, ChevronDown, Clock3, Code2, Download, FolderOpen, Palette, Play, Save, Upload, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { useTheme } from '../../contexts/ThemeContext.jsx'
 import './ProjectNavigation.css'
@@ -22,7 +22,7 @@ function ImportConfirmation({ path, onConfirm, onCancel }) {
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, message, error, pendingImport, recentFiles, onSave, onSaveAs, onOpenSp3, onOpenRecent, onImport, onConfirmImport, onCancelImport, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hasSelection, onOpenSelectionMenu, onRunSimulation, onDebugSp3 }) {
+export default function ProjectNavigation({ busy, message, error, pendingImport, recentFiles, onSave, onSaveAs, onOpenSp3, onOpenRecent, onImport, onConfirmImport, onCancelImport, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hasSelection, onOpenSelectionMenu, onRunSimulation, onDebugSp3, onTranspile }) {
   const navigationRef = useRef(null)
   const { language, setLanguage, t } = useTranslation()
   const { theme, themes, setTheme } = useTheme()
@@ -144,6 +144,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
         </div>
       </details>
       <div className="project-navigation__run-controls">
+        <button type="button" title={t('transpile.open')} onClick={() => { closeMenus(); onTranspile() }}><Code2 size={13} aria-hidden="true" />{t('transpile.button')}</button>
         <button type="button" className="project-navigation__run" title={t('run.simulateSp3')} onClick={() => handleRun()}><Play size={13} fill="currentColor" aria-hidden="true" />{t('nav.run')}</button>
         <details name="workspace-menu" onToggle={handleToggle}>
           <summary className="project-navigation__run-toggle" aria-label={t('run.actions')} title={t('run.actions')}><ChevronDown size={14} aria-hidden="true" /></summary>

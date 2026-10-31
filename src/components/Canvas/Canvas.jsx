@@ -13,8 +13,11 @@ import ProjectNavigation from '../ProjectNavigation/ProjectNavigation.jsx'
 import useWorkspaceFiles from '../../hooks/useWorkspaceFiles.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { createDebugSession, moveDebugSession, simulateProgram } from '../../utils/logic/index.js'
+import { transpileProgram } from '../../utils/transpilation/index.js'
+import { exportWorkspaceFile } from '../../services/workspaceFiles.js'
 import SimulationPanel from '../SimulationPanel/SimulationPanel.jsx'
 import DebugPanel from '../DebugPanel/DebugPanel.jsx'
+import TranspilePanel from '../TranspilePanel/TranspilePanel.jsx'
 import './Canvas.css'
 
 // Assemble présentation, document source et interactions, sans confondre position et syntaxe.
@@ -27,8 +30,10 @@ export default function Canvas() {
   const [simulationResult, setSimulationResult] = useState(null)
   const [execution, setExecution] = useState(null)
   const [debugSession, setDebugSession] = useState(null)
+  const [transpilationResult, setTranspilationResult] = useState(null)
+  const [transpileExportError, setTranspileExportError] = useState(null)
   const menuTriggerRef = useRef(null)
-  const { t } = useTranslation()
+  const { language, t } = useTranslation()
   const document = useCanvasDocument()
   const selected = selection && (selection.kind === 'module' ? document.index.modules.has(selection.id) : document.index.nodes.has(selection.id)) ? selection : null
   const { camera, zoom, canvasRef, isPanning, handlePointerDown, handlePointerMove, handlePointerEnd, handleKeyDown, handleRecenter, zoomBy, resetZoom, restoreCamera } = useCanvasPan()
@@ -38,6 +43,8 @@ export default function Canvas() {
     setExecution(null)
     setSimulationResult(null)
     setDebugSession(null)
+    setTranspilationResult(null)
+    setTranspileExportError(null)
   }, [document.project])
 
   useEffect(() => {
@@ -174,6 +181,23 @@ export default function Canvas() {
     setDebugSession(createDebugSession(document.project))
   }
 
+  // Génère le JavaScript uniquement après analyse du document courant.
+  function handleTranspile() {
+    setTranspileExportError(null)
+    setTranspilationResult(transpileProgram(document.project, { target: 'javascript' }))
+  }
+
+  // Exporte le résultat déjà affiché sans relancer une analyse différente.
+  async function handleExportTranspilation() {
+    if (!transpilationResult?.ok) return
+    try {
+      setTranspileExportError(null)
+      await exportWorkspaceFile('js', transpilationResult.code, language)
+    } catch (failure) {
+      setTranspileExportError(failure)
+    }
+  }
+
   // Ne change que le curseur de lecture et l'instantané mémoire exposé au débogueur.
   function handleDebugAction(action) {
     const next = moveDebugSession(debugSession, action)
@@ -273,7 +297,7 @@ export default function Canvas() {
       canUndo={document.canUndo} canRedo={document.canRedo} onUndo={document.undo} onRedo={document.redo}
       onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={() => handleRecenter(getModulesBounds())}
       distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)}
-      hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onRunSimulation={handleRunSimulation} onDebugSp3={handleDebugSp3} />
+      hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onRunSimulation={handleRunSimulation} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} />
     <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label={t('canvas.aria')} tabIndex={0}
       onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerEnd} onPointerCancel={handlePointerEnd} onLostPointerCapture={handlePointerEnd} onKeyDown={handleKeyDown} onContextMenu={handleContextMenu}>
       <CanvasGrid camera={camera} zoom={zoom} distorted={distorted} />
@@ -292,6 +316,7 @@ export default function Canvas() {
       <CanvasStatus camera={camera} zoom={zoom} onRecenter={() => handleRecenter(getModulesBounds())} />
       <SimulationPanel result={simulationResult} running={Boolean(execution?.running)} currentStep={execution ? execution.index + 1 : 0} onClose={() => { setSimulationResult(null); setExecution(null) }} />
       {debugSession?.project === document.project && <DebugPanel session={debugSession} index={document.index} onAction={handleDebugAction} onClose={() => setDebugSession(null)} />}
+      <TranspilePanel result={transpilationResult} exportError={transpileExportError} onExport={handleExportTranspilation} onClose={() => { setTranspilationResult(null); setTranspileExportError(null) }} />
       {selected && <NodeProperties key={document.revision} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={handleSelect} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onExport={document.exportFunction} onImport={document.importFunction} onRemoveImport={document.removeImport} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
       {contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} anchored={contextMenu.anchored} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={handleCloseMenu} />
         : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} onCreate={handleCreateModule} onClose={handleCloseMenu} anchored={contextMenu.anchored} commentId={contextMenu.targetId ? { id: contextMenu.targetId.id, type: contextMenu.targetId.kind } : null} onDeleteComment={handleDeleteComment} />)}

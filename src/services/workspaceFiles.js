@@ -22,10 +22,11 @@ async function getClient() {
 
 // Enregistre un texte au chemin choisi, avec extension garantie et confirmation d'écrasement.
 export async function exportWorkspaceFile(extension, text, language = 'en') {
-  if (!['sp3', 'json'].includes(extension)) throw fileError('EXPORT_FORMAT_INVALID')
+  if (!['sp3', 'json', 'js'].includes(extension)) throw fileError('EXPORT_FORMAT_INVALID')
   if (new TextEncoder().encode(text).length > maximumFileSize) throw fileError('FILE_TOO_LARGE')
   const { os, filesystem } = await getClient()
-  let path = await os.showSaveDialog(translate(language, 'files.exportTitle'), { defaultPath: `workspace.${extension}`, filters: [{ name: translate(language, extension === 'sp3' ? 'files.sp3Filter' : 'files.jsonFilter'), extensions: [extension] }] })
+  const filterKey = extension === 'sp3' ? 'files.sp3Filter' : extension === 'json' ? 'files.jsonFilter' : 'files.jsFilter'
+  let path = await os.showSaveDialog(translate(language, 'files.exportTitle'), { defaultPath: `workspace.${extension}`, filters: [{ name: translate(language, filterKey), extensions: [extension] }] })
   if (!path) return null
   if (!path.toLowerCase().endsWith(`.${extension}`)) path += `.${extension}`
   let exists = false

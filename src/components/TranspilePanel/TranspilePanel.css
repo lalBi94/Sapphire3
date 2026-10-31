@@ -1,0 +1,14 @@
+.transpile-panel { position: absolute; right: 16px; top: 16px; z-index: 4; display: flex; flex-direction: column; box-sizing: border-box; width: min(720px, calc(100% - 32px)); height: min(620px, calc(100% - 32px)); min-width: 280px; min-height: 220px; padding: var(--space-panel); border: 1px solid var(--color-border); border-radius: var(--radius-panel); color: var(--color-text); background: var(--surface-reflection), var(--surface-floating); box-shadow: var(--shadow-panel); cursor: default; font-size: 12px; }
+.transpile-panel header { display: flex; align-items: center; gap: var(--space-control); }
+.transpile-panel h2 { flex: 1; margin: 0; font-size: 13px; font-weight: 500; }
+.transpile-panel button { display: inline-flex; align-items: center; gap: 5px; padding: 6px; border: 1px solid var(--color-border); border-radius: var(--radius-small); background: transparent; color: var(--color-text); font: inherit; cursor: pointer; }
+.transpile-panel button:hover:not(:disabled) { background: var(--color-hover); }
+.transpile-panel button:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
+.transpile-panel :is(button):focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.transpile-panel__actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-small); margin: 10px 0; }
+.transpile-panel__actions span { color: var(--color-text-muted); }
+.transpile-panel__diagnostics { max-height: 150px; overflow: auto; padding: 8px; border: 1px solid var(--color-diagnostic); border-radius: var(--radius-small); color: var(--color-diagnostic); }
+.transpile-panel__diagnostics h3 { margin: 0 0 6px; font-size: 12px; }
+.transpile-panel__diagnostics p { margin: 5px 0; overflow-wrap: anywhere; }
+.transpile-panel__error { margin: 0 0 8px; color: var(--color-diagnostic); overflow-wrap: anywhere; }
+.transpile-panel__code { flex: 1 1 auto; min-height: 0; margin: 0; padding: 10px; overflow: auto; border: 1px solid var(--color-border); border-radius: var(--radius-small); background: var(--color-input); color: var(--color-text); white-space: pre; user-select: text; }
