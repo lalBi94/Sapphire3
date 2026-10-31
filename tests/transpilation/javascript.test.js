@@ -228,8 +228,11 @@ test('aperçu : pas de point d’entrée exigé, sous-arbre incomplet refusé, a
 
 test('langages : une seule cible active et quatre langages futurs explicitement indisponibles', () => {
   assert.deepEqual(transpilationLanguages.filter(({ available }) => available).map(({ id }) => id), getTranspilationTargets())
-  assert.deepEqual(transpilationLanguages.filter(({ available }) => !available).map(({ name }) => name), ['Python', 'C', 'C++', 'Java'])
-  for (const target of ['python', 'c', 'cpp', 'java', 'constructor']) {
+  assert.deepEqual(transpilationLanguages.filter(({ available }) => !available).map(({ name }) => name), ['C', 'C++', 'Java'])
+  for (const target of ['c', 'cpp', 'java', 'constructor']) {
     assert.equal(transpileSelection(simpleProgram(), { kind: 'node', id: 'literal' }, { target }).ok, false)
   }
+  // Python est désormais disponible ; un programme valide retourne ok:true.
+  const pyResult = transpileSelection(simpleProgram(), { kind: 'node', id: 'literal' }, { target: 'python' })
+  assert.equal(pyResult.ok, true)
 })

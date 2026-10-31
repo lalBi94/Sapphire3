@@ -17,6 +17,7 @@ import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { diagnosticLabel } from '../LogicTree/logicLabels.js'
 import { createDebugSession, moveDebugSession, simulateProgram } from '../../utils/logic/index.js'
 import { transpileProgram } from '../../utils/transpilation/index.js'
+import { transpilationLanguages } from '../../utils/transpilation/languages.js'
 import { exportWorkspaceFile } from '../../services/workspaceFiles.js'
 import SimulationPanel from '../SimulationPanel/SimulationPanel.jsx'
 import DebugPanel from '../DebugPanel/DebugPanel.jsx'
@@ -207,7 +208,8 @@ export default function Canvas() {
     if (!transpilationResult?.ok) return
     try {
       setTranspileExportError(null)
-      await exportWorkspaceFile('js', transpilationResult.code, language)
+      const target = transpilationLanguages.find((option) => option.id === transpilationResult.target)
+      await exportWorkspaceFile(target.extension, transpilationResult.code, language)
     } catch (failure) {
       setTranspileExportError(failure)
     }

@@ -14,6 +14,6 @@ export default function NodeCodePreview({ project, selected, analysis }) {
       {transpilationLanguages.map((option) => <option key={option.id} value={option.id} disabled={!option.available}>{option.name}{!option.available && ` · ${t('transpile.unavailable')}`}</option>)}
     </select></label>
     <p>{t('transpile.snippetHint')}</p>
-    {result.ok ? <pre tabIndex={0}><code>{result.code || t('transpile.noRuntimeCode')}</code></pre> : <><p>{t('transpile.previewUnavailable')}</p><ul>{result.diagnostics.map((entry, index) => <li key={index}>{diagnosticLabel(entry.code, t)}</li>)}</ul></>}
+    {result.ok ? <pre tabIndex={0}><code>{result.code || t('transpile.noRuntimeCode', { language: transpilationLanguages.find((option) => option.id === target).name })}</code></pre> : <><p>{t('transpile.previewUnavailable')}</p><ul>{result.diagnostics.map((entry, index) => <li key={index}>{diagnosticLabel(entry.code, t)}</li>)}</ul></>}
   </section>
 }

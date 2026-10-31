@@ -1,5 +1,5 @@
 import { createDiagnostic } from '../logic/diagnostics.js'
-import { getNodeSchema } from '../logic/nodeSchema.js'
+import { child, createGenerationContext, generateSelection } from './context.js'
 import { createNumericOperations, validateLiteral } from '../logic/numericConstants.js'
 import { primitiveDefinitions } from '../logic/primitives.js'
 import { diagnosticCodes } from '../logic/diagnostics.js'
@@ -17,72 +17,10 @@ const reservedWords = new Set([
   'try', 'typeof', 'var', 'void', 'while', 'with', 'yield',
 ])
 
-// Transforme un nom Sapphire en identifiant JavaScript sûr et déterministe.
-function identifier(name, fallback = 'value') {
-  const source = typeof name === 'string' ? name : fallback
-  const normalized = source.replace(/[^\w$]/g, '_')
-  const result = /^[A-Za-z_$]/.test(normalized) ? normalized : `_${normalized}`
-  return reservedWords.has(result) ? `_${result}` : result
-}
-
-// Retourne l'enfant AST présent dans un emplacement simple.
-function child(node, name) {
-  const value = node?.children?.[name]
-  return value && !Array.isArray(value) && !['Invalid', 'Hole'].includes(value.kind) ? value : null
-}
-
 // Produit le code JavaScript d'un programme Sapphire déjà analysé.
 export function generateJavaScript(analysis, { selection = null } = {}) {
-  const diagnostics = []
-  const { ast, semantic } = analysis
-  const nodes = semantic.index.nodes
-  const symbolByNode = semantic.index.symbolByNode
-  const referenceSymbols = semantic.index.referenceSymbols
-  const typeByNode = new Map((semantic.nodeTypes ?? []).map(({ nodeId, type }) => [nodeId, type]))
-  const entryPoints = [...nodes.values()].filter((node) => node.kind === 'FunctionDeclaration' && node.properties.entryPoint === true)
-
-  if (!selection) {
-    if (entryPoints.length === 0) diagnostics.push(createDiagnostic('TRANSPILE_ENTRY_POINT_REQUIRED', 'Une fonction point d’entrée est nécessaire pour générer du JavaScript.', { projectId: ast.sourceId }))
-    if (entryPoints.length > 1) diagnostics.push(createDiagnostic('TRANSPILE_ENTRY_POINT_DUPLICATE', 'Une seule fonction point d’entrée est autorisée pour générer du JavaScript.', { projectId: ast.sourceId }))
-    if (entryPoints.length === 1 && entryPoints[0].children.parameters.length > 0) diagnostics.push(createDiagnostic('TRANSPILE_ENTRY_POINT_INPUTS', 'Le point d’entrée ne doit pas demander de paramètres.', entryPoints[0].location))
-  }
-
-  const generatedNames = new Map()
-  const usedNames = new Set(['main', 'sapphireNumeric', 'sapphireChecked', 'sapphireRead', 'sapphireUninitialized', 'console', 'Math', 'Number', 'BigInt', 'Object', 'Error'])
-  const declarations = [...nodes.values()].filter((node) => getNodeSchema(node.kind)?.named)
-  const modules = new Map(ast.modules.map((module) => [module.sourceId, module]))
-
-  // Réserve un nom global unique pour chaque déclaration visible dans le fichier produit.
-  function reserveDeclaration(node) {
-    if (generatedNames.has(node.sourceId)) return generatedNames.get(node.sourceId)
-    const symbol = symbolByNode.get(node.sourceId)
-    const module = modules.get(node.moduleId)
-    const base = node.kind === 'FunctionDeclaration'
-      ? identifier(`${module?.name ?? node.moduleId}_${node.properties.name}`, 'function')
-      : identifier(`${module?.name ?? node.moduleId}_${node.properties.name}`, 'value')
-    let name = base
-    let suffix = 2
-    while (usedNames.has(name)) name = `${base}_${suffix++}`
-    usedNames.add(name)
-    generatedNames.set(node.sourceId, name)
-    if (symbol) generatedNames.set(symbol.id, name)
-    return name
-  }
-
-  declarations.forEach(reserveDeclaration)
-  const entryName = entryPoints.length === 1 ? reserveDeclaration(entryPoints[0]) : null
-
-  // Retourne le nom produit pour une référence sémantiquement résolue.
-  function referenceName(node) {
-    const symbol = referenceSymbols.get(node.sourceId)
-    if (!symbol) {
-      diagnostics.push(createDiagnostic('TRANSPILE_REFERENCE_UNRESOLVED', 'Une référence ne peut pas être générée.', node.location))
-      return 'undefined'
-    }
-    if (generatedNames.has(symbol.id)) return generatedNames.get(symbol.id)
-    const target = nodes.get(symbol.nodeId)
-    return target ? reserveDeclaration(target) : identifier(symbol.name)
-  }
+  const context = createGenerationContext(analysis, { selection, reservedWords, allowDollar: true, runtimeNames: ['sapphireNumeric', 'sapphireChecked', 'sapphireRead', 'sapphireUninitialized', 'console', 'Math', 'Number', 'BigInt', 'Object', 'Error'] })
+  const { ast, diagnostics, typeByNode, generatedNames, reserveDeclaration, referenceName, entryName } = context
 
   // Génère une expression en conservant la structure et les opérateurs de l'AST.
   function expression(node) {
@@ -182,32 +120,8 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
     return `function ${name}(${parameters.join(', ')}) ${body}`
   }
 
-  if (selection) {
-    const selected = selection.kind === 'module' ? modules.get(selection.id) : nodes.get(selection.id)
-    if (!selected) return { ok: false, code: '', diagnostics: [{ code: 'TARGET_MISSING' }] }
-    const subtree = new Set()
-    const pending = selection.kind === 'module' ? [...selected.body] : [selected]
-    while (pending.length > 0) {
-      const node = pending.pop()
-      if (!node || subtree.has(node.sourceId)) continue
-      subtree.add(node.sourceId)
-      pending.push(...Object.values(node.children ?? {}).flat().filter((value) => value && typeof value === 'object'))
-    }
-    const blocking = analysis.diagnostics.filter((entry) => entry.severity === 'error' && (subtree.has(entry.location.nodeId) || (selection.kind === 'module' && entry.location.moduleId === selection.id)))
-    if (blocking.length > 0) return { ok: false, code: '', diagnostics: blocking }
-
-    // Adapte seulement le contexte syntaxique de l'extrait, sans réimplémenter son émission.
-    function snippet(node) {
-      if (node.kind === 'FunctionDeclaration') return functionCode(node)
-      if (node.kind === 'Parameter') return reserveDeclaration(node)
-      if (node.kind === 'TypeDeclaration') return ''
-      if (getNodeSchema(node.kind)?.category === 'expression') return expression(node)
-      return statementCode(node, 0)
-    }
-
-    const code = selection.kind === 'module' ? selected.body.map(snippet).filter(Boolean).join('\n\n') : snippet(selected)
-    return { ok: diagnostics.length === 0, code: diagnostics.length ? '' : code, diagnostics }
-  }
+  const preview = generateSelection(context, { functionCode, statementCode, expression })
+  if (preview) return preview
 
   const functions = []
   const globalDeclarations = []
