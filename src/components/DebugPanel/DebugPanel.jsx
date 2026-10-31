@@ -1,4 +1,4 @@
-import { ArrowRight, CornerUpRight, RotateCcw, X } from 'lucide-react'
+import { ArrowRight, CornerUpRight, RotateCcw, SkipBack, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { failureLabel } from '../../utils/translations.js'
@@ -78,6 +78,7 @@ export default function DebugPanel({ session, index, onAction, onClose }) {
       <h2>{t('debug.title')}</h2><button type="button" onClick={onClose} aria-label={t('debug.close')}><X size={16} aria-hidden="true" /></button>
     </header>
     <div className="debug-panel__controls">
+      <button type="button" disabled={session.cursor === 0 && session.history.length === 0} onClick={() => onAction('restart')} title={t('debug.restartHint')}><SkipBack size={14} aria-hidden="true" />{t('debug.restart')}</button>
       <button type="button" disabled={session.history.length === 0} onClick={() => onAction('back')} title={t('debug.backHint')}><RotateCcw size={14} aria-hidden="true" />{t('debug.back')}</button>
       <button type="button" disabled={finished} onClick={() => onAction('next')} title={t('debug.nextHint')}><ArrowRight size={14} aria-hidden="true" />{t('debug.next')}</button>
       <button type="button" disabled={finished} onClick={() => onAction('scope')} title={t('debug.scopeHint')}><CornerUpRight size={14} aria-hidden="true" />{t('debug.scope')}</button>

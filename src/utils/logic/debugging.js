@@ -13,6 +13,9 @@ export function createDebugSession(project, options = {}) {
 // Avance d'une instruction, termine le scope actif ou restaure exactement le dernier arrêt utilisateur.
 export function moveDebugSession(session, action) {
   if (!session || session.frames.length === 0) return session
+  if (action === 'restart') {
+    return session.cursor === 0 && session.history.length === 0 ? session : { ...session, cursor: 0, history: [] }
+  }
   if (action === 'back') {
     if (session.history.length === 0) return session
     return { ...session, cursor: session.history.at(-1), history: session.history.slice(0, -1) }

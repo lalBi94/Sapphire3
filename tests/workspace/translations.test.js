@@ -52,6 +52,12 @@ test('diagnostics, constructions, emplacements et cartes possèdent des libellé
   }
 })
 
+test('les opérations binaires et unaires restent deux choix distincts', () => {
+  assert.notEqual(translations.fr['expression.binary'], translations.fr['expression.unary'])
+  assert.notEqual(translations.fr['kind.BinaryExpression'], translations.fr['kind.UnaryExpression'])
+  assert.equal(translations.fr['kind.UnaryExpression'], 'Opération sur une valeur')
+})
+
 test('traductions indépendantes : pas de langue globale, interpolation sans réinterpréter les données', () => {
   assert.equal(translate('fr', 'canvas.move', { name: '<b>{name}</b>' }), 'Déplacer <b>{name}</b>')
   assert.equal(translate('en', 'canvas.move', { name: 'Note' }), 'Move Note')

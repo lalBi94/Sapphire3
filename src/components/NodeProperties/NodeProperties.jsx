@@ -4,6 +4,7 @@ import { resolveContext, getNodeSchema } from '../../utils/logic/index.js'
 import { diagnosticLabel, kindLabel, nodeSummary, slotLabel } from '../LogicTree/logicLabels.js'
 import NodeForm from '../NodeForm/NodeForm.jsx'
 import ModuleNameForm from './ModuleNameForm.jsx'
+import ModuleInterface from './ModuleInterface.jsx'
 import DeleteAction from '../DeleteAction/DeleteAction.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './NodeProperties.css'
@@ -57,7 +58,7 @@ function ProjectHierarchy({ project, index, selected, onSelect, t }) {
 }
 
 // Affiche les propriétés du ciblage actuel et les diagnostics dérivés de la dernière mutation.
-export default function NodeProperties({ selected, project, index, onConfigure, onRename, onSelect, onDelete, onDeleteModule, onClose, mutationError }) {
+export default function NodeProperties({ selected, project, index, onConfigure, onRename, onSelect, onDelete, onDeleteModule, onExport, onImport, onRemoveImport, onClose, mutationError }) {
   const { t } = useTranslation()
   const [position, setPosition] = useState(null)
   const [size, setSize] = useState(null)
@@ -218,6 +219,7 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
       </header>
       {!context.ok ? <p>{t('details.missingBlock')}</p> : <>
         {selected.kind === 'module' ? <ModuleNameForm key={`${record.id}:${record.name}`} module={record} onRename={onRename} /> : configurable ? <NodeForm key={`${record.id}:${JSON.stringify([record.properties, record.references])}`} kind={record.kind} initialNode={record} context={context} onSubmit={(patch) => onConfigure(record.id, patch)} /> : <p>{t('details.addParts')}</p>}
+        {selected.kind === 'module' && <ModuleInterface key={record.id} module={record} project={project} analysis={index.analysis} index={index} onExport={onExport} onImport={onImport} onRemoveImport={onRemoveImport} />}
         <h3>{selected.kind === 'module' ? t('details.topBlocks') : t('details.parts')}</h3>
         {(selected.kind === 'module' ? [['rootNodeIds', record.rootNodeIds]] : Object.entries(record.children ?? {})).map(([slot, value]) => <div className="node-properties__children" key={slot}><span>{slotLabel(slot, t)}</span>
           {(Array.isArray(value) ? value : value ? [value] : []).map((id, position) => <button type="button" key={`${id}:${position}`} onClick={() => onSelect({ kind: 'node', id })}>{index.nodes.get(id)?.properties?.name || (index.nodes.get(id) ? kindLabel(index.nodes.get(id).kind, t) : t('details.missingBlock'))}<ChevronRight size={14} strokeWidth={1.75} aria-hidden="true" /></button>)}

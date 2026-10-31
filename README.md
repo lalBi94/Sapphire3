@@ -40,8 +40,9 @@ Le debug travaille sur le workspace courant, avec un panneau mémoire déplaçab
 - **Next / Suivant** exécute l'instruction courante et avance, en entrant dans les fonctions appelées.
 - **Finish scope / Sauter le bloc** exécute normalement jusqu'à la sortie du scope courant, sans ignorer le code.
 - **Back / Précédent** restaure le dernier arrêt choisi, variables et sorties comprises.
+- **Restart / Recommencer** revient au premier arrêt de la même session et oublie l'historique de navigation.
 
-Le panneau montre les globaux, les variables des scopes lexicaux actifs seulement, les fonctions du programme et une analyse conservatrice des nœuds inatteignables. Il ne confond pas une branche non visitée avec une branche impossible. Le nœud courant est surligné sur le canvas, avec dépliage temporaire de ses parents. Les états sont pré-calculés par le simulateur borné, puis parcourus de façon réversible ; ils ne sont ni sauvegardés dans le workspace ni envoyés à un service. Une modification du code ferme la session pour éviter un état périmé. Contrat et limites dans `docs/LOGIC_API.md`.
+Le panneau de propriétés suit automatiquement le bloc exécuté, en simulation comme en debug, sans réinitialiser sa position. Le panneau mémoire montre les globaux, les variables des scopes lexicaux actifs seulement, les fonctions du programme et une analyse conservatrice des nœuds inatteignables. Il ne confond pas une branche non visitée avec une branche impossible. Le nœud courant est surligné sur le canvas, avec dépliage temporaire de ses parents. Les états sont pré-calculés par le simulateur borné, puis parcourus de façon réversible ; ils ne sont ni sauvegardés dans le workspace ni envoyés à un service. Une modification du code ferme la session pour éviter un état périmé. Contrat et limites dans `docs/LOGIC_API.md`.
 
 ### Édition contextuelle
 
@@ -52,6 +53,8 @@ Chaque carte/nœud possède **un seul « + » dans son coin haut droit** : il ou
 Après insertion, le module s'agrandit pour afficher le contenu déplié sans rester limité à sa petite taille initiale. L'ajustement ne réduit jamais les dimensions ; un redimensionnement manuel le suspend jusqu'à la prochaine insertion. Les tailles restent incluses dans l'export workspace.
 
 Chaque insertion est atomique : slot unique occupé jamais remplacé, ordre des listes conservé, identifiants stables, projet réanalysé et insertion rejetée si elle introduit une erreur dure (type incompatible, dépassement de bornes…). Un nœud incomplet reste représentable et éditable, avec ses diagnostics. Les possibilités du menu sont déduites du moteur (`getAvailableActions`). Pas encore de déplacement individuel ni de copier/coller des nœuds logiques.
+
+Un module expose aussi ses échanges de fonctions dans son panneau de propriétés. **Functions shared with other modules** liste ses déclarations de premier niveau et permet de les exporter ou de retirer l'export ; **Functions used from other modules** liste les imports avec leur nom local et permet de les retirer. L'import propose les fonctions des autres modules, accepte un nom local et crée l'export manquant dans le module source. Ces changements restent des modifications de source annulables. Seules les fonctions réellement visibles dans la portée peuvent ensuite être choisies dans « Utiliser une fonction » ; un import retiré laisse ses références visibles avec leur diagnostic.
 
 ### Pliage et suppression
 

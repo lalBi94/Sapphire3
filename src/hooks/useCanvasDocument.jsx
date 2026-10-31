@@ -1,6 +1,6 @@
 import { useReducer } from 'react'
 import { moduleTypes } from '../utils/moduleTypes.js'
-import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule } from '../utils/logic/index.js'
+import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, setModuleExport, addModuleImport, removeModuleImport } from '../utils/logic/index.js'
 import { initialDocument, reduceHistory } from '../utils/canvasDocument.js'
 
 // Expose les éditions de document ; sélection et navigation restent dans les composants UI.
@@ -68,6 +68,28 @@ export default function useCanvasDocument() {
     return prepared
   }
 
+  // Publie ou retire une fonction de l'interface du module, sans modifier sa déclaration.
+  function exportFunction(moduleId, nodeId, exported) {
+    const prepared = setModuleExport(document.project, moduleId, nodeId, exported)
+    if (prepared.ok) dispatch({ type: 'moduleExport', previousProject: document.project, prepared, moduleId, nodeId, exported })
+    return prepared
+  }
+
+  // Lie une fonction d'un autre module sous un nom local stable.
+  function importFunction(moduleId, candidate, localName) {
+    const entry = { id: crypto.randomUUID(), targetModuleId: candidate.moduleId, nodeId: candidate.nodeId, localName }
+    const prepared = addModuleImport(document.project, moduleId, entry)
+    if (prepared.ok) dispatch({ type: 'moduleImport', previousProject: document.project, prepared, moduleId, entry })
+    return prepared
+  }
+
+  // Supprime la liaison d'import ; les références restantes signalent leur diagnostic.
+  function removeImport(moduleId, importId) {
+    const prepared = removeModuleImport(document.project, moduleId, importId)
+    if (prepared.ok) dispatch({ type: 'moduleImportRemove', previousProject: document.project, prepared, moduleId, importId })
+    return prepared
+  }
+
   // Retire uniquement l'annotation visuelle, sans toucher à la source ni réanalyser le programme.
   function deleteComment(id) {
     if (!document.cards.some((card) => card.id === id && ['comment', 'image'].includes(card.type))) return { ok: false, code: 'TARGET_INVALID' }
@@ -95,5 +117,5 @@ export default function useCanvasDocument() {
     dispatch({ type: 'redo' })
   }
 
-  return { ...document, createCard, updateGeometry, renameCard, updateComment, updateImage, insertNode, configureNode, deleteNode, deleteModule, deleteComment, setExpandedNodes, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
+  return { ...document, createCard, updateGeometry, renameCard, updateComment, updateImage, insertNode, configureNode, deleteNode, deleteModule, deleteComment, exportFunction, importFunction, removeImport, setExpandedNodes, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
 }

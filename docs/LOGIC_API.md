@@ -26,6 +26,12 @@ Point d'entrée : `src/utils/logic/index.js`. JavaScript pur, sans React, DOM, A
 | `updateSourceNode(project, nodeId, {properties?, references?})` | Édition des propriétés seules, enfants et identifiants conservés |
 | `deleteSourceNodes(project, targetId, {index})` | `{ok, project, analysis, index, removedNodeIds, selection}` ou code d'échec ; retrait du nœud et de son sous-arbre |
 | `deleteSourceModule(project, moduleId)` | Retrait atomique du module et de tous les nœuds dont il est propriétaire, y compris détachés ; réanalyse et `selection: null`. Références/imports externes conservés et diagnostiqués ; cible absente ou ambiguë refusée. |
+| `getModuleRootSymbols(project, moduleId, analysis?)` | Symboles déclarés à la racine du module, hors imports |
+| `getModuleFunctions(project, moduleId, analysis?)` | Fonctions de premier niveau exportables de ce module |
+| `getImportCandidates(project, moduleId, analysis?)` | Fonctions des autres modules qui ne sont pas encore importées ici |
+| `setModuleExport(project, moduleId, nodeId, exported)` | Ajoute ou retire un export de fonction racine ; refus `EXPORT_IN_USE` si un autre module l'importe encore |
+| `addModuleImport(project, moduleId, {id, targetModuleId, nodeId, localName})` | Ajoute un import stable ; crée l'export manquant dans le module source. Refuse cible non fonction, doublon et nom local déjà pris |
+| `removeModuleImport(project, moduleId, importId)` | Retire uniquement la liaison d'import ; déclaration et références restantes conservées |
 
 `diagnosticCodes`, `sourceFormatVersion`, `moduleKinds`, `nodeSchema`, `getNodeSchema`, `binaryOperators`, `unaryOperators`, `primitiveDefinitions`, `primitiveType(name)`, `sameType` et `acceptsOperand` sont également exportés. `primitiveType` renvoie uniquement un primitif autorisé, ou `null` comme absence de résultat. Aucun type de secours n'existe. La catégorie Module est définie dans `model.js` et réutilisée par les libellés visuels ; les cartes Module partagent l'identifiant de leur module source, tandis que les annotations Comment restent hors du moteur. Les contrats JSDoc sont dans `model.js`, `ast.js`, `semantics.js`, `diagnostics.js`, `contextResolver.js` et `sourceMutation.js` ; aucun TypeScript ajouté.
 
@@ -221,6 +227,7 @@ L'analyse est conservatrice : pas de preuve générale sur les valeurs des varia
 - `next` : exécute l'instruction logique courante et s'arrête à la suivante ; entre dans les appels. Les conditions de boucle sont de nouveaux arrêts à chaque évaluation. Les sous-expressions scalaires ne sont pas des « lignes » séparées.
 - `scope` : exécute normalement jusqu'à la sortie de l'activation du scope courant, appels et boucles imbriqués compris. Pendant l'initialisation globale sans scope local, s'arrête à la première entrée de fonction. N'ignore aucune instruction. Si une erreur interrompt le scope, s'arrête sur cette erreur.
 - `back` : restaure exactement le précédent arrêt choisi par l'utilisateur, y compris avant une sortie de scope groupée, avec ses valeurs et sorties. Ce n'est pas l'undo du document.
+- `restart` : revient au premier arrêt de la session et vide l'historique de navigation. Sans effet si la session est déjà à ce premier arrêt sans historique.
 
 Chaque frame contient `nodeId`, `status` (`paused`, `completed`, `error`), `errorCode`, `scopeIds`, `callStack`, `globals`, `localScopes` et `output`. Un arrêt `paused` précède l'instruction indiquée. Chaque variable expose `nodeId`, `moduleId`, `name`, `type`, `initialized` et, si initialisée, sa valeur scalaire ; les entiers internes BigInt sont convertis exactement dans les bornes des types source. Le zéro signé flottant est conservé. Une variable sans initialiseur n'a pas de valeur inventée.
 
@@ -228,7 +235,7 @@ Les scopes portent un identifiant d'activation distinct du nœud source : récur
 
 `simulateProgram(project, {captureDebug:true})` fournit ces captures dans `debugFrames` ; l'option est utilisée par `createDebugSession`. Sans cette option, son contrat de résultat et sa trace habituelle restent inchangés. Le budget d'exécution et la profondeur d'appel restent ceux de la simulation. La rétention est en outre bornée à 200 000 entrées d'instantanés (variables, scopes, références de sorties et arrêts cumulés), puis produit `DEBUG_HISTORY_LIMIT` et un unique état terminal. Les états déjà enregistrés restent réversibles. Les chaînes sont immuables, les Map runtime ne sont jamais exposées dans les snapshots.
 
-L'UI ferme le debug dès une modification de source, un undo/redo source ou un import ; les changements purement visuels ne l'invalident pas. Mémoire, trace, historique de debug, position et dimensions du panneau ne sont pas enregistrés dans le workspace. Le dépliage d'exécution reste temporaire. La future vue graphique compacte reste seulement annoncée par deux actions désactivées.
+L'UI ferme le debug dès une modification de source, un undo/redo source ou un import ; les changements purement visuels ne l'invalident pas. Mémoire, trace, historique de debug, position et dimensions du panneau ne sont pas enregistrés dans le workspace. Le dépliage d'exécution reste temporaire. Le panneau de propriétés suit le bloc exécuté pendant la simulation et le debug, sans changer sa position. La future vue graphique compacte reste seulement annoncée par deux actions désactivées.
 
 ## Vérification et documentation compilée
 

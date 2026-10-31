@@ -65,6 +65,14 @@ export default function Canvas() {
   const debugFrame = debugSession?.project === document.project ? debugSession.frames[debugSession.cursor] : null
   const activeExecutionId = debugSession ? debugFrame?.nodeId ?? null : execution?.trace[execution.index] ?? null
 
+  // Suit le bloc exécuté pour ouvrir ses propriétés sans réinitialiser la position du panneau.
+  useEffect(() => {
+    if (!activeExecutionId) return
+    setSelected((current) => current?.kind === 'node' && current.id === activeExecutionId ? current : { kind: 'node', id: activeExecutionId })
+    const moduleId = document.index.nodes.get(activeExecutionId)?.moduleId
+    if (moduleId) setActiveCardId(moduleId)
+  }, [activeExecutionId])
+
   // Restaure source, présentation et vue ensemble après confirmation d'import.
   function handleReplaceWorkspace(workspace) {
     setDebugSession(null)
@@ -284,7 +292,7 @@ export default function Canvas() {
       <CanvasStatus camera={camera} zoom={zoom} onRecenter={() => handleRecenter(getModulesBounds())} />
       <SimulationPanel result={simulationResult} running={Boolean(execution?.running)} currentStep={execution ? execution.index + 1 : 0} onClose={() => { setSimulationResult(null); setExecution(null) }} />
       {debugSession?.project === document.project && <DebugPanel session={debugSession} index={document.index} onAction={handleDebugAction} onClose={() => setDebugSession(null)} />}
-      {selected && <NodeProperties key={`${document.revision}:${selected.kind}:${selected.id}`} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={handleSelect} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
+      {selected && <NodeProperties key={document.revision} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={handleSelect} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onExport={document.exportFunction} onImport={document.importFunction} onRemoveImport={document.removeImport} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
       {contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} anchored={contextMenu.anchored} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={handleCloseMenu} />
         : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} onCreate={handleCreateModule} onClose={handleCloseMenu} anchored={contextMenu.anchored} commentId={contextMenu.targetId ? { id: contextMenu.targetId.id, type: contextMenu.targetId.kind } : null} onDeleteComment={handleDeleteComment} />)}
     </main>

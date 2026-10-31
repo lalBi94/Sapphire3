@@ -74,6 +74,18 @@ test('commandes : suivant, sortie du scope et retour arrière restaurent mémoir
   assert.equal(moveDebugSession(before, 'unknown'), before)
 })
 
+test('restart : revient au premier arrêt et oublie l’historique de navigation', () => {
+  let session = createDebugSession(debugFixture())
+  for (let index = 0; index < 4; index += 1) session = moveDebugSession(session, 'next')
+  const restarted = moveDebugSession(session, 'restart')
+  assert.equal(restarted.cursor, 0)
+  assert.deepEqual(restarted.history, [])
+  assert.equal(restarted.frames[restarted.cursor].nodeId, 'g')
+  assert.deepEqual(restarted.frames[0].output, [])
+  assert.equal(moveDebugSession(restarted, 'restart'), restarted)
+  assert.equal(moveDebugSession(restarted, 'unknown'), restarted)
+})
+
 test('sortie du scope : initialise les globaux puis s’arrête à l’entrée ; retour après terminaison', () => {
   let session = createDebugSession(debugFixture())
   session = moveDebugSession(session, 'scope')

@@ -1,9 +1,20 @@
 import { moduleTypes } from './moduleTypes.js'
-import { createProject, createModule, analyzeProgram, createContextIndex, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule } from './logic/index.js'
+import { createProject, createModule, analyzeProgram, createContextIndex, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, setModuleExport, addModuleImport, removeModuleImport } from './logic/index.js'
 
 // Recalcule les dérivés uniquement quand la source logique change.
 function withSource(state, project, analysis = analyzeProgram(project), index = createContextIndex(project, analysis)) {
   return { ...state, project, analysis, index, mutationError: null }
+}
+
+// Rejoue une mutation préparée sur le document courant si une autre édition l'a devancée.
+function replaySourceMutation(state, action) {
+  if (action.type === 'insert') return insertSourceNodes(state.project, action.request, action.bundle, { index: state.index })
+  if (action.type === 'configure') return updateSourceNode(state.project, action.id, action.patch)
+  if (action.type === 'delete') return deleteSourceNodes(state.project, action.targetId, { index: state.index })
+  if (action.type === 'moduleExport') return setModuleExport(state.project, action.moduleId, action.nodeId, action.exported)
+  if (action.type === 'moduleImport') return addModuleImport(state.project, action.moduleId, action.entry)
+  if (action.type === 'moduleImportRemove') return removeModuleImport(state.project, action.moduleId, action.importId)
+  return { ok: false, code: 'PATCH_INVALID' }
 }
 
 // Initialise un document local ; aucune donnée utilisateur n'est écrite sur disque.
@@ -40,12 +51,8 @@ export function reduceDocument(state, action) {
     const next = { ...state, cards: state.cards.map((entry) => entry.id === card.id ? { ...entry, name: action.name } : entry) }
     return card.type === 'module' ? withSource(next, { ...state.project, modules: state.project.modules.map((module) => module.id === card.id ? { ...module, name: action.name } : module) }) : next
   }
-  if (action.type === 'insert' || action.type === 'configure' || action.type === 'delete') {
-    const result = state.project === action.previousProject ? action.prepared : action.type === 'insert'
-      ? insertSourceNodes(state.project, action.request, action.bundle, { index: state.index })
-      : action.type === 'configure'
-        ? updateSourceNode(state.project, action.id, action.patch)
-        : deleteSourceNodes(state.project, action.targetId, { index: state.index })
+  if (['insert', 'configure', 'delete', 'moduleExport', 'moduleImport', 'moduleImportRemove'].includes(action.type)) {
+    const result = state.project === action.previousProject ? action.prepared : replaySourceMutation(state, action)
     return result.ok ? withSource(state, result.project, result.analysis, result.index) : { ...state, mutationError: result.code }
   }
   return state
