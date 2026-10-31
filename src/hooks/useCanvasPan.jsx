@@ -111,11 +111,21 @@ export default function useCanvasPan() {
     })
   }
 
-  // Replace la vue sur le centre du contenu demandé et restaure l'échelle réelle.
-  function handleRecenter(center = { x: 0, y: 0 }) {
-    const x = Number.isFinite(center.x) ? center.x : 0
-    const y = Number.isFinite(center.y) ? center.y : 0
-    setCamera((current) => ({ ...current, x, y, zoomLevel: 0 }))
+  // Cadre le contenu demandé dans la surface visible sans dépasser l'échelle réelle.
+  function handleRecenter(bounds = { x: 0, y: 0, width: 0, height: 0 }) {
+    const x = Number.isFinite(bounds.x) ? bounds.x : 0
+    const y = Number.isFinite(bounds.y) ? bounds.y : 0
+    const width = Math.max(0, Number.isFinite(bounds.width) ? bounds.width : 0)
+    const height = Math.max(0, Number.isFinite(bounds.height) ? bounds.height : 0)
+    const viewportWidth = canvasRef.current?.clientWidth ?? 0
+    const viewportHeight = canvasRef.current?.clientHeight ?? 0
+    const availableWidth = Math.max(1, viewportWidth - 64)
+    const availableHeight = Math.max(1, viewportHeight - 64)
+    const fittedZoom = width > 0 && height > 0
+      ? Math.min(1, availableWidth / width, availableHeight / height)
+      : 1
+    const zoomLevel = Math.max(-12, Math.min(0, Math.log2(fittedZoom)))
+    setCamera((current) => ({ ...current, x, y, zoomLevel }))
     canvasRef.current.focus({ preventScroll: true })
   }
 
