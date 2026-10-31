@@ -60,7 +60,7 @@
 | `src/contexts/ThemeContext.jsx` | Contexte de thème, catalogue des six palettes CSS et préférence locale |
 | `src/hooks/useWorkspaceFiles.jsx` | Opérations asynchrones de fichiers, validation, erreurs, annulation et import en attente de confirmation |
 | `src/utils/workspaceFile.js`, `docs/WORKSPACE_FILES.md` | Enveloppe workspace JSON v1, validation et sérialisation pures, reconstruction visuelle des sources logiques seules |
-| `src/services/workspaceFiles.js` | Client Neutralinojs local initialisé à la demande, dialogues, taille/extension, lecture et écriture confirmée |
+| `src/services/workspaceFiles.js` | Client Neutralinojs local initialisé à la demande, dialogues, taille/extension, écriture atomique par brouillon vérifié (`move`), lecture confirmée |
 | `src/components/CanvasGrid/CanvasGrid.jsx`, `CanvasGrid.css` | Grille SVG à densité adaptative, croix d'origine et distorsion attachée au viewport ; dimensions suivies avec ResizeObserver |
 | `src/components/CanvasStatus/CanvasStatus.jsx`, `CanvasStatus.css` | Coordonnées, zoom et bouton de recentrage, sans connaissance du hook |
 | `src/components/CanvasContextMenu/CanvasContextMenu.jsx`, `CanvasContextMenu.css` | Menu de création ou de suppression d'une annotation, fermeture extérieure, focus et navigation clavier |

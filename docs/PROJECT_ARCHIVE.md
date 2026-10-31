@@ -1,5 +1,12 @@
 # PROJECT_ARCHIVE.md — Sapphire 3
 
+## Sauvegarde atomique des workspaces — 31 octobre 2026
+
+- `src/services/workspaceFiles.js` écrit un brouillon unique dans le dossier cible, vérifie sa taille UTF-8 via `getStats`, puis le remplace par `filesystem.move`. Aucun fallback destructif : si le remplacement échoue, l'original reste intact et le brouillon vérifié est conservé ; son chemin est exposé dans l'erreur `ATOMIC_REPLACE_FAILED`. Un échec d'écriture ou de vérification nettoie le brouillon et laisse l'original intact.
+- API vérifiées dans Neutralinojs 6.10 : `filesystem.move` et `filesystem.remove` existent ; `rename` et `deleteFile` n'existent pas. `move` utilise `std::filesystem::rename`, qui remplace une destination existante sous Windows comme sous POSIX. `nativeAllowList` autorise désormais `filesystem.move` et `filesystem.remove`.
+- **200 tests Node réussis**, build frontend réussi. 11 tests de fichiers avec un mock en mémoire : création et remplacement, nom temporaire unique, échec d'écriture, taille incohérente, échec de `move` avec original et brouillon conservés, échec de nettoyage, octets UTF-8, extension, taille maximale et desktop requis.
+- Limite : pas de nouvelle vérification dans la fenêtre Neutralinojs ; le remplacement échoue proprement si Windows verrouille le fichier, sans jamais tronquer l'original.
+
 ## Copie, duplication et déplacement de sous-arbres — 31 octobre 2026
 
 - Copier/Coller/Dupliquer ajoutés aux actions du menu logique. Ctrl+C et Ctrl+V utilisent une capture locale à l'onglet, sans accès au presse-papiers système ni persistance. Saisies natives et sélections de texte restent prioritaires. Collage en bas de l'unique slot compatible, sans position manuelle ni écrasement ; ambiguïté refusée. Duplication en fin de liste parente seulement, noms désambiguïsés et rôle de point d'entrée laissé à l'original.

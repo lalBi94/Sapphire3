@@ -9,7 +9,7 @@
   "enableNativeAPI": true,
   "tokenSecurity": "one-time",
   "enableExtensions": false,
-  "nativeAllowList": ["os.showSaveDialog", "os.showOpenDialog", "os.showMessageBox", "filesystem.readFile", "filesystem.writeFile", "filesystem.getStats"],
+  "nativeAllowList": ["os.showSaveDialog", "os.showOpenDialog", "os.showMessageBox", "filesystem.readFile", "filesystem.writeFile", "filesystem.getStats", "filesystem.move", "filesystem.remove"],
   "dataLocation": "system",
   "storageLocation": "system",
   "logging": {

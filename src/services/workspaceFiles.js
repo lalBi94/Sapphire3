@@ -22,41 +22,44 @@ async function getClient() {
   return clientPromise
 }
 
-// Écrit un texte dans un fichier temporaire du même dossier, puis remplace l'original atomiquement si possible.
-// Retourne { ok: true, path } en cas de succès, ou { ok: false, code, project } en cas d'échec.
-// En cas d'échec, le fichier original est préservé et le fichier temporaire est supprimé.
-async function atomicWriteFile(filesystem, path, text) {
-  const tmpPath = path + '.tmp.$$'
+// Construit un chemin temporaire unique dans le dossier du fichier pour ne jamais écraser un brouillon existant.
+function temporaryPathFor(path) {
+  return `${path}.${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}.tmp`
+}
+
+// Supprime un brouillon sans masquer l'échec initial ; un résidu reste récupérable et ne touche pas l'original.
+async function removeTemporaryFile(filesystem, path) {
   try {
-    // Étape 1 : écrire dans un fichier temporaire du même dossier
-    await filesystem.writeFile(tmpPath, text)
-    // Vérifier que l'écriture a bien eu lieu
-    const tmpStats = await filesystem.getStats(tmpPath)
-    if (!tmpStats || !tmpStats.isFile) throw fileError('WRITE_FAILED')
-    // Étape 2 : remplacer l'original de façon atomique si l'API le permet
-    let result = { ok: false }
-    try {
-      // Tentative de renommage atomique (supported by many OS/filesystems)
-      await filesystem.rename(tmpPath, path)
-      result = { ok: true }
-    } catch (renameError) {
-      // Fallback : lire le temporaire et réécrire par-dessus l'original (non atomique mais sûr)
-      try {
-        const content = await filesystem.readFile(tmpPath)
-        await filesystem.writeFile(path, content)
-        result = { ok: true }
-      } catch (readWriteError) {
-        result = { ok: false, code: readWriteError.code }
-      }
-    }
-    // Nettoyer le temporaire quel que soit le résultat
-    try { await filesystem.deleteFile(tmpPath) } catch (_) {}
-    return result
-  } catch (writeError) {
-    // Échec de l'écriture du temporaire : rien n'a été modifié
-    try { await filesystem.deleteFile(tmpPath) } catch (_) {}
-    return { ok: false, code: writeError.code }
+    await filesystem.remove(path)
+  } catch {
+    // Le nettoyage échoué ne doit pas transformer un échec d'écriture en erreur différente.
   }
+}
+
+// Écrit dans un brouillon du même dossier, le vérifie, puis le renomme sur l'original avec filesystem.move.
+// Neutralinojs 6.10 ne fournit ni rename ni deleteFile ; move utilise std::filesystem::rename et remplace
+// la destination existante sous Windows comme sous POSIX. En cas d'échec du remplacement, l'original reste
+// intact et le brouillon vérifié est conservé pour récupération manuelle.
+async function atomicWriteFile(filesystem, path, text) {
+  const temporaryPath = temporaryPathFor(path)
+  const expectedSize = new TextEncoder().encode(text).length
+  try {
+    await filesystem.writeFile(temporaryPath, text)
+    const stats = await filesystem.getStats(temporaryPath)
+    if (!stats?.isFile || stats.size !== expectedSize) {
+      await removeTemporaryFile(filesystem, temporaryPath)
+      return { ok: false, code: 'WRITE_FAILED' }
+    }
+  } catch {
+    await removeTemporaryFile(filesystem, temporaryPath)
+    return { ok: false, code: 'WRITE_FAILED' }
+  }
+  try {
+    await filesystem.move(temporaryPath, path)
+  } catch {
+    return { ok: false, code: 'ATOMIC_REPLACE_FAILED', values: { temporaryPath } }
+  }
+  return { ok: true, path }
 }
 
 // Enregistre un texte au chemin choisi, avec extension garantie et confirmation d'écrasement.
@@ -78,7 +81,7 @@ export async function exportWorkspaceFile(extension, text, language = 'en') {
   }
   if (exists && await os.showMessageBox(translate(language, 'files.replaceTitle'), translate(language, 'files.replaceBody'), 'YES_NO', 'WARNING') !== 'YES') return null
   const writeResult = await atomicWriteFile(filesystem, path, text)
-  if (!writeResult.ok) throw fileError('couldNotSave', { detail: writeResult.code })
+  if (!writeResult.ok) throw fileError(writeResult.code, writeResult.values)
   return writeResult.path
 }
 
@@ -89,7 +92,7 @@ export async function writeWorkspaceFile(path, text, client = null) {
   if (new TextEncoder().encode(text).length > maximumFileSize) throw fileError('FILE_TOO_LARGE')
   const { filesystem } = client || await getClient()
   const writeResult = await atomicWriteFile(filesystem, path, text)
-  if (!writeResult.ok) throw fileError('couldNotSave', { detail: writeResult.code })
+  if (!writeResult.ok) throw fileError(writeResult.code, writeResult.values)
   return writeResult.path
 }
 
