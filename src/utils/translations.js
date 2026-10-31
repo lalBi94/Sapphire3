@@ -352,6 +352,7 @@ const messages = {
   'error.PATCH_INVALID': ['This edit is not supported.', 'Cette modification n’est pas prise en charge.'],
   'error.INSERTION_INVALID': ['This insertion would introduce errors.', 'Cette insertion introduirait des erreurs.'],
   'error.TRANSPILE_ENTRY_POINT_REQUIRED': ['JavaScript generation requires exactly one entry point.', 'La génération JavaScript exige exactement un point d’entrée.'],
+  'error.TRANSPILE_ENTRY_POINT_INPUTS': ['The entry point must not require inputs.', 'Le point d’entrée ne doit pas demander de paramètres.'],
   'error.TRANSPILE_ENTRY_POINT_DUPLICATE': ['JavaScript generation requires exactly one entry point.', 'La génération JavaScript exige exactement un point d’entrée.'],
   'error.TRANSPILE_TARGET_UNSUPPORTED': ['This transpilation target is not supported.', 'Cette cible de transpilation n’est pas prise en charge.'],
   'error.TRANSPILE_REFERENCE_UNRESOLVED': ['A reference could not be generated.', 'Une référence n’a pas pu être générée.'],

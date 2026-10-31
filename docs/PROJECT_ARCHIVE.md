@@ -1,5 +1,13 @@
 # PROJECT_ARCHIVE.md — Sapphire 3
 
+## Audit des incréments Copilot intermodules et JavaScript — 31 octobre 2026
+
+- État initial propre ; revue des changements depuis `0070185`, dont les imports automatiques et les correctifs de littéraux. Les 153 tests existants passaient avant correction ; aucune refonte UI ni modification des exemples utilisateur.
+- Corrections du backend : constantes globales syntaxiquement valides avec initialisation différée, paramètres désambiguïsés sans masquer les helpers, update expression du `for`, littéraux normalisés plutôt que recopiés en syntaxe JavaScript potentiellement octale/invalide. Sources bloquantes et noms de cibles hérités refusés sans exception ; point d'entrée paramétré diagnostiqué.
+- Les contrôles de `numericConstants.js` sont regroupés dans une fonction autonome, sans changer leurs règles ni leurs exports consommateurs. Le générateur embarque cette même fonction et le catalogue des primitifs : entiers exacts, float arrondi, conversions et erreurs runtime identiques. Affichage textuel des BigInt et sentinelle pour les variables sans initialiseur.
+- **165 tests Node réussis**, dont 15 de transpilation : exécution réelle du code émis en mode strict, paramètres et collisions de noms, zéros initiaux, arrondi décimal direct, calculs/conversions et erreurs numériques, update après continue, lecture non initialisée, sources/cibles invalides, point d'entrée paramétré, compilation/minification Vite du backend suivie d'une exécution autonome. L'exemple `workspace.sp3` conserve ses sorties ; `algorithms.sp3` contient un `Print` incomplet et reste inchangé, refusé avec `NODE_INCOMPLETE`.
+- Build frontend réussi et `git diff --check` sans erreur. Pas de nouveau test navigateur ou natif Neutralinojs : interface et services natifs inchangés. Le JavaScript exporté n'est pas un interpréteur borné : aucune limite de pas/appels n'y est ajoutée.
+
 ## Interface de module, suivi d'exécution et redémarrage du debug — 31 octobre 2026
 
 - Export/import explicite des fonctions entre modules, sans rendre toutes les fonctions globales : le panneau d'un module liste ses fonctions racine avec export réversible, ses imports avec nom local et retrait, et les fonctions des autres modules encore disponibles. Importer crée l'export manquant dans le module source ; retirer un export encore importé est refusé (`EXPORT_IN_USE`) ; les doublons, noms locaux pris, cibles non fonctionnelles et auto-imports sont rejetés avec des codes stables. `moduleInterface.js` reste pur et les mutations passent par le reducer document, donc annulables.

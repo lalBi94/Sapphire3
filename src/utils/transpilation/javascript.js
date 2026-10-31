@@ -1,5 +1,8 @@
 import { createDiagnostic } from '../logic/diagnostics.js'
 import { getNodeSchema } from '../logic/nodeSchema.js'
+import { createNumericOperations, validateLiteral } from '../logic/numericConstants.js'
+import { primitiveDefinitions } from '../logic/primitives.js'
+import { diagnosticCodes } from '../logic/diagnostics.js'
 
 const operators = Object.freeze({
   and: '&&',
@@ -40,9 +43,10 @@ export function generateJavaScript(analysis) {
 
   if (entryPoints.length === 0) diagnostics.push(createDiagnostic('TRANSPILE_ENTRY_POINT_REQUIRED', 'Une fonction point d’entrée est nécessaire pour générer du JavaScript.', { projectId: ast.sourceId }))
   if (entryPoints.length > 1) diagnostics.push(createDiagnostic('TRANSPILE_ENTRY_POINT_DUPLICATE', 'Une seule fonction point d’entrée est autorisée pour générer du JavaScript.', { projectId: ast.sourceId }))
+  if (entryPoints.length === 1 && entryPoints[0].children.parameters.length > 0) diagnostics.push(createDiagnostic('TRANSPILE_ENTRY_POINT_INPUTS', 'Le point d’entrée ne doit pas demander de paramètres.', entryPoints[0].location))
 
   const generatedNames = new Map()
-  const usedNames = new Set(['main'])
+  const usedNames = new Set(['main', 'sapphireNumeric', 'sapphireChecked', 'sapphireRead', 'sapphireUninitialized', 'console', 'Math', 'Number', 'BigInt', 'Object', 'Error'])
   const declarations = [...nodes.values()].filter((node) => getNodeSchema(node.kind)?.named)
   const modules = new Map(ast.modules.map((module) => [module.sourceId, module]))
 
@@ -82,56 +86,45 @@ export function generateJavaScript(analysis) {
   function expression(node) {
     if (!node) return 'undefined'
     if (node.kind === 'Literal') {
-      const type = node.properties.type?.name
-      if (type === 'string' || type === 'char') return JSON.stringify(String(node.properties.value ?? ''))
-      if (type === 'boolean') return node.properties.value ? 'true' : 'false'
-      if (['short int', 'short uint', 'int', 'uint'].includes(type) &&
-        (typeof node.properties.value === 'number' || typeof node.properties.value === 'bigint' || typeof node.properties.value === 'string') &&
-        /^[+-]?\d+$/.test(String(node.properties.value))) {
-        return String(node.properties.value)
+      const literal = validateLiteral(typeByNode.get(node.sourceId)?.name, node.properties.value)
+      if (!literal.code) {
+        if (typeof literal.value === 'bigint') return `(${literal.value}n)`
+        if (Object.is(literal.value, -0)) return '(-0)'
+        return JSON.stringify(literal.value)
       }
-      if (['float', 'double'].includes(type) &&
-        (typeof node.properties.value === 'number' || typeof node.properties.value === 'string') &&
-        /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(String(node.properties.value))) {
-        return String(node.properties.value)
-      }
-      if (typeof node.properties.value === 'number' || typeof node.properties.value === 'bigint') return String(node.properties.value)
       diagnostics.push(createDiagnostic('TRANSPILE_LITERAL_UNSUPPORTED', 'Littéral non pris en charge par le backend JavaScript.', node.location))
       return 'undefined'
     }
-    if (node.kind === 'Reference') return referenceName(node)
+    if (node.kind === 'Reference') return `sapphireRead(${referenceName(node)})`
     if (node.kind === 'BinaryExpression') {
       const operator = operators[node.properties.operator] ?? node.properties.operator
       const left = expression(child(node, 'left'))
       const right = expression(child(node, 'right'))
-      const resultType = typeByNode.get(node.sourceId)
-      if (node.properties.operator === '/' && resultType?.kind === 'primitive' && ['short int', 'short uint', 'int', 'uint'].includes(resultType.name)) {
-        return `sapphireIntegerDivide(${left}, ${right})`
-      }
-      return `(${left} ${operator} ${right})`
+      if (['and', 'or'].includes(node.properties.operator)) return `(${left} ${operator} ${right})`
+      const operandType = typeByNode.get(child(node, 'left')?.sourceId)?.name
+      return `sapphireChecked(sapphireNumeric.evaluateBinary(${JSON.stringify(node.properties.operator)}, ${left}, ${right}, ${JSON.stringify(operandType)}))`
     }
     if (node.kind === 'UnaryExpression') {
-      const operator = operators[node.properties.operator] ?? node.properties.operator
-      return `(${operator}${expression(child(node, 'operand'))})`
+      return `sapphireChecked(sapphireNumeric.evaluateUnary(${JSON.stringify(node.properties.operator)}, ${expression(child(node, 'operand'))}, ${JSON.stringify(typeByNode.get(node.sourceId)?.name)}))`
     }
     if (node.kind === 'CallExpression') {
       return `${expression(child(node, 'callee'))}(${(node.children.arguments ?? []).map(expression).join(', ')})`
     }
     if (node.kind === 'CastExpression') {
-      const target = node.properties.type?.name
+      const target = typeByNode.get(node.sourceId)?.name
       const argument = expression(child(node, 'argument'))
-      return ['short int', 'short uint', 'int', 'uint'].includes(target) ? `Math.trunc(Number(${argument}))` : argument
+      return target === typeByNode.get(child(node, 'argument')?.sourceId)?.name ? argument : `sapphireChecked(sapphireNumeric.convertConstant(${argument}, ${JSON.stringify(target)}))`
     }
     diagnostics.push(createDiagnostic('TRANSPILE_EXPRESSION_UNSUPPORTED', `Expression ${node.kind} non prise en charge.`, node.location))
     return 'undefined'
   }
 
-  // Génère une déclaration locale ou globale sans exécuter son initialiseur à la déclaration.
+  // Diffère les initialiseurs globaux et marque explicitement les variables sans valeur.
   function declaration(node, indent, initialize = true) {
-    const keyword = node.kind === 'ConstantDeclaration' ? 'const' : 'let'
+    const keyword = initialize && node.kind === 'ConstantDeclaration' ? 'const' : 'let'
     const name = generatedNames.get(node.sourceId) ?? reserveDeclaration(node)
     const initializer = child(node, 'initializer')
-    return `${indent}${keyword} ${name}${initialize && initializer ? ` = ${expression(initializer)}` : ''};`
+    return `${indent}${keyword} ${name} = ${initialize && initializer ? expression(initializer) : 'sapphireUninitialized'};`
   }
 
   // Génère un bloc avec indentation stable et sans introduire de syntaxe implicite.
@@ -151,8 +144,8 @@ export function generateJavaScript(analysis) {
     const indent = '  '.repeat(level)
     if (node.kind === 'VariableDeclaration' || node.kind === 'ConstantDeclaration') return declaration(node, indent)
     if (node.kind === 'ExpressionStatement') return `${indent}${expression(child(node, 'expression'))};`
-    if (node.kind === 'AssignmentStatement') return `${indent}${expression(child(node, 'target'))} = ${expression(child(node, 'value'))};`
-    if (node.kind === 'PrintStatement') return `${indent}console.log(${expression(child(node, 'value'))});`
+    if (node.kind === 'AssignmentStatement') return `${indent}${referenceName(child(node, 'target'))} = ${expression(child(node, 'value'))};`
+    if (node.kind === 'PrintStatement') return `${indent}console.log(String(${expression(child(node, 'value'))}));`
     if (node.kind === 'ReturnStatement') {
       const argument = child(node, 'argument')
       return `${indent}return${argument ? ` ${expression(argument)}` : ''};`
@@ -169,7 +162,7 @@ export function generateJavaScript(analysis) {
       const initCode = initializer
         ? statementCode(initializer, 0).trim().replace(/;$/, '')
         : ''
-      const updateCode = update ? statementCode(update, 0).trim().replace(/;$/, '') : ''
+      const updateCode = update ? (update.kind === 'AssignmentStatement' ? statementCode(update, 0).trim().replace(/;$/, '') : expression(update)) : ''
       const test = child(node, 'test')
       return `${indent}for (${initCode}; ${test ? expression(test) : ''}; ${updateCode}) ${block(child(node, 'body'), level + 1)}`
     }
@@ -182,13 +175,7 @@ export function generateJavaScript(analysis) {
   // Génère une fonction avec ses paramètres et son corps lexical.
   function functionCode(node) {
     const name = generatedNames.get(node.sourceId) ?? reserveDeclaration(node)
-    const parameters = (node.children.parameters ?? []).map((parameter) => {
-      const parameterName = identifier(parameter.properties.name, 'parameter')
-      generatedNames.set(parameter.sourceId, parameterName)
-      const symbol = symbolByNode.get(parameter.sourceId)
-      if (symbol) generatedNames.set(symbol.id, parameterName)
-      return parameterName
-    })
+    const parameters = (node.children.parameters ?? []).map((parameter) => reserveDeclaration(parameter))
     const body = block(child(node, 'body'), 1)
     return `function ${name}(${parameters.join(', ')}) ${body}`
   }
@@ -211,7 +198,10 @@ export function generateJavaScript(analysis) {
 
   const lines = [
     '// Generated by Sapphire 3. Do not edit this file.',
-    'function sapphireIntegerDivide(left, right) { return Math.trunc(left / right); }',
+    `const sapphireNumeric = (${createNumericOperations.toString()})(name => (${JSON.stringify(primitiveDefinitions)})[name], ${JSON.stringify(diagnosticCodes)});`,
+    'const sapphireUninitialized = Symbol("uninitialized");',
+    'function sapphireRead(value) { if (value === sapphireUninitialized) throw new Error("SIMULATION_UNINITIALIZED"); return value; }',
+    'function sapphireChecked(result) { if (result.code) throw new Error(result.code); return result.value; }',
     ...globalDeclarations,
     ...functions,
     '',

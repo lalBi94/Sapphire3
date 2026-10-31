@@ -80,7 +80,7 @@
 | `src/utils/logic/model.js`, `nodeSchema.js` | Contrats source JSDoc, catégorie stable Module partagée avec l'UI, fabriques et schémas de slots/opérateurs |
 | `src/utils/logic/ast.js` | Reconstruction hiérarchique, diagnostics structurels, trous/fragments invalides et parcours |
 | `src/utils/logic/semantics.js`, `typeAnalysis.js` | Portées, déclarations, visibilité intermodule et typage statique strict sans secours |
-| `src/utils/logic/primitives.js`, `numericConstants.js` | Dix primitifs, tailles/bornes, arrondis et contrôles statiques des littéraux/opérations/conversions constantes |
+| `src/utils/logic/primitives.js`, `numericConstants.js` | Dix primitifs, tailles/bornes et contrôles numériques purs, partagés par analyse, simulation et JavaScript généré |
 | `src/utils/logic/diagnostics.js`, `serialization.js`, `index.js` | Diagnostics structurés, JSON versionné et API publique `analyzeProgram` |
 | `src/utils/transpilation/index.js`, `javascript.js` | API de transpilation extensible et backend JavaScript sans tableaux |
 | `src/utils/logic/simulation.js` | Interpréteur local borné pour le sous-ensemble validé, `PrintStatement` et trace d'exécution |
@@ -150,6 +150,6 @@ Scripts dans `package.json` :
 
 ## Vérifications
 
-- Transpilation JavaScript et Debug SP3 : **152 tests Node réussis**, build frontend réussi. Le test de transpilation exécute réellement le fichier produit avec Node et vérifie le diagnostic d'absence de point d'entrée. Contrôles navigateur précédents : ordre de navigation, panneau Debug, import/export de module, propriétés suivant Run et Debug, redémarrage au premier arrêt et stabilité du layout. Détails dans `docs/PROJECT_ARCHIVE.md`.
+- Audit des incréments intermodules et transpilation : **165 tests Node réussis**, build frontend réussi. Les fichiers JavaScript générés sont exécutés avec Node, y compris après compilation/minification du backend ; contrôles numériques partagés avec le simulateur. Aucun nouveau contrôle d'interactions navigateur ou natif pendant cet audit. Contrôles navigateur précédents : ordre de navigation, panneau Debug, import/export de module, propriétés suivant Run et Debug, redémarrage au premier arrêt et stabilité du layout. Détails dans `docs/PROJECT_ARCHIVE.md`.
 
 - Les vérifications des incréments précédents sont conservées dans `docs/PROJECT_ARCHIVE.md` ; elles ne constituent pas une nouvelle validation des fonctionnalités non parcourues pendant cet audit.

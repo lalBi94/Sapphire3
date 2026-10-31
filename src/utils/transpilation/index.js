@@ -8,10 +8,11 @@ const backends = Object.freeze({ javascript: generateJavaScript })
 export function transpileProgram(source, options = {}) {
   const target = options.target ?? 'javascript'
   const analysis = analyzeProgram(source)
-  const backend = backends[target]
+  const backend = Object.hasOwn(backends, target) ? backends[target] : null
   if (!backend) {
     return { ok: false, target, code: '', diagnostics: [{ code: 'TRANSPILE_TARGET_UNSUPPORTED', severity: 'error', message: `Cible non prise en charge : ${target}.`, location: { projectId: source?.id ?? null, moduleId: null, nodeId: null, field: null } }], analysis }
   }
+  if (hasBlockingDiagnostics(analysis.diagnostics)) return { ok: false, target, code: '', diagnostics: analysis.diagnostics, analysis }
   const generated = backend(analysis)
   const diagnostics = [...analysis.diagnostics, ...generated.diagnostics]
   return { ok: !hasBlockingDiagnostics(diagnostics), target, code: generated.code, diagnostics, analysis }
