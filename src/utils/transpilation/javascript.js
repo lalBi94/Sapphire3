@@ -85,7 +85,14 @@ export function generateJavaScript(analysis) {
       const type = node.properties.type?.name
       if (type === 'string' || type === 'char') return JSON.stringify(String(node.properties.value ?? ''))
       if (type === 'boolean') return node.properties.value ? 'true' : 'false'
-      if (typeof node.properties.value === 'number' || typeof node.properties.value === 'bigint') return String(node.properties.value)
+      if (['short int', 'short uint', 'int', 'uint', 'float', 'double'].includes(type)) {
+        const numericValue = typeof node.properties.value === 'number' || typeof node.properties.value === 'bigint'
+          ? Number(node.properties.value)
+          : typeof node.properties.value === 'string' && node.properties.value.trim() !== ''
+            ? Number(node.properties.value)
+            : Number.NaN
+        if (Number.isFinite(numericValue)) return Object.is(numericValue, -0) ? '-0' : String(numericValue)
+      }
       diagnostics.push(createDiagnostic('TRANSPILE_LITERAL_UNSUPPORTED', 'Littéral non pris en charge par le backend JavaScript.', node.location))
       return 'undefined'
     }
