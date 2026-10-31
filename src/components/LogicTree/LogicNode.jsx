@@ -19,7 +19,7 @@ export default function LogicNode({ id, index, selectedId, activeExecutionId, on
   const active = activeExecutionId === id
 
   useEffect(() => {
-    if (active) nodeRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    if (active) nodeRef.current?.scrollIntoView({ block: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
   }, [active])
 
   // L'événement ne remonte pas à un autre nœud ou au module contenant la sélection.

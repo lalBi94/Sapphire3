@@ -1,6 +1,7 @@
 import { isId, isRecord, sourceFormatVersion, moduleKinds } from './logic/model.js'
 import { serializeSource } from './logic/serialization.js'
 import { moduleTypes, minimumModuleSize } from './moduleTypes.js'
+import { isEmbeddedImage } from './embeddedImage.js'
 
 export const workspaceFileVersion = 1
 
@@ -52,7 +53,7 @@ function validatePresentation(project, presentation) {
     }
     if (card.type === 'module'
       ? !modules.has(card.id) || modules.get(card.id).name !== card.name
-      : modules.has(card.id) || (card.type === 'comment' && typeof card.text !== 'string') || (card.type === 'image' && (typeof card.image !== 'string' || typeof card.caption !== 'string'))) {
+      : modules.has(card.id) || (card.type === 'comment' && typeof card.text !== 'string') || (card.type === 'image' && (!isEmbeddedImage(card.image) || typeof card.caption !== 'string'))) {
       throw new Error('Cards do not match the logical project.')
     }
     if (!Array.isArray(card.expandedNodeIds) || new Set(card.expandedNodeIds).size !== card.expandedNodeIds.length || card.expandedNodeIds.some((id) => !isId(id) || nodes.get(id)?.moduleId !== card.id || card.type !== 'module')) {

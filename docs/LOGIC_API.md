@@ -198,7 +198,15 @@ const inserted = insertSourceNodes(project, { targetId: 'module-id', slot: 'root
 // inserted.ok === true ; inserted.analysis contient les diagnostics à jour.
 ```
 
-Simulation, suggestions et codegen pourront consommer `ast`, `semantic` et `diagnostics`, et relier leurs résultats aux `sourceId`. Un générateur refusera les erreurs bloquantes avant d'abaisser l'AST vers sa cible. Ces moteurs ne sont pas présents ; aucune interface de plugin spéculative ajoutée.
+La simulation locale consomme l'analyse validée et les identifiants source. Suggestions et codegen restent absents ; aucune interface de plugin spéculative ajoutée.
+
+### Simulation locale
+
+`simulateProgram(project, {maxSteps = 10000})` retourne `ok`, `output` (lignes de texte) et `trace` (identifiants source dans l'ordre d'exécution), puis `result`/`steps` en cas de succès ou `error` en cas d'échec. Les diagnostics bloquants, l'absence de point d'entrée ou un point d'entrée paramétré empêchent le lancement. Le résultat scalaire entier public est un nombre JavaScript exact dans les bornes des types autorisés ; les calculs entiers internes utilisent BigInt.
+
+Les littéraux, calculs et conversions réutilisent les contrôles de `numericConstants.js` : division entière tronquée, division flottante préservée, arrondi binaire32 à chaque opération, dépassement/sous-flux et division par zéro refusés. `and`/`or` court-circuitent. Une variable sans initialiseur ne reçoit aucune valeur implicite et sa lecture échoue. Les alias de types ne sont pas exécutés. Les appels ont leur environnement propre relié aux variables globales, jamais à celui de l'appelant ; blocs et boucles recréent leurs variables locales.
+
+Le budget accepte un entier de 1 à 100 000 ; même un `for` sans condition ni corps consomme ce budget. La profondeur d'appel est bornée à 200 avant débordement de pile. L'initialisation globale suit l'ordre source des modules et racines ; pas de tri automatique des dépendances. Sorties et trace restent en mémoire ; aucun input, fichier, réseau, génération de code ou effet natif depuis le moteur. L'animation UI est une relecture de cette trace calculée, pas une exécution asynchrone ni un débogueur.
 
 ## Vérification et documentation compilée
 

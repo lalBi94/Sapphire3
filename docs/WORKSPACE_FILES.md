@@ -18,7 +18,7 @@
 ```
 
 - `project` : source logique complète, identifiants, références, types et marqueur de point d'entrée inclus. AST, diagnostics, index et caches sont recalculés, pas enregistrés.
-- `cards` : toutes les cartes, même hors écran, dans leur ordre de superposition. Chaque carte contient `id`, `type` (`module`/`comment`), `name`, `x`, `y`, `width`, `height`, `expandedNodeIds`. Les annotations ajoutent `text`.
+- `cards` : toutes les cartes, même hors écran, dans leur ordre de rangement. Chaque carte contient `id`, `type` (`module`/`comment`/`image`), `name`, `x`, `y`, `width`, `height`, `expandedNodeIds`. Les commentaires ajoutent `text` ; les images ajoutent `image` (Data URL d'image intégrée, ou chaîne vide) et `caption`. Les URL distantes, chemins locaux et autres protocoles sont refusés avant remplacement. La carte active au premier plan n'est pas persistée comme ordre de rangement.
 - La carte d'un module partage son identifiant et son nom ; chaque module doit posséder exactement une carte. Les annotations ne figurent pas dans `project`.
 - Géométrie en unités monde ; minimum 180 × 120. `expandedNodeIds` contient les nœuds dépliés du module ; les identifiants supprimés sont écartés à l'export, sans modifier l'état actif.
 - La croissance du module après insertion met à jour cette géométrie exportable ; le signal d'ajustement automatique reste temporaire. L'import ne redimensionne pas les cartes restaurées. La suppression confirmée d'un Comment ne modifie que `cards`, sans toucher à la source logique.
@@ -33,10 +33,12 @@ Les versions inconnues, doublons d'identifiants, géométries invalides, incohé
 
 La lecture et la validation précèdent la confirmation **Replace and import**. L'annulation ou une erreur conserve le document courant. L'import confirmé remplace le workspace, réinitialise les interactions temporaires, restaure le pliage, la vue et la sélection ; il ne fusionne pas les documents.
 
+L'historique undo/redo est vidé après import confirmé : un ancien document ne doit pas être restauré sous le chemin du nouveau fichier. L'annulation de suppression est locale, sans écriture sur disque. Les déplacements, saisies d'annotations et changements de pliage ne créent pas d'étapes dédiées d'historique ; ils invalident toutefois la branche redo.
+
 ## Accès aux fichiers
 
-- Barre supérieure compacte : **Edit** et **View** réservent des volets sans actions ; **Settings** propose **Import .sp3 / .json**, **Export .sp3**, **Export JSON**.
-- Dialogues de choix de fichier Neutralinojs ; aucun chemin de projet imposé, autosave, accès distant ou stockage navigateur.
+- Barre supérieure compacte : **Edit** expose undo/redo, **View** la navigation ; **Settings** propose **Open .sp3 file**, les fichiers récents, **Save .sp3**, **Import .sp3 / .json** et **Export JSON**.
+- Dialogues de choix de fichier Neutralinojs ; aucun chemin de projet imposé, autosave, accès distant ou stockage du workspace dans le navigateur. Langue, thème et chemins récents sont des préférences locales séparées.
 - Extension choisie garantie à l'export ; confirmation avant écrasement du chemin final. Après ouverture confirmée d'un `.sp3`, son chemin est conservé en mémoire et ajouté aux cinq chemins récents persistés localement : cliquer sur un chemin relit directement le fichier et repasse par la confirmation de remplacement. **Ctrl+S** et **Save .sp3** écrivent directement le fichier ouvert. Un workspace sans chemin ouvre « Enregistrer sous » avec le filtre `.sp3`, puis mémorise le chemin après écriture. Les chemins devenus inaccessibles sont retirés de la liste. Succès affiché uniquement après écriture terminée.
 - Limite actuelle : 20 Mio en import/export. Annulations silencieuses ; erreurs de lecture, permission, données ou écriture affichées, sans blocage des fonctionnalités hors fichier.
 - Services natifs dans `src/services/workspaceFiles.js` ; client `@neutralinojs/lib` 6.10.0. Authentification `one-time`, globals injectés dans la fenêtre et permissions explicites pour les dialogues, `getStats`, `readFile`, `writeFile` seulement.

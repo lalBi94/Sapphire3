@@ -212,11 +212,10 @@
   max-height: 72px;
   padding: 6px 10px;
   resize: vertical;
-  border: 1px solid #ffffff3d;
+  border: 1px solid var(--color-border-hover);
   border-radius: var(--radius-control);
   color: var(--color-text);
-  background: #101015b8;
-  backdrop-filter: blur(8px);
+  background: var(--color-input);
   font: inherit;
   font-size: 11px;
   line-height: 1.5;

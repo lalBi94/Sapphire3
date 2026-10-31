@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { minimumModuleSize, moduleTypes } from '../../utils/moduleTypes.js'
+import { isEmbeddedImage } from '../../utils/embeddedImage.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
 import { useTranslation } from '../../i18n.jsx'
 import './CanvasModule.css'
@@ -78,7 +79,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
     if (!file || !file.type.startsWith('image/')) return
     const reader = new FileReader()
     reader.addEventListener('load', () => {
-      if (typeof reader.result === 'string') onImageChange(module.id, { image: reader.result })
+      if (isEmbeddedImage(reader.result)) onImageChange(module.id, { image: reader.result })
     })
     reader.readAsDataURL(file)
   }
@@ -109,6 +110,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
 
   // Déclenche le choix d'une image au clavier sans gêner la légende.
   function handleImageAreaKeyDown(event) {
+    if (event.target !== event.currentTarget) return
     if (['Enter', ' '].includes(event.key)) {
       event.preventDefault()
       imageInputRef.current?.click()
@@ -121,7 +123,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
     if (!naturalWidth || !naturalHeight) return
     const ratio = naturalWidth / naturalHeight
     const contentHeight = module.width / ratio
-    const height = Math.ceil(contentHeight + 40)
+    const height = Math.max(minimumModuleSize.height, Math.ceil(contentHeight + 40))
     if (!Number.isFinite(height) || Math.abs(module.height - height) < 1) return
     onResize(module.id, module.width, height)
   }

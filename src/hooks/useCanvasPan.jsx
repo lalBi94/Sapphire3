@@ -33,7 +33,8 @@ export default function useCanvasPan() {
 
   // Modifie le niveau de zoom sans changer le centre de la vue.
   function setZoomLevel(nextZoomLevel) {
-    setCamera((current) => ({ ...current, zoomLevel: Math.max(-12, Math.min(2, nextZoomLevel)) }))
+    if (!Number.isFinite(nextZoomLevel) || 2 ** nextZoomLevel === 0) return
+    setCamera((current) => ({ ...current, zoomLevel: Math.min(2, nextZoomLevel) }))
     canvasRef.current?.focus({ preventScroll: true })
   }
 
@@ -124,7 +125,7 @@ export default function useCanvasPan() {
     const fittedZoom = width > 0 && height > 0
       ? Math.min(1, availableWidth / width, availableHeight / height)
       : 1
-    const zoomLevel = Math.max(-12, Math.min(0, Math.log2(fittedZoom)))
+    const zoomLevel = Math.min(0, Math.log2(fittedZoom))
     setCamera((current) => ({ ...current, x, y, zoomLevel }))
     canvasRef.current.focus({ preventScroll: true })
   }

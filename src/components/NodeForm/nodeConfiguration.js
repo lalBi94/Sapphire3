@@ -106,7 +106,7 @@ export function nodeConfiguration(kind, form, symbols, initialNode = null) {
     children.test = expressionDraft(form.condition, primitiveType('boolean'), symbols)
     children[kind === 'IfStatement' ? 'consequent' : 'body'] = emptyBlock()
   }
-  if (kind === 'PrintStatement') children.value = expressionDraft(form.expression, null, symbols)
+  if (kind === 'PrintStatement') children.value = expressionDraft(form.expression, type, symbols)
   if (kind === 'FunctionDeclaration') {
     children.parameters = form.parameters.map((parameter) => ({ kind: 'Parameter', properties: { name: parameter.name.trim(), ...(primitiveType(parameter.typeName) ? { type: primitiveType(parameter.typeName) } : {}) } }))
     children.body = emptyBlock()

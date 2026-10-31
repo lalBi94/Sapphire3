@@ -59,11 +59,11 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId =
       onPointerDown={(event) => event.stopPropagation()}
       onKeyDown={handleKeyDown}
     >
-      {commentId ? <DeleteAction targetId={commentId} kind={commentId.type ?? 'comment'} onDelete={onDeleteComment} menu /> : ['module', 'comment', 'image'].map((type) => {
+      {commentId ? <DeleteAction targetId={commentId} kind={commentId.type ?? 'comment'} onDelete={onDeleteComment} menu /> : Object.keys(moduleTypes).map((type) => {
         const Icon = menuIcons[type]
         return <button key={type} type="button" role="menuitem" onClick={() => onCreate(type)}>
           <Icon className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />
-          {t(type === 'module' ? 'nav.createModule' : type === 'comment' ? 'nav.createComment' : 'nav.createImage')}
+          {t(moduleTypes[type].actionKey)}
         </button>
       })}
     </div>

@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { serializeWorkspace, deserializeWorkspace } from '../../src/utils/workspaceFile.js'
 import { program, root } from '../logic/fixtures.js'
+import { isEmbeddedImage } from '../../src/utils/embeddedImage.js'
 
 // Prépare un document complet avec annotation, pliage, sélection et vue non initiale.
 function fixture() {
@@ -92,4 +93,17 @@ test('valeurs non représentables refusées et champs logiques inconnus préserv
   assert.throws(() => serializeWorkspace(project, cards, { ...camera, x: Infinity }))
   project.custom.value = Infinity
   assert.throws(() => serializeWorkspace(project, cards, camera))
+})
+test('images : données intégrées conservées, URL distantes ou locales refusées avant import', () => {
+  const { project, cards, camera } = fixture()
+  const image = { id: 'image', type: 'image', name: 'Picture', image: 'data:image/png;base64,aGVsbG8=', caption: 'Caption é', x: 0, y: 0, width: 320, height: 220, expandedNodeIds: [] }
+  cards.push(image)
+  const text = serializeWorkspace(project, cards, camera)
+  assert.deepEqual(deserializeWorkspace(text).presentation.cards.at(-1), image)
+  for (const url of ['https://example.com/image.png', 'http://127.0.0.1/image.png', 'file:///C:/private.png', 'javascript:alert(1)', 'data:text/html;base64,aA==']) {
+    assert.equal(isEmbeddedImage(url), false)
+    const data = JSON.parse(text)
+    data.presentation.cards.at(-1).image = url
+    assert.throws(() => deserializeWorkspace(JSON.stringify(data)), /Cards do not match/)
+  }
 })

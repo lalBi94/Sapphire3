@@ -52,7 +52,7 @@ export default function CanvasGrid({ camera, zoom, distorted = true }) {
   const offsetX = ((originX % spacing) + spacing) % spacing
   const offsetY = ((originY % spacing) + spacing) % spacing
   const originVisible = originX >= 0 && originX <= width && originY >= 0 && originY <= height
-  const [crossX, crossY] = originVisible ? distortPoint(originX, originY, width, height) : [0, 0]
+  const [crossX, crossY] = originVisible && distorted ? distortPoint(originX, originY, width, height) : [originX, originY]
   const lines = []
 
   for (let x = offsetX - spacing; x <= width + spacing; x += spacing) {

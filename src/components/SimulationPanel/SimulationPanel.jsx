@@ -7,7 +7,7 @@ export default function SimulationPanel({ result, running = false, currentStep =
   const { t } = useTranslation()
   if (!result) return null
   return (
-    <aside className="simulation-panel" data-canvas-ui data-canvas-scroll aria-label={t('simulation.title')}>
+    <aside className="simulation-panel" data-canvas-ui data-canvas-scroll aria-label={t('simulation.title')} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
       <header>
         <h2>{t('simulation.title')}</h2>
         <button type="button" aria-label={t('simulation.close')} onClick={onClose}><X size={16} aria-hidden="true" /></button>

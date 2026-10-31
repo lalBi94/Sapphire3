@@ -1,5 +1,41 @@
 # PROJECT_ARCHIVE.md — Sapphire 3
 
+## Audit après les incréments Copilot — 31 octobre 2026
+
+### Périmètre et constat
+
+- Règles, mémoire, inventaire Git, configurations, sources frontend/services/moteur, tests et documentation parcourus, avec priorité aux diffs depuis `298c386` jusqu'à `a9edf89` (28 commits co-signés Copilot). Aucun audit du contenu de `node_modules`, ni relecture des exécutables, PDF ou caches générés. Les assets compilés ont seulement été inspectés ponctuellement pour instrumenter le contrôle natif.
+- Structure générale conservée : React/Vite/JSX/CSS/pnpm, capacités Neutralinojs restreintes dans un service, moteur JavaScript pur sans DOM ni réseau, données source séparées de la présentation. Aucun framework, dépendance, backend ou générateur supplémentaire. Aucun dépôt distant configuré dans la copie locale : ni publication GitHub ni visibilité distante vérifiables, aucun push effectué.
+- Le build et les 105 tests initiaux réussissaient malgré plusieurs bugs réels. Les seuls tests initiaux du simulateur couvraient une impression constante et le refus d'un programme invalide.
+
+### Corrections livrées
+
+- Simulation : réutilisation des règles numériques existantes plutôt qu'une seconde arithmétique JavaScript approximative ; division flottante non tronquée, conversions effectives, BigInt pour les calculs entiers, arrondi float, contrôles runtime de dépassement/sous-flux/division par zéro, identité textuelle et booléens en court-circuit. Lecture d'une variable non initialisée refusée. Alias de types ignorés à l'exécution. Environnements d'appel isolés de l'appelant et blocs/boucles locaux.
+- Arrêt garanti par budget, y compris pour un `for` vide sans condition ; validation du budget, récursion bornée à 200 appels, update de `for` acceptant les expressions prévues par le schéma. Pas de nouvelle sémantique cible ni d'input interactif.
+- Print : formulaire auparavant désactivé faute de type attendu ; choix explicite d'un type, transmission au sous-arbre sans annotation illégale sur l'instruction. Le panneau de sortie n'active plus le pan du canvas. Animation invalidée lors d'un changement de source/import et défilement respectant la réduction des mouvements.
+- Images : suppression réellement appliquée ; carte touchée au premier plan ; espace/Entrée dans la légende ne déclenchent plus le sélecteur ; hauteur ajustée jamais inférieure au minimum exportable. Fond de légende compatible avec les thèmes, sans flou imbriqué. Validation partagée des images intégrées avant import, refus des URL distantes et chemins locaux. Aucun fichier source invalide n'est migré silencieusement.
+- Catalogue des cartes : Image est une propriété énumérable normale, non une propriété cachée pour contourner un test ancien. `sourceKind` distingue explicitement le module logique des annotations ; menu alimenté par ce catalogue.
+- Historique : reducers extraits sans React dans `src/utils/canvasDocument.js`, suppression d'Image/Comment sans toucher à la source ; révisions monotones au retour arrière, branche redo invalidée après édition de présentation, historique vidé après import pour éviter de restaurer l'ancien fichier sous le nouveau chemin. Sélection devenue absente ignorée pour l'UI et l'export ; ancien signal d'agrandissement neutralisé après restauration.
+- Navigation/panneaux : suppression du plancher arbitraire de zoom dans les boutons/cadrage ; croix correctement placée quand la grille est droite ; limites de déplacement/redimensionnement du panneau cohérentes au pointeur et au clavier ; hiérarchie bornée comme l'arbre affiché ; sélection depuis la hiérarchie ramenant aussi la carte au premier plan.
+- Préférences : accès centralisés, exceptions de stockage non bloquantes et signalées en console ; plus d'écriture depuis un updater React ; nouveau fichier sauvegardé ajouté aux récents. Langue HTML synchronisée et suppression de la mutation globale de langue pendant le rendu. README, contrats et mémoire corrigés là où ils décrivaient encore des fonctionnalités absentes ou anciennes.
+
+### Vérifications réellement réalisées
+
+- `pnpm test` : **120 tests réussis**, aucun échec (15 tests supplémentaires). Régressions numériques runtime, conversions, limites de boucle/récursion, update expression, Print, images et URL interdites, suppression d'annotation, undo/redo/import et stockage inaccessible.
+- `pnpm build` : réussi. `git diff --check` : aucune erreur de contenu, avertissements Git LF/CRLF sous Windows uniquement. Pas de lint configuré. Contrôle des références aux variables CSS : aucune variable utilisée non définie détectée.
+- Navigateur Vite existant : menu proposant Module/Comment/Image, suppression d'image confirmée, fonction point d'entrée `start` et Print `double` créés par formulaire, Run affichant `3.5`, undo/redo restaurant Print sans sélection invalide et effaçant la simulation périmée. Déplacement clavier du panneau restant dans la vue, cadrage et palette Educational contrôlés.
+- Dézoom de 100 crans puis bouton Zoom in : progression de `8,67e-17 %` vers `1,08e-16 %`, sans saut au plancher historique ; retour à 100 %. Légende conservant espace et sélecteur déclenché une seule fois par Entrée sur la zone image. Dépôt d'un SVG local de ratio 1000:1 : hauteur à 120 px, non 41 px. Passage au français mettant `html.lang` à `fr`, puis retour anglais/Sapphire. Console navigateur : aucune erreur collectée.
+- Fenêtre Neutralinojs compilée, profil WebView isolé dans le dossier temporaire approuvé : écriture/lecture/statistiques natives d'un workspace de test ; dialogue Windows « Export workspace » vers un nouveau `.sp3`, statut de succès et ajout aux récents. Création d'un commentaire puis Ctrl+S : fichier relu sur disque contenant exactement une carte Comment. Dialogue d'ouverture d'un second `.sp3`, confirmation de remplacement visible, validation puis document vide et chemin récent correspondant au fichier confirmé. Fenêtres de test fermées ; aucune donnée de test dans le dépôt.
+- Instrumentation native : premier dialogue non retrouvé par les premières recherches UIAutomation, fenêtre fermée sans attribuer de succès à cette tentative. Nouvelle session, recherches dans les descendants et contrôle Win32 ciblé : parcours natif complet réussi. Le premier lancement Vite a échoué car 5173 était déjà occupé ; serveur du projet existant réutilisé, sans tuer de processus utilisateur.
+
+### Limites et conformité non démontrée
+
+- Les discussions Copilot ne sont pas disponibles. Simulation, images, français et préférences sont livrés dans l'historique mais dépassent le périmètre historique d'`AGENTS.md` : ils sont conservés, pas déclarés rétroactivement autorisés. Le fichier de règles n'a pas été modifié.
+- Traductions et libellés accessibles encore partiels et répartis entre `i18n.jsx`, utilitaires de labels et composants ; contextes langue/thème encore à la racine de `src/` plutôt que dans l'organisation cible `src/contexts/`. Pas de réorganisation cosmétique globale ni suppression du français pour masquer ces écarts.
+- Historique local non exhaustif des gestes/saisies, analyses synchrones et trace calculée avant animation ; pas de benchmark gros projet, de preuve d'absence de fuite mémoire ni de validation exhaustive de tous les parcours UI, viewports ou périphériques. L'initialisation globale de la simulation suit l'ordre des modules, sans ordonnanceur de dépendances.
+- Persistance des préférences entre redémarrages avec port natif variable non requalifiée ; le workspace lui-même reste sauvegardé uniquement sur demande. Les écritures natives ne sont pas transactionnelles avec sauvegarde de secours : aucun nouveau mécanisme de persistance n'a été ajouté pendant cet audit.
+- Disque plein, permission Windows refusée, fichiers géants, export JSON natif et annulations d'import n'ont pas été recontrôlés dans cet audit. Anciennes vérifications ci-dessous conservées comme historique, non comme résultats de la présente session. Aucun test d'installation/distribution, de release distante, des dépendances transitives ou de sécurité exhaustif.
+
 ## Initialisation du socle — 30 octobre 2026
 
 - Environnement : Windows, Node.js 24.16.0, pnpm 11.5.0.

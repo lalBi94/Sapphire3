@@ -53,7 +53,7 @@ export default function NodeForm({ kind, initialNode = null, context, onSubmit, 
   return (
     <form className="node-form" onSubmit={handleSubmit}>
       {schema.named && <label>{t('form.name')}<input aria-label={t('form.name')} value={form.name} onChange={(event) => change('name', event.target.value)} required={required} autoComplete="off" /></label>}
-      {schema.declaresType && <NodeTypeInput label={kind === 'FunctionDeclaration' ? t('form.returnType') : t('form.type')} value={form.typeName} onChange={(value) => change('typeName', value)} required={required} allowVoid={kind === 'FunctionDeclaration'} alias={initialNode?.properties.type?.kind === 'named'} />}
+      {(schema.declaresType || isNew && kind === 'PrintStatement') && <NodeTypeInput label={kind === 'FunctionDeclaration' ? t('form.returnType') : t('form.type')} value={form.typeName} onChange={(value) => change('typeName', value)} required={required} allowVoid={kind === 'FunctionDeclaration'} alias={initialNode?.properties.type?.kind === 'named'} />}
       {kind === 'FunctionDeclaration' && <>
         <label className="node-form__check"><input type="checkbox" checked={form.entryPoint} disabled={entryPointTaken && !form.entryPoint} onChange={(event) => change('entryPoint', event.target.checked)} />{t('form.startProgram')}</label>
         {entryPointTaken && !form.entryPoint && <p className="node-form__hint">{t('form.startProgramHint')}</p>}
@@ -73,7 +73,7 @@ export default function NodeForm({ kind, initialNode = null, context, onSubmit, 
       </label>}
       {isNew && ['VariableDeclaration', 'ConstantDeclaration'].includes(kind) && <ExpressionInput label={t('form.startingValue')} value={form.initializer} onChange={(value) => change('initializer', value)} type={type} symbols={symbols} required={kind === 'ConstantDeclaration' && required} allowIncomplete={form.allowIncomplete} />}
       {isNew && ['IfStatement', 'WhileStatement', 'ForStatement'].includes(kind) && <ExpressionInput label={t('form.condition')} value={form.condition} onChange={(value) => change('condition', value)} type={primitiveType('boolean')} symbols={symbols} required={kind !== 'ForStatement' && required} allowIncomplete={form.allowIncomplete} />}
-      {isNew && kind === 'PrintStatement' && <ExpressionInput label={t('form.value')} value={form.expression} onChange={(value) => change('expression', value)} symbols={symbols} required={required} allowIncomplete={form.allowIncomplete} />}
+      {isNew && kind === 'PrintStatement' && <ExpressionInput label={t('form.value')} value={form.expression} onChange={(value) => change('expression', value)} type={type} symbols={symbols} required={required} allowIncomplete={form.allowIncomplete} />}
       {isNew && kind === 'FunctionDeclaration' && <fieldset><legend>{t('form.parameters')}</legend>
         {form.parameters.map((parameter, index) => <div className="node-form__parameter" key={index}>
           <label>Parameter {index + 1} name<input aria-label={`Parameter ${index + 1} name`} value={parameter.name} required={required} onChange={(event) => change('parameters', form.parameters.map((entry, position) => position === index ? { ...entry, name: event.target.value } : entry))} /></label>

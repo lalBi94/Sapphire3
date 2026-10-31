@@ -17,7 +17,8 @@ test('le moteur analyse une source profondément gelée sans effets de bord', ()
 })
 
 test('indépendance : tous les imports du moteur sont des fichiers JavaScript locaux', () => {
-  assert.deepEqual(Object.keys(moduleTypes).filter((kind) => kind !== 'comment'), Object.values(moduleKinds))
+  assert.deepEqual(Object.values(moduleTypes).filter((definition) => definition.sourceKind).map((definition) => definition.sourceKind), Object.values(moduleKinds))
+  assert.deepEqual(Object.keys(moduleTypes), ['module', 'comment', 'image'])
   assert.equal(Object.values(moduleKinds).includes('comment'), false)
   assert.equal(moduleTypes.comment.hasText, true)
   const directory = new URL('../../src/utils/logic/', import.meta.url)

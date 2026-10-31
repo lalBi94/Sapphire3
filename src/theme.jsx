@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
+import { readPreference, writePreference } from './services/preferences.js'
 
 const themes = [
   {
@@ -290,12 +291,12 @@ function applyTheme(theme) {
 
 // Fournit le thème actif et sa préférence d'interface à toute l'application.
 export function ThemeProvider({ children }) {
-  const [themeId, setThemeId] = useState(() => window.localStorage.getItem('sapphire-theme') ?? themes[0].id)
+  const [themeId, setThemeId] = useState(() => readPreference('sapphire-theme') ?? themes[0].id)
   const theme = findTheme(themeId)
 
   useEffect(() => {
     applyTheme(theme)
-    window.localStorage.setItem('sapphire-theme', theme.id)
+    writePreference('sapphire-theme', theme.id)
   }, [theme])
 
   // Change le thème et conserve uniquement cette préférence d'interface.

@@ -19,7 +19,7 @@ import './Canvas.css'
 // Assemble présentation, document source et interactions, sans confondre position et syntaxe.
 export default function Canvas() {
   const [contextMenu, setContextMenu] = useState(null)
-  const [selected, setSelected] = useState(null)
+  const [selection, setSelected] = useState(null)
   const [activeCardId, setActiveCardId] = useState(null)
   const [growthRequest, setGrowthRequest] = useState({ moduleId: null, revision: 0 })
   const [distorted, setDistorted] = useState(true)
@@ -28,8 +28,14 @@ export default function Canvas() {
   const menuTriggerRef = useRef(null)
   const { t } = useTranslation()
   const document = useCanvasDocument()
+  const selected = selection && (selection.kind === 'module' ? document.index.modules.has(selection.id) : document.index.nodes.has(selection.id)) ? selection : null
   const { camera, zoom, canvasRef, isPanning, handlePointerDown, handlePointerMove, handlePointerEnd, handleKeyDown, handleRecenter, zoomBy, resetZoom, restoreCamera } = useCanvasPan()
   const files = useWorkspaceFiles({ project: document.project, cards: document.cards, camera, selected, onReplace: handleReplaceWorkspace })
+
+  useEffect(() => {
+    setExecution(null)
+    setSimulationResult(null)
+  }, [document.project])
 
   useEffect(() => {
     if (!execution?.running) return undefined
@@ -44,6 +50,8 @@ export default function Canvas() {
 
   // Restaure source, présentation et vue ensemble après confirmation d'import.
   function handleReplaceWorkspace(workspace) {
+    setExecution(null)
+    setSimulationResult(null)
     document.replaceWorkspace(workspace)
     restoreCamera(workspace.presentation.camera)
     setSelected(workspace.presentation.selected)
@@ -56,7 +64,7 @@ export default function Canvas() {
   // Place la carte touchée au-dessus des autres cartes sans modifier le document source.
   function bringCardToFront(targetId) {
     if (!targetId) return
-    const cardId = targetId.kind === 'module' || targetId.kind === 'comment'
+    const cardId = targetId.kind !== 'node'
       ? targetId.id
       : document.index.nodes.get(targetId.id)?.moduleId
     if (cardId) setActiveCardId(cardId)
@@ -103,7 +111,7 @@ export default function Canvas() {
 
   // Ouvre le même menu logique depuis la barre d’édition pour la cible sélectionnée.
   function handleOpenSelectionMenu() {
-    if (!selected || selected.kind === 'comment') return
+    if (!selected || selected.kind !== 'node' && selected.kind !== 'module') return
     bringCardToFront(selected)
     menuTriggerRef.current = null
     setContextMenu({ id: crypto.randomUUID(), targetId: selected, x: 16, y: 12 })
@@ -178,7 +186,7 @@ export default function Canvas() {
     const result = document.insertNode(targetId, slot, draft)
     if (result.ok) {
       setSelected({ kind: 'node', id: result.nodeId })
-      setGrowthRequest((current) => ({ moduleId: result.index.nodes.get(result.nodeId).moduleId, revision: current.revision + 1 }))
+      setGrowthRequest((current) => ({ moduleId: result.index.nodes.get(result.nodeId).moduleId, revision: current.revision + 1, documentRevision: document.revision }))
       handleCloseMenu(false)
     }
     return result
@@ -228,7 +236,7 @@ export default function Canvas() {
       {document.cards.map((card) => <CanvasModule key={`${document.revision}:${card.id}`} module={card} camera={camera} zoom={zoom}
         zIndex={activeCardId === card.id ? 2 : 1}
         onActivate={() => bringCardToFront({ kind: card.type, id: card.id })}
-        fitRequest={growthRequest.moduleId === card.id ? growthRequest.revision : 0}
+        fitRequest={growthRequest.documentRevision === document.revision && growthRequest.moduleId === card.id ? growthRequest.revision : 0}
         onOpenActions={(event) => handleOpenActions(event, { kind: card.type, id: card.id })}
         selected={selected?.kind === 'module' && selected.id === card.id}
         onSelect={() => handleSelect(card.type === 'module' ? { kind: 'module', id: card.id } : null)}
@@ -239,7 +247,7 @@ export default function Canvas() {
       </CanvasModule>)}
       <CanvasStatus camera={camera} zoom={zoom} onRecenter={() => handleRecenter(getModulesBounds())} />
       <SimulationPanel result={simulationResult} running={Boolean(execution?.running)} currentStep={execution ? execution.index + 1 : 0} onClose={() => { setSimulationResult(null); setExecution(null) }} />
-      {selected && <NodeProperties key={`${document.revision}:${selected.kind}:${selected.id}`} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={setSelected} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
+      {selected && <NodeProperties key={`${document.revision}:${selected.kind}:${selected.id}`} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={handleSelect} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
       {contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} anchored={contextMenu.anchored} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={handleCloseMenu} />
         : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} onCreate={handleCreateModule} onClose={handleCloseMenu} anchored={contextMenu.anchored} commentId={contextMenu.targetId ? { id: contextMenu.targetId.id, type: contextMenu.targetId.kind } : null} onDeleteComment={handleDeleteComment} />)}
     </main>

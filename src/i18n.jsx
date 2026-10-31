@@ -1,4 +1,5 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
+import { readPreference, writePreference } from './services/preferences.js'
 
 const translations = {
   en: {
@@ -73,6 +74,7 @@ const translations = {
     'form.create': 'Create block',
     'form.name': 'Name',
     'form.type': 'Type',
+    'form.value': 'Value',
     'form.returnType': 'Return type',
     'form.startProgram': 'Start program here',
     'form.chooseOperation': 'Choose an operation',
@@ -198,6 +200,7 @@ const translations = {
     'form.create': 'Créer le bloc',
     'form.name': 'Nom',
     'form.type': 'Type',
+    'form.value': 'Valeur',
     'form.returnType': 'Type de retour',
     'form.startProgram': 'Démarrer le programme ici',
     'form.chooseOperation': 'Choisir une opération',
@@ -253,7 +256,8 @@ const translations = {
   },
 }
 
-let currentLanguage = 'en'
+const savedLanguage = readPreference('sapphire-language')
+let currentLanguage = savedLanguage === 'fr' ? 'fr' : 'en'
 const LanguageContext = createContext(null)
 
 // Retourne la langue active pour les utilitaires qui ne sont pas des composants React.
@@ -263,17 +267,18 @@ export function getCurrentLanguage() {
 
 // Fournit la langue et les textes à toute l’interface.
 export function LanguageProvider({ children }) {
-  const [language, setLanguageState] = useState(() => {
-    const saved = window.localStorage.getItem('sapphire-language')
-    return saved === 'fr' || saved === 'en' ? saved : 'en'
-  })
-  currentLanguage = language
+  const [language, setLanguageState] = useState(currentLanguage)
+
+  useEffect(() => {
+    document.documentElement.lang = language
+  }, [language])
 
   // Change la langue et conserve uniquement cette préférence d’interface.
   function setLanguage(nextLanguage) {
+    if (!Object.hasOwn(translations, nextLanguage)) return
     currentLanguage = nextLanguage
     setLanguageState(nextLanguage)
-    window.localStorage.setItem('sapphire-language', nextLanguage)
+    writePreference('sapphire-language', nextLanguage)
   }
 
   // Cherche un texte traduit et retombe sur l’anglais si une langue est incomplète.

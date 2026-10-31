@@ -1,12 +1,15 @@
 import { analyzeProgram } from './analysis.js'
+import { validateLiteral, convertConstant, evaluateBinary, evaluateUnary } from './numericConstants.js'
 
 // Exécute le sous-ensemble déterministe du langage sans accéder au DOM ni au système.
 export function simulateProgram(project, { maxSteps = 10000 } = {}) {
+  if (!Number.isSafeInteger(maxSteps) || maxSteps < 1 || maxSteps > 100000) return { ok: false, output: [], trace: [], error: 'The step budget must be an integer between 1 and 100000.' }
   const analysis = analyzeProgram(project)
   if (!analysis.canGenerate) return { ok: false, output: [], trace: [], error: 'The program has blocking diagnostics.', diagnostics: analysis.diagnostics }
   const nodes = new Map(project.nodes.map((node) => [node.id, node]))
   const symbols = new Map(analysis.semantic.symbols.map((symbol) => [symbol.id, symbol]))
   const references = new Map(analysis.semantic.references.map((reference) => [reference.nodeId, reference]))
+  const types = new Map(analysis.semantic.nodeTypes.map((entry) => [entry.nodeId, entry.type]))
   const functions = new Map(analysis.semantic.symbols.filter((symbol) => symbol.kind === 'FunctionDeclaration').map((symbol) => [symbol.nodeId, nodes.get(symbol.nodeId)]))
   const entry = [...functions.values()].find((node) => node?.properties?.entryPoint === true)
   const output = []
@@ -14,10 +17,13 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
   let steps = 0
   const breakSignal = Symbol('break')
   const continueSignal = Symbol('continue')
+  const uninitialized = Symbol('uninitialized')
+  let callDepth = 0
 
   if (!entry) return { ok: false, output, trace, error: 'No entry point is marked.' }
   if ((entry.children.parameters ?? []).length > 0) return { ok: false, output, trace, error: 'The entry point must not require inputs.' }
 
+  // Compte aussi les itérations sans condition ni instruction pour garantir l'arrêt.
   function step(node) {
     steps += 1
     if (steps > maxSteps) throw new Error('Simulation step limit reached.')
@@ -25,12 +31,18 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
     return node
   }
 
+  // Cherche une déclaration dans les environnements lexicaux actifs, sans valeur implicite.
   function readBinding(nodeId, environment) {
-    if (environment.values.has(nodeId)) return environment.values.get(nodeId)
+    if (environment.values.has(nodeId)) {
+      const value = environment.values.get(nodeId)
+      if (value === uninitialized) throw new Error('A value was read before it was initialized.')
+      return value
+    }
     if (environment.parent) return readBinding(nodeId, environment.parent)
     throw new Error('A value was read before it was initialized.')
   }
 
+  // Modifie uniquement une déclaration existante dans la chaîne lexicale.
   function writeBinding(nodeId, value, environment) {
     if (environment.values.has(nodeId)) {
       environment.values.set(nodeId, value)
@@ -43,30 +55,50 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
     throw new Error('A value was changed before it was initialized.')
   }
 
+  // Réutilise les contrôles numériques statiques sur les valeurs calculées à l'exécution.
+  function checked(result) {
+    if (result.code) throw new Error(`${result.code}: ${result.message}`)
+    return result.value
+  }
+
+  // Évalue une expression typée, avec court-circuit pour les opérateurs booléens.
   function valueOf(node, environment) {
     step(node)
-    if (node.kind === 'Literal') return parseLiteral(node.properties.type?.name, node.properties.value)
+    if (node.kind === 'Literal') return checked(validateLiteral(types.get(node.id)?.name, node.properties.value))
     if (node.kind === 'Reference') {
       const symbol = symbols.get(references.get(node.id)?.symbolId)
-      return symbol ? readBinding(symbol.nodeId, environment) : undefined
+      if (!symbol) throw new Error('The reference cannot be resolved.')
+      return readBinding(symbol.nodeId, environment)
     }
-    if (node.kind === 'BinaryExpression') return binary(node.properties.operator, valueOf(nodes.get(node.children.left), environment), valueOf(nodes.get(node.children.right), environment))
-    if (node.kind === 'UnaryExpression') return unary(node.properties.operator, valueOf(nodes.get(node.children.operand), environment))
-    if (node.kind === 'CastExpression') return valueOf(nodes.get(node.children.argument), environment)
+    if (node.kind === 'BinaryExpression') {
+      const operator = node.properties.operator
+      const left = valueOf(nodes.get(node.children.left), environment)
+      if (operator === 'and' && !left) return false
+      if (operator === 'or' && left) return true
+      const right = valueOf(nodes.get(node.children.right), environment)
+      return checked(evaluateBinary(operator, left, right, types.get(node.children.left)?.name))
+    }
+    if (node.kind === 'UnaryExpression') return checked(evaluateUnary(node.properties.operator, valueOf(nodes.get(node.children.operand), environment), types.get(node.id)?.name))
+    if (node.kind === 'CastExpression') {
+      const value = valueOf(nodes.get(node.children.argument), environment)
+      const target = types.get(node.id)?.name
+      return target === types.get(node.children.argument)?.name ? value : checked(convertConstant(value, target))
+    }
     if (node.kind === 'CallExpression') {
       const callee = nodes.get(node.children.callee)
       const symbol = symbols.get(references.get(callee?.id)?.symbolId)
       const target = symbol ? functions.get(symbol.nodeId) : null
       if (!target) throw new Error('The called function cannot be resolved.')
-      return executeFunction(target, (node.children.arguments ?? []).map((id) => valueOf(nodes.get(id), environment)), environment)
+      return executeFunction(target, (node.children.arguments ?? []).map((id) => valueOf(nodes.get(id), environment)))
     }
     throw new Error(`Unsupported expression: ${node.kind}.`)
   }
 
+  // Exécute une instruction et propage les contrôles de flux jusqu'à leur propriétaire.
   function executeStatement(node, environment) {
     step(node)
     if (node.kind === 'VariableDeclaration' || node.kind === 'ConstantDeclaration') {
-      environment.values.set(node.id, node.children.initializer ? valueOf(nodes.get(node.children.initializer), environment) : undefined)
+      environment.values.set(node.id, node.children.initializer ? valueOf(nodes.get(node.children.initializer), environment) : uninitialized)
       return
     }
     if (node.kind === 'PrintStatement') {
@@ -99,13 +131,19 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
       return
     }
     if (node.kind === 'ForStatement') {
+      environment = { values: new Map(), parent: environment }
       if (node.children.initializer) executeStatement(nodes.get(node.children.initializer), environment)
       while (!node.children.test || valueOf(nodes.get(node.children.test), environment)) {
+        step(node)
         try { executeBlock(nodes.get(node.children.body), environment) } catch (signal) {
           if (signal === breakSignal) break
           if (signal !== continueSignal) throw signal
         }
-        if (node.children.update) executeStatement(nodes.get(node.children.update), environment)
+        if (node.children.update) {
+          const update = nodes.get(node.children.update)
+          if (update.kind === 'AssignmentStatement') executeStatement(update, environment)
+          else valueOf(update, environment)
+        }
       }
       return
     }
@@ -113,19 +151,26 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
     if (node.kind === 'BreakStatement') throw breakSignal
     if (node.kind === 'ContinueStatement') throw continueSignal
     if (node.kind === 'Block') executeBlock(node, environment)
-    else if (node.kind !== 'FunctionDeclaration' && node.kind !== 'Parameter') throw new Error(`Unsupported statement: ${node.kind}.`)
+    else if (!['FunctionDeclaration', 'TypeDeclaration', 'Parameter'].includes(node.kind)) throw new Error(`Unsupported statement: ${node.kind}.`)
   }
 
-  function executeBlock(block, environment) {
+  // Recrée les variables d'un bloc à chaque entrée, notamment dans les boucles.
+  function executeBlock(block, parent) {
+    const environment = { values: new Map(), parent }
     for (const id of block.children.statements ?? []) executeStatement(nodes.get(id), environment)
   }
 
-  function executeFunction(node, args, parent = null) {
-    const environment = { values: new Map(), parent }
+  // Isole chaque appel du contexte de l'appelant et borne la récursion avant la pile JavaScript.
+  function executeFunction(node, args) {
+    callDepth += 1
+    if (callDepth > 200) throw new Error('Simulation call depth limit reached.')
+    const environment = { values: new Map(), parent: global }
     for (const [index, parameterId] of (node.children.parameters ?? []).entries()) environment.values.set(parameterId, args[index])
     try { executeBlock(nodes.get(node.children.body), environment) } catch (signal) {
       if (signal?.type === 'return') return signal.value
       throw signal
+    } finally {
+      callDepth -= 1
     }
     return undefined
   }
@@ -138,39 +183,11 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
         if (node && node.kind !== 'FunctionDeclaration') executeStatement(node, global)
       }
     }
-    const result = executeFunction(entry, [], global)
-    return { ok: true, output, trace, result, steps }
+    const result = executeFunction(entry, [])
+    return { ok: true, output, trace, result: typeof result === 'bigint' ? Number(result) : result, steps }
   } catch (error) {
     return { ok: false, output, trace, error: error instanceof Error ? error.message : 'Simulation stopped.', steps }
   }
-}
-
-// Convertit un littéral persistant vers une valeur utilisable par la simulation.
-function parseLiteral(type, value) {
-  if (type === 'boolean') return value === true || value === 'true'
-  if (['short int', 'short uint', 'int', 'uint', 'float', 'double'].includes(type)) return Number(value)
-  return value
-}
-
-// Applique les opérations déjà validées statiquement par le moteur.
-function binary(operator, left, right) {
-  if (operator === 'and') return left && right
-  if (operator === 'or') return left || right
-  if (operator === '==') return left === right
-  if (operator === '!=') return left !== right
-  if (operator === '/') return Math.trunc(left / right)
-  if (operator === '%') return left % right
-  const operations = { '+': () => left + right, '-': () => left - right, '*': () => left * right, '<': () => left < right, '<=': () => left <= right, '>': () => left > right, '>=': () => left >= right }
-  if (!operations[operator]) throw new Error(`Unsupported operator: ${operator}.`)
-  return operations[operator]()
-}
-
-// Applique les opérations unaires déjà validées statiquement par le moteur.
-function unary(operator, value) {
-  if (operator === 'not') return !value
-  if (operator === '-') return -value
-  if (operator === '+') return +value
-  throw new Error(`Unsupported operator: ${operator}.`)
 }
 
 // Rend une valeur de simulation lisible sans perdre la distinction booléenne.

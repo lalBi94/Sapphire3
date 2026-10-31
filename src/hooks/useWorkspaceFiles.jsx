@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { serializeWorkspace, deserializeWorkspace } from '../utils/workspaceFile.js'
 import { exportWorkspaceFile, importWorkspaceFile, readWorkspaceFile, writeWorkspaceFile } from '../services/workspaceFiles.js'
 import { useTranslation } from '../i18n.jsx'
+import { readPreference, writePreference } from '../services/preferences.js'
 
 const recentFilesStorageKey = 'sapphire-recent-sp3-files'
 const maximumRecentFiles = 5
@@ -9,7 +10,7 @@ const maximumRecentFiles = 5
 // Charge les chemins récents en écartant les valeurs persistées invalides.
 function loadRecentFiles() {
   try {
-    const stored = JSON.parse(window.localStorage.getItem(recentFilesStorageKey) ?? '[]')
+    const stored = JSON.parse(readPreference(recentFilesStorageKey) ?? '[]')
     return Array.isArray(stored) ? stored.filter((path) => typeof path === 'string' && path.toLowerCase().endsWith('.sp3')).slice(0, maximumRecentFiles) : []
   } catch {
     return []
@@ -31,16 +32,14 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
   function rememberRecentFile(path) {
     const next = [path, ...recentFiles.filter((entry) => entry.toLowerCase() !== path.toLowerCase())].slice(0, maximumRecentFiles)
     setRecentFiles(next)
-    window.localStorage.setItem(recentFilesStorageKey, JSON.stringify(next))
+    writePreference(recentFilesStorageKey, JSON.stringify(next))
   }
 
   // Retire un chemin devenu inaccessible de la liste persistante.
   function forgetRecentFile(path) {
-    setRecentFiles((current) => {
-      const next = current.filter((entry) => entry.toLowerCase() !== path.toLowerCase())
-      window.localStorage.setItem(recentFilesStorageKey, JSON.stringify(next))
-      return next
-    })
+    const next = recentFiles.filter((entry) => entry.toLowerCase() !== path.toLowerCase())
+    setRecentFiles(next)
+    writePreference(recentFilesStorageKey, JSON.stringify(next))
   }
 
   // Capture le document courant dans le format demandé et l'ecrit au chemin choisi.
@@ -54,7 +53,10 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
       const text = serializeWorkspace(project, cards, camera, selected)
       const path = await exportWorkspaceFile(extension, text)
       if (path) {
-        if (extension === 'sp3') setCurrentPath(path)
+        if (extension === 'sp3') {
+          setCurrentPath(path)
+          rememberRecentFile(path)
+        }
         setMessage('Workspace saved.')
       }
     } catch (failure) {
@@ -125,7 +127,6 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     }
   }
 
-  // Associe le document au chemin du fichier uniquement après le remplacement confirmé.
   // Valide le fichier choisi avant de demander l'autorisation de remplacer le contenu affiché.
   async function handleImport() {
     if (operation.current || pendingImport) return
@@ -165,6 +166,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
   }
 
   useEffect(() => {
+    // Intercepte la sauvegarde native sans déclencher celle du navigateur.
     function handleShortcut(event) {
       if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 's') return
       event.preventDefault()

@@ -18,7 +18,7 @@ function hierarchyLabel(record) {
 // Rend récursivement les descendants source sans laisser un cycle bloquer le panneau.
 function HierarchyNode({ id, index, selected, onSelect, ancestors = [] }) {
   const node = index.nodes.get(id)
-  if (!node || ancestors.includes(id)) return null
+  if (!node || ancestors.includes(id) || ancestors.length >= 60) return null
   const childIds = Object.values(node.children ?? {}).flatMap((value) => Array.isArray(value) ? value : value ? [value] : [])
   const summary = nodeSummary(node, index, getNodeSchema(node.kind))
   return (
@@ -147,7 +147,7 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
     if (!resize || resize.pointerId !== event.pointerId) return
     const minimumWidth = 240
     const minimumHeight = 180
-    const maximumWidth = Math.max(minimumWidth, resize.parentWidth - 16)
+    const maximumWidth = Math.max(minimumWidth, resize.parentWidth - resize.origin.x - 8)
     const maximumHeight = Math.max(minimumHeight, resize.parentHeight - resize.origin.y - 16)
     const width = Math.min(maximumWidth, Math.max(minimumWidth, resize.width + (event.clientX - resize.x)))
     const height = Math.min(maximumHeight, Math.max(minimumHeight, resize.height + (event.clientY - resize.y)))
@@ -175,14 +175,15 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
     const bounds = panel.getBoundingClientRect()
     const parentBounds = parent.getBoundingClientRect()
     const currentPosition = position ?? { x: bounds.left - parentBounds.left, y: bounds.top - parentBounds.top }
-    const width = Math.max(240, bounds.width + direction[0])
-    const height = Math.max(180, bounds.height + direction[1])
+    const width = Math.min(Math.max(240, parentBounds.width - currentPosition.x - 8), Math.max(240, bounds.width + direction[0]))
+    const height = Math.min(Math.max(180, parentBounds.height - currentPosition.y - 8), Math.max(180, bounds.height + direction[1]))
     setPosition(currentPosition)
     setSize({ width, height })
   }
 
   // Déplace le panneau par petits pas lorsque sa poignée possède le focus.
   function handleMoveKeyDown(event) {
+    if (event.target !== event.currentTarget) return
     const directions = { ArrowLeft: [-16, 0], ArrowRight: [16, 0], ArrowUp: [0, -16], ArrowDown: [0, 16] }
     const direction = directions[event.key]
     if (!direction) return
@@ -193,7 +194,10 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
     const bounds = panel.getBoundingClientRect()
     const parentBounds = parent.getBoundingClientRect()
     const origin = position ?? { x: bounds.left - parentBounds.left, y: bounds.top - parentBounds.top }
-    setPosition({ x: Math.max(8, origin.x + direction[0]), y: Math.max(8, origin.y + direction[1]) })
+    setPosition({
+      x: Math.min(Math.max(8, parentBounds.width - bounds.width - 8), Math.max(8, origin.x + direction[0])),
+      y: Math.min(Math.max(8, parentBounds.height - bounds.height - 8), Math.max(8, origin.y + direction[1])),
+    })
   }
 
   const panelStyle = position || size ? {
