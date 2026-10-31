@@ -1,0 +1,10 @@
+.floating-panel { position: absolute; z-index: 3; box-sizing: border-box; right: var(--space-panel); top: var(--space-panel); bottom: 74px; width: 332px; max-width: calc(100% - 32px); max-height: calc(100% - 32px); min-width: 240px; min-height: 180px; display: flex; flex-direction: column; padding: var(--space-panel); border: 1px solid var(--color-border); border-radius: var(--radius-panel); color: var(--color-text); background: var(--surface-reflection), var(--surface-floating); box-shadow: var(--shadow-panel); cursor: default; font-size: 12px; }
+.floating-panel__header { display: flex; flex: 0 0 auto; align-items: center; gap: var(--space-control); margin-bottom: var(--space-control); cursor: grab; touch-action: none; user-select: none; }
+.floating-panel__header:active { cursor: grabbing; }
+.floating-panel__header h2 { flex: 1; margin: 0; font-size: 12px; font-weight: 500; }
+.floating-panel__header button { display: grid; place-items: center; width: 28px; height: 28px; flex-shrink: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--color-text-muted); cursor: pointer; }
+.floating-panel__content { flex: 1; min-height: 0; overflow: auto; padding: 2px 2px 18px; }
+.floating-panel__resize { position: absolute; right: 3px; bottom: 3px; display: grid; place-items: center; width: 22px; height: 22px; padding: 4px; border: 0; border-radius: var(--radius-small); color: var(--color-text-muted); background: transparent; cursor: nwse-resize; touch-action: none; }
+.floating-panel__resize svg { width: 100%; height: 100%; fill: none; stroke: currentColor; }
+.floating-panel__header button:hover, .floating-panel__resize:hover { background: var(--color-hover); color: var(--color-text); }
+.floating-panel :is(button, select, pre, header):focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }

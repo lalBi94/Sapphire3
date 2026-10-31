@@ -18,6 +18,7 @@ import { exportWorkspaceFile } from '../../services/workspaceFiles.js'
 import SimulationPanel from '../SimulationPanel/SimulationPanel.jsx'
 import DebugPanel from '../DebugPanel/DebugPanel.jsx'
 import TranspilePanel from '../TranspilePanel/TranspilePanel.jsx'
+import NodeGraphPanel from '../NodeGraphPanel/NodeGraphPanel.jsx'
 import './Canvas.css'
 
 // Assemble présentation, document source et interactions, sans confondre position et syntaxe.
@@ -32,6 +33,7 @@ export default function Canvas() {
   const [debugSession, setDebugSession] = useState(null)
   const [transpilationResult, setTranspilationResult] = useState(null)
   const [transpileExportError, setTranspileExportError] = useState(null)
+  const [nodeGraph, setNodeGraph] = useState(null)
   const menuTriggerRef = useRef(null)
   const { language, t } = useTranslation()
   const document = useCanvasDocument()
@@ -82,6 +84,7 @@ export default function Canvas() {
 
   // Restaure source, présentation et vue ensemble après confirmation d'import.
   function handleReplaceWorkspace(workspace) {
+    setNodeGraph(null)
     setDebugSession(null)
     setExecution(null)
     setSimulationResult(null)
@@ -182,9 +185,15 @@ export default function Canvas() {
   }
 
   // Génère le JavaScript uniquement après analyse du document courant.
-  function handleTranspile() {
+  function handleTranspile(target) {
     setTranspileExportError(null)
-    setTranspilationResult(transpileProgram(document.project, { target: 'javascript' }))
+    setTranspilationResult(transpileProgram(document.project, { target }))
+  }
+
+  // Ouvre une analyse liée à la cible du menu sans changer la source ni lancer le programme.
+  function handleOpenNodeGraph(target, mode) {
+    setNodeGraph({ target, mode })
+    handleCloseMenu(true)
   }
 
   // Exporte le résultat déjà affiché sans relancer une analyse différente.
@@ -317,8 +326,9 @@ export default function Canvas() {
       <SimulationPanel result={simulationResult} running={Boolean(execution?.running)} currentStep={execution ? execution.index + 1 : 0} onClose={() => { setSimulationResult(null); setExecution(null) }} />
       {debugSession?.project === document.project && <DebugPanel session={debugSession} index={document.index} onAction={handleDebugAction} onClose={() => setDebugSession(null)} />}
       <TranspilePanel result={transpilationResult} exportError={transpileExportError} onExport={handleExportTranspilation} onClose={() => { setTranspilationResult(null); setTranspileExportError(null) }} />
+      {nodeGraph && <NodeGraphPanel project={document.project} index={document.index} target={nodeGraph.target} mode={nodeGraph.mode} onSelect={handleSelect} onClose={() => setNodeGraph(null)} />}
       {selected && <NodeProperties key={document.revision} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={handleSelect} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onExport={document.exportFunction} onImport={document.importFunction} onRemoveImport={document.removeImport} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
-      {contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} anchored={contextMenu.anchored} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={handleCloseMenu} />
+      {contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} anchored={contextMenu.anchored} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onOpenGraph={handleOpenNodeGraph} onClose={handleCloseMenu} />
         : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} onCreate={handleCreateModule} onClose={handleCloseMenu} anchored={contextMenu.anchored} commentId={contextMenu.targetId ? { id: contextMenu.targetId.id, type: contextMenu.targetId.kind } : null} onDeleteComment={handleDeleteComment} />)}
     </main>
     </div>

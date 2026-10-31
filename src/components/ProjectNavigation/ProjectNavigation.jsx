@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Bug, Check, ChevronDown, Clock3, Code2, Download, FolderOpen, Palette, Play, Save, Upload, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { useTheme } from '../../contexts/ThemeContext.jsx'
+import { transpilationLanguages } from '../../utils/transpilation/index.js'
 import './ProjectNavigation.css'
 
 // Bloque le remplacement du document tant qu'il n'a pas été confirmé explicitement.
@@ -144,7 +145,13 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
         </div>
       </details>
       <div className="project-navigation__run-controls">
-        <button type="button" title={t('transpile.open')} onClick={() => { closeMenus(); onTranspile() }}><Code2 size={13} aria-hidden="true" />{t('transpile.button')}</button>
+        <details name="workspace-menu" onToggle={handleToggle}>
+          <summary><Code2 size={13} aria-hidden="true" />{t('transpile.button')}<ChevronDown size={12} aria-hidden="true" /></summary>
+          <div className="project-navigation__menu">
+            <p>{t('transpile.chooseLanguage')}</p>
+            {transpilationLanguages.map((option) => <button type="button" key={option.id} disabled={!option.available} onClick={() => { closeMenus(); onTranspile(option.id) }}>{option.name}{!option.available && ` · ${t('transpile.unavailable')}`}</button>)}
+          </div>
+        </details>
         <button type="button" className="project-navigation__run" title={t('run.simulateSp3')} onClick={() => handleRun()}><Play size={13} fill="currentColor" aria-hidden="true" />{t('nav.run')}</button>
         <details name="workspace-menu" onToggle={handleToggle}>
           <summary className="project-navigation__run-toggle" aria-label={t('run.actions')} title={t('run.actions')}><ChevronDown size={14} aria-hidden="true" /></summary>

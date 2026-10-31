@@ -1,7 +1,3 @@
-.node-properties { position: absolute; z-index: 3; right: var(--space-panel); top: var(--space-panel); bottom: 74px; width: 300px; max-width: calc(100% - 32px); min-width: 240px; min-height: 180px; padding: var(--space-panel); overflow: auto; border: 1px solid var(--color-border); border-radius: var(--radius-panel); color: var(--color-text); background: var(--surface-reflection), var(--surface-floating); box-shadow: var(--shadow-panel); cursor: default; font-size: 12px; }
-.node-properties__header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: grab; touch-action: none; user-select: none; }
-.node-properties__header:active { cursor: grabbing; }
-.node-properties__header h2 { flex: 1; }
 .node-properties h2, .node-properties h3 { font-size: 12px; margin: 0; font-weight: 500; }
 .node-properties h3 { margin: 18px 0 10px; }
 .node-properties header button { display: grid; place-items: center; width: 28px; height: 28px; flex-shrink: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--color-text-muted); cursor: pointer; }
@@ -45,7 +41,7 @@
 .node-properties header button:hover { background: var(--color-hover); }
 .node-properties__children button:hover { border-color: var(--color-selection); text-decoration: underline; }
 .node-properties :is(input, select, button):focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
-.node-properties__resize { position: absolute; right: 3px; bottom: 3px; display: grid; place-items: center; width: 22px; height: 22px; padding: 4px; border: 0; border-radius: var(--radius-small); color: var(--color-text-muted); background: transparent; cursor: nwse-resize; touch-action: none; }
-.node-properties__resize:hover { color: var(--color-text); background: var(--color-hover); }
-.node-properties__resize:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }
-.node-properties__resize svg { width: 100%; height: 100%; fill: none; stroke: currentColor; }
+.node-properties__code { margin-top: 18px; border-top: 1px solid var(--color-border); }
+.node-properties__code label { display: grid; gap: var(--space-small); }
+.node-properties__code select { padding: var(--space-control); background: var(--color-input); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-control); font: inherit; }
+.node-properties__code pre { max-height: 320px; overflow: auto; padding: var(--space-control); border: 1px solid var(--color-border); border-radius: var(--radius-small); background: var(--color-input); white-space: pre; user-select: text; }

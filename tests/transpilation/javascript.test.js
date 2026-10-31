@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { build } from 'vite'
 import { createModule, createNode, createProject } from '../../src/utils/logic/index.js'
-import { transpileProgram } from '../../src/utils/transpilation/index.js'
+import { transpileProgram, transpileSelection, transpilationLanguages, getTranspilationTargets } from '../../src/utils/transpilation/index.js'
 import { simulateProgram } from '../../src/utils/logic/index.js'
 import { debugFixture, node, root, intType } from '../logic/fixtures.js'
 
@@ -200,4 +200,36 @@ test('JavaScript : exemple workspace exécutable et exemple algorithmes incomple
   assert.equal(generated.ok, false)
   assert.equal(generated.code, '')
   assert.equal(generated.diagnostics.some(({ code }) => code === 'NODE_INCOMPLETE'), true)
+})
+
+test('aperçu : expressions, instructions, fonctions, paramètres et modules utilisent le backend existant', () => {
+  const project = debugFixture()
+  const full = transpileProgram(project)
+  for (const id of ['local', 'callPrint', 'call', 'returnMain', 'twice', 'n']) {
+    const preview = transpileSelection(project, { kind: 'node', id })
+    assert.equal(preview.ok, true, id)
+    assert.ok(preview.code.length > 0, id)
+    assert.ok(full.code.includes(preview.code), `${id}: ${preview.code}`)
+  }
+  assert.equal(transpileSelection(project, { kind: 'node', id: 'g' }).code, 'let Debug_g = (1n);')
+  assert.equal(transpileSelection(project, { kind: 'module', id: 'm' }).ok, true)
+  assert.equal(transpileSelection(project, { kind: 'node', id: 'missing' }).ok, false)
+})
+
+test('aperçu : pas de point d’entrée exigé, sous-arbre incomplet refusé, autres nœuds consultables', () => {
+  const project = simpleProgram()
+  project.nodes[0].properties.entryPoint = false
+  assert.equal(transpileSelection(project, { kind: 'node', id: 'literal' }).code, '"hello"')
+  project.nodes.find(({ id }) => id === 'print').children.value = null
+  project.nodes = project.nodes.filter(({ id }) => id !== 'literal')
+  assert.equal(transpileSelection(project, { kind: 'node', id: 'print' }).ok, false)
+  assert.equal(transpileSelection(project, { kind: 'node', id: 'return' }).code, 'return;')
+})
+
+test('langages : une seule cible active et quatre langages futurs explicitement indisponibles', () => {
+  assert.deepEqual(transpilationLanguages.filter(({ available }) => available).map(({ id }) => id), getTranspilationTargets())
+  assert.deepEqual(transpilationLanguages.filter(({ available }) => !available).map(({ name }) => name), ['Python', 'C', 'C++', 'Java'])
+  for (const target of ['python', 'c', 'cpp', 'java', 'constructor']) {
+    assert.equal(transpileSelection(simpleProgram(), { kind: 'node', id: 'literal' }, { target }).ok, false)
+  }
 })

@@ -22,7 +22,7 @@ body,
 }
 
 /* Géométrie commune : arrondis de repli, coins continus lorsque disponibles. */
-:where(button, input, select, textarea, fieldset, .canvas-module, .canvas-status, .canvas-context-menu, .logic-context-menu, .node-properties, .logic-node, .debug-panel) {
+:where(button, input, select, textarea, fieldset, .canvas-module, .canvas-status, .canvas-context-menu, .logic-context-menu, .floating-panel, .logic-node, .debug-panel) {
   corner-shape: var(--corner-shape);
 }
 
@@ -47,7 +47,7 @@ body,
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :root { --surface-floating: var(--color-glass); }
 
-  .canvas-status, .canvas-context-menu, .logic-context-menu, .node-properties, .project-navigation__menu, .project-navigation__confirmation, .debug-panel {
+  .canvas-status, .canvas-context-menu, .logic-context-menu, .floating-panel, .project-navigation__menu, .project-navigation__confirmation, .debug-panel {
     -webkit-backdrop-filter: blur(var(--blur-panel));
     backdrop-filter: blur(var(--blur-panel));
   }

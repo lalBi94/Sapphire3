@@ -4,6 +4,20 @@ import { generateJavaScript } from './javascript.js'
 
 const backends = Object.freeze({ javascript: generateJavaScript })
 
+export const transpilationLanguages = Object.freeze([
+  Object.freeze({ id: 'javascript', name: 'JavaScript', available: true }),
+  Object.freeze({ id: 'python', name: 'Python', available: false }),
+  Object.freeze({ id: 'c', name: 'C', available: false }),
+  Object.freeze({ id: 'cpp', name: 'C++', available: false }),
+  Object.freeze({ id: 'java', name: 'Java', available: false }),
+])
+
+// Produit un extrait de consultation avec les mêmes noms et règles que le fichier complet.
+export function transpileSelection(source, selection, { target = 'javascript', analysis = analyzeProgram(source) } = {}) {
+  if (!Object.hasOwn(backends, target)) return { ok: false, code: '', diagnostics: [{ code: 'TRANSPILE_TARGET_UNSUPPORTED' }] }
+  return backends[target](analysis, { selection })
+}
+
 // Transpile un programme Sapphire vers une cible enregistrée sans coupler l'AST à cette cible.
 export function transpileProgram(source, options = {}) {
   const target = options.target ?? 'javascript'
