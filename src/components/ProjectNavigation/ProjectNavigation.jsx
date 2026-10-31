@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Check, ChevronDown, Clock3, Download, FolderOpen, Palette, Play, Save, Upload, X } from 'lucide-react'
+import { Bug, Check, ChevronDown, Clock3, Download, FolderOpen, Palette, Play, Save, Upload, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { useTheme } from '../../contexts/ThemeContext.jsx'
 import './ProjectNavigation.css'
@@ -22,7 +22,7 @@ function ImportConfirmation({ path, onConfirm, onCancel }) {
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, message, error, pendingImport, recentFiles, onSave, onSaveAs, onOpenSp3, onOpenRecent, onImport, onConfirmImport, onCancelImport, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hasSelection, onOpenSelectionMenu, onRunSimulation }) {
+export default function ProjectNavigation({ busy, message, error, pendingImport, recentFiles, onSave, onSaveAs, onOpenSp3, onOpenRecent, onImport, onConfirmImport, onCancelImport, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hasSelection, onOpenSelectionMenu, onRunSimulation, onDebugSp3 }) {
   const navigationRef = useRef(null)
   const { language, setLanguage, t } = useTranslation()
   const { theme, themes, setTheme } = useTheme()
@@ -87,6 +87,13 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
     onImport()
   }
 
+  // Referme les volets avant de lancer le mode SP3 demandé, sans activer les modes graphiques futurs.
+  function handleRun(debug = false) {
+    closeMenus()
+    if (debug) onDebugSp3()
+    else onRunSimulation()
+  }
+
   return <>
     <nav ref={navigationRef} className="project-navigation" aria-label={t('nav.aria')} onKeyDown={handleKeyDown}>
       <details name="workspace-menu" onToggle={handleToggle}>
@@ -102,7 +109,6 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
           <button type="button" disabled={busy || !!pendingImport} onClick={() => handleSaveAs('json')}><Download size={14} aria-hidden="true" />{t('nav.exportJson')}</button>
         </div>
       </details>
-      <button type="button" className="project-navigation__run" onClick={onRunSimulation}><Play size={13} fill="currentColor" aria-hidden="true" />{t('nav.run')}</button>
       <details name="workspace-menu" onToggle={handleToggle}>
         <summary>{t('nav.edit')}<ChevronDown size={12} aria-hidden="true" /></summary>
         <div className="project-navigation__menu">
@@ -137,6 +143,21 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
           ))}
         </div>
       </details>
+      <div className="project-navigation__run-controls">
+        <button type="button" className="project-navigation__run" title={t('run.simulateSp3')} onClick={() => handleRun()}><Play size={13} fill="currentColor" aria-hidden="true" />{t('nav.run')}</button>
+        <details name="workspace-menu" onToggle={handleToggle}>
+          <summary className="project-navigation__run-toggle" aria-label={t('run.actions')} title={t('run.actions')}><ChevronDown size={14} aria-hidden="true" /></summary>
+          <div className="project-navigation__menu project-navigation__run-menu">
+            <p>{t('run.workspace')}</p>
+            <button type="button" onClick={() => handleRun()}><Play size={14} aria-hidden="true" />{t('run.simulateSp3')}</button>
+            <button type="button" onClick={() => handleRun(true)}><Bug size={14} aria-hidden="true" />{t('run.debugSp3')}</button>
+            <p>{t('run.graphical')}</p>
+            <button type="button" disabled title={t('run.later')}>{t('run.simulateGraphical')}</button>
+            <button type="button" disabled title={t('run.later')}>{t('run.debugGraphical')}</button>
+            <p className="project-navigation__future-note">{t('run.later')}</p>
+          </div>
+        </details>
+      </div>
       <span className="project-navigation__status" role="status">{busy ? t('nav.working') : message}</span>
       <label className="project-navigation__language">{t('nav.language')}
         <select value={language} onChange={(event) => setLanguage(event.target.value)} aria-label={t('nav.language')}>

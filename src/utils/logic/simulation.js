@@ -1,5 +1,6 @@
 import { analyzeProgram } from './analysis.js'
 import { validateLiteral, convertConstant, evaluateBinary, evaluateUnary } from './numericConstants.js'
+import { createDebugRecorder } from './debugTrace.js'
 
 // Ajoute un code stable sans introduire de traduction ni de dépendance UI dans le moteur.
 function simulationError(code, message) {
@@ -7,7 +8,7 @@ function simulationError(code, message) {
 }
 
 // Exécute le sous-ensemble déterministe du langage sans accéder au DOM ni au système.
-export function simulateProgram(project, { maxSteps = 10000 } = {}) {
+export function simulateProgram(project, { maxSteps = 10000, captureDebug = false } = {}) {
   if (!Number.isSafeInteger(maxSteps) || maxSteps < 1 || maxSteps > 100000) return { ok: false, output: [], trace: [], errorCode: 'SIMULATION_BUDGET_INVALID', error: 'The step budget must be an integer between 1 and 100000.' }
   const analysis = analyzeProgram(project)
   if (!analysis.canGenerate) return { ok: false, output: [], trace: [], errorCode: 'SIMULATION_DIAGNOSTICS', error: 'The program has blocking diagnostics.', diagnostics: analysis.diagnostics }
@@ -24,9 +25,26 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
   const continueSignal = Symbol('continue')
   const uninitialized = Symbol('uninitialized')
   let callDepth = 0
+  let environmentSequence = 0
+  const activeScopes = []
 
   if (!entry) return { ok: false, output, trace, errorCode: 'SIMULATION_ENTRY_MISSING', error: 'No entry point is marked.' }
   if ((entry.children.parameters ?? []).length > 0) return { ok: false, output, trace, errorCode: 'SIMULATION_ENTRY_INPUTS', error: 'The entry point must not require inputs.' }
+
+  // Associe chaque activation à son scope source, y compris les itérations et appels récursifs.
+  function environment(parent, scopeId, nodeId) {
+    environmentSequence += 1
+    return { values: new Map(), parent, scopeId, nodeId, instanceId: environmentSequence }
+  }
+
+  // Place un arrêt avant l'instruction, sans dévoiler les futurs états ni les futures sorties.
+  function observe(node, current) {
+    if (!debug) return
+    lastEnvironment = current
+    lastScopes = [...activeScopes]
+    lastInstructionId = node.id
+    debug.record(node.id, current, activeScopes)
+  }
 
   // Compte aussi les itérations sans condition ni instruction pour garantir l'arrêt.
   function step(node) {
@@ -101,7 +119,13 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
 
   // Exécute une instruction et propage les contrôles de flux jusqu'à leur propriétaire.
   function executeStatement(node, environment) {
+    if (debug) {
+      lastEnvironment = environment
+      lastScopes = [...activeScopes]
+      lastInstructionId = node.id
+    }
     step(node)
+    if (!['WhileStatement', 'ForStatement', 'FunctionDeclaration', 'TypeDeclaration', 'Block'].includes(node.kind)) observe(node, environment)
     if (node.kind === 'VariableDeclaration' || node.kind === 'ConstantDeclaration') {
       environment.values.set(node.id, node.children.initializer ? valueOf(nodes.get(node.children.initializer), environment) : uninitialized)
       return
@@ -127,7 +151,9 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
       return
     }
     if (node.kind === 'WhileStatement') {
-      while (valueOf(nodes.get(node.children.test), environment)) {
+      while (true) {
+        observe(node, environment)
+        if (!valueOf(nodes.get(node.children.test), environment)) break
         try { executeBlock(nodes.get(node.children.body), environment) } catch (signal) {
           if (signal === breakSignal) break
           if (signal !== continueSignal) throw signal
@@ -136,20 +162,7 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
       return
     }
     if (node.kind === 'ForStatement') {
-      environment = { values: new Map(), parent: environment }
-      if (node.children.initializer) executeStatement(nodes.get(node.children.initializer), environment)
-      while (!node.children.test || valueOf(nodes.get(node.children.test), environment)) {
-        step(node)
-        try { executeBlock(nodes.get(node.children.body), environment) } catch (signal) {
-          if (signal === breakSignal) break
-          if (signal !== continueSignal) throw signal
-        }
-        if (node.children.update) {
-          const update = nodes.get(node.children.update)
-          if (update.kind === 'AssignmentStatement') executeStatement(update, environment)
-          else valueOf(update, environment)
-        }
-      }
+      executeFor(node, environment)
       return
     }
     if (node.kind === 'ReturnStatement') throw { type: 'return', value: node.children.argument ? valueOf(nodes.get(node.children.argument), environment) : undefined }
@@ -159,28 +172,70 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
     else if (!['FunctionDeclaration', 'TypeDeclaration', 'Parameter'].includes(node.kind)) throw simulationError('SIMULATION_UNSUPPORTED', `Unsupported statement: ${node.kind}.`)
   }
 
+  // Garde l'initialiseur et l'update dans la même activation de boucle, séparée du bloc de corps.
+  function executeFor(node, parent) {
+    const current = environment(parent, `for:${node.id}`, node.id)
+    activeScopes.push(current)
+    try {
+      if (node.children.initializer) executeStatement(nodes.get(node.children.initializer), current)
+      while (true) {
+        observe(node, current)
+        if (node.children.test && !valueOf(nodes.get(node.children.test), current)) break
+        step(node)
+        try { executeBlock(nodes.get(node.children.body), current) } catch (signal) {
+          if (signal === breakSignal) break
+          if (signal !== continueSignal) throw signal
+        }
+        if (node.children.update) {
+          const update = nodes.get(node.children.update)
+          if (update.kind === 'AssignmentStatement') executeStatement(update, current)
+          else {
+            observe(update, current)
+            valueOf(update, current)
+          }
+        }
+      }
+    } finally {
+      activeScopes.pop()
+    }
+  }
+
   // Recrée les variables d'un bloc à chaque entrée, notamment dans les boucles.
-  function executeBlock(block, parent) {
-    const environment = { values: new Map(), parent }
-    for (const id of block.children.statements ?? []) executeStatement(nodes.get(id), environment)
+  function executeBlock(block, parent, reuse = false) {
+    const current = reuse ? parent : environment(parent, `block:${block.id}`, block.id)
+    if (!reuse) activeScopes.push(current)
+    try {
+      for (const id of block.children.statements ?? []) executeStatement(nodes.get(id), current)
+    } finally {
+      if (!reuse) activeScopes.pop()
+    }
   }
 
   // Isole chaque appel du contexte de l'appelant et borne la récursion avant la pile JavaScript.
   function executeFunction(node, args) {
     callDepth += 1
     if (callDepth > 200) throw simulationError('SIMULATION_CALL_LIMIT', 'Simulation call depth limit reached.')
-    const environment = { values: new Map(), parent: global }
-    for (const [index, parameterId] of (node.children.parameters ?? []).entries()) environment.values.set(parameterId, args[index])
-    try { executeBlock(nodes.get(node.children.body), environment) } catch (signal) {
+    const current = environment(global, `function:${node.id}`, node.id)
+    activeScopes.push(current)
+    for (const [index, parameterId] of (node.children.parameters ?? []).entries()) current.values.set(parameterId, args[index])
+    try {
+      observe(node, current)
+      executeBlock(nodes.get(node.children.body), current, true)
+    } catch (signal) {
       if (signal?.type === 'return') return signal.value
       throw signal
     } finally {
+      activeScopes.pop()
       callDepth -= 1
     }
     return undefined
   }
 
   const global = { values: new Map(), parent: null }
+  const debug = captureDebug ? createDebugRecorder(analysis, global, output, uninitialized) : null
+  let lastEnvironment = global
+  let lastScopes = []
+  let lastInstructionId = null
   try {
     for (const module of project.modules) {
       for (const id of module.rootNodeIds) {
@@ -189,9 +244,12 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
       }
     }
     const result = executeFunction(entry, [])
-    return { ok: true, output, trace, result: typeof result === 'bigint' ? Number(result) : result, steps }
+    debug?.record(null, global, [], 'completed')
+    return { ok: true, output, trace, result: typeof result === 'bigint' ? Number(result) : result, steps, ...(debug ? { debugFrames: debug.frames } : {}) }
   } catch (error) {
-    return { ok: false, output, trace, errorCode: error?.code ?? 'SIMULATION_FAILED', error: error instanceof Error ? error.message : 'Simulation stopped.', steps }
+    const errorCode = error?.code ?? 'SIMULATION_FAILED'
+    debug?.record(lastInstructionId, lastEnvironment, lastScopes, 'error', errorCode)
+    return { ok: false, output, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, ...(debug ? { debugFrames: debug.frames } : {}) }
   }
 }
 

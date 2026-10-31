@@ -12,8 +12,9 @@ import { moduleTypes } from '../../utils/moduleTypes.js'
 import ProjectNavigation from '../ProjectNavigation/ProjectNavigation.jsx'
 import useWorkspaceFiles from '../../hooks/useWorkspaceFiles.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
-import { simulateProgram } from '../../utils/logic/index.js'
+import { createDebugSession, moveDebugSession, simulateProgram } from '../../utils/logic/index.js'
 import SimulationPanel from '../SimulationPanel/SimulationPanel.jsx'
+import DebugPanel from '../DebugPanel/DebugPanel.jsx'
 import './Canvas.css'
 
 // Assemble présentation, document source et interactions, sans confondre position et syntaxe.
@@ -25,6 +26,7 @@ export default function Canvas() {
   const [distorted, setDistorted] = useState(true)
   const [simulationResult, setSimulationResult] = useState(null)
   const [execution, setExecution] = useState(null)
+  const [debugSession, setDebugSession] = useState(null)
   const menuTriggerRef = useRef(null)
   const { t } = useTranslation()
   const document = useCanvasDocument()
@@ -35,6 +37,7 @@ export default function Canvas() {
   useEffect(() => {
     setExecution(null)
     setSimulationResult(null)
+    setDebugSession(null)
   }, [document.project])
 
   useEffect(() => {
@@ -48,8 +51,23 @@ export default function Canvas() {
     return () => window.clearTimeout(timer)
   }, [execution])
 
+  useEffect(() => {
+    const nodeId = debugSession?.project === document.project ? debugSession.frames[debugSession.cursor]?.nodeId : null
+    if (!nodeId) return
+    const element = canvasRef.current.querySelector(`[data-source-node="${CSS.escape(nodeId)}"]`)
+    if (!element) return
+    const bounds = canvasRef.current.getBoundingClientRect()
+    const rect = element.getBoundingClientRect()
+    if (rect.left >= bounds.left && rect.right <= bounds.right && rect.top >= bounds.top && rect.bottom <= bounds.bottom) return
+    restoreCamera({ ...camera, x: camera.x + (rect.left + rect.width / 2 - bounds.left - bounds.width / 2) / zoom, y: camera.y + (rect.top + rect.height / 2 - bounds.top - bounds.height / 2) / zoom })
+  }, [debugSession])
+
+  const debugFrame = debugSession?.project === document.project ? debugSession.frames[debugSession.cursor] : null
+  const activeExecutionId = debugSession ? debugFrame?.nodeId ?? null : execution?.trace[execution.index] ?? null
+
   // Restaure source, présentation et vue ensemble après confirmation d'import.
   function handleReplaceWorkspace(workspace) {
+    setDebugSession(null)
     setExecution(null)
     setSimulationResult(null)
     document.replaceWorkspace(workspace)
@@ -134,9 +152,27 @@ export default function Canvas() {
 
   // Lance une simulation locale uniquement sur un programme statiquement valide.
   function handleRunSimulation() {
+    setDebugSession(null)
     const result = simulateProgram(document.project)
     setSimulationResult(result)
     setExecution(result.ok && result.trace.length > 0 ? { trace: result.trace, index: 0, running: true } : null)
+  }
+
+  // Prépare les arrêts réversibles après l'analyse d'accessibilité, sans changer le workspace.
+  function handleDebugSp3() {
+    setExecution(null)
+    setSimulationResult(null)
+    setContextMenu(null)
+    setDebugSession(createDebugSession(document.project))
+  }
+
+  // Ne change que le curseur de lecture et l'instantané mémoire exposé au débogueur.
+  function handleDebugAction(action) {
+    const next = moveDebugSession(debugSession, action)
+    const nodeId = next?.frames[next.cursor]?.nodeId
+    const moduleId = document.index.nodes.get(nodeId)?.moduleId
+    if (moduleId) setActiveCardId(moduleId)
+    setDebugSession(next)
   }
 
   // Calcule le rectangle global des modules sans inclure les annotations de présentation.
@@ -164,8 +200,8 @@ export default function Canvas() {
 
   // Calcule le chemin logique temporairement déplié jusqu'au nœud exécuté.
   function getExecutionExpandedNodeIds(moduleId) {
-    if (!execution) return []
-    const currentId = execution.trace[execution.index]
+    const currentId = activeExecutionId
+    if (!currentId) return []
     const currentNode = document.index.nodes.get(currentId)
     if (!currentNode || currentNode.moduleId !== moduleId) return []
     const ids = [currentId]
@@ -229,7 +265,7 @@ export default function Canvas() {
       canUndo={document.canUndo} canRedo={document.canRedo} onUndo={document.undo} onRedo={document.redo}
       onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={() => handleRecenter(getModulesBounds())}
       distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)}
-      hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onRunSimulation={handleRunSimulation} />
+      hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onRunSimulation={handleRunSimulation} onDebugSp3={handleDebugSp3} />
     <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label={t('canvas.aria')} tabIndex={0}
       onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerEnd} onPointerCancel={handlePointerEnd} onLostPointerCapture={handlePointerEnd} onKeyDown={handleKeyDown} onContextMenu={handleContextMenu}>
       <CanvasGrid camera={camera} zoom={zoom} distorted={distorted} />
@@ -243,10 +279,11 @@ export default function Canvas() {
         onResize={(id, width, height) => document.updateGeometry(id, { width, height })}
         onMove={(id, x, y) => document.updateGeometry(id, { x, y })}
         onRename={document.renameCard} onTextChange={document.updateComment} onImageChange={document.updateImage}>
-        {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} activeExecutionId={execution?.trace[execution.index] ?? null} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} />}
+        {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} />}
       </CanvasModule>)}
       <CanvasStatus camera={camera} zoom={zoom} onRecenter={() => handleRecenter(getModulesBounds())} />
       <SimulationPanel result={simulationResult} running={Boolean(execution?.running)} currentStep={execution ? execution.index + 1 : 0} onClose={() => { setSimulationResult(null); setExecution(null) }} />
+      {debugSession?.project === document.project && <DebugPanel session={debugSession} index={document.index} onAction={handleDebugAction} onClose={() => setDebugSession(null)} />}
       {selected && <NodeProperties key={`${document.revision}:${selected.kind}:${selected.id}`} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={handleSelect} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
       {contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} anchored={contextMenu.anchored} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={handleCloseMenu} />
         : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} onCreate={handleCreateModule} onClose={handleCloseMenu} anchored={contextMenu.anchored} commentId={contextMenu.targetId ? { id: contextMenu.targetId.id, type: contextMenu.targetId.kind } : null} onDeleteComment={handleDeleteComment} />)}

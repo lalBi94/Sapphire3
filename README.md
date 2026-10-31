@@ -31,6 +31,18 @@ La barre supérieure propose **Settings** (ouverture `.sp3`, cinq chemins récen
 
 Les dialogues de fichiers nécessitent la fenêtre **Neutralinojs**, pas `pnpm dev:web`. Redémarrez une ancienne fenêtre desktop après cette évolution des permissions natives.
 
+### Simulation et debug SP3
+
+**Run** est le cinquième contrôle de la barre, après Settings, Edit, View et Theme. Son bouton adjacent déplie **Run SP3 simulation** et **Debug SP3 workspace**. Les deux actions de la future exécution graphique compacte sont affichées mais désactivées : cette vue n'est pas encore implémentée.
+
+Le debug travaille sur le workspace courant, avec un panneau mémoire déplaçable et redimensionnable, également au clavier :
+
+- **Next / Suivant** exécute l'instruction courante et avance, en entrant dans les fonctions appelées.
+- **Finish scope / Sauter le bloc** exécute normalement jusqu'à la sortie du scope courant, sans ignorer le code.
+- **Back / Précédent** restaure le dernier arrêt choisi, variables et sorties comprises.
+
+Le panneau montre les globaux, les variables des scopes lexicaux actifs seulement, les fonctions du programme et une analyse conservatrice des nœuds inatteignables. Il ne confond pas une branche non visitée avec une branche impossible. Le nœud courant est surligné sur le canvas, avec dépliage temporaire de ses parents. Les états sont pré-calculés par le simulateur borné, puis parcourus de façon réversible ; ils ne sont ni sauvegardés dans le workspace ni envoyés à un service. Une modification du code ferme la session pour éviter un état périmé. Contrat et limites dans `docs/LOGIC_API.md`.
+
 ### Édition contextuelle
 
 Chaque carte/nœud possède **un seul « + » dans son coin haut droit** : il ouvre le même menu que le clic droit, **sous le bouton**. Pour les modules et nœuds logiques, ce menu propose le slot libre puis les constructions compatibles avec le contexte lexical (fonctions et types seulement aux racines du module, paramètres dans une liste de fonction, break/continue dans une boucle…). Clic gauche sur le nœud : sélection et panneau de propriétés.
