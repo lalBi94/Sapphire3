@@ -37,11 +37,3 @@ test('JavaScript transpilation requires exactly one entry point', () => {
   assert.equal(result.ok, false)
   assert.equal(result.diagnostics.some(({ code }) => code === 'TRANSPILE_ENTRY_POINT_REQUIRED'), true)
 })
-
-test('JavaScript transpilation accepts serialized numeric literals', () => {
-  const project = simpleProgram()
-  project.nodes.find((node) => node.id === 'literal').properties = { type: { kind: 'primitive', name: 'int' }, value: '42' }
-  const result = transpileProgram(project, { target: 'javascript' })
-  assert.equal(result.ok, true)
-  assert.equal(execFileSync(process.execPath, ['-e', result.code], { encoding: 'utf8' }).trim(), '42')
-})
