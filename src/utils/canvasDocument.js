@@ -1,5 +1,5 @@
 import { moduleTypes } from './moduleTypes.js'
-import { createProject, createModule, analyzeProgram, createContextIndex, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, setModuleExport, addModuleImport, removeModuleImport } from './logic/index.js'
+import { createProject, createModule, analyzeProgram, createContextIndex, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports } from './logic/index.js'
 
 // Recalcule les dérivés uniquement quand la source logique change.
 function withSource(state, project, analysis = analyzeProgram(project), index = createContextIndex(project, analysis)) {
@@ -7,9 +7,17 @@ function withSource(state, project, analysis = analyzeProgram(project), index = 
 }
 
 // Rejoue une mutation préparée sur le document courant si une autre édition l'a devancée.
+// Les imports automatiques des fonctions exportées sont recalculés sur la source réellement courante.
 function replaySourceMutation(state, action) {
-  if (action.type === 'insert') return insertSourceNodes(state.project, action.request, action.bundle, { index: state.index })
-  if (action.type === 'configure') return updateSourceNode(state.project, action.id, action.patch)
+  if (action.type === 'insert') {
+    const imports = action.moduleId ? ensureModuleImports(state.project, action.moduleId, action.bundle.nodes) : { ok: true, project: state.project }
+    return imports.ok ? insertSourceNodes(imports.project, action.request, action.bundle, imports.project === state.project ? { index: state.index } : {}) : imports
+  }
+  if (action.type === 'configure') {
+    const moduleId = state.index.nodes.get(action.id)?.moduleId
+    const imports = moduleId ? ensureModuleImports(state.project, moduleId, [action.patch]) : { ok: true, project: state.project }
+    return imports.ok ? updateSourceNode(imports.project, action.id, action.patch) : imports
+  }
   if (action.type === 'delete') return deleteSourceNodes(state.project, action.targetId, { index: state.index })
   if (action.type === 'moduleExport') return setModuleExport(state.project, action.moduleId, action.nodeId, action.exported)
   if (action.type === 'moduleImport') return addModuleImport(state.project, action.moduleId, action.entry)

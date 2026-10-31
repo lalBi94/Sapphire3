@@ -1,0 +1,1427 @@
+{
+  "application": "Sapphire 3",
+  "workspaceVersion": 1,
+  "project": {
+    "formatVersion": 1,
+    "id": "classic-algorithms",
+    "modules": [
+      {
+        "id": "max-two",
+        "name": "Maximum of two numbers",
+        "kind": "module",
+        "rootNodeIds": [
+          "max-function"
+        ],
+        "imports": [],
+        "exports": [
+          {
+            "nodeId": "max-function",
+            "name": "max"
+          }
+        ]
+      },
+      {
+        "id": "factorial",
+        "name": "Factorial",
+        "kind": "module",
+        "rootNodeIds": [
+          "factorial-function"
+        ],
+        "imports": [],
+        "exports": [
+          {
+            "nodeId": "factorial-function",
+            "name": "factorial"
+          }
+        ]
+      },
+      {
+        "id": "gcd",
+        "name": "Euclidean greatest common divisor",
+        "kind": "module",
+        "rootNodeIds": [
+          "gcd-function"
+        ],
+        "imports": [],
+        "exports": []
+      },
+      {
+        "id": "prime-check",
+        "name": "Prime number test",
+        "kind": "module",
+        "rootNodeIds": [
+          "prime-function"
+        ],
+        "imports": [],
+        "exports": []
+      },
+      {
+        "id": "program-entry",
+        "name": "Program entry point",
+        "kind": "module",
+        "rootNodeIds": [
+          "main-function"
+        ],
+        "imports": [
+          {
+            "id": "max-import",
+            "moduleId": "max-two",
+            "nodeId": "max-function",
+            "localName": "max"
+          }
+        ],
+        "exports": []
+      }
+    ],
+    "nodes": [
+      {
+        "id": "max-a",
+        "moduleId": "max-two",
+        "kind": "Parameter",
+        "properties": {
+          "name": "a",
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          }
+        },
+        "children": {},
+        "references": {}
+      },
+      {
+        "id": "max-b",
+        "moduleId": "max-two",
+        "kind": "Parameter",
+        "properties": {
+          "name": "b",
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          }
+        },
+        "children": {},
+        "references": {}
+      },
+      {
+        "id": "reference-1",
+        "moduleId": "max-two",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "max-a"
+          }
+        }
+      },
+      {
+        "id": "reference-2",
+        "moduleId": "max-two",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "max-b"
+          }
+        }
+      },
+      {
+        "id": "binary-3",
+        "moduleId": "max-two",
+        "kind": "BinaryExpression",
+        "properties": {
+          "operator": ">"
+        },
+        "children": {
+          "left": "reference-1",
+          "right": "reference-2"
+        },
+        "references": {}
+      },
+      {
+        "id": "reference-4",
+        "moduleId": "max-two",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "max-a"
+          }
+        }
+      },
+      {
+        "id": "return-5",
+        "moduleId": "max-two",
+        "kind": "ReturnStatement",
+        "properties": {},
+        "children": {
+          "argument": "reference-4"
+        },
+        "references": {}
+      },
+      {
+        "id": "block-6",
+        "moduleId": "max-two",
+        "kind": "Block",
+        "properties": {},
+        "children": {
+          "statements": [
+            "return-5"
+          ]
+        },
+        "references": {}
+      },
+      {
+        "id": "reference-7",
+        "moduleId": "max-two",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "max-b"
+          }
+        }
+      },
+      {
+        "id": "return-8",
+        "moduleId": "max-two",
+        "kind": "ReturnStatement",
+        "properties": {},
+        "children": {
+          "argument": "reference-7"
+        },
+        "references": {}
+      },
+      {
+        "id": "block-9",
+        "moduleId": "max-two",
+        "kind": "Block",
+        "properties": {},
+        "children": {
+          "statements": [
+            "return-8"
+          ]
+        },
+        "references": {}
+      },
+      {
+        "id": "if-10",
+        "moduleId": "max-two",
+        "kind": "IfStatement",
+        "properties": {},
+        "children": {
+          "test": "binary-3",
+          "consequent": "block-6",
+          "alternate": "block-9"
+        },
+        "references": {}
+      },
+      {
+        "id": "block-11",
+        "moduleId": "max-two",
+        "kind": "Block",
+        "properties": {},
+        "children": {
+          "statements": [
+            "if-10"
+          ]
+        },
+        "references": {}
+      },
+      {
+        "id": "max-function",
+        "moduleId": "max-two",
+        "kind": "FunctionDeclaration",
+        "properties": {
+          "name": "max",
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          }
+        },
+        "children": {
+          "parameters": [
+            "max-a",
+            "max-b"
+          ],
+          "body": "block-11"
+        },
+        "references": {}
+      },
+      {
+        "id": "factorial-n",
+        "moduleId": "factorial",
+        "kind": "Parameter",
+        "properties": {
+          "name": "n",
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          }
+        },
+        "children": {},
+        "references": {}
+      },
+      {
+        "id": "literal-12",
+        "moduleId": "factorial",
+        "kind": "Literal",
+        "properties": {
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          },
+          "value": 1
+        },
+        "children": {},
+        "references": {}
+      },
+      {
+        "id": "factorial-result",
+        "moduleId": "factorial",
+        "kind": "VariableDeclaration",
+        "properties": {
+          "name": "result",
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          }
+        },
+        "children": {
+          "initializer": "literal-12"
+        },
+        "references": {}
+      },
+      {
+        "id": "reference-13",
+        "moduleId": "factorial",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "factorial-n"
+          }
+        }
+      },
+      {
+        "id": "literal-14",
+        "moduleId": "factorial",
+        "kind": "Literal",
+        "properties": {
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          },
+          "value": 1
+        },
+        "children": {},
+        "references": {}
+      },
+      {
+        "id": "binary-15",
+        "moduleId": "factorial",
+        "kind": "BinaryExpression",
+        "properties": {
+          "operator": ">"
+        },
+        "children": {
+          "left": "reference-13",
+          "right": "literal-14"
+        },
+        "references": {}
+      },
+      {
+        "id": "reference-16",
+        "moduleId": "factorial",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "factorial-result"
+          }
+        }
+      },
+      {
+        "id": "reference-17",
+        "moduleId": "factorial",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "factorial-n"
+          }
+        }
+      },
+      {
+        "id": "binary-18",
+        "moduleId": "factorial",
+        "kind": "BinaryExpression",
+        "properties": {
+          "operator": "*"
+        },
+        "children": {
+          "left": "reference-16",
+          "right": "reference-17"
+        },
+        "references": {}
+      },
+      {
+        "id": "assignment-19",
+        "moduleId": "factorial",
+        "kind": "AssignmentStatement",
+        "properties": {},
+        "children": {
+          "value": "binary-18",
+          "target": "assignment-19-target"
+        },
+        "references": {}
+      },
+      {
+        "id": "reference-20",
+        "moduleId": "factorial",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "factorial-n"
+          }
+        }
+      },
+      {
+        "id": "literal-21",
+        "moduleId": "factorial",
+        "kind": "Literal",
+        "properties": {
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          },
+          "value": 1
+        },
+        "children": {},
+        "references": {}
+      },
+      {
+        "id": "binary-22",
+        "moduleId": "factorial",
+        "kind": "BinaryExpression",
+        "properties": {
+          "operator": "-"
+        },
+        "children": {
+          "left": "reference-20",
+          "right": "literal-21"
+        },
+        "references": {}
+      },
+      {
+        "id": "assignment-23",
+        "moduleId": "factorial",
+        "kind": "AssignmentStatement",
+        "properties": {},
+        "children": {
+          "value": "binary-22",
+          "target": "assignment-23-target"
+        },
+        "references": {}
+      },
+      {
+        "id": "block-24",
+        "moduleId": "factorial",
+        "kind": "Block",
+        "properties": {},
+        "children": {
+          "statements": [
+            "assignment-19",
+            "assignment-23"
+          ]
+        },
+        "references": {}
+      },
+      {
+        "id": "while-25",
+        "moduleId": "factorial",
+        "kind": "WhileStatement",
+        "properties": {},
+        "children": {
+          "test": "binary-15",
+          "body": "block-24"
+        },
+        "references": {}
+      },
+      {
+        "id": "reference-26",
+        "moduleId": "factorial",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "factorial-result"
+          }
+        }
+      },
+      {
+        "id": "return-27",
+        "moduleId": "factorial",
+        "kind": "ReturnStatement",
+        "properties": {},
+        "children": {
+          "argument": "reference-26"
+        },
+        "references": {}
+      },
+      {
+        "id": "block-28",
+        "moduleId": "factorial",
+        "kind": "Block",
+        "properties": {},
+        "children": {
+          "statements": [
+            "factorial-result",
+            "while-25",
+            "return-27"
+          ]
+        },
+        "references": {}
+      },
+      {
+        "id": "factorial-function",
+        "moduleId": "factorial",
+        "kind": "FunctionDeclaration",
+        "properties": {
+          "name": "factorial",
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          },
+          "entryPoint": false
+        },
+        "children": {
+          "parameters": [
+            "factorial-n"
+          ],
+          "body": "block-28"
+        },
+        "references": {}
+      },
+      {
+        "id": "gcd-a",
+        "moduleId": "gcd",
+        "kind": "Parameter",
+        "properties": {
+          "name": "a",
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          }
+        },
+        "children": {},
+        "references": {}
+      },
+      {
+        "id": "gcd-b",
+        "moduleId": "gcd",
+        "kind": "Parameter",
+        "properties": {
+          "name": "b",
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          }
+        },
+        "children": {},
+        "references": {}
+      },
+      {
+        "id": "literal-29",
+        "moduleId": "gcd",
+        "kind": "Literal",
+        "properties": {
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          },
+          "value": 0
+        },
+        "children": {},
+        "references": {}
+      },
+      {
+        "id": "gcd-temp",
+        "moduleId": "gcd",
+        "kind": "VariableDeclaration",
+        "properties": {
+          "name": "remainder",
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          }
+        },
+        "children": {
+          "initializer": "literal-29"
+        },
+        "references": {}
+      },
+      {
+        "id": "reference-30",
+        "moduleId": "gcd",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "gcd-b"
+          }
+        }
+      },
+      {
+        "id": "literal-31",
+        "moduleId": "gcd",
+        "kind": "Literal",
+        "properties": {
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          },
+          "value": 0
+        },
+        "children": {},
+        "references": {}
+      },
+      {
+        "id": "binary-32",
+        "moduleId": "gcd",
+        "kind": "BinaryExpression",
+        "properties": {
+          "operator": "!="
+        },
+        "children": {
+          "left": "reference-30",
+          "right": "literal-31"
+        },
+        "references": {}
+      },
+      {
+        "id": "reference-33",
+        "moduleId": "gcd",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "gcd-a"
+          }
+        }
+      },
+      {
+        "id": "reference-34",
+        "moduleId": "gcd",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "gcd-b"
+          }
+        }
+      },
+      {
+        "id": "binary-35",
+        "moduleId": "gcd",
+        "kind": "BinaryExpression",
+        "properties": {
+          "operator": "%"
+        },
+        "children": {
+          "left": "reference-33",
+          "right": "reference-34"
+        },
+        "references": {}
+      },
+      {
+        "id": "assignment-36",
+        "moduleId": "gcd",
+        "kind": "AssignmentStatement",
+        "properties": {},
+        "children": {
+          "value": "binary-35",
+          "target": "assignment-36-target"
+        },
+        "references": {}
+      },
+      {
+        "id": "reference-37",
+        "moduleId": "gcd",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "gcd-b"
+          }
+        }
+      },
+      {
+        "id": "assignment-38",
+        "moduleId": "gcd",
+        "kind": "AssignmentStatement",
+        "properties": {},
+        "children": {
+          "value": "reference-37",
+          "target": "assignment-38-target"
+        },
+        "references": {}
+      },
+      {
+        "id": "reference-39",
+        "moduleId": "gcd",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "gcd-temp"
+          }
+        }
+      },
+      {
+        "id": "assignment-40",
+        "moduleId": "gcd",
+        "kind": "AssignmentStatement",
+        "properties": {},
+        "children": {
+          "value": "reference-39",
+          "target": "assignment-40-target"
+        },
+        "references": {}
+      },
+      {
+        "id": "block-41",
+        "moduleId": "gcd",
+        "kind": "Block",
+        "properties": {},
+        "children": {
+          "statements": [
+            "assignment-36",
+            "assignment-38",
+            "assignment-40"
+          ]
+        },
+        "references": {}
+      },
+      {
+        "id": "while-42",
+        "moduleId": "gcd",
+        "kind": "WhileStatement",
+        "properties": {},
+        "children": {
+          "test": "binary-32",
+          "body": "block-41"
+        },
+        "references": {}
+      },
+      {
+        "id": "reference-43",
+        "moduleId": "gcd",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "gcd-a"
+          }
+        }
+      },
+      {
+        "id": "return-44",
+        "moduleId": "gcd",
+        "kind": "ReturnStatement",
+        "properties": {},
+        "children": {
+          "argument": "reference-43"
+        },
+        "references": {}
+      },
+      {
+        "id": "block-45",
+        "moduleId": "gcd",
+        "kind": "Block",
+        "properties": {},
+        "children": {
+          "statements": [
+            "gcd-temp",
+            "while-42",
+            "return-44"
+          ]
+        },
+        "references": {}
+      },
+      {
+        "id": "gcd-function",
+        "moduleId": "gcd",
+        "kind": "FunctionDeclaration",
+        "properties": {
+          "name": "gcd",
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          },
+          "entryPoint": false
+        },
+        "children": {
+          "parameters": [
+            "gcd-a",
+            "gcd-b"
+          ],
+          "body": "block-45"
+        },
+        "references": {}
+      },
+      {
+        "id": "prime-n",
+        "moduleId": "prime-check",
+        "kind": "Parameter",
+        "properties": {
+          "name": "n",
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          }
+        },
+        "children": {},
+        "references": {}
+      },
+      {
+        "id": "literal-46",
+        "moduleId": "prime-check",
+        "kind": "Literal",
+        "properties": {
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          },
+          "value": 2
+        },
+        "children": {},
+        "references": {}
+      },
+      {
+        "id": "prime-divisor",
+        "moduleId": "prime-check",
+        "kind": "VariableDeclaration",
+        "properties": {
+          "name": "divisor",
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          }
+        },
+        "children": {
+          "initializer": "literal-46"
+        },
+        "references": {}
+      },
+      {
+        "id": "literal-47",
+        "moduleId": "prime-check",
+        "kind": "Literal",
+        "properties": {
+          "type": {
+            "kind": "primitive",
+            "name": "boolean"
+          },
+          "value": true
+        },
+        "children": {},
+        "references": {}
+      },
+      {
+        "id": "prime-result",
+        "moduleId": "prime-check",
+        "kind": "VariableDeclaration",
+        "properties": {
+          "name": "isPrime",
+          "type": {
+            "kind": "primitive",
+            "name": "boolean"
+          }
+        },
+        "children": {
+          "initializer": "literal-47"
+        },
+        "references": {}
+      },
+      {
+        "id": "reference-48",
+        "moduleId": "prime-check",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "prime-divisor"
+          }
+        }
+      },
+      {
+        "id": "reference-49",
+        "moduleId": "prime-check",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "prime-divisor"
+          }
+        }
+      },
+      {
+        "id": "binary-50",
+        "moduleId": "prime-check",
+        "kind": "BinaryExpression",
+        "properties": {
+          "operator": "*"
+        },
+        "children": {
+          "left": "reference-48",
+          "right": "reference-49"
+        },
+        "references": {}
+      },
+      {
+        "id": "reference-51",
+        "moduleId": "prime-check",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "prime-n"
+          }
+        }
+      },
+      {
+        "id": "binary-52",
+        "moduleId": "prime-check",
+        "kind": "BinaryExpression",
+        "properties": {
+          "operator": "<="
+        },
+        "children": {
+          "left": "binary-50",
+          "right": "reference-51"
+        },
+        "references": {}
+      },
+      {
+        "id": "reference-53",
+        "moduleId": "prime-check",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "prime-result"
+          }
+        }
+      },
+      {
+        "id": "binary-54",
+        "moduleId": "prime-check",
+        "kind": "BinaryExpression",
+        "properties": {
+          "operator": "and"
+        },
+        "children": {
+          "left": "binary-52",
+          "right": "reference-53"
+        },
+        "references": {}
+      },
+      {
+        "id": "reference-55",
+        "moduleId": "prime-check",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "prime-n"
+          }
+        }
+      },
+      {
+        "id": "reference-56",
+        "moduleId": "prime-check",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "prime-divisor"
+          }
+        }
+      },
+      {
+        "id": "binary-57",
+        "moduleId": "prime-check",
+        "kind": "BinaryExpression",
+        "properties": {
+          "operator": "%"
+        },
+        "children": {
+          "left": "reference-55",
+          "right": "reference-56"
+        },
+        "references": {}
+      },
+      {
+        "id": "literal-58",
+        "moduleId": "prime-check",
+        "kind": "Literal",
+        "properties": {
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          },
+          "value": 0
+        },
+        "children": {},
+        "references": {}
+      },
+      {
+        "id": "binary-59",
+        "moduleId": "prime-check",
+        "kind": "BinaryExpression",
+        "properties": {
+          "operator": "=="
+        },
+        "children": {
+          "left": "binary-57",
+          "right": "literal-58"
+        },
+        "references": {}
+      },
+      {
+        "id": "literal-60",
+        "moduleId": "prime-check",
+        "kind": "Literal",
+        "properties": {
+          "type": {
+            "kind": "primitive",
+            "name": "boolean"
+          },
+          "value": false
+        },
+        "children": {},
+        "references": {}
+      },
+      {
+        "id": "assignment-61",
+        "moduleId": "prime-check",
+        "kind": "AssignmentStatement",
+        "properties": {},
+        "children": {
+          "value": "literal-60",
+          "target": "assignment-61-target"
+        },
+        "references": {}
+      },
+      {
+        "id": "reference-62",
+        "moduleId": "prime-check",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "prime-divisor"
+          }
+        }
+      },
+      {
+        "id": "literal-63",
+        "moduleId": "prime-check",
+        "kind": "Literal",
+        "properties": {
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          },
+          "value": 1
+        },
+        "children": {},
+        "references": {}
+      },
+      {
+        "id": "binary-64",
+        "moduleId": "prime-check",
+        "kind": "BinaryExpression",
+        "properties": {
+          "operator": "+"
+        },
+        "children": {
+          "left": "reference-62",
+          "right": "literal-63"
+        },
+        "references": {}
+      },
+      {
+        "id": "assignment-65",
+        "moduleId": "prime-check",
+        "kind": "AssignmentStatement",
+        "properties": {},
+        "children": {
+          "value": "binary-64",
+          "target": "assignment-65-target"
+        },
+        "references": {}
+      },
+      {
+        "id": "block-67",
+        "moduleId": "prime-check",
+        "kind": "Block",
+        "properties": {},
+        "children": {
+          "statements": [
+            "assignment-61"
+          ]
+        },
+        "references": {}
+      },
+      {
+        "id": "block-68",
+        "moduleId": "prime-check",
+        "kind": "Block",
+        "properties": {},
+        "children": {
+          "statements": [
+            "assignment-65"
+          ]
+        },
+        "references": {}
+      },
+      {
+        "id": "if-66",
+        "moduleId": "prime-check",
+        "kind": "IfStatement",
+        "properties": {},
+        "children": {
+          "test": "binary-59",
+          "consequent": "block-67",
+          "alternate": "block-68"
+        },
+        "references": {}
+      },
+      {
+        "id": "block-69",
+        "moduleId": "prime-check",
+        "kind": "Block",
+        "properties": {},
+        "children": {
+          "statements": [
+            "if-66"
+          ]
+        },
+        "references": {}
+      },
+      {
+        "id": "while-70",
+        "moduleId": "prime-check",
+        "kind": "WhileStatement",
+        "properties": {},
+        "children": {
+          "test": "binary-54",
+          "body": "block-69"
+        },
+        "references": {}
+      },
+      {
+        "id": "reference-71",
+        "moduleId": "prime-check",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "prime-result"
+          }
+        }
+      },
+      {
+        "id": "return-72",
+        "moduleId": "prime-check",
+        "kind": "ReturnStatement",
+        "properties": {},
+        "children": {
+          "argument": "reference-71"
+        },
+        "references": {}
+      },
+      {
+        "id": "block-73",
+        "moduleId": "prime-check",
+        "kind": "Block",
+        "properties": {},
+        "children": {
+          "statements": [
+            "prime-divisor",
+            "prime-result",
+            "while-70",
+            "return-72"
+          ]
+        },
+        "references": {}
+      },
+      {
+        "id": "prime-function",
+        "moduleId": "prime-check",
+        "kind": "FunctionDeclaration",
+        "properties": {
+          "name": "isPrime",
+          "type": {
+            "kind": "primitive",
+            "name": "boolean"
+          },
+          "entryPoint": false
+        },
+        "children": {
+          "parameters": [
+            "prime-n"
+          ],
+          "body": "block-73"
+        },
+        "references": {}
+      },
+      {
+        "id": "assignment-19-target",
+        "moduleId": "factorial",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "factorial-result"
+          }
+        }
+      },
+      {
+        "id": "assignment-23-target",
+        "moduleId": "factorial",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "factorial-n"
+          }
+        }
+      },
+      {
+        "id": "assignment-36-target",
+        "moduleId": "gcd",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "gcd-temp"
+          }
+        }
+      },
+      {
+        "id": "assignment-38-target",
+        "moduleId": "gcd",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "gcd-a"
+          }
+        }
+      },
+      {
+        "id": "assignment-40-target",
+        "moduleId": "gcd",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "gcd-b"
+          }
+        }
+      },
+      {
+        "id": "assignment-61-target",
+        "moduleId": "prime-check",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "prime-result"
+          }
+        }
+      },
+      {
+        "id": "assignment-65-target",
+        "moduleId": "prime-check",
+        "kind": "Reference",
+        "properties": {},
+        "children": {},
+        "references": {
+          "target": {
+            "kind": "node",
+            "nodeId": "prime-divisor"
+          }
+        }
+      },
+      {
+        "id": "main-print",
+        "moduleId": "program-entry",
+        "kind": "PrintStatement",
+        "properties": {},
+        "children": {
+          "value": null
+        },
+        "references": {}
+      },
+      {
+        "id": "main-body",
+        "moduleId": "program-entry",
+        "kind": "Block",
+        "properties": {},
+        "children": {
+          "statements": [
+            "main-print"
+          ]
+        },
+        "references": {}
+      },
+      {
+        "id": "main-function",
+        "moduleId": "program-entry",
+        "kind": "FunctionDeclaration",
+        "properties": {
+          "name": "main",
+          "type": {
+            "kind": "primitive",
+            "name": "void"
+          },
+          "entryPoint": true
+        },
+        "children": {
+          "parameters": [],
+          "body": "main-body"
+        },
+        "references": {}
+      }
+    ]
+  },
+  "presentation": {
+    "cards": [
+      {
+        "id": "max-two",
+        "type": "module",
+        "name": "Maximum of two numbers",
+        "x": 0,
+        "y": 0,
+        "width": 520,
+        "height": 720,
+        "expandedNodeIds": []
+      },
+      {
+        "id": "factorial",
+        "type": "module",
+        "name": "Factorial",
+        "x": 600,
+        "y": 0,
+        "width": 520,
+        "height": 720,
+        "expandedNodeIds": []
+      },
+      {
+        "id": "gcd",
+        "type": "module",
+        "name": "Euclidean greatest common divisor",
+        "x": 0,
+        "y": 820,
+        "width": 520,
+        "height": 720,
+        "expandedNodeIds": []
+      },
+      {
+        "id": "prime-check",
+        "type": "module",
+        "name": "Prime number test",
+        "x": 600,
+        "y": 820,
+        "width": 520,
+        "height": 720,
+        "expandedNodeIds": []
+      },
+      {
+        "id": "program-entry",
+        "type": "module",
+        "name": "Program entry point",
+        "x": 1200,
+        "y": 0,
+        "width": 438.541333334008,
+        "height": 687.6582157883222,
+        "expandedNodeIds": [
+          "main-function",
+          "main-body",
+          "main-print"
+        ]
+      }
+    ],
+    "camera": {
+      "x": 1285.2373221692847,
+      "y": 305.4700107870632,
+      "zoomLevel": -0.5
+    },
+    "selected": {
+      "kind": "module",
+      "id": "factorial"
+    }
+  }
+}

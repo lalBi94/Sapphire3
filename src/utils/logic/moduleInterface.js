@@ -1,5 +1,5 @@
 import { analyzeProgram } from './analysis.js'
-import { createContextIndex } from './contextResolver.js'
+import { createContextIndex, getVisibleSymbols } from './contextResolver.js'
 import { diagnosticCodes as codes } from './diagnostics.js'
 import { isId, isRecord } from './model.js'
 
@@ -130,4 +130,54 @@ export function removeModuleImport(project, moduleId, importId) {
   if (!imports.some((entry) => entry?.id === importId)) return failure('TARGET_MISSING')
   const candidate = { ...project, modules: project.modules.map((entry) => entry.id === moduleId ? { ...entry, imports: imports.filter((importEntry) => importEntry?.id !== importId) } : entry) }
   return result(candidate)
+}
+
+// Complète les symboles visibles avec les fonctions exportées des autres modules.
+// L'export reste la seule publication ; l'import local est créé au moment où la fonction est utilisée.
+export function getCallableSymbols(context) {
+  const visible = getVisibleSymbols(context)
+  const project = context.index?.project
+  const analysis = context.index?.analysis ?? (project ? analyzeProgram(project) : null)
+  if (!project || !analysis || !isId(context.moduleId)) return visible
+  const known = new Set(visible.map((symbol) => symbol.nodeId))
+  const external = []
+  for (const module of project.modules) {
+    if (!isRecord(module) || module.id === context.moduleId) continue
+    for (const symbol of getModuleFunctions(project, module.id, analysis)) {
+      if (known.has(symbol.nodeId) || !Array.isArray(module.exports) || !module.exports.some((entry) => entry?.nodeId === symbol.nodeId)) continue
+      known.add(symbol.nodeId)
+      external.push({ ...symbol, id: `export:${module.id}:${symbol.nodeId}`, external: true, moduleName: module.name })
+    }
+  }
+  return [...visible, ...external]
+}
+
+// Ajoute les imports manquants des fonctions exportées visées par une nouvelle source.
+// Les noms locaux déjà pris reçoivent un suffixe ; la cible reste identifiée par son nœud stable.
+export function ensureModuleImports(project, moduleId, sources, idFactory = null) {
+  const failure = (code) => ({ ok: false, code, project })
+  if (!Array.isArray(project?.modules) || !Array.isArray(project?.nodes)) return failure('SOURCE_INVALID')
+  if (!isId(moduleId) || !project.modules.some((module) => module?.id === moduleId)) return failure('TARGET_MISSING')
+  const targets = (Array.isArray(sources) ? sources : []).map((source) => source?.references?.target).filter((target) => target?.kind === 'node' && isId(target.nodeId))
+  let current = project
+  for (const target of targets) {
+    const node = current.nodes.find((entry) => entry?.id === target.nodeId)
+    if (!node || node.moduleId === moduleId) continue
+    const owner = current.modules.find((entry) => entry?.id === node.moduleId)
+    if (!Array.isArray(owner?.exports) || !owner.exports.some((entry) => entry?.nodeId === node.id)) return failure('IMPORT_TARGET_INVALID')
+    const importing = current.modules.find((entry) => entry?.id === moduleId)
+    if ((importing?.imports ?? []).some((entry) => entry?.nodeId === node.id)) continue
+    const base = isId(node.properties?.name) ? node.properties.name : 'function'
+    let accepted = null
+    for (let suffix = 0; suffix < 100 && !accepted; suffix += 1) {
+      const localName = suffix === 0 ? base : `${base}${suffix + 1}`
+      const id = idFactory ? idFactory() : `auto:${moduleId}:${node.id}${suffix === 0 ? '' : `:${suffix + 1}`}`
+      const next = addModuleImport(current, moduleId, { id, targetModuleId: node.moduleId, nodeId: node.id, localName })
+      if (next.ok) accepted = next.project
+      else if (next.code !== 'IMPORT_NAME_TAKEN' && next.code !== 'IMPORT_ALREADY_EXISTS') return failure(next.code)
+    }
+    if (!accepted) return failure('IMPORT_NAME_TAKEN')
+    current = accepted
+  }
+  return { ok: true, project: current, imported: current !== project }
 }

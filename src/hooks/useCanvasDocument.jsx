@@ -1,6 +1,6 @@
 import { useReducer } from 'react'
 import { moduleTypes } from '../utils/moduleTypes.js'
-import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, setModuleExport, addModuleImport, removeModuleImport } from '../utils/logic/index.js'
+import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports } from '../utils/logic/index.js'
 import { initialDocument, reduceHistory } from '../utils/canvasDocument.js'
 
 // Expose les éditions de document ; sélection et navigation restent dans les composants UI.
@@ -36,19 +36,25 @@ export default function useCanvasDocument() {
   }
 
   // Prépare puis insère une nouvelle arborescence ; un état concurrent est revérifié par le reducer.
+  // Une fonction exportée d'un autre module reçoit son import local dans la même opération.
   function insertNode(targetId, slot, draft) {
     const context = resolveContext(document.project, targetId, slot, document.index)
     if (!context.ok) return context
     const bundle = createNodeBundle(context.moduleId, draft, () => crypto.randomUUID())
+    const imports = ensureModuleImports(document.project, context.moduleId, bundle.nodes, () => crypto.randomUUID())
+    if (!imports.ok) return imports
     const request = { targetId, slot }
-    const prepared = insertSourceNodes(document.project, request, bundle, { index: document.index })
-    if (prepared.ok) dispatch({ type: 'insert', previousProject: document.project, prepared, request, bundle })
+    const prepared = insertSourceNodes(imports.project, request, bundle, imports.imported ? {} : { index: document.index })
+    if (prepared.ok) dispatch({ type: 'insert', previousProject: document.project, prepared, request, bundle, moduleId: context.moduleId })
     return prepared
   }
 
   // Les propriétés peuvent devenir incomplètes, mais ne remplacent aucun enfant.
   function configureNode(id, patch) {
-    const prepared = updateSourceNode(document.project, id, patch)
+    const moduleId = document.index.nodes.get(id)?.moduleId
+    const imports = moduleId ? ensureModuleImports(document.project, moduleId, [patch], () => crypto.randomUUID()) : { ok: false, code: 'TARGET_INVALID' }
+    if (!imports.ok) return imports
+    const prepared = updateSourceNode(imports.project, id, patch)
     if (prepared.ok) dispatch({ type: 'configure', previousProject: document.project, prepared, id, patch })
     return prepared
   }

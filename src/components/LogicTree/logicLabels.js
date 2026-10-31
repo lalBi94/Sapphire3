@@ -25,6 +25,11 @@ export function typeLabel(type, t) {
   return t('labels.typeUnset')
 }
 
+// Distingue une fonction exportée d'une fonction locale sans modifier son nom de référence.
+export function symbolLabel(symbol) {
+  return symbol?.external && symbol.moduleName ? `${symbol.name} · ${symbol.moduleName}` : symbol?.name ?? ''
+}
+
 // Résume une seule ligne de données utiles, sans reconstruire l'AST ni inventer de valeur.
 export function nodeSummary(node, index, schema, t) {
   const type = index.nodeTypes.get(node.id)

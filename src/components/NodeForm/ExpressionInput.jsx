@@ -1,6 +1,7 @@
 import { sameType, acceptsOperand, primitiveDefinitions, primitiveType } from '../../utils/logic/index.js'
 import NodeValueInput from './NodeValueInput.jsx'
 import { emptyExpression, expressionOperators, expressionOperandType } from './nodeConfiguration.js'
+import { symbolLabel } from '../LogicTree/logicLabels.js'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 
 // Configure les expressions imbriquées directement dans le formulaire de création, avec typage strict.
@@ -42,7 +43,7 @@ export default function ExpressionInput({ label, value = emptyExpression(), onCh
       {value.mode === 'reference' && <label>{t('form.symbol')}
         <select aria-label={t('expression.symbol', { label })} value={value.symbolId} required={!allowIncomplete} onChange={(event) => onChange({ ...value, symbolId: event.target.value })}>
           <option value="">{t('form.chooseName')}</option>
-          {matching.map((symbol) => <option key={symbol.id} value={symbol.id}>{symbol.name}</option>)}
+          {matching.map((symbol) => <option key={symbol.id} value={symbol.id}>{symbolLabel(symbol)}</option>)}
         </select>
       </label>}
       {['binary', 'unary'].includes(value.mode) && <>
@@ -59,7 +60,7 @@ export default function ExpressionInput({ label, value = emptyExpression(), onCh
       {value.mode === 'call' && <>
         <label>{t('form.function')}<select aria-label={t('expression.function', { label })} value={value.symbolId} required={!allowIncomplete} onChange={(event) => onChange({ ...value, symbolId: event.target.value, arguments: [] })}>
           <option value="">{t('expression.chooseFunction')}</option>
-          {functions.map((symbol) => <option key={symbol.id} value={symbol.id}>{symbol.name}</option>)}
+          {functions.map((symbol) => <option key={symbol.id} value={symbol.id}>{symbolLabel(symbol)}</option>)}
         </select></label>
         {functionSymbol?.type.parameters.map((parameter, index) => <ExpressionInput key={index} label={t('expression.argument', { label, number: index + 1 })} value={value.arguments?.[index]} onChange={(next) => onChange({ ...value, arguments: functionSymbol.type.parameters.map((_, position) => position === index ? next : value.arguments?.[position] ?? emptyExpression()) })} type={parameter} symbols={symbols} required={!allowIncomplete} allowIncomplete={allowIncomplete} depth={depth + 1} />)}
       </>}

@@ -1,22 +1,22 @@
 import { useState } from 'react'
 import { Plus, Save, Trash2 } from 'lucide-react'
-import { getNodeSchema, binaryOperators, unaryOperators, primitiveType, getVisibleSymbols, sameType, acceptsOperand } from '../../utils/logic/index.js'
+import { getNodeSchema, binaryOperators, unaryOperators, primitiveType, getCallableSymbols, sameType, acceptsOperand } from '../../utils/logic/index.js'
 import { initialNodeForm, nodeConfiguration } from './nodeConfiguration.js'
 import NodeTypeInput from './NodeTypeInput.jsx'
 import NodeValueInput from './NodeValueInput.jsx'
 import ExpressionInput from './ExpressionInput.jsx'
-import { diagnosticLabel } from '../LogicTree/logicLabels.js'
+import { diagnosticLabel, symbolLabel } from '../LogicTree/logicLabels.js'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './NodeForm.css'
 
 // Configure les propriétés du langage sans éditer ni remplacer implicitement les liens syntaxiques.
 export default function NodeForm({ kind, initialNode = null, context, onSubmit }) {
   const { t } = useTranslation()
-  const [form, setForm] = useState(() => initialNodeForm(kind, initialNode, context.expectedType, getVisibleSymbols(context)))
+  const [form, setForm] = useState(() => initialNodeForm(kind, initialNode, context.expectedType, getCallableSymbols(context)))
   const [error, setError] = useState(null)
 
   const schema = getNodeSchema(kind)
-  const symbols = getVisibleSymbols(context)
+  const symbols = getCallableSymbols(context)
   const type = form.typeName === '@alias' ? initialNode?.properties.type : primitiveType(form.typeName)
   const resolvedName = form.typeName === '@alias' ? context.index.nodeTypes.get(initialNode?.id)?.name : form.typeName
   const isNew = !initialNode
@@ -68,7 +68,7 @@ export default function NodeForm({ kind, initialNode = null, context, onSubmit }
         <select aria-label={t(kind === 'Reference' ? 'form.symbol' : 'form.function')} value={form.symbolId || (unresolved ? '@unresolved' : '')} onChange={(event) => change('symbolId', event.target.value)} required={required}>
           <option value="">{t('form.chooseName')}</option>
           {unresolved && <option value="@unresolved">{t('form.keepLink')}</option>}
-          {references.map((symbol) => <option key={symbol.id} value={symbol.id}>{symbol.name}</option>)}
+          {references.map((symbol) => <option key={symbol.id} value={symbol.id}>{symbolLabel(symbol)}</option>)}
         </select>
       </label>}
       {isNew && ['VariableDeclaration', 'ConstantDeclaration'].includes(kind) && <ExpressionInput label={t('form.startingValue')} value={form.initializer} onChange={(value) => change('initializer', value)} type={type} symbols={symbols} required={kind === 'ConstantDeclaration' && required} allowIncomplete={form.allowIncomplete} />}
