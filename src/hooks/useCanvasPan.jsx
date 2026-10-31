@@ -111,9 +111,11 @@ export default function useCanvasPan() {
     })
   }
 
-  // Replace le milieu de la vue sur l'origine et restaure l'échelle réelle.
-  function handleRecenter() {
-    setCamera((current) => ({ ...current, x: 0, y: 0, zoomLevel: 0 }))
+  // Replace la vue sur le centre du contenu demandé et restaure l'échelle réelle.
+  function handleRecenter(center = { x: 0, y: 0 }) {
+    const x = Number.isFinite(center.x) ? center.x : 0
+    const y = Number.isFinite(center.y) ? center.y : 0
+    setCamera((current) => ({ ...current, x, y, zoomLevel: 0 }))
     canvasRef.current.focus({ preventScroll: true })
   }
 

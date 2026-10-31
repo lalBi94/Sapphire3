@@ -131,6 +131,27 @@ export default function Canvas() {
     setExecution(result.ok && result.trace.length > 0 ? { trace: result.trace, index: 0, running: true } : null)
   }
 
+  // Calcule le centre géométrique des modules sans inclure les annotations de présentation.
+  function getModulesCenter() {
+    const modules = document.cards.filter((card) => card.type === 'module')
+    if (modules.length === 0) return { x: 0, y: 0 }
+    const bounds = modules.reduce((current, module) => ({
+      left: Math.min(current.left, module.x),
+      top: Math.min(current.top, module.y),
+      right: Math.max(current.right, module.x + module.width),
+      bottom: Math.max(current.bottom, module.y + module.height),
+    }), {
+      left: Infinity,
+      top: Infinity,
+      right: -Infinity,
+      bottom: -Infinity,
+    })
+    return {
+      x: (bounds.left + bounds.right) / 2,
+      y: (bounds.top + bounds.bottom) / 2,
+    }
+  }
+
   // Calcule le chemin logique temporairement déplié jusqu'au nœud exécuté.
   function getExecutionExpandedNodeIds(moduleId) {
     if (!execution) return []
@@ -196,7 +217,7 @@ export default function Canvas() {
     <div className="canvas-workspace">
     <ProjectNavigation busy={files.busy} message={files.message} error={files.error} pendingImport={files.pendingImport} recentFiles={files.recentFiles} onSave={files.handleSave} onSaveAs={files.saveAs} onOpenSp3={files.handleOpenSp3} onOpenRecent={files.handleOpenRecent} onImport={files.handleImport} onConfirmImport={files.handleConfirmImport} onCancelImport={files.handleCancelImport} onDismiss={files.handleDismiss}
       canUndo={document.canUndo} canRedo={document.canRedo} onUndo={document.undo} onRedo={document.redo}
-      onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={handleRecenter}
+      onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={() => handleRecenter(getModulesCenter())}
       distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)}
       hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onRunSimulation={handleRunSimulation} />
     <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label={t('canvas.aria')} tabIndex={0}
@@ -214,7 +235,7 @@ export default function Canvas() {
         onRename={document.renameCard} onTextChange={document.updateComment} onImageChange={document.updateImage}>
         {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} activeExecutionId={execution?.trace[execution.index] ?? null} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} />}
       </CanvasModule>)}
-      <CanvasStatus camera={camera} zoom={zoom} onRecenter={handleRecenter} />
+      <CanvasStatus camera={camera} zoom={zoom} onRecenter={() => handleRecenter(getModulesCenter())} />
       <SimulationPanel result={simulationResult} running={Boolean(execution?.running)} currentStep={execution ? execution.index + 1 : 0} onClose={() => { setSimulationResult(null); setExecution(null) }} />
       {selected && <NodeProperties key={`${document.revision}:${selected.kind}:${selected.id}`} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={setSelected} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
       {contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} anchored={contextMenu.anchored} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={handleCloseMenu} />
