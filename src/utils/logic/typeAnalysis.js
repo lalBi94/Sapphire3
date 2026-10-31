@@ -250,6 +250,11 @@ export function analyzeTypes(semantic, projectId) {
       if (symbol && !['VariableDeclaration', 'Parameter'].includes(symbol.kind)) report(codes.illegalPlacement, 'La cible d’affectation n’est pas une variable modifiable.', node, 'children.target')
       expect(resolve(target?.sourceId), resolve(child(node, 'value')?.sourceId), node, 'children.value')
     }
+    if (node.kind === 'PrintStatement') {
+      const value = child(node, 'value')
+      const type = resolve(value?.sourceId)
+      if (type?.kind === 'primitive' && type.name === 'void') report(codes.voidNotAllowed, 'Une instruction Print doit recevoir une valeur.', node, 'children.value')
+    }
   }
 
   const untypedNodeIds = []

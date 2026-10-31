@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Check, ChevronDown, Clock3, Download, FolderOpen, Palette, Save, Upload, X } from 'lucide-react'
+import { Check, ChevronDown, Clock3, Download, FolderOpen, Palette, Play, Save, Upload, X } from 'lucide-react'
 import { useTranslation } from '../../i18n.jsx'
 import { useTheme } from '../../theme.jsx'
 import './ProjectNavigation.css'
@@ -22,7 +22,7 @@ function ImportConfirmation({ path, onConfirm, onCancel }) {
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, message, error, pendingImport, recentFiles, onSave, onSaveAs, onOpenSp3, onOpenRecent, onImport, onConfirmImport, onCancelImport, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hasSelection, onOpenSelectionMenu }) {
+export default function ProjectNavigation({ busy, message, error, pendingImport, recentFiles, onSave, onSaveAs, onOpenSp3, onOpenRecent, onImport, onConfirmImport, onCancelImport, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hasSelection, onOpenSelectionMenu, onRunSimulation }) {
   const navigationRef = useRef(null)
   const { language, setLanguage, t } = useTranslation()
   const { theme, themes, setTheme } = useTheme()
@@ -102,6 +102,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
           <button type="button" disabled={busy || !!pendingImport} onClick={() => handleSaveAs('json')}><Download size={14} aria-hidden="true" />{t('nav.exportJson')}</button>
         </div>
       </details>
+      <button type="button" className="project-navigation__run" onClick={onRunSimulation}><Play size={13} fill="currentColor" aria-hidden="true" />{t('nav.run')}</button>
       <details name="workspace-menu" onToggle={handleToggle}>
         <summary>{t('nav.edit')}<ChevronDown size={12} aria-hidden="true" /></summary>
         <div className="project-navigation__menu">

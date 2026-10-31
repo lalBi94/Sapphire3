@@ -16,6 +16,7 @@ export function kindLabel(kind) {
     WhileStatement: 'While loop',
     ForStatement: 'For loop',
     ReturnStatement: 'Return',
+    PrintStatement: 'Print',
     AssignmentStatement: 'Change a value',
     Block: 'Steps',
     CastExpression: 'Convert a value',
@@ -25,7 +26,7 @@ export function kindLabel(kind) {
     FunctionDeclaration: 'Fonction', VariableDeclaration: 'Variable', ConstantDeclaration: 'Constante', Parameter: 'Entrée',
     BinaryExpression: 'Opération', UnaryExpression: 'Opération', Literal: 'Valeur', Reference: 'Utiliser une valeur',
     CallExpression: 'Appel de fonction', IfStatement: 'Si', WhileStatement: 'Boucle tant que', ForStatement: 'Boucle pour',
-    ReturnStatement: 'Retour', AssignmentStatement: 'Modifier une valeur', Block: 'Étapes', CastExpression: 'Convertir une valeur', TypeDeclaration: 'Type',
+    ReturnStatement: 'Retour', PrintStatement: 'Afficher', AssignmentStatement: 'Modifier une valeur', Block: 'Étapes', CastExpression: 'Convertir une valeur', TypeDeclaration: 'Type',
   }
   return (getCurrentLanguage() === 'fr' ? french[kind] : labels[kind]) ?? kind.replace(/([a-z])([A-Z])/g, '$1 $2')
 }
@@ -43,6 +44,7 @@ export function slotLabel(slot) {
     body: 'Inside',
     statements: 'Steps',
     argument: 'Value',
+    value: 'Value',
     arguments: 'Inputs',
     operand: 'Value',
     left: 'Left value',
@@ -53,7 +55,7 @@ export function slotLabel(slot) {
   const french = {
     rootNodeIds: 'Blocs', parameters: 'Entrées', initializer: 'Valeur de départ', condition: 'Condition', test: 'Condition',
     consequent: 'Alors', alternate: 'Sinon', body: 'Dans', statements: 'Étapes', argument: 'Valeur', arguments: 'Entrées',
-    operand: 'Valeur', left: 'Valeur de gauche', right: 'Valeur de droite', target: 'Valeur à modifier', callee: 'Fonction',
+    operand: 'Valeur', value: 'Valeur', left: 'Valeur de gauche', right: 'Valeur de droite', target: 'Valeur à modifier', callee: 'Fonction',
   }
   return (getCurrentLanguage() === 'fr' ? french[slot] : labels[slot]) ?? slot.replace(/([a-z])([A-Z])/g, '$1 $2')
 }
@@ -109,6 +111,7 @@ export function nodeSummary(node, index, schema) {
   if (node.kind === 'AssignmentStatement') parts.push(node.children?.target ? targetName(node.children.target) : 'Target missing')
   if (node.kind === 'Block') parts.push(`${Array.isArray(node.children?.statements) ? node.children.statements.length : 0} steps`)
   if (node.kind === 'ReturnStatement') parts.push(node.children?.argument ? 'with value' : 'no value')
+  if (node.kind === 'PrintStatement') parts.push(node.children?.value ? 'value' : 'Value missing')
   if (node.kind === 'FunctionDeclaration' && !type) parts.push(`${Array.isArray(node.children?.parameters) ? node.children.parameters.length : 0} inputs`)
 
   // Les nœuds nommés et les expressions affichent leur type, même absent, pour révéler un problème.

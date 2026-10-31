@@ -12,6 +12,8 @@ import { moduleTypes } from '../../utils/moduleTypes.js'
 import ProjectNavigation from '../ProjectNavigation/ProjectNavigation.jsx'
 import useWorkspaceFiles from '../../hooks/useWorkspaceFiles.jsx'
 import { useTranslation } from '../../i18n.jsx'
+import { simulateProgram } from '../../utils/logic/index.js'
+import SimulationPanel from '../SimulationPanel/SimulationPanel.jsx'
 import './Canvas.css'
 
 // Assemble présentation, document source et interactions, sans confondre position et syntaxe.
@@ -21,6 +23,7 @@ export default function Canvas() {
   const [activeCardId, setActiveCardId] = useState(null)
   const [growthRequest, setGrowthRequest] = useState({ moduleId: null, revision: 0 })
   const [distorted, setDistorted] = useState(true)
+  const [simulationResult, setSimulationResult] = useState(null)
   const menuTriggerRef = useRef(null)
   const { t } = useTranslation()
   const document = useCanvasDocument()
@@ -109,6 +112,11 @@ export default function Canvas() {
     handleCloseMenu(true)
   }
 
+  // Lance une simulation locale uniquement sur un programme statiquement valide.
+  function handleRunSimulation() {
+    setSimulationResult(simulateProgram(document.project))
+  }
+
   // La mutation validée retourne le nœud réellement inséré, qui devient la sélection.
   function handleInsert(targetId, slot, draft) {
     const result = document.insertNode(targetId, slot, draft)
@@ -157,7 +165,7 @@ export default function Canvas() {
       canUndo={document.canUndo} canRedo={document.canRedo} onUndo={document.undo} onRedo={document.redo}
       onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={handleRecenter}
       distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)}
-      hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} />
+      hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onRunSimulation={handleRunSimulation} />
     <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label={t('canvas.aria')} tabIndex={0}
       onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerEnd} onPointerCancel={handlePointerEnd} onLostPointerCapture={handlePointerEnd} onKeyDown={handleKeyDown} onContextMenu={handleContextMenu}>
       <CanvasGrid camera={camera} zoom={zoom} distorted={distorted} />
@@ -174,6 +182,7 @@ export default function Canvas() {
         {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} />}
       </CanvasModule>)}
       <CanvasStatus camera={camera} zoom={zoom} onRecenter={handleRecenter} />
+      <SimulationPanel result={simulationResult} onClose={() => setSimulationResult(null)} />
       {selected && <NodeProperties key={`${document.revision}:${selected.kind}:${selected.id}`} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={setSelected} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
       {contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} anchored={contextMenu.anchored} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={handleCloseMenu} />
         : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} onCreate={handleCreateModule} onClose={handleCloseMenu} anchored={contextMenu.anchored} commentId={contextMenu.targetId ? { id: contextMenu.targetId.id, type: contextMenu.targetId.kind } : null} onDeleteComment={handleDeleteComment} />)}

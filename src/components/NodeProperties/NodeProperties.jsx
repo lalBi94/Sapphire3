@@ -77,17 +77,35 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
     const panelBounds = panel.getBoundingClientRect()
     const parentBounds = parent.getBoundingClientRect()
     const origin = position ?? { x: panelBounds.left - parentBounds.left, y: panelBounds.top - parentBounds.top }
+    const compactHeight = Math.max(180, parentBounds.height - origin.y - 16)
     event.preventDefault()
     event.currentTarget.setPointerCapture(event.pointerId)
-    moveRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, origin }
+    moveRef.current = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      origin,
+      parentWidth: parentBounds.width,
+      parentHeight: parentBounds.height,
+      panelWidth: panelBounds.width,
+      panelHeight: Math.min(panelBounds.height, compactHeight),
+    }
     setPosition(origin)
+    setSize({ width: panelBounds.width, height: Math.min(panelBounds.height, compactHeight) })
   }
 
   // Suit le pointeur sans déplacer le canvas sous le panneau.
   function handleMove(event) {
     const move = moveRef.current
     if (!move || move.pointerId !== event.pointerId) return
-    setPosition({ x: Math.max(8, move.origin.x + event.clientX - move.x), y: Math.max(8, move.origin.y + event.clientY - move.y) })
+    const width = size?.width ?? move.panelWidth
+    const height = size?.height ?? move.panelHeight
+    const maximumX = Math.max(8, move.parentWidth - width - 8)
+    const maximumY = Math.max(8, move.parentHeight - height - 8)
+    setPosition({
+      x: Math.min(maximumX, Math.max(8, move.origin.x + event.clientX - move.x)),
+      y: Math.min(maximumY, Math.max(8, move.origin.y + event.clientY - move.y)),
+    })
   }
 
   // Termine le déplacement après relâchement ou perte de capture.

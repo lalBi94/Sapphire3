@@ -56,6 +56,7 @@ La catégorie de module `main` est retirée : une ancienne source v1 l'utilisant
 | `TypeDeclaration` | `name`, `type` obligatoire ; alias transparent d'un primitif, pas de classes/structures |
 | `Block` | `statements[]` : déclarations ou instructions |
 | `ReturnStatement` | `argument?` expression ; uniquement dans une fonction |
+| `PrintStatement` | `value` expression non `void` ; ajoute la représentation textuelle de la valeur à la sortie de simulation |
 | `IfStatement` | `test` expression booléenne, `consequent` Block, `alternate?` Block |
 | `WhileStatement` | `test` booléen, `body` Block |
 | `ForStatement` | `initializer?` variable/constante/affectation/instruction-expression ; `test?`, `update?` expression ou affectation ; `body` Block |
@@ -134,6 +135,12 @@ Vers un entier : troncature de la partie fractionnaire vers zéro, puis contrôl
 `numericConstants.js` vérifie uniquement les expressions constantes (littéraux, opérations, conversions et références de constantes dont l'initialiseur est prouvé constant), sans appeler de fonction ni exécuter de boucle. Les cycles constants et les profondeurs excessives sont diagnostiqués. Les initialiseurs de variables ne sont pas propagés comme constantes, pour ne pas ignorer des mutations.
 
 Les types des expressions non constantes sont entièrement statiques, mais leurs bornes à l'exécution ne sont pas prouvées globalement. Les futurs interprètes/générateurs devront respecter les mêmes domaines, arrondis et opérations contrôlées, refuser division par zéro, sous-flux vers zéro et débordement, **sans wrap ni comportement dépendant de la cible**. Aucun moteur d'exécution, analyse d'intervalles ou générateur n'est introduit ici ; `canGenerate` n'est pas une preuve de sûreté de toutes les valeurs futures.
+
+### Simulation locale
+
+`simulateProgram(project, {maxSteps?})` est une exécution locale déterministe, séparée de React, du DOM, de Neutralinojs et de tout accès réseau. Elle exige une analyse sans diagnostic bloquant et une fonction marquée `properties.entryPoint: true` sans paramètre d'entrée. La première tranche prend en charge les littéraux, références, opérations, conversions transparentes, appels, déclarations, affectations, `if`, `while`, `for`, `return`, `break`, `continue`, expressions et `PrintStatement`.
+
+La simulation écrit uniquement dans un résultat mémoire `{ok, output, result?, steps, error?}` ; elle ne modifie pas la source et n'enregistre rien. `maxSteps` protège l'interface contre les boucles non terminantes. Les bornes runtime avancées, les entrées interactives, les effets de fichier, l'ordonnancement et la génération de code restent hors de ce premier incrément.
 
 ## Diagnostics et tolérance
 

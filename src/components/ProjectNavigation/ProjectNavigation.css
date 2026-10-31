@@ -19,6 +19,7 @@
 .project-navigation__menu button { width: 100%; text-align: left; }
 .project-navigation__recent-file span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .project-navigation button:hover:not(:disabled) { background: var(--color-hover); }
+.project-navigation__run { color: var(--color-primary) !important; }
 .project-navigation button:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
 .project-navigation :is(button, summary):focus-visible, .project-navigation__confirmation button:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }
 .project-navigation__status { margin-left: auto; min-width: 0; color: var(--color-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

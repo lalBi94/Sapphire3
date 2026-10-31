@@ -28,7 +28,7 @@ export function initialNodeForm(kind, node, expectedType, symbols) {
     name: properties.name ?? '', typeName: properties.type?.kind === 'named' ? '@alias' : properties.type?.name ?? (kind === 'Literal' || kind === 'CastExpression' ? expectedType?.name ?? '' : ''),
     operator: properties.operator ?? '', value: properties.value === undefined ? '' : Object.is(properties.value, -0) ? '-0' : String(properties.value),
     empty: properties.type?.name === 'string' && properties.value === '', symbolId: symbol?.id ?? (target ? '@unresolved' : ''),
-    initializer: emptyExpression(), condition: emptyExpression(),
+    initializer: emptyExpression(), condition: emptyExpression(), expression: emptyExpression(),
     parameters: [], entryPoint: properties.entryPoint === true, allowIncomplete: false,
   }
 }
@@ -106,6 +106,7 @@ export function nodeConfiguration(kind, form, symbols, initialNode = null) {
     children.test = expressionDraft(form.condition, primitiveType('boolean'), symbols)
     children[kind === 'IfStatement' ? 'consequent' : 'body'] = emptyBlock()
   }
+  if (kind === 'PrintStatement') children.value = expressionDraft(form.expression, null, symbols)
   if (kind === 'FunctionDeclaration') {
     children.parameters = form.parameters.map((parameter) => ({ kind: 'Parameter', properties: { name: parameter.name.trim(), ...(primitiveType(parameter.typeName) ? { type: primitiveType(parameter.typeName) } : {}) } }))
     children.body = emptyBlock()
