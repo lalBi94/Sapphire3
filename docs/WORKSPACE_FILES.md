@@ -24,6 +24,7 @@
 - La croissance du module après insertion met à jour cette géométrie exportable ; le signal d'ajustement automatique reste temporaire. L'import ne redimensionne pas les cartes restaurées. La suppression confirmée d'un Comment ne modifie que `cards`, sans toucher à la source logique.
 - `camera` reprend les coordonnées du centre et l'exposant de zoom existant (maximum 2, soit 400 %). `selected` vaut `null` ou `{kind: "module" | "node", id}`.
 - Menus ouverts, formulaires non validés, gestes en cours et positions de défilement internes ne sont pas sauvegardés. L'export est celui du document validé en mémoire au clic, pas une capture d'image.
+- Le presse-papiers local de nœuds, les indicateurs de DnD et les messages de transfert ne sont pas exportés. Un import confirmé vide ce presse-papiers. Les sous-arbres copiés/déplacés effectivement validés appartiennent à la source normale du workspace ; le format v1 ne change pas.
 
 ## Import
 

@@ -3,6 +3,10 @@
 .logic-tree__missing { color: var(--color-diagnostic); overflow-wrap: anywhere; }
 .logic-node { position: relative; margin: 12px 0; padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-anthracite); min-width: 0; }
 .logic-node--selected { z-index: 2; box-shadow: var(--shadow-selection); background: var(--color-selection-surface); }
+.logic-node--drop-valid { outline: 3px dashed var(--color-primary); outline-offset: 2px; }
+.logic-node--drop-invalid { outline: 3px dotted var(--color-diagnostic); outline-offset: 2px; }
+.logic-node__heading[draggable='true'] { cursor: grab; }
+.logic-node__heading[draggable='true']:active { cursor: grabbing; }
 .logic-node--executing { z-index: 3; border-color: var(--color-primary) !important; box-shadow: 0 0 0 2px var(--color-primary), 0 0 24px color-mix(in srgb, var(--color-primary) 38%, transparent); background: color-mix(in srgb, var(--color-primary) 12%, var(--color-anthracite)); }
 .logic-node--executing > .logic-node__header .logic-node__heading { color: var(--color-primary); }
 .logic-node--selected > .logic-node__header .logic-node__heading > span:first-child { text-decoration: underline; text-underline-offset: 3px; }

@@ -1,6 +1,6 @@
 import { useReducer } from 'react'
 import { moduleTypes } from '../utils/moduleTypes.js'
-import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports } from '../utils/logic/index.js'
+import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode } from '../utils/logic/index.js'
 import { initialDocument, reduceHistory } from '../utils/canvasDocument.js'
 
 // Expose les éditions de document ; sélection et navigation restent dans les composants UI.
@@ -56,6 +56,31 @@ export default function useCanvasDocument() {
     if (!imports.ok) return imports
     const prepared = updateSourceNode(imports.project, id, patch)
     if (prepared.ok) dispatch({ type: 'configure', previousProject: document.project, prepared, id, patch })
+    return prepared
+  }
+
+  // Alloue les nouveaux identifiants une fois, puis colle le sous-arbre validé atomiquement.
+  function pasteNode(clipboard, receiver) {
+    const ids = clipboard.nodes.map(() => crypto.randomUUID())
+    const prepared = pasteSourceNode(document.project, clipboard, receiver, { ids, index: document.index })
+    if (prepared.ok) dispatch({ type: 'pasteNode', previousProject: document.project, prepared, clipboard, receiver, ids })
+    return prepared
+  }
+
+  // Déplace la source existante après une nouvelle validation du destinataire courant.
+  function moveNode(id, receiver) {
+    const prepared = moveSourceNode(document.project, id, receiver, { index: document.index })
+    if (prepared.ok) dispatch({ type: 'moveNode', previousProject: document.project, prepared, id, receiver })
+    return prepared
+  }
+
+  // Duplique dans la liste parente sans écraser un enfant unique.
+  function duplicateNode(id) {
+    const captured = captureSourceNode(document.project, id, { index: document.index })
+    if (!captured.ok) return captured
+    const ids = captured.clipboard.nodes.map(() => crypto.randomUUID())
+    const prepared = duplicateSourceNode(document.project, id, { ids, index: document.index })
+    if (prepared.ok) dispatch({ type: 'duplicateNode', previousProject: document.project, prepared, id, ids })
     return prepared
   }
 
@@ -123,5 +148,5 @@ export default function useCanvasDocument() {
     dispatch({ type: 'redo' })
   }
 
-  return { ...document, createCard, updateGeometry, renameCard, updateComment, updateImage, insertNode, configureNode, deleteNode, deleteModule, deleteComment, exportFunction, importFunction, removeImport, setExpandedNodes, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
+  return { ...document, createCard, updateGeometry, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, duplicateNode, deleteNode, deleteModule, deleteComment, exportFunction, importFunction, removeImport, setExpandedNodes, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
 }

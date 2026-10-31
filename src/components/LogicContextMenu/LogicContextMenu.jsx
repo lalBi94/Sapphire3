@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, CircleDot, GitBranch, Network, Plus, Trash2 } from 'lucide-react'
-import { getAvailableActions } from '../../utils/logic/index.js'
+import { ArrowLeft, CircleDot, ClipboardPaste, Copy, CopyPlus, GitBranch, Network, Plus, Trash2 } from 'lucide-react'
+import { getAvailableActions, getNodeSchema } from '../../utils/logic/index.js'
 import { diagnosticLabel, kindLabel, slotLabel } from '../LogicTree/logicLabels.js'
 import NodeForm from '../NodeForm/NodeForm.jsx'
 import DeleteAction from '../DeleteAction/DeleteAction.jsx'
@@ -8,7 +8,7 @@ import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './LogicContextMenu.css'
 
 // Propose le slot, puis la construction compatible et son formulaire latéral.
-export default function LogicContextMenu({ project, index, targetId, initialSlot, x, y, onInsert, onDelete, onDeleteModule, onOpenGraph, onClose, anchored = false }) {
+export default function LogicContextMenu({ project, index, targetId, initialSlot, x, y, onInsert, onDelete, onDeleteModule, onOpenGraph, onCopy, onPaste, onDuplicate, hasClipboard, onClose, anchored = false }) {
   const { t } = useTranslation()
   const [slotName, setSlotName] = useState(initialSlot ?? '')
   const [kind, setKind] = useState('')
@@ -17,6 +17,8 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
   const moveRef = useRef(null)
   const available = getAvailableActions(project, targetId, slotName || undefined, { index })
   const selectedSlot = available.slot?.name ?? ''
+  const parent = targetId.kind === 'node' ? index.parents.get(targetId.id)?.[0] : null
+  const canDuplicate = parent?.kind === 'module' || getNodeSchema(index.nodes.get(parent?.id)?.kind)?.slots?.[parent?.slot]?.many
 
   useEffect(() => {
     const menu = menuRef.current
@@ -94,6 +96,9 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
       </div>
       <div className="logic-context-menu__actions logic-context-menu__node-actions" role="menu" aria-label={t('canvas.nodeActions')}>
         <div className="logic-context-menu__title">{t('canvas.nodeActions')}</div>
+        {targetId.kind === 'node' && <button type="button" role="menuitem" onClick={() => onCopy(targetId)}><Copy className="menu-icon" size={16} aria-hidden="true" />{t('transfer.copy')}</button>}
+        <button type="button" role="menuitem" disabled={!hasClipboard} title={t('transfer.pasteHint')} onClick={() => onPaste(targetId)}><ClipboardPaste className="menu-icon" size={16} aria-hidden="true" />{t('transfer.paste')}</button>
+        {targetId.kind === 'node' && <button type="button" role="menuitem" disabled={!canDuplicate} title={t(canDuplicate ? 'transfer.duplicateHint' : 'transfer.duplicateUnavailable')} onClick={() => onDuplicate(targetId)}><CopyPlus className="menu-icon" size={16} aria-hidden="true" />{t('transfer.duplicate')}</button>}
         <button type="button" role="menuitem" onClick={() => onOpenGraph(targetId, 'dependencies')}><Network className="menu-icon" size={16} aria-hidden="true" />{t('graph.dependencies')}</button>
         <button type="button" role="menuitem" onClick={() => onOpenGraph(targetId, 'cfg')}><GitBranch className="menu-icon" size={16} aria-hidden="true" />{t('graph.cfg')}</button>
         {available.ok && available.target?.kind === 'node' && <button type="button" role="menuitem" className="logic-context-menu__delete" title={t('canvas.deleteInside')} onClick={() => onDelete(targetId)}><Trash2 className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.deleteBlock')}</button>}

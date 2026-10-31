@@ -1,3 +1,5 @@
+.canvas-module--drop-valid { outline: 3px dashed var(--color-primary); outline-offset: 3px; }
+.canvas-module--drop-invalid { outline: 3px dotted var(--color-diagnostic); outline-offset: 3px; }
 .canvas-module {
   position: absolute;
   border: 1px solid var(--color-border);

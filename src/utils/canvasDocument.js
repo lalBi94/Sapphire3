@@ -1,5 +1,5 @@
 import { moduleTypes } from './moduleTypes.js'
-import { createProject, createModule, analyzeProgram, createContextIndex, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports } from './logic/index.js'
+import { createProject, createModule, analyzeProgram, createContextIndex, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, pasteSourceNode, moveSourceNode, duplicateSourceNode } from './logic/index.js'
 
 // Recalcule les dérivés uniquement quand la source logique change.
 function withSource(state, project, analysis = analyzeProgram(project), index = createContextIndex(project, analysis)) {
@@ -9,6 +9,9 @@ function withSource(state, project, analysis = analyzeProgram(project), index = 
 // Rejoue une mutation préparée sur le document courant si une autre édition l'a devancée.
 // Les imports automatiques des fonctions exportées sont recalculés sur la source réellement courante.
 function replaySourceMutation(state, action) {
+  if (action.type === 'pasteNode') return pasteSourceNode(state.project, action.clipboard, action.receiver, { ids: action.ids, index: state.index })
+  if (action.type === 'moveNode') return moveSourceNode(state.project, action.id, action.receiver, { index: state.index })
+  if (action.type === 'duplicateNode') return duplicateSourceNode(state.project, action.id, { ids: action.ids, index: state.index })
   if (action.type === 'insert') {
     const imports = action.moduleId ? ensureModuleImports(state.project, action.moduleId, action.bundle.nodes) : { ok: true, project: state.project }
     return imports.ok ? insertSourceNodes(imports.project, action.request, action.bundle, imports.project === state.project ? { index: state.index } : {}) : imports
@@ -59,7 +62,7 @@ export function reduceDocument(state, action) {
     const next = { ...state, cards: state.cards.map((entry) => entry.id === card.id ? { ...entry, name: action.name } : entry) }
     return card.type === 'module' ? withSource(next, { ...state.project, modules: state.project.modules.map((module) => module.id === card.id ? { ...module, name: action.name } : module) }) : next
   }
-  if (['insert', 'configure', 'delete', 'moduleExport', 'moduleImport', 'moduleImportRemove'].includes(action.type)) {
+  if (['insert', 'configure', 'delete', 'moduleExport', 'moduleImport', 'moduleImportRemove', 'pasteNode', 'moveNode', 'duplicateNode'].includes(action.type)) {
     const result = state.project === action.previousProject ? action.prepared : replaySourceMutation(state, action)
     return result.ok ? withSource(state, result.project, result.analysis, result.index) : { ...state, mutationError: result.code }
   }
@@ -83,6 +86,7 @@ export function reduceHistory(state, action) {
   }
   const next = reduceDocument(state.present, action)
   if (next === state.present) return state
+  if (['pasteNode', 'moveNode', 'duplicateNode'].includes(action.type) && next.project === state.present.project) return { ...state, present: next }
   if (['geometry', 'text', 'presentation'].includes(action.type)) return { ...state, present: next, future: [] }
   return { past: [...state.past, state.present], present: next, future: [] }
 }

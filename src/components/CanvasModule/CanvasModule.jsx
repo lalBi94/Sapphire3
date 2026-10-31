@@ -6,7 +6,7 @@ import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './CanvasModule.css'
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onRename, onTextChange, onImageChange, children, selected = false, onSelect, onOpenActions, onActivate, zIndex = 1, fitRequest = 0 }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onRename, onTextChange, onImageChange, children, selected = false, onSelect, onOpenActions, onActivate, zIndex = 1, fitRequest = 0, dropState }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -229,7 +229,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
 
   return (
     <section
-      className={`canvas-module canvas-module--${module.type}${isMoving ? ' canvas-module--moving' : ''}${selected ? ' canvas-module--selected' : ''}`}
+      className={`canvas-module canvas-module--${module.type}${isMoving ? ' canvas-module--moving' : ''}${selected ? ' canvas-module--selected' : ''}${dropState ? ` canvas-module--drop-${dropState}` : ''}`}
       aria-label={name}
       data-source-module={definition.hasText || definition.hasImage ? undefined : module.id}
       data-card-id={module.id}

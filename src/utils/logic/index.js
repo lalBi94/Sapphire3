@@ -15,6 +15,7 @@ export { nodeSchema, getNodeSchema, binaryOperators, unaryOperators } from './no
 export { simulateProgram } from './simulation.js'
 export { analyzeReachability } from './reachability.js'
 export { buildDependencyGraph, buildControlFlowGraph } from './nodeGraphs.js'
+export { captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode } from './nodeTransfer.js'
 export { createDebugSession, moveDebugSession } from './debugging.js'
 export { getModuleRootSymbols, getModuleFunctions, getImportCandidates, setModuleExport, addModuleImport, removeModuleImport, getCallableSymbols, ensureModuleImports } from './moduleInterface.js'
 
