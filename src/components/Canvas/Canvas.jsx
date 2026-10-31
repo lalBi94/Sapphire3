@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import CanvasGrid from '../CanvasGrid/CanvasGrid.jsx'
 import useCanvasPan from '../../hooks/useCanvasPan.jsx'
 import useCanvasDocument from '../../hooks/useCanvasDocument.jsx'
@@ -24,11 +24,23 @@ export default function Canvas() {
   const [growthRequest, setGrowthRequest] = useState({ moduleId: null, revision: 0 })
   const [distorted, setDistorted] = useState(true)
   const [simulationResult, setSimulationResult] = useState(null)
+  const [execution, setExecution] = useState(null)
   const menuTriggerRef = useRef(null)
   const { t } = useTranslation()
   const document = useCanvasDocument()
   const { camera, zoom, canvasRef, isPanning, handlePointerDown, handlePointerMove, handlePointerEnd, handleKeyDown, handleRecenter, zoomBy, resetZoom, restoreCamera } = useCanvasPan()
   const files = useWorkspaceFiles({ project: document.project, cards: document.cards, camera, selected, onReplace: handleReplaceWorkspace })
+
+  useEffect(() => {
+    if (!execution?.running) return undefined
+    const timer = window.setTimeout(() => {
+      setExecution((current) => {
+        if (!current || current.index >= current.trace.length - 1) return current ? { ...current, running: false } : null
+        return { ...current, index: current.index + 1 }
+      })
+    }, 420)
+    return () => window.clearTimeout(timer)
+  }, [execution])
 
   // Restaure source, présentation et vue ensemble après confirmation d'import.
   function handleReplaceWorkspace(workspace) {
@@ -114,7 +126,28 @@ export default function Canvas() {
 
   // Lance une simulation locale uniquement sur un programme statiquement valide.
   function handleRunSimulation() {
-    setSimulationResult(simulateProgram(document.project))
+    const result = simulateProgram(document.project)
+    setSimulationResult(result)
+    setExecution(result.ok && result.trace.length > 0 ? { trace: result.trace, index: 0, running: true } : null)
+  }
+
+  // Calcule le chemin logique temporairement déplié jusqu'au nœud exécuté.
+  function getExecutionExpandedNodeIds(moduleId) {
+    if (!execution) return []
+    const currentId = execution.trace[execution.index]
+    const currentNode = document.index.nodes.get(currentId)
+    if (!currentNode || currentNode.moduleId !== moduleId) return []
+    const ids = [currentId]
+    let cursor = currentId
+    const visited = new Set()
+    while (cursor && !visited.has(cursor)) {
+      visited.add(cursor)
+      const parent = document.index.parents.get(cursor)?.[0]
+      if (parent?.kind !== 'node') break
+      ids.push(parent.id)
+      cursor = parent.id
+    }
+    return ids
   }
 
   // La mutation validée retourne le nœud réellement inséré, qui devient la sélection.
@@ -179,10 +212,10 @@ export default function Canvas() {
         onResize={(id, width, height) => document.updateGeometry(id, { width, height })}
         onMove={(id, x, y) => document.updateGeometry(id, { x, y })}
         onRename={document.renameCard} onTextChange={document.updateComment} onImageChange={document.updateImage}>
-        {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} />}
+        {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} activeExecutionId={execution?.trace[execution.index] ?? null} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} />}
       </CanvasModule>)}
       <CanvasStatus camera={camera} zoom={zoom} onRecenter={handleRecenter} />
-      <SimulationPanel result={simulationResult} onClose={() => setSimulationResult(null)} />
+      <SimulationPanel result={simulationResult} running={Boolean(execution?.running)} currentStep={execution ? execution.index + 1 : 0} onClose={() => { setSimulationResult(null); setExecution(null) }} />
       {selected && <NodeProperties key={`${document.revision}:${selected.kind}:${selected.id}`} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={setSelected} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
       {contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} anchored={contextMenu.anchored} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onClose={handleCloseMenu} />
         : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} onCreate={handleCreateModule} onClose={handleCloseMenu} anchored={contextMenu.anchored} commentId={contextMenu.targetId ? { id: contextMenu.targetId.id, type: contextMenu.targetId.kind } : null} onDeleteComment={handleDeleteComment} />)}

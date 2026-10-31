@@ -22,7 +22,9 @@ function printProgram(value = 42) {
 test('PrintStatement est typé et produit une sortie déterministe', () => {
   const project = printProgram()
   assert.deepEqual(analyzeProgram(project).diagnostics, [])
-  assert.deepEqual(simulateProgram(project).output, ['42'])
+  const result = simulateProgram(project)
+  assert.deepEqual(result.output, ['42'])
+  assert.deepEqual(result.trace, ['print', 'literal'])
 })
 
 test('la simulation refuse un programme qui possède des diagnostics bloquants', () => {

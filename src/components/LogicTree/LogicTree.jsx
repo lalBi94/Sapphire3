@@ -13,7 +13,7 @@ function moduleNodeIds(module, index) {
 }
 
 // Parcourt les racines source dans leur ordre ; les nœuds sont pliés tant qu'ils ne sont pas dépliés.
-export default function LogicTree({ module, index, selectedId, onSelect, expandedNodeIds, onExpandedChange, onOpenActions }) {
+export default function LogicTree({ module, index, selectedId, onSelect, expandedNodeIds, onExpandedChange, onOpenActions, activeExecutionId = null, executionExpandedNodeIds = [] }) {
   const knownIds = useRef(null)
   const { t } = useTranslation()
 
@@ -39,7 +39,7 @@ export default function LogicTree({ module, index, selectedId, onSelect, expande
     onExpandedChange([...next])
   }, [module, index, expandedNodeIds, onExpandedChange])
 
-  const expandedIds = new Set(expandedNodeIds)
+  const expandedIds = new Set([...expandedNodeIds, ...(activeExecutionId ? executionExpandedNodeIds : [])])
 
   // Mémorise seulement les nœuds explicitement dépliés, sans toucher à la source logique.
   function handleToggle(id) {
@@ -52,7 +52,7 @@ export default function LogicTree({ module, index, selectedId, onSelect, expande
   return (
     <div className="logic-tree" data-canvas-scroll>
       {module.rootNodeIds.length === 0 && <p className="logic-tree__empty">{t('canvas.addFirst')}</p>}
-      {module.rootNodeIds.map((id, position) => <LogicNode key={`${id}:${position}`} id={id} index={index} selectedId={selectedId} onSelect={onSelect} ancestors={[]} expandedIds={expandedIds} onToggle={handleToggle} onOpenActions={onOpenActions} />)}
+      {module.rootNodeIds.map((id, position) => <LogicNode key={`${id}:${position}`} id={id} index={index} selectedId={selectedId} activeExecutionId={activeExecutionId} onSelect={onSelect} ancestors={[]} expandedIds={expandedIds} onToggle={handleToggle} onOpenActions={onOpenActions} />)}
     </div>
   )
 }

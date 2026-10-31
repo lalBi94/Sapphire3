@@ -140,7 +140,7 @@ Les types des expressions non constantes sont entièrement statiques, mais leurs
 
 `simulateProgram(project, {maxSteps?})` est une exécution locale déterministe, séparée de React, du DOM, de Neutralinojs et de tout accès réseau. Elle exige une analyse sans diagnostic bloquant et une fonction marquée `properties.entryPoint: true` sans paramètre d'entrée. La première tranche prend en charge les littéraux, références, opérations, conversions transparentes, appels, déclarations, affectations, `if`, `while`, `for`, `return`, `break`, `continue`, expressions et `PrintStatement`.
 
-La simulation écrit uniquement dans un résultat mémoire `{ok, output, result?, steps, error?}` ; elle ne modifie pas la source et n'enregistre rien. `maxSteps` protège l'interface contre les boucles non terminantes. Les bornes runtime avancées, les entrées interactives, les effets de fichier, l'ordonnancement et la génération de code restent hors de ce premier incrément.
+La simulation écrit uniquement dans un résultat mémoire `{ok, output, trace, result?, steps, error?}` ; elle ne modifie pas la source et n'enregistre rien. `trace` est une liste ordonnée d'identifiants de nœuds effectivement visités, y compris les expressions évaluées et les répétitions de boucle ou d'appel. Elle permet à l'interface de présenter une exécution progressive sans déplacer ni modifier les données de présentation persistées. `maxSteps` protège l'interface contre les boucles non terminantes. Les bornes runtime avancées, les entrées interactives, les effets de fichier, l'ordonnancement et la génération de code restent hors de ce premier incrément.
 
 ## Diagnostics et tolérance
 

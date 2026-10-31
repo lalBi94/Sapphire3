@@ -1,11 +1,12 @@
 import { ChevronDown, ChevronRight } from 'lucide-react'
+import { useEffect, useRef } from 'react'
 import { getNodeSchema } from '../../utils/logic/index.js'
 import { kindLabel, nodeSummary, slotLabel } from './logicLabels.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
 import { getCurrentLanguage, useTranslation } from '../../i18n.jsx'
 
 // Rend une construction avec ses slots ; les cycles ou liens manquants restent des fragments lisibles.
-export default function LogicNode({ id, index, selectedId, onSelect, ancestors, expandedIds, onToggle, onOpenActions }) {
+export default function LogicNode({ id, index, selectedId, activeExecutionId, onSelect, ancestors, expandedIds, onToggle, onOpenActions }) {
   const { t } = useTranslation()
   const node = index.nodes.get(id)
   const schema = node ? getNodeSchema(node.kind) : null
@@ -14,6 +15,12 @@ export default function LogicNode({ id, index, selectedId, onSelect, ancestors, 
   const expanded = expandedIds.has(id)
   const name = node?.properties?.name || kindLabel(node?.kind ?? '')
   const summary = node ? nodeSummary(node, index, schema) : ''
+  const nodeRef = useRef(null)
+  const active = activeExecutionId === id
+
+  useEffect(() => {
+    if (active) nodeRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [active])
 
   // L'événement ne remonte pas à un autre nœud ou au module contenant la sélection.
   function handleSelect(event) {
@@ -30,7 +37,7 @@ export default function LogicNode({ id, index, selectedId, onSelect, ancestors, 
   if (!node) return <p className="logic-tree__missing">{t('canvas.blockMissing')}</p>
   if (ancestors.includes(id) || ancestors.length >= 60) return <p className="logic-tree__missing">{t('canvas.blockHidden')}</p>
   return (
-    <section className={`logic-node${selectedId === id ? ' logic-node--selected' : ''}${expanded ? '' : ' logic-node--collapsed'}`} data-source-node={id} data-group={schema?.group ?? 'incomplete'} aria-label={name} onClick={handleSelect}>
+    <section ref={nodeRef} className={`logic-node${selectedId === id ? ' logic-node--selected' : ''}${active ? ' logic-node--executing' : ''}${expanded ? '' : ' logic-node--collapsed'}`} data-source-node={id} data-group={schema?.group ?? 'incomplete'} aria-current={active ? 'step' : undefined} aria-label={name} onClick={handleSelect}>
       <NodeMenuButton label={name} onOpen={(event) => onOpenActions(event, { kind: 'node', id })} />
       <div className="logic-node__header">
         <button type="button" className="logic-node__toggle" aria-expanded={expanded} aria-label={`${expanded ? 'Collapse' : 'Expand'} ${name}`} onClick={handleToggle}>
@@ -48,7 +55,7 @@ export default function LogicNode({ id, index, selectedId, onSelect, ancestors, 
         const children = Array.isArray(value) ? value : value === null || value === undefined ? [] : [value]
         return <div className="logic-node__slot" data-slot={slotName} key={slotName}>
           <span className="logic-node__slot-label">{slotLabel(slotName)}{slot.many ? ` [${children.length}]` : ''}</span>
-          {children.length === 0 ? <span className="logic-node__empty">{slot.required ? (getCurrentLanguage() === 'fr' ? 'Ajouter quelque chose' : 'Add something') : (getCurrentLanguage() === 'fr' ? 'Vide' : 'Empty')}</span> : children.map((childId, position) => <LogicNode key={`${childId}:${position}`} id={childId} index={index} selectedId={selectedId} onSelect={onSelect} ancestors={[...ancestors, id]} expandedIds={expandedIds} onToggle={onToggle} onOpenActions={onOpenActions} />)}
+          {children.length === 0 ? <span className="logic-node__empty">{slot.required ? (getCurrentLanguage() === 'fr' ? 'Ajouter quelque chose' : 'Add something') : (getCurrentLanguage() === 'fr' ? 'Vide' : 'Empty')}</span> : children.map((childId, position) => <LogicNode key={`${childId}:${position}`} id={childId} index={index} selectedId={selectedId} activeExecutionId={activeExecutionId} onSelect={onSelect} ancestors={[...ancestors, id]} expandedIds={expandedIds} onToggle={onToggle} onOpenActions={onOpenActions} />)}
         </div>
       })}
     </section>

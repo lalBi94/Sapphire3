@@ -3,23 +3,25 @@ import { analyzeProgram } from './analysis.js'
 // Exécute le sous-ensemble déterministe du langage sans accéder au DOM ni au système.
 export function simulateProgram(project, { maxSteps = 10000 } = {}) {
   const analysis = analyzeProgram(project)
-  if (!analysis.canGenerate) return { ok: false, output: [], error: 'The program has blocking diagnostics.', diagnostics: analysis.diagnostics }
+  if (!analysis.canGenerate) return { ok: false, output: [], trace: [], error: 'The program has blocking diagnostics.', diagnostics: analysis.diagnostics }
   const nodes = new Map(project.nodes.map((node) => [node.id, node]))
   const symbols = new Map(analysis.semantic.symbols.map((symbol) => [symbol.id, symbol]))
   const references = new Map(analysis.semantic.references.map((reference) => [reference.nodeId, reference]))
   const functions = new Map(analysis.semantic.symbols.filter((symbol) => symbol.kind === 'FunctionDeclaration').map((symbol) => [symbol.nodeId, nodes.get(symbol.nodeId)]))
   const entry = [...functions.values()].find((node) => node?.properties?.entryPoint === true)
   const output = []
+  const trace = []
   let steps = 0
   const breakSignal = Symbol('break')
   const continueSignal = Symbol('continue')
 
-  if (!entry) return { ok: false, output, error: 'No entry point is marked.' }
-  if ((entry.children.parameters ?? []).length > 0) return { ok: false, output, error: 'The entry point must not require inputs.' }
+  if (!entry) return { ok: false, output, trace, error: 'No entry point is marked.' }
+  if ((entry.children.parameters ?? []).length > 0) return { ok: false, output, trace, error: 'The entry point must not require inputs.' }
 
   function step(node) {
     steps += 1
     if (steps > maxSteps) throw new Error('Simulation step limit reached.')
+    trace.push(node.id)
     return node
   }
 
@@ -137,9 +139,9 @@ export function simulateProgram(project, { maxSteps = 10000 } = {}) {
       }
     }
     const result = executeFunction(entry, [], global)
-    return { ok: true, output, result, steps }
+    return { ok: true, output, trace, result, steps }
   } catch (error) {
-    return { ok: false, output, error: error instanceof Error ? error.message : 'Simulation stopped.', steps }
+    return { ok: false, output, trace, error: error instanceof Error ? error.message : 'Simulation stopped.', steps }
   }
 }
 
