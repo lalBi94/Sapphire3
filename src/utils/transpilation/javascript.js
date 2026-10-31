@@ -85,6 +85,16 @@ export function generateJavaScript(analysis) {
       const type = node.properties.type?.name
       if (type === 'string' || type === 'char') return JSON.stringify(String(node.properties.value ?? ''))
       if (type === 'boolean') return node.properties.value ? 'true' : 'false'
+      if (['short int', 'short uint', 'int', 'uint'].includes(type) &&
+        (typeof node.properties.value === 'number' || typeof node.properties.value === 'bigint' || typeof node.properties.value === 'string') &&
+        /^[+-]?\d+$/.test(String(node.properties.value))) {
+        return String(node.properties.value)
+      }
+      if (['float', 'double'].includes(type) &&
+        (typeof node.properties.value === 'number' || typeof node.properties.value === 'string') &&
+        /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(String(node.properties.value))) {
+        return String(node.properties.value)
+      }
       if (typeof node.properties.value === 'number' || typeof node.properties.value === 'bigint') return String(node.properties.value)
       diagnostics.push(createDiagnostic('TRANSPILE_LITERAL_UNSUPPORTED', 'Littéral non pris en charge par le backend JavaScript.', node.location))
       return 'undefined'
