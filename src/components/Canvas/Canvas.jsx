@@ -66,17 +66,6 @@ export default function Canvas() {
     return () => window.clearTimeout(timer)
   }, [execution])
 
-  useEffect(() => {
-    const nodeId = debugSession?.project === document.project ? debugSession.frames[debugSession.cursor]?.nodeId : null
-    if (!nodeId) return
-    const element = canvasRef.current.querySelector(`[data-source-node="${CSS.escape(nodeId)}"]`)
-    if (!element) return
-    const bounds = canvasRef.current.getBoundingClientRect()
-    const rect = element.getBoundingClientRect()
-    if (rect.left >= bounds.left && rect.right <= bounds.right && rect.top >= bounds.top && rect.bottom <= bounds.bottom) return
-    restoreCamera({ ...camera, x: camera.x + (rect.left + rect.width / 2 - bounds.left - bounds.width / 2) / zoom, y: camera.y + (rect.top + rect.height / 2 - bounds.top - bounds.height / 2) / zoom })
-  }, [debugSession])
-
   const debugFrame = debugSession?.project === document.project ? debugSession.frames[debugSession.cursor] : null
   const activeExecutionId = debugSession ? debugFrame?.nodeId ?? null : execution?.trace[execution.index] ?? null
 
