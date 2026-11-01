@@ -27,6 +27,7 @@ import { transpileProgram } from '../../utils/transpilation/index.js'
 import { transpilationLanguages } from '../../utils/transpilation/languages.js'
 import { exportWorkspaceFile } from '../../services/workspaceFiles.js'
 import SimulationPanel from '../SimulationPanel/SimulationPanel.jsx'
+import FunctionPanel from '../FunctionPanel/FunctionPanel.jsx'
 import DebugPanel from '../DebugPanel/DebugPanel.jsx'
 import TranspilePanel from '../TranspilePanel/TranspilePanel.jsx'
 import NodeGraphPanel from '../NodeGraphPanel/NodeGraphPanel.jsx'
@@ -47,6 +48,8 @@ export default function Canvas() {
   const [transpilationResult, setTranspilationResult] = useState(null)
   const [transpileExportError, setTranspileExportError] = useState(null)
   const [nodeGraph, setNodeGraph] = useState(null)
+  const [functionTarget, setFunctionTarget] = useState(null)
+  const [functionResult, setFunctionResult] = useState(null)
   const [revealTarget, setRevealTarget] = useState(null)
   const menuTriggerRef = useRef(null)
   const workspaceRef = useRef(null)
@@ -64,6 +67,7 @@ export default function Canvas() {
     setDebugSession(null)
     setTranspilationResult(null)
     setTranspileExportError(null)
+    setFunctionResult(null)
   }, [document.project])
 
   useEffect(() => {
@@ -96,6 +100,10 @@ export default function Canvas() {
     const levels = heatLevels(intensities)
     return new Map([...intensities].map(([id, count]) => [id, { count, level: levels.get(id) ?? 0 }]))
   }, [heatCounts, document.index])
+  // Fonction sélectionnée : seule cible proposée pour « Run/Debug this function ».
+  const selectedFunction = useMemo(() => selected?.kind === 'node' && document.index.nodes.get(selected.id)?.kind === 'FunctionDeclaration' ? { id: selected.id } : null, [selected, document.index])
+  const functionNode = functionTarget ? document.index.nodes.get(functionTarget) ?? null : null
+  const functionSignature = functionNode ? (functionNode.children.parameters ?? []).map((id) => `${document.index.nodes.get(id)?.properties?.name}:${JSON.stringify(document.index.nodes.get(id)?.properties?.type)}`).join('|') : ''
   // Les nœuds qui contiennent autre chose ne dépendent que de la source analysée.
   const expandableIds = useMemo(() => expandableNodeIdsByModule(document.index), [document.index])
 
@@ -296,6 +304,34 @@ export default function Canvas() {
     }
   }
 
+  // Prépare le panneau d'exécution d'une fonction choisie, avec ses entrées.
+  function handleOpenFunction(functionId) {
+    setFunctionTarget(functionId)
+    setFunctionResult(null)
+  }
+
+  // Exécute la fonction choisie avec les entrées validées par le moteur.
+  function handleRunFunction(args) {
+    if (!functionTarget) return
+    setFunctionResult({ functionId: functionTarget, result: simulateProgram(document.project, { functionId: functionTarget, args }) })
+  }
+
+  // Ouvre une session de debug sur la fonction choisie, sans modifier la source.
+  function handleDebugFunction(args) {
+    if (!functionTarget) return
+    setExecution(null)
+    setSimulationResult(null)
+    setContextMenu(null)
+    setFunctionResult(null)
+    setDebugSession(createDebugSession(document.project, { functionId: functionTarget, args }))
+  }
+
+  // Ferme le panneau d'exécution de fonction.
+  function handleCloseFunction() {
+    setFunctionTarget(null)
+    setFunctionResult(null)
+  }
+
   // Ne change que le curseur de lecture et l'instantané mémoire exposé au débogueur.
   function handleDebugAction(action) {
     const next = moveDebugSession(debugSession, action)
@@ -470,7 +506,7 @@ export default function Canvas() {
       distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)}
       heatmapAvailable={Boolean(heat)} heatmap={heatEnabled} onToggleHeatmap={() => setHeatEnabled((current) => !current)}
       hiddenCards={hiddenCards} onShowCard={handleShowCard} onShowAllHidden={handleShowAllHidden}
-      hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onOpenSearch={search.show} onRunSimulation={handleRunSimulation} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} />
+      hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onOpenSearch={search.show} onRunSimulation={handleRunSimulation} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} selectedFunction={selectedFunction} onOpenFunction={handleOpenFunction} />
     <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label={t('canvas.aria')} tabIndex={0}
       onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerEnd} onPointerCancel={handlePointerEnd} onLostPointerCapture={handlePointerEnd} onKeyDown={handleKeyDown} onContextMenu={handleContextMenu}
       onDragStart={transfers.handleDragStart} onDragOver={transfers.handleDragOver} onDrop={transfers.handleDrop} onDragEnd={transfers.handleDragEnd}>
@@ -498,6 +534,7 @@ export default function Canvas() {
         <button type="button" aria-label={t('nav.dismiss')} onClick={transfers.dismiss}><X size={14} aria-hidden="true" /></button>
       </div>}
       <SimulationPanel result={simulationResult} running={Boolean(execution?.running)} currentStep={execution ? execution.index + 1 : 0} onClose={() => { setSimulationResult(null); setExecution(null) }} />
+      {functionNode && <FunctionPanel key={`${functionTarget}:${functionSignature}`} index={document.index} functionNode={functionNode} result={functionResult?.functionId === functionTarget ? functionResult.result : null} onRun={handleRunFunction} onDebug={handleDebugFunction} onClose={handleCloseFunction} />}
       {debugSession?.project === document.project && <DebugPanel session={debugSession} index={document.index} onAction={handleDebugAction} onClose={() => setDebugSession(null)} />}
       <TranspilePanel result={transpilationResult} exportError={transpileExportError} onExport={handleExportTranspilation} onClose={() => { setTranspilationResult(null); setTranspileExportError(null) }} />
       {search.open && <NodeSearchPanel index={document.index} cards={visibleCards} selectedId={selected?.kind === 'node' ? selected.id : null} focusToken={search.token} onReveal={handleRevealNode} onClose={handleCloseSearch} />}

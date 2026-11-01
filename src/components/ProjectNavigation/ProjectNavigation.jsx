@@ -25,7 +25,7 @@ function ReplaceConfirmation({ titleKey, bodyKey, detail, confirmKey, onConfirm,
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, heatmapAvailable = false, heatmap = false, onToggleHeatmap, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile }) {
+export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, heatmapAvailable = false, heatmap = false, onToggleHeatmap, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile, selectedFunction = null, onOpenFunction }) {
   const navigationRef = useRef(null)
   const { language, setLanguage, t } = useTranslation()
 
@@ -176,6 +176,11 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
             <p>{t('run.workspace')}</p>
             <button type="button" onClick={() => handleRun()}><Play size={14} aria-hidden="true" />{t('run.simulateSp3')}</button>
             <button type="button" onClick={() => handleRun(true)}><Bug size={14} aria-hidden="true" />{t('run.debugSp3')}</button>
+            {selectedFunction && <>
+              <p>{t('run.selectedFunction')}</p>
+              <button type="button" onClick={() => { closeMenus(); onOpenFunction(selectedFunction.id) }}><Play size={14} aria-hidden="true" />{t('run.thisFunction')}</button>
+              <button type="button" onClick={() => { closeMenus(); onOpenFunction(selectedFunction.id) }}><Bug size={14} aria-hidden="true" />{t('run.debugThisFunction')}</button>
+            </>}
             <p>{t('run.graphical')}</p>
             <button type="button" disabled title={t('run.later')}>{t('run.simulateGraphical')}</button>
             <button type="button" disabled title={t('run.later')}>{t('run.debugGraphical')}</button>

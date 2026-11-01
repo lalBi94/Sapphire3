@@ -9,7 +9,7 @@ function simulationError(code, message) {
 }
 
 // Exécute le sous-ensemble déterministe du langage sans accéder au DOM ni au système.
-export function simulateProgram(project, { maxSteps = 10000, captureDebug = false } = {}) {
+export function simulateProgram(project, { maxSteps = 10000, captureDebug = false, functionId = null, args = [] } = {}) {
   if (!Number.isSafeInteger(maxSteps) || maxSteps < 1 || maxSteps > 100000) return { ok: false, output: [], trace: [], errorCode: 'SIMULATION_BUDGET_INVALID', error: 'The step budget must be an integer between 1 and 100000.' }
   const analysis = analyzeProgram(project)
   if (!analysis.canGenerate) return { ok: false, output: [], trace: [], errorCode: 'SIMULATION_DIAGNOSTICS', error: 'The program has blocking diagnostics.', diagnostics: analysis.diagnostics }
@@ -29,6 +29,8 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   let contractObservations = 0
   const maximumContractViolations = 100
   const entry = [...functions.values()].find((node) => node?.properties?.entryPoint === true)
+  // Cible explicite (exécuter une fonction choisie) ou, par défaut, le point d'entrée du projet.
+  const target = functionId ? nodes.get(functionId) : entry
   const output = []
   const trace = []
   let steps = 0
@@ -37,10 +39,26 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   const uninitialized = Symbol('uninitialized')
   let callDepth = 0
   let environmentSequence = 0
+  let functionScope = null
   const activeScopes = []
 
-  if (!entry) return { ok: false, output, trace, errorCode: 'SIMULATION_ENTRY_MISSING', error: 'No entry point is marked.' }
-  if ((entry.children.parameters ?? []).length > 0) return { ok: false, output, trace, errorCode: 'SIMULATION_ENTRY_INPUTS', error: 'The entry point must not require inputs.' }
+  if (functionId && (!target || target.kind !== 'FunctionDeclaration')) return { ok: false, output, trace, errorCode: 'SIMULATION_FUNCTION_MISSING', error: 'The function to run cannot be resolved.' }
+  if (!functionId) {
+    if (!entry) return { ok: false, output, trace, errorCode: 'SIMULATION_ENTRY_MISSING', error: 'No entry point is marked.' }
+    if ((entry.children.parameters ?? []).length > 0) return { ok: false, output, trace, errorCode: 'SIMULATION_ENTRY_INPUTS', error: 'The entry point must not require inputs.' }
+  }
+
+  // Valeurs d'entrée fournies par l'appelant, validées selon le type déclaré de chaque paramètre.
+  const callArguments = []
+  if (functionId) {
+    const parameterIds = target.children.parameters ?? []
+    if (!Array.isArray(args) || args.length !== parameterIds.length) return { ok: false, output, trace, errorCode: 'SIMULATION_ARGUMENTS_INVALID', error: 'The provided inputs do not match the function parameters.' }
+    for (const [index, parameterId] of parameterIds.entries()) {
+      const validated = validateLiteral(types.get(parameterId)?.name, args[index])
+      if (validated.code) return { ok: false, output, trace, errorCode: 'SIMULATION_ARGUMENTS_INVALID', error: 'An input value is not valid for its parameter type.' }
+      callArguments.push(validated.value)
+    }
+  }
 
   // Associe chaque activation à son scope source, y compris les itérations et appels récursifs.
   function environment(parent, scopeId, nodeId) {
@@ -177,6 +195,21 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       current = current.parent
     }
     return undefined
+  }
+
+  // Liste les variables observées (globales puis scope de la fonction visée) avec type et valeur.
+  function collectVariables() {
+    const list = []
+    const add = (scope, kind) => {
+      if (!scope) return
+      for (const [id, value] of scope.values) {
+        const node = nodes.get(id)
+        list.push({ id, name: node?.properties?.name ?? id, kind, type: typeText(types.get(id)), value: value === uninitialized ? null : formatValue(value) })
+      }
+    }
+    add(global, 'global')
+    if (functionScope && functionScope !== global) add(functionScope, 'local')
+    return list
   }
 
   // Vérifie chaque contrat sur l'état courant ; une violation n'est signalée qu'une fois par valeur observée.
@@ -316,6 +349,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     callDepth += 1
     if (callDepth > 200) throw simulationError('SIMULATION_CALL_LIMIT', 'Simulation call depth limit reached.')
     const current = environment(global, `function:${node.id}`, node.id)
+    if (callDepth === 1) functionScope = current
     activeScopes.push(current)
     for (const [index, parameterId] of (node.children.parameters ?? []).entries()) current.values.set(parameterId, args[index])
     try {
@@ -343,14 +377,33 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
         if (node && node.kind !== 'FunctionDeclaration') executeStatement(node, global)
       }
     }
-    const result = executeFunction(entry, [])
+    const returned = executeFunction(target, callArguments)
     debug?.record(null, global, [], 'completed')
-    return { ok: true, output, trace, result: typeof result === 'bigint' ? Number(result) : result, steps, contracts: { total: contracts.reduce((count, entry) => count + entry.kinds.length, 0), observations: contractObservations, violations: contractViolations }, ...(debug ? { debugFrames: debug.frames } : {}) }
+    return {
+      ok: true,
+      output,
+      trace,
+      result: typeof returned === 'bigint' ? Number(returned) : returned,
+      returnValue: returned === undefined ? null : formatValue(returned),
+      steps,
+      variables: collectVariables(),
+      contracts: { total: contracts.reduce((count, entry) => count + entry.kinds.length, 0), observations: contractObservations, violations: contractViolations },
+      ...(debug ? { debugFrames: debug.frames } : {}),
+    }
   } catch (error) {
     const errorCode = error?.code ?? 'SIMULATION_FAILED'
     debug?.record(lastInstructionId, lastEnvironment, lastScopes, 'error', errorCode)
     return { ok: false, output, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, ...(debug ? { debugFrames: debug.frames } : {}) }
   }
+}
+
+// Rend une référence de type lisible brièvement.
+function typeText(type) {
+  if (!type) return null
+  if (type.kind === 'primitive') return type.name
+  if (type.kind === 'array') return `${typeText(type.elementType) ?? '?'}[]`
+  if (type.kind === 'function') return 'function'
+  return type.kind
 }
 
 // Rend une valeur de simulation lisible sans perdre la distinction booléenne.
