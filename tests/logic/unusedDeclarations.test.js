@@ -34,15 +34,15 @@ test('déclarations inutilisées : seules les privées jamais référencées son
   assert.ok(!unused.includes('publicApi'), 'une fonction exportée fait partie de l’interface publique')
 })
 
-test('déclarations inutilisées : un paramètre et un type ne sont jamais signalés', () => {
+test('déclarations inutilisées : un paramètre jamais référencé est signalé, un type non', () => {
   const project = declarationsProgram()
   root(project, 'm', 'worker', 'FunctionDeclaration', { name: 'worker', type: voidType }, { parameters: ['unusedParam'], body: 'workerBody' })
   node(project, 'm', 'unusedParam', 'Parameter', { name: 'unusedParam', type: intType })
   node(project, 'm', 'workerBody', 'Block', {}, { statements: [] })
   root(project, 'm', 'Alias', 'TypeDeclaration', { name: 'Alias', type: intType })
   const unused = getUnusedDeclarationIds(project, analyzeProgram(project))
-  assert.ok(!unused.includes('unusedParam'))
-  assert.ok(!unused.includes('Alias'))
+  assert.ok(unused.includes('unusedParam'), 'le paramètre sans usage est signalé')
+  assert.ok(!unused.includes('Alias'), 'un type n’est pas une déclaration suivie')
   assert.ok(unused.includes('worker'), 'la fonction privée jamais appelée reste signalée')
 })
 
@@ -63,5 +63,5 @@ test('déclarations inutilisées : une fonction appelée depuis un autre module 
   source.modules[1].imports.push({ id: 'squareImport', moduleId: 'lib', nodeId: 'square', localName: 'square' })
   const unused = getUnusedDeclarationIds(source, analyzeProgram(source))
   assert.ok(!unused.includes('square'), 'un export réellement appelé ailleurs est utilisé')
-  assert.ok(unused.includes('nRef') === false, 'le paramètre n’est pas une déclaration signalée')
+  assert.ok(!unused.includes('n'), 'un paramètre réellement référencé reste utilisé')
 })

@@ -1,6 +1,6 @@
 import { analyzeProgram } from './analysis.js'
 
-// Déclarations privées qu'aucune référence résolue n'utilise, exportées ou point d'entrée exclues.
+// Déclarations qu'aucune référence résolue n'utilise : variables, constantes, fonctions et paramètres privés.
 export function getUnusedDeclarationIds(project, analysis = analyzeProgram(project)) {
   const symbolsById = new Map(analysis.semantic.symbols.map((symbol) => [symbol.id, symbol]))
   // Une référence vers un import vise la déclaration cible : son nodeId reste la déclaration.
@@ -14,7 +14,7 @@ export function getUnusedDeclarationIds(project, analysis = analyzeProgram(proje
   const seen = new Set()
   for (const symbol of analysis.semantic.symbols) {
     if (symbol.importedFrom) continue
-    if (!['VariableDeclaration', 'ConstantDeclaration', 'FunctionDeclaration'].includes(symbol.kind)) continue
+    if (!['VariableDeclaration', 'ConstantDeclaration', 'FunctionDeclaration', 'Parameter'].includes(symbol.kind)) continue
     if (seen.has(symbol.nodeId) || used.has(symbol.nodeId) || exported.has(symbol.nodeId)) continue
     const node = project.nodes?.find((entry) => entry?.id === symbol.nodeId)
     if (node?.properties?.entryPoint === true) continue

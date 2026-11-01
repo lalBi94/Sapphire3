@@ -223,6 +223,7 @@ const messages = {
   'canvas.lockedHint': ['Locked — unlock to move or resize', 'Verrouillé — déverrouillez pour déplacer ou redimensionner', '已锁定 — 解锁后可移动或调整大小', 'Bloqueado — desbloquea para mover o redimensionar', 'مقفل — افتح القفل للتحريك أو تغيير الحجم'],
   'canvas.unused': ['unused', 'inutilisé', '未使用', 'sin usar', 'غير مستخدم'],
   'canvas.unusedHint': ['This declaration is never used.', 'Cette déclaration n’est jamais utilisée.', '此声明从未使用。', 'Esta declaración nunca se usa.', 'لا يُستخدم هذا التعريف أبدًا.'],
+  'canvas.unusedParamHint': ['This parameter is never used.', 'Ce paramètre n’est jamais utilisé.', '此参数从未使用。', 'Este parámetro nunca se usa.', 'لا تُستخدم هذه المعلمة أبدًا.'],
   'canvas.preview': ['Collapsed preview', 'Aperçu du bloc replié', '折叠预览', 'Vista previa contraída', 'معاينة مطوية'],
   'canvas.previewMore': ['… {count} more', '… {count} de plus', '… 还有 {count} 项', '… {count} más', '… {count} أخرى'],
   'canvas.previewEmpty': ['No instruction.', 'Aucune instruction.', '无指令。', 'Ninguna instrucción.', 'لا تعليمات.'],

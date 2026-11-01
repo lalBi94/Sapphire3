@@ -83,7 +83,7 @@ export default function LogicNode({ id, index, selectedId, activeExecutionId, on
           {node.kind === 'FunctionDeclaration' && node.properties?.entryPoint === true && <span className="logic-node__entry-point">{t('canvas.startHere')}</span>}
           {diagnostics.length > 0 && <span className="logic-node__issues" aria-label={t(diagnostics.length === 1 ? 'canvas.issueCountOne' : 'canvas.issueCount', { count: diagnostics.length })}>{diagnostics.length}</span>}
           {heatEnabled && executions > 0 && <span className="logic-node__heat" title={t('heatmap.count', { count: executions })} aria-label={t('heatmap.count', { count: executions })}>{executions}</span>}
-          {unused && <span className="logic-node__unused" title={t('canvas.unusedHint')} aria-label={t('canvas.unusedHint')}>{t('canvas.unused')}</span>}
+          {unused && <span className="logic-node__unused" title={t(node.kind === 'Parameter' ? 'canvas.unusedParamHint' : 'canvas.unusedHint')} aria-label={t(node.kind === 'Parameter' ? 'canvas.unusedParamHint' : 'canvas.unusedHint')}>{t('canvas.unused')}</span>}
         </button>
         {order && order.count > 1 && <div className="logic-node__order">
           <button type="button" className="logic-node__order-button" title={t('canvas.moveUp')} aria-label={t('canvas.moveUp')} disabled={order.position === 0} onClick={(event) => { event.stopPropagation(); onReorder(id, -1) }}><ArrowUp size={13} strokeWidth={2} aria-hidden="true" /></button>
