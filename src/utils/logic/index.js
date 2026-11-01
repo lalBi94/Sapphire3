@@ -20,6 +20,7 @@ export { captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode
 export { createDebugSession, moveDebugSession } from './debugging.js'
 export { contractKinds, isContractKind, satisfiesContract, normalizeContracts } from './contracts.js'
 export { getUnusedDeclarationIds } from './deadCode.js'
+export { deletionImpact } from './deletionImpact.js'
 export { getModuleRootSymbols, getModuleFunctions, getImportCandidates, getUnusedImportIds, setModuleExport, addModuleImport, removeModuleImport, getCallableSymbols, ensureModuleImports } from './moduleInterface.js'
 
 // Retrouve une construction à partir de son identifiant graphique/source stable.

@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react'
 import { ChevronRight, Copy, X } from 'lucide-react'
-import { resolveContext, getNodeSchema, contractKinds } from '../../utils/logic/index.js'
+import { resolveContext, getNodeSchema, contractKinds, deletionImpact } from '../../utils/logic/index.js'
 import { diagnosticLabel, kindLabel, nodeSummary, slotLabel } from '../LogicTree/logicLabels.js'
 import { ancestorNodeIds } from '../../utils/nodeTree.js'
 import { buildBugReport } from '../../utils/bugReport.js'
@@ -128,7 +128,7 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
     </div>
     {mutationError && <p role="alert">{diagnosticLabel(mutationError, t)}</p>}
     {diagnostics.length === 0 ? <p>{t('details.noIssues')}</p> : <ul className="node-properties__diagnostics">{diagnostics.map((entry, position) => <li key={position}><strong>{diagnosticLabel(entry.code, t)}</strong>{entry.location.field && <small>{slotLabel(entry.location.field, t)}</small>}</li>)}</ul>}
-    {context.ok && record && <div className="node-properties__danger"><DeleteAction key={`${selected.kind}:${record.id}`} targetId={record.id} kind={selected.kind} onDelete={selected.kind === 'module' ? onDeleteModule : onDelete} /></div>}
+    {context.ok && record && <div className="node-properties__danger"><DeleteAction key={`${selected.kind}:${record.id}`} targetId={record.id} kind={selected.kind} onDelete={selected.kind === 'module' ? onDeleteModule : onDelete} onPreview={selected.kind === 'node' ? () => deletionImpact(project, { kind: 'node', id: record.id }, { analysis: index.analysis, index }) : undefined} /></div>}
     <ProjectHierarchy project={project} index={index} selected={selected} onSelect={onSelect} t={t} />
   </FloatingPanel>
 }
