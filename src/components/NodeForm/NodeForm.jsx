@@ -10,9 +10,9 @@ import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './NodeForm.css'
 
 // Configure les propriétés du langage sans éditer ni remplacer implicitement les liens syntaxiques.
-export default function NodeForm({ kind, initialNode = null, context, onSubmit }) {
+export default function NodeForm({ kind, initialNode = null, preset = null, context, onSubmit }) {
   const { t } = useTranslation()
-  const [form, setForm] = useState(() => initialNodeForm(kind, initialNode, context.expectedType, getCallableSymbols(context)))
+  const [form, setForm] = useState(() => initialNodeForm(kind, initialNode, context.expectedType, getCallableSymbols(context), preset))
   const [error, setError] = useState(null)
 
   const schema = getNodeSchema(kind)

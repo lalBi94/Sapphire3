@@ -487,6 +487,7 @@ const messages = {
   'group.block': ['Blocks', 'Blocs', '块', 'Bloques', 'الكتل'],
   'group.statement': ['Statements', 'Instructions', '语句', 'Instrucciones', 'التعليمات'],
   'group.native': ['SP3 native operations', 'Opérations natives SP3', 'SP3 原生操作', 'Operaciones nativas SP3', 'عمليات SP3 الأصلية'],
+  'group.native.math': ['Simple math', 'Mathématiques simples', '简单数学', 'Matemáticas simples', 'رياضيات بسيطة'],
   'group.operator': ['Operations', 'Opérations', '运算', 'Operaciones', 'العمليات'],
   'group.value': ['Values', 'Valeurs', '值', 'Valores', 'القيم'],
   'group.array': ['Arrays', 'Tableaux', '数组', 'Matrices', 'المصفوفات'],

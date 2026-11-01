@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { analyzeProgram, simulateProgram, createDebugSession, getSyscall, syscallIds, getNodeSchema } from '../../src/utils/logic/index.js'
+import { analyzeProgram, simulateProgram, createDebugSession, getSyscall, syscallIds, getNodeSchema, createContextIndex, getAvailableActions } from '../../src/utils/logic/index.js'
 import { program, root, node, intType, stringType } from './fixtures.js'
 
 const voidType = { kind: 'primitive', name: 'void' }
@@ -26,6 +26,7 @@ test('appels système : le registre est cohérent et reproductible', () => {
   assert.equal(getSyscall('unknown'), null)
   assert.equal(getNodeSchema('SystemCall').group, 'native', 'les appels système sont des opérations natives')
   assert.equal(getNodeSchema('PrintStatement').group, 'native', 'print est aussi une opération native SP3')
+  assert.deepEqual(['abs', 'min', 'max'].map((id) => getSyscall(id).group), ['native.math', 'native.math', 'native.math'], 'les natives mathématiques forment une sous-catégorie')
   assert.equal(getSyscall('tick').run({ args: [], steps: 7 }), getSyscall('tick').run({ args: [], steps: 7 }))
 })
 
@@ -66,4 +67,38 @@ test('appels système : le débogage expose un arrêt sans erreur', () => {
   const session = createDebugSession(write)
   assert.ok(session.frames.length > 0)
   assert.equal(session.errorCode, null)
+})
+
+test('natives mathématiques : abs, min et max sont exécutées sans conversion implicite', () => {
+  const source = program('m')
+  root(source, 'm', 'main', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'body' })
+  node(source, 'm', 'body', 'Block', {}, { statements: ['a', 'b', 'c'] })
+  node(source, 'm', 'a', 'VariableDeclaration', { name: 'a', type: intType }, { initializer: 'absCall' })
+  node(source, 'm', 'absCall', 'SystemCall', { name: 'abs' }, { arguments: ['neg'] })
+  node(source, 'm', 'neg', 'Literal', { type: intType, value: -5 })
+  node(source, 'm', 'b', 'VariableDeclaration', { name: 'b', type: intType }, { initializer: 'minCall' })
+  node(source, 'm', 'minCall', 'SystemCall', { name: 'min' }, { arguments: ['three', 'seven'] })
+  node(source, 'm', 'three', 'Literal', { type: intType, value: 3 })
+  node(source, 'm', 'seven', 'Literal', { type: intType, value: 7 })
+  node(source, 'm', 'c', 'VariableDeclaration', { name: 'c', type: intType }, { initializer: 'maxCall' })
+  node(source, 'm', 'maxCall', 'SystemCall', { name: 'max' }, { arguments: ['three2', 'seven2'] })
+  node(source, 'm', 'three2', 'Literal', { type: intType, value: 3 })
+  node(source, 'm', 'seven2', 'Literal', { type: intType, value: 7 })
+  assert.deepEqual(analyzeProgram(source).diagnostics.filter((entry) => entry.severity === 'error'), [])
+  const result = simulateProgram(source)
+  assert.equal(result.ok, true)
+  const value = (name) => result.variables.find((entry) => entry.name === name)?.value
+  assert.equal(value('a'), '5')
+  assert.equal(value('b'), '3')
+  assert.equal(value('c'), '7')
+})
+
+test('natives : le menu propose chaque appel dans sa catégorie ou sous-catégorie', () => {
+  const source = program('m')
+  root(source, 'm', 'x', 'VariableDeclaration', { name: 'x', type: intType }, { initializer: null })
+  const index = createContextIndex(source, analyzeProgram(source))
+  const actions = getAvailableActions(source, 'x', 'initializer', { index }).actions
+  assert.deepEqual(actions.filter((action) => action.group === 'native.math').map((action) => action.preset.name), ['abs', 'min', 'max'])
+  assert.ok(actions.some((action) => action.kind === 'SystemCall' && action.group === 'native' && action.preset.name === 'write'))
+  assert.equal(actions.some((action) => action.kind === 'SystemCall' && !action.preset), false, 'aucune entrée générique ne double les appels')
 })

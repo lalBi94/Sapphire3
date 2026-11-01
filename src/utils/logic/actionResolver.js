@@ -2,6 +2,7 @@ import { nodeSchema, acceptsNodeKind } from './nodeSchema.js'
 import { isArrayType } from './primitives.js'
 import { getPlacementIssue } from './placement.js'
 import { resolveContext } from './contextResolver.js'
+import { getSyscall, syscallIds } from './syscalls.js'
 
 // Calcule les insertions depuis les slots et le contexte ; aucun AST n'est reconstruit ici.
 export function getAvailableActions(project, targetId, slotName, options = {}) {
@@ -22,6 +23,14 @@ export function getAvailableActions(project, targetId, slotName, options = {}) {
       if (context.record.kind === 'CallExpression' && slot.name === 'callee' && kind !== 'Reference') continue
       // Un tableau ne peut remplir qu'un emplacement qui attend un tableau ; le choix reste libre sinon.
       if (['ArrayLiteral', 'ArrayCreation'].includes(kind) && context.expectedType && !isArrayType(context.expectedType)) continue
+      // Chaque appel système est proposé séparément, dans la catégorie déclarée par son registre.
+      if (kind === 'SystemCall') {
+        for (const id of syscallIds) {
+          const definition = getSyscall(id)
+          actions.push({ id: `${slot.name}:${kind}:${id}`, kind, slot: slot.name, category: nodeSchema[kind].category, group: definition.group ?? nodeSchema[kind].group, preset: { name: id } })
+        }
+        continue
+      }
       actions.push({ id: `${slot.name}:${kind}`, kind, slot: slot.name, category: nodeSchema[kind].category })
     }
   }
