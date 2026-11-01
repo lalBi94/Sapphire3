@@ -1,6 +1,6 @@
-import { acceptsOperand, primitiveDefinitions, primitiveType } from '../../utils/logic/index.js'
+import { acceptsOperand, primitiveDefinitions, primitiveType, isValidElementType } from '../../utils/logic/index.js'
 import NodeValueInput from './NodeValueInput.jsx'
-import { emptyExpression, expressionOperators, expressionOperandType, expressionSymbols } from './nodeConfiguration.js'
+import { emptyExpression, expressionOperators, expressionOperandType, expressionSymbols, integerTypeNames, accessedArrayType, arrayIndexType } from './nodeConfiguration.js'
 import { symbolLabel } from '../LogicTree/logicLabels.js'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 
@@ -22,6 +22,11 @@ export default function ExpressionInput({ label, value = emptyExpression(), onCh
     const next = { ...emptyExpression(), mode }
     if (mode === 'arrayLiteral') next.arrayElements = []
     if (mode === 'arrayCreation') next.arraySize = emptyExpression()
+    if (mode === 'arrayAccess') {
+      next.accessArray = emptyExpression()
+      next.accessIndex = emptyExpression()
+      next.indexTypeName = 'int'
+    }
     onChange(next)
   }
 
@@ -50,6 +55,7 @@ export default function ExpressionInput({ label, value = emptyExpression(), onCh
           {nested && concrete && !isList && expressionOperators('unary', type).length > 0 && <option value="unary">{t('expression.unary')}</option>}
           {nested && isList && <option value="arrayLiteral">{t('expression.arrayLiteral')}</option>}
           {nested && isList && <option value="arrayCreation">{t('expression.arrayCreation')}</option>}
+          {nested && isValidElementType(type) && <option value="arrayAccess">{t('expression.arrayAccess')}</option>}
           {nested && <option value="call" disabled={functions.length === 0}>{t('expression.call')}</option>}
           {nested && concrete && !isList && acceptsOperand('numeric', type) && <option value="cast">{t('expression.cast')}</option>}
         </select>
@@ -96,6 +102,14 @@ export default function ExpressionInput({ label, value = emptyExpression(), onCh
       {value.mode === 'arrayCreation' && isList && <>
         <ExpressionInput label={t('slot.size')} value={value.arraySize ?? emptyExpression()} onChange={(next) => arrayChange('arraySize', next)} type={primitiveType('int')} symbols={symbols} required={!allowIncomplete} allowIncomplete={allowIncomplete} depth={depth + 1} />
         <ExpressionInput label={t('slot.initializer')} value={value.arrayFill ?? emptyExpression()} onChange={(next) => arrayChange('arrayFill', next)} type={type.elementType} symbols={symbols} required={false} allowIncomplete={true} depth={depth + 1} />
+      </>}
+      {value.mode === 'arrayAccess' && isValidElementType(type) && <>
+        <ExpressionInput label={t('expression.part', { label, part: t('slot.array') })} value={value.accessArray ?? emptyExpression()} onChange={(next) => arrayChange('accessArray', next)} type={accessedArrayType(type)} symbols={symbols} required={!allowIncomplete} allowIncomplete={allowIncomplete} depth={depth + 1} />
+        <label>{t('expression.indexTypeLabel')}<select aria-label={t('expression.indexType', { label })} value={value.indexTypeName} required={!allowIncomplete} onChange={(event) => onChange({ ...value, indexTypeName: event.target.value })}>
+          <option value="">{t('expression.chooseType')}</option>
+          {integerTypeNames.map((name) => <option key={name} value={name}>{name}</option>)}
+        </select></label>
+        <ExpressionInput label={t('expression.part', { label, part: t('slot.index') })} value={value.accessIndex ?? emptyExpression()} onChange={(next) => arrayChange('accessIndex', next)} type={arrayIndexType(value.indexTypeName)} symbols={symbols} required={!allowIncomplete} allowIncomplete={allowIncomplete} depth={depth + 1} />
       </>}
       {!nested && <p className="node-form__hint">{t('expression.depthHint')}</p>}
     </fieldset>

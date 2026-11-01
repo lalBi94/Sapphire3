@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { primitiveType, createNodeBundle, insertSourceNodes, simulateProgram } from '../../src/utils/logic/index.js'
-import { initialNodeForm, nodeConfiguration, expressionDraft, expressionOperators, expressionOperandType, expressionSymbols } from '../../src/components/NodeForm/nodeConfiguration.js'
+import { initialNodeForm, nodeConfiguration, expressionDraft, expressionOperators, expressionOperandType, expressionSymbols, accessedArrayType, arrayIndexType } from '../../src/components/NodeForm/nodeConfiguration.js'
 import { program, root, node, intType, booleanType } from './fixtures.js'
 
 const voidType = { kind: 'primitive', name: 'void' }
@@ -187,4 +187,98 @@ test('formulaire Évaluer une valeur : procédure, fonction typée, puis lecture
   const simulation = simulateProgram(shown.project)
   assert.deepEqual(simulation.output, ['7'])
   assert.equal(simulation.trace.filter((id) => id === 'write').length, 1)
+})
+
+test('accès à un élément de tableau dans une variable : création via formulaire', () => {
+  const intList = { kind: 'array', elementType: intType }
+  const literal = (source, id, type, value) => node(source, 'm', id, 'Literal', { type, value })
+  const source = program('m')
+  root(source, 'm', 'arr', 'VariableDeclaration', { name: 'arr', type: intList }, { initializer: 'list' })
+  node(source, 'm', 'list', 'ArrayLiteral', { elementType: intType }, { elements: ['one', 'two'] })
+  literal(source, 'one', intType, 10)
+  literal(source, 'two', intType, 20)
+  const symbols = [
+    { id: 'symbol-arr', nodeId: 'arr', name: 'arr', type: intList },
+  ]
+  const form = initialNodeForm('VariableDeclaration', null, intType, symbols)
+  form.name = 'x'
+  form.typeName = 'int'
+  form.initializer = {
+    mode: 'arrayAccess',
+    accessArray: { mode: 'reference', symbolId: 'symbol-arr' },
+    indexTypeName: 'int',
+    accessIndex: { mode: 'literal', value: '1' },
+  }
+  const result = insertDraft(source, nodeConfiguration('VariableDeclaration', form, symbols))
+  assert.equal(result.ok, true, JSON.stringify(result.diagnostics))
+  // Vérifie que le nœud ArrayAccess a été créé et typé int
+  const analysis = result.analysis
+  const variableNode = analysis.semantic.nodeTypes.find(entry => entry.nodeId === 'new-0')
+  assert(variableNode, 'node created')
+  const initializerId = result.project.nodes.find(n => n.id === 'new-0')?.children?.initializer
+  const accessNode = result.project.nodes.find(n => n.id === initializerId)
+  assert.equal(accessNode?.kind, 'ArrayAccess')
+  const accessType = analysis.semantic.nodeTypes.find(entry => entry.nodeId === initializerId)
+  assert.deepEqual(accessType?.type, intType)
+})
+
+test('formulaire : création directe d’un accès par index avec index variable explicitement typé', () => {
+  const intList = { kind: 'array', elementType: intType }
+  const uintType = { kind: 'primitive', name: 'uint' }
+  let sequence = 0
+  // Exerce l’insertion du formulaire ouvert sur le slot d’initialisation d’une variable.
+  function insertInSlot(project, targetId, draft) {
+    const bundle = createNodeBundle('m', draft, () => `slot-${(sequence += 1)}`)
+    assert.equal(bundle.ok, true)
+    return insertSourceNodes(project, { targetId: { kind: 'node', id: targetId }, slot: 'initializer' }, bundle)
+  }
+  const source = program('m')
+  root(source, 'm', 'arr', 'VariableDeclaration', { name: 'arr', type: intList }, { initializer: 'list' })
+  node(source, 'm', 'list', 'ArrayLiteral', { elementType: intType }, { elements: ['zero', 'one'] })
+  node(source, 'm', 'zero', 'Literal', { type: intType, value: 5 })
+  node(source, 'm', 'one', 'Literal', { type: intType, value: 6 })
+  root(source, 'm', 'cursor', 'VariableDeclaration', { name: 'cursor', type: uintType }, { initializer: 'cursorValue' })
+  node(source, 'm', 'cursorValue', 'Literal', { type: uintType, value: 1 })
+  root(source, 'm', 'value', 'VariableDeclaration', { name: 'value', type: intType }, {})
+  root(source, 'm', 'spare', 'VariableDeclaration', { name: 'spare', type: intType }, {})
+  root(source, 'm', 'start', 'FunctionDeclaration', { name: 'start', type: voidType, entryPoint: true }, { parameters: [], body: 'startBody' })
+  node(source, 'm', 'startBody', 'Block', {}, { statements: ['print'] })
+  node(source, 'm', 'print', 'PrintStatement', {}, { value: 'valueRef' })
+  node(source, 'm', 'valueRef', 'Reference', {}, {}, { target: { kind: 'node', nodeId: 'value' } })
+  const symbols = [
+    { id: 'symbol-arr', nodeId: 'arr', name: 'arr', type: intList },
+    { id: 'symbol-cursor', nodeId: 'cursor', name: 'cursor', type: uintType },
+    { id: 'symbol-value', nodeId: 'value', name: 'value', type: intType },
+  ]
+
+  const form = initialNodeForm('ArrayAccess', null, intType, symbols)
+  assert.equal(form.elementTypeName, 'int')
+  // Le tableau visé n'accepte que les lectures d'un tableau du type attendu, et l'index que les entiers choisis.
+  assert.deepEqual(expressionSymbols(symbols, accessedArrayType(intType)).references.map((symbol) => symbol.id), ['symbol-arr'])
+  assert.deepEqual(expressionSymbols(symbols, arrayIndexType('uint')).references.map((symbol) => symbol.id), ['symbol-cursor'])
+  assert.deepEqual(arrayIndexType('float'), intType)
+  assert.deepEqual(arrayIndexType(''), intType)
+
+  form.accessArray = { mode: 'reference', symbolId: 'symbol-arr' }
+  form.indexTypeName = 'uint'
+  form.accessIndex = { mode: 'reference', symbolId: 'symbol-cursor' }
+  const created = insertInSlot(source, 'value', nodeConfiguration('ArrayAccess', form, symbols))
+  assert.equal(created.ok, true, JSON.stringify(created.diagnostics))
+  assert.deepEqual(created.analysis.diagnostics, [])
+  const access = created.project.nodes.find((entry) => entry.kind === 'ArrayAccess')
+  const kindOf = (id) => created.project.nodes.find((entry) => entry.id === id)?.kind
+  assert.equal(kindOf(access.children.array), 'Reference')
+  assert.equal(kindOf(access.children.index), 'Reference')
+  assert.deepEqual(created.analysis.semantic.nodeTypes.find((entry) => entry.nodeId === access.id)?.type, intType)
+  const simulation = simulateProgram(created.project)
+  assert.equal(simulation.ok, true, simulation.error)
+  assert.deepEqual(simulation.output, ['6'])
+
+  // Sans partie saisie, l'accès reste représentable et inspectable comme tout bloc laissé incomplet.
+  const partial = insertInSlot(created.project, 'spare', nodeConfiguration('ArrayAccess', initialNodeForm('ArrayAccess', null, intType, symbols), symbols))
+  assert.equal(partial.ok, true, JSON.stringify(partial.diagnostics))
+  const partialAccess = partial.project.nodes.find((entry) => entry.kind === 'ArrayAccess' && entry.id !== access.id)
+  assert.equal(partial.project.nodes.find((entry) => entry.id === partialAccess.children.array)?.kind, 'Hole')
+  assert.equal(partial.project.nodes.find((entry) => entry.id === partialAccess.children.index)?.kind, 'Hole')
+  assert.ok(partial.analysis.diagnostics.some((entry) => entry.code === 'NODE_INCOMPLETE'))
 })

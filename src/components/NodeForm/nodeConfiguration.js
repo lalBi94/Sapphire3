@@ -1,4 +1,7 @@
-import { primitiveType, arrayType, isArrayType, getNodeSchema, binaryOperators, unaryOperators, acceptsOperand, sameType } from '../../utils/logic/index.js'
+import { primitiveType, primitiveDefinitions, arrayType, isArrayType, isValidElementType, getNodeSchema, binaryOperators, unaryOperators, acceptsOperand, sameType } from '../../utils/logic/index.js'
+
+// Types entiers proposés pour l'index d'un accès à un élément de tableau ; une seule liste partagée par les formulaires.
+export const integerTypeNames = Object.freeze(Object.keys(primitiveDefinitions).filter((name) => acceptsOperand('integer', primitiveType(name))))
 
 // Fournit un brouillon vide sans inventer d'opérateur, de type ou de valeur.
 export function emptyExpression() {
@@ -18,6 +21,17 @@ export function typeFromName(name) {
 // Filtre les opérations par leur résultat attendu, depuis les règles du moteur.
 export function expressionOperators(mode, type) {
   return Object.entries(mode === 'unary' ? unaryOperators : binaryOperators).filter(([, rule]) => !type || (rule.result === 'same' ? acceptsOperand(rule.operands, type) : sameType(primitiveType(rule.result), type)))
+}
+
+// Type que doit viser un accès par index pour que son élément remplisse `type` ; null si ce type ne peut pas être un élément.
+export function accessedArrayType(type) {
+  return isValidElementType(type) ? arrayType(type) : null
+}
+
+// Type d'index choisi explicitement parmi les entiers ; `int` reste la valeur de départ du formulaire.
+export function arrayIndexType(name) {
+  const candidate = primitiveType(name)
+  return acceptsOperand('integer', candidate) ? candidate : primitiveType('int')
 }
 
 // Résout le type explicitement choisi des opérandes, ou celui imposé par l'opération.
@@ -49,7 +63,9 @@ export function initialNodeForm(kind, node, expectedType, symbols) {
     : declared?.kind === 'primitive' ? declared.name
     : (kind === 'Literal' || kind === 'CastExpression') && expectedType?.kind === 'primitive' ? expectedType.name : ''
   // Le type d'élément d'un tableau est imposé par le slot attendu à la création, sinon librement choisi.
+  // Pour un accès par index, le slot attendu donne le type de l'élément lu, donc le tableau visé est son type tableau.
   const arrayElementTypeName = isArrayType(expectedType) && ['ArrayLiteral', 'ArrayCreation'].includes(kind) ? expectedType.elementType.name
+    : kind === 'ArrayAccess' && isValidElementType(expectedType) ? expectedType.name
     : properties.elementType?.kind === 'primitive' ? properties.elementType.name : ''
   return {
     name: properties.name ?? '', typeName,
@@ -58,6 +74,7 @@ export function initialNodeForm(kind, node, expectedType, symbols) {
     initializer: emptyExpression(), condition: emptyExpression(), expression: emptyExpression(),
     parameters: [], entryPoint: properties.entryPoint === true, allowIncomplete: false,
     elementTypeName: arrayElementTypeName, arraySize: emptyExpression(), arrayFill: emptyExpression(), arrayElements: [],
+    accessArray: emptyExpression(), accessIndex: emptyExpression(), indexTypeName: 'int',
   }
 }
 
@@ -101,6 +118,12 @@ export function expressionDraft(value, type, symbols, depth = 0) {
     const size = expressionDraft(value.arraySize, primitiveType('int'), symbols, depth + 1) ?? { kind: 'Hole' }
     const fill = value.arrayFill?.mode ? expressionDraft(value.arrayFill, type.elementType, symbols, depth + 1) : null
     return { kind: 'ArrayCreation', properties: { elementType: type.elementType }, children: { size, initializer: fill } }
+  }
+  // Un accès par index vise un tableau du type attendu et utilise un index entier explicitement typé.
+  if (value.mode === 'arrayAccess') {
+    const array = expressionDraft(value.accessArray, accessedArrayType(type), symbols, depth + 1) ?? { kind: 'Hole' }
+    const index = expressionDraft(value.accessIndex, arrayIndexType(value.indexTypeName), symbols, depth + 1) ?? { kind: 'Hole' }
+    return { kind: 'ArrayAccess', children: { array, index } }
   }
   return null
 }
@@ -168,6 +191,10 @@ export function nodeConfiguration(kind, form, symbols, initialNode = null) {
     const elementType = primitiveType(form.elementTypeName)
     children.size = expressionDraft(form.arraySize, primitiveType('int'), symbols) ?? { kind: 'Hole' }
     children.initializer = form.arrayFill?.mode ? expressionDraft(form.arrayFill, elementType, symbols) : null
+  }
+  if (kind === 'ArrayAccess') {
+    children.array = expressionDraft(form.accessArray, accessedArrayType(primitiveType(form.elementTypeName)), symbols) ?? { kind: 'Hole' }
+    children.index = expressionDraft(form.accessIndex, arrayIndexType(form.indexTypeName), symbols) ?? { kind: 'Hole' }
   }
   return { kind, properties, references, children }
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Plus, Save, Trash2 } from 'lucide-react'
 import { getNodeSchema, binaryOperators, unaryOperators, primitiveType, getCallableSymbols, sameType, acceptsOperand, isArrayType } from '../../utils/logic/index.js'
-import { initialNodeForm, nodeConfiguration, emptyExpression, typeFromName } from './nodeConfiguration.js'
+import { initialNodeForm, nodeConfiguration, emptyExpression, typeFromName, accessedArrayType, arrayIndexType, integerTypeNames } from './nodeConfiguration.js'
 import NodeTypeInput from './NodeTypeInput.jsx'
 import NodeValueInput from './NodeValueInput.jsx'
 import ExpressionInput from './ExpressionInput.jsx'
@@ -24,6 +24,8 @@ export default function NodeForm({ kind, initialNode = null, context, onSubmit }
   const entryPointTaken = [...context.index.nodes.values()].some((node) => node.id !== initialNode?.id && node.kind === 'FunctionDeclaration' && node.properties?.entryPoint === true)
   // Le type d'élément d'un tableau est connu dès que le slot attend un tableau.
   const arrayElementType = isNew && isArrayType(context.expectedType) ? context.expectedType.elementType : null
+  // Un accès par index vise un tableau du type attendu par le slot ; sans type attendu précis, la lecture reste libre.
+  const accessTargetType = isNew && kind === 'ArrayAccess' ? accessedArrayType(context.expectedType) : null
   const references = symbols.filter((symbol) => {
     if (kind === 'CallExpression') return symbol.type?.kind === 'function' && (!isNew || !context.expectedType || sameType(context.expectedType, symbol.type.returnType))
     if (context.record.kind === 'CallExpression' && context.slot?.name === 'callee') return symbol.type?.kind === 'function'
@@ -98,6 +100,16 @@ export default function NodeForm({ kind, initialNode = null, context, onSubmit }
       {isNew && kind === 'ArrayCreation' && <>
         <ExpressionInput label={t('slot.size')} value={form.arraySize} onChange={(value) => change('arraySize', value)} type={primitiveType('int')} symbols={symbols} required={required} allowIncomplete={form.allowIncomplete} />
         <ExpressionInput label={t('slot.initializer')} value={form.arrayFill} onChange={(value) => change('arrayFill', value)} type={primitiveType(form.elementTypeName)} symbols={symbols} required={false} allowIncomplete={form.allowIncomplete} />
+      </>}
+      {isNew && kind === 'ArrayAccess' && <>
+        <ExpressionInput label={t('slot.array')} value={form.accessArray} onChange={(value) => change('accessArray', value)} type={accessTargetType} allowAnyType={!accessTargetType} symbols={symbols} required={required} allowIncomplete={form.allowIncomplete} />
+        <label>{t('expression.indexTypeLabel')}
+          <select aria-label={t('expression.indexType', { label: t('slot.array') })} value={form.indexTypeName} onChange={(event) => change('indexTypeName', event.target.value)} required={required}>
+            <option value="">{t('expression.chooseType')}</option>
+            {integerTypeNames.map((name) => <option key={name} value={name}>{name}</option>)}
+          </select>
+        </label>
+        <ExpressionInput label={t('slot.index')} value={form.accessIndex} onChange={(value) => change('accessIndex', value)} type={arrayIndexType(form.indexTypeName)} symbols={symbols} required={required} allowIncomplete={form.allowIncomplete} />
       </>}
       {isNew && kind === 'ForStatement' && <p className="node-form__hint">{t('form.loopHint')}</p>}
       {isNew && <p className="node-form__hint">{t('form.incompleteHint')}</p>}
