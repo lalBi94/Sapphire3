@@ -71,7 +71,29 @@ export default function NodeForm({ kind, initialNode = null, context, onSubmit }
           {references.map((symbol) => <option key={symbol.id} value={symbol.id}>{symbolLabel(symbol)}</option>)}
         </select>
       </label>}
-      {isNew && ['VariableDeclaration', 'ConstantDeclaration'].includes(kind) && <ExpressionInput label={t('form.startingValue')} value={form.initializer} onChange={(value) => change('initializer', value)} type={type} symbols={symbols} required={kind === 'ConstantDeclaration' && required} allowIncomplete={form.allowIncomplete} />}
+      {isNew && ['VariableDeclaration', 'ConstantDeclaration'].includes(kind) && <>
+        <ExpressionInput label={t('form.startingValue')} value={form.initializer} onChange={(value) => change('initializer', value)} type={type} symbols={symbols} required={kind === 'ConstantDeclaration' && required} allowIncomplete={form.allowIncomplete} />
+        {/* Option pour créer un tableau */}
+        {!form.initializer.mode && <div className="node-form__array-options">
+          <label className="node-form__check"><input type="checkbox" checked={form.initializer.arrayCreation} onChange={(event) => change('initializer', { ...form.initializer, arrayCreation: event.target.checked, arrayLiteral: false, mode: event.target.checked ? 'arrayCreation' : '' })} />{t('form.createArray')}</label>
+          <label className="node-form__check"><input type="checkbox" checked={form.initializer.arrayLiteral} onChange={(event) => change('initializer', { ...form.initializer, arrayLiteral: event.target.checked, arrayCreation: false, mode: event.target.checked ? 'arrayLiteral' : '' })} />{t('form.createArrayLiteral')}</label>
+        </div>}
+        {/* Configuration du tableau */}
+        {(form.initializer.arrayCreation || form.initializer.arrayLiteral) && type && <>
+          <p className="node-form__hint">{t('form.arrayType', { type: type.name + '[]' })}</p>
+          {form.initializer.arrayCreation && <>
+            <ExpressionInput label={t('slot.size')} value={form.initializer.arraySize} onChange={(value) => change('initializer', { ...form.initializer, arraySize: value })} type={primitiveType('int')} symbols={symbols} required={true} allowIncomplete={form.allowIncomplete} />
+            <ExpressionInput label={t('slot.initializer')} value={form.initializer.arrayInitializer} onChange={(value) => change('initializer', { ...form.initializer, arrayInitializer: value })} type={type} symbols={symbols} required={false} allowIncomplete={form.allowIncomplete} />
+          </>}
+          {form.initializer.arrayLiteral && <fieldset><legend>{t('slot.elements')}</legend>
+            {form.initializer.arrayElements.map((elem, index) => <div className="node-form__parameter" key={index}>
+              <ExpressionInput label={t('expression.element', { number: index + 1 })} value={elem} onChange={(value) => change('initializer', { ...form.initializer, arrayElements: form.initializer.arrayElements.map((e, i) => i === index ? value : e) })} type={type} symbols={symbols} required={false} allowIncomplete={form.allowIncomplete} />
+              <button type="button" onClick={() => change('initializer', { ...form.initializer, arrayElements: form.initializer.arrayElements.filter((_, i) => i !== index) })}><Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.removeInput')}</button>
+            </div>)}
+            <button type="button" onClick={() => change('initializer', { ...form.initializer, arrayElements: [...form.initializer.arrayElements, emptyExpression()] })}><Plus size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.addInput')}</button>
+          </fieldset>}
+        </>}
+      </>}
       {isNew && ['IfStatement', 'WhileStatement', 'ForStatement'].includes(kind) && <ExpressionInput label={t('form.condition')} value={form.condition} onChange={(value) => change('condition', value)} type={primitiveType('boolean')} symbols={symbols} required={kind !== 'ForStatement' && required} allowIncomplete={form.allowIncomplete} />}
       {isNew && kind === 'PrintStatement' && <ExpressionInput label={t('form.value')} value={form.expression} onChange={(value) => change('expression', value)} type={type} symbols={symbols} required={required} allowIncomplete={form.allowIncomplete} />}
       {isNew && kind === 'FunctionDeclaration' && <fieldset><legend>{t('form.parameters')}</legend>

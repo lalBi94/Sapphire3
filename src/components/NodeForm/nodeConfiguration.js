@@ -2,7 +2,7 @@ import { primitiveType, getNodeSchema, binaryOperators, unaryOperators, acceptsO
 
 // Fournit un brouillon vide sans inventer d'opérateur, de type ou de valeur.
 export function emptyExpression() {
-  return { mode: '', value: '', empty: false, symbolId: '', operator: '', operandTypeName: '' }
+  return { mode: '', value: '', empty: false, symbolId: '', operator: '', operandTypeName: '', arrayCreation: false, arrayLiteral: false, arraySize: '', arrayElements: [], arrayElementTypeName: '' }
 }
 
 // Filtre les opérations par leur résultat attendu, depuis les règles du moteur.
@@ -24,8 +24,15 @@ export function initialNodeForm(kind, node, expectedType, symbols) {
   const properties = node?.properties ?? {}
   const target = node?.references?.target
   const symbol = symbols.find((entry) => target?.kind === 'import' ? entry.importId === target.importId : target?.kind === 'name' ? entry.name === target.name : entry.nodeId === target?.nodeId)
+  
+  // Pour les variables avec initialiseur tableau, le typeName vient du type d'élément
+  let typeName = properties.type?.kind === 'named' ? '@alias' : properties.type?.name ?? ''
+  if (properties.type?.kind === 'array') {
+    typeName = properties.type.elementType?.name ?? ''
+  }
+  
   return {
-    name: properties.name ?? '', typeName: properties.type?.kind === 'named' ? '@alias' : properties.type?.name ?? (kind === 'Literal' || kind === 'CastExpression' ? expectedType?.name ?? '' : ''),
+    name: properties.name ?? '', typeName,
     operator: properties.operator ?? '', value: properties.value === undefined ? '' : Object.is(properties.value, -0) ? '-0' : String(properties.value),
     empty: properties.type?.name === 'string' && properties.value === '', symbolId: symbol?.id ?? (target ? '@unresolved' : ''),
     initializer: emptyExpression(), condition: emptyExpression(), expression: emptyExpression(),
@@ -68,6 +75,17 @@ export function expressionDraft(value, type, symbols, depth = 0) {
   if (value.mode === 'cast') {
     return { kind: 'CastExpression', properties: { ...(type ? { type } : {}) }, children: { argument: expressionDraft(value.argument, primitiveType(value.operandTypeName), symbols, depth + 1) } }
   }
+  // Tableaux : ArrayCreation avec taille et initialiseur optionnel
+  if (value.arrayCreation && type?.kind === 'array' && type.elementType) {
+    const sizeExpr = expressionDraft(value.arraySize, primitiveType('int'), symbols, depth + 1)
+    const initExpr = value.arrayInitializer?.mode ? expressionDraft(value.arrayInitializer, type.elementType, symbols, depth + 1) : null
+    return { kind: 'ArrayCreation', properties: { elementType: type.elementType }, children: { size: sizeExpr, initializer: initExpr } }
+  }
+  // Tableaux : ArrayLiteral avec liste d'éléments
+  if (value.arrayLiteral && type?.kind === 'array' && type.elementType) {
+    const elements = value.arrayElements.map((elem) => expressionDraft(elem, type.elementType, symbols, depth + 1) ?? { kind: 'Hole' })
+    return { kind: 'ArrayLiteral', properties: { elementType: type.elementType }, children: { elements } }
+  }
   return null
 }
 
@@ -76,7 +94,21 @@ export function nodeConfiguration(kind, form, symbols, initialNode = null) {
   const schema = getNodeSchema(kind)
   const properties = { ...initialNode?.properties }
   const references = { ...initialNode?.references }
-  const type = form.typeName === '@alias' ? initialNode?.properties.type : primitiveType(form.typeName)
+  
+  // Détermine le type de base (primitif) depuis le formulaire
+  const baseType = form.typeName === '@alias' ? initialNode?.properties.type : primitiveType(form.typeName)
+  
+  // Détermine le type effectif pour les variables avec initialiseur tableau.
+  // Si l'initializer est un ArrayCreation/ArrayLiteral, la variable est de type tableau.
+  let type = baseType
+  if (['VariableDeclaration', 'ConstantDeclaration'].includes(kind) && !initialNode) {
+    const initializerConfig = form.initializer
+    if ((initializerConfig?.arrayCreation || initializerConfig?.arrayLiteral) && baseType) {
+      // La variable est de type tableau de l'élément choisi
+      type = arrayType(baseType)
+    }
+  }
+  
   if (schema.named) properties.name = initialNode && form.name === initialNode.properties.name ? form.name : form.name.trim()
   if (kind === 'FunctionDeclaration') {
     if (form.entryPoint) properties.entryPoint = true
