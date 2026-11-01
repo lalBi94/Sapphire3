@@ -44,6 +44,18 @@ export function getImportCandidates(project, moduleId, analysis = analyzeProgram
   return candidates
 }
 
+// Liste les liaisons d'import du module qu'aucune référence résolue n'utilise.
+export function getUnusedImportIds(project, moduleId, analysis = analyzeProgram(project)) {
+  const current = project?.modules?.find((module) => module?.id === moduleId)
+  const imports = Array.isArray(current?.imports) ? current.imports : []
+  if (imports.length === 0) return []
+  const used = new Set(analysis.semantic.references.map((reference) => reference?.symbolId).filter((id) => isId(id)))
+  return imports.filter((entry) => {
+    const symbol = analysis.semantic.symbols.find((candidate) => candidate.importId === entry?.id && candidate.moduleId === moduleId)
+    return !symbol || !used.has(symbol.id)
+  }).map((entry) => entry.id)
+}
+
 // Compare les diagnostics par localisation stable, sans dépendre du texte affiché.
 function diagnosticKey(diagnostic) {
   return JSON.stringify([diagnostic.code, diagnostic.location])

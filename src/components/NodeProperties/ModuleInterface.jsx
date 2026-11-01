@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { getImportCandidates, getModuleFunctions } from '../../utils/logic/index.js'
+import { getImportCandidates, getModuleFunctions, getUnusedImportIds } from '../../utils/logic/index.js'
 import { typeLabel } from '../LogicTree/logicLabels.js'
 import { failureLabel } from '../../utils/translations.js'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
@@ -12,6 +12,7 @@ export default function ModuleInterface({ module, project, analysis, index, onEx
   const [errorCode, setErrorCode] = useState('')
   const functions = getModuleFunctions(project, module.id, analysis)
   const candidates = getImportCandidates(project, module.id, analysis)
+  const unusedImports = new Set(getUnusedImportIds(project, module.id, analysis))
   const exports = Array.isArray(module.exports) ? module.exports : []
   const imports = Array.isArray(module.imports) ? module.imports : []
   const candidate = candidates.find((entry) => `${entry.moduleId}:${entry.nodeId}` === candidateKey) ?? null
@@ -71,10 +72,14 @@ export default function ModuleInterface({ module, project, analysis, index, onEx
       <h3>{t('details.imports')}</h3>
       <p>{t('details.importsHint')}</p>
       {imports.length === 0 ? <p>{t('details.noImports')}</p> : <ul className="node-properties__interface-list">
-        {imports.map((entry) => <li className="node-properties__interface-item" key={entry.id}>
-          <span><strong>{entry.localName}</strong><small>{index.nodes.get(entry.nodeId)?.properties.name ?? entry.nodeId} · {t('details.importedFrom', { module: moduleName(entry.moduleId) })}</small></span>
-          <button type="button" title={t('details.removeImport')} onClick={() => handleRemoveImport(entry.id)}>{t('details.removeImport')}</button>
-        </li>)}
+        {imports.map((entry) => {
+          const unused = unusedImports.has(entry.id)
+          return <li className={`node-properties__interface-item${unused ? ' node-properties__interface-item--unused' : ''}`} key={entry.id}>
+            <span><strong>{entry.localName}</strong><small>{index.nodes.get(entry.nodeId)?.properties.name ?? entry.nodeId} · {t('details.importedFrom', { module: moduleName(entry.moduleId) })}</small></span>
+            {unused && <span className="node-properties__interface-unused" title={t('details.unusedImportHint')}>{t('details.unusedImport')}</span>}
+            <button type="button" title={t('details.removeImport')} onClick={() => handleRemoveImport(entry.id)}>{t('details.removeImport')}</button>
+          </li>
+        })}
       </ul>}
       {candidates.length > 0 && <form className="node-properties__interface-form" onSubmit={handleImport}>
         <label>{t('details.chooseImport')}<select value={candidateKey} onChange={handleCandidateChange}>

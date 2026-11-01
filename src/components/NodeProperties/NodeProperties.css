@@ -50,6 +50,8 @@
 .node-properties__interface-item button, .node-properties__interface-form button { flex: 0 0 auto; padding: 4px 6px; border: 1px solid var(--color-border); border-radius: var(--radius-small); color: var(--color-text); background: var(--color-surface); font: inherit; font-size: 9px; cursor: pointer; }
 .node-properties__interface-item button:hover, .node-properties__interface-form button:hover:not(:disabled) { border-color: var(--color-border-hover); background: var(--color-hover); }
 .node-properties__interface-item button[aria-pressed='true'] { border-color: var(--color-selection-border); color: var(--color-selection); background: var(--color-selection-surface); }
+.node-properties__interface-item--unused { border-style: dashed; }
+.node-properties__interface-unused { flex: 0 0 auto; padding: 1px 5px; border: 1px solid var(--color-diagnostic); border-radius: var(--radius-small); color: var(--color-diagnostic); font-size: 9px; white-space: nowrap; }
 .node-properties__interface-form { display: grid; gap: 6px; margin-top: 10px; }
 .node-properties__interface-form label { display: grid; gap: 4px; color: var(--color-text-muted); }
 .node-properties__interface-form :is(input, select) { width: 100%; min-width: 0; padding: var(--space-control); border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-input); color: var(--color-text); font: inherit; }

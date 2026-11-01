@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   analyzeProgram, createContextIndex, getVisibleSymbols, resolveContext,
-  getImportCandidates, getModuleFunctions, setModuleExport, addModuleImport, removeModuleImport, simulateProgram,
+  getImportCandidates, getModuleFunctions, getUnusedImportIds, setModuleExport, addModuleImport, removeModuleImport, simulateProgram,
   getCallableSymbols, ensureModuleImports,
   diagnosticCodes as codes,
 } from '../../src/utils/logic/index.js'
@@ -60,8 +60,18 @@ test('interface : candidats limités aux fonctions des autres modules', () => {
   assert.deepEqual(getImportCandidates(imported.project, 'app'), [])
 })
 
-test('interface : imports en double ou renommés vers un nom pris sont refusés', () => {
+test('interface : un import jamais référencé est signalé comme inutilisé', () => {
   const source = twoFunctions()
+  const exported = setModuleExport(source, 'lib', 'plus1', true)
+  const imported = addModuleImport(exported.project, 'app', { id: 'plus1Import', targetModuleId: 'lib', nodeId: 'plus1', localName: 'plus1' })
+  assert.deepEqual(getUnusedImportIds(imported.project, 'app'), [], 'un import réellement appelé reste utilisé')
+  // Retire la cible de la référence d'appel : l'import n'est plus utilisé.
+  const unused = { ...imported.project, nodes: imported.project.nodes.map((entry) => entry.id === 'callee' ? { ...entry, references: {} } : entry) }
+  assert.deepEqual(getUnusedImportIds(unused, 'app'), ['plus1Import'])
+  assert.deepEqual(getUnusedImportIds(imported.project, 'lib'), [], 'aucun import côté exportateur')
+})
+
+test('interface : imports en double ou renommés vers un nom pris sont refusés', () => {  const source = twoFunctions()
   const imported = addModuleImport(source, 'app', { id: 'plus1Import', targetModuleId: 'lib', nodeId: 'plus1', localName: 'plus1' })
   assert.equal(imported.ok, true)
   assert.equal(addModuleImport(imported.project, 'app', { id: 'other', targetModuleId: 'lib', nodeId: 'plus1', localName: 'other' }).code, 'IMPORT_ALREADY_EXISTS')

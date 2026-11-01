@@ -377,6 +377,8 @@ const messages = {
   'details.noImports': ['No function imported into this module.', 'Aucune fonction importée dans ce module.', '此模块中没有导入的函数。', 'Ninguna función importada en este módulo.', 'لا توجد دالة مستوردة في هذه الوحدة.'],
   'details.import': ['Import', 'Importer', '导入', 'Importar', 'استيراد'],
   'details.importedFrom': ['from {module}', 'depuis {module}', '来自 {module}', 'desde {module}', 'من {module}'],
+  'details.unusedImport': ['unused', 'inutilisé', '未使用', 'sin usar', 'غير مستخدم'],
+  'details.unusedImportHint': ['This import is never used.', 'Cet import n’est jamais utilisé.', '此导入从未使用。', 'Esta importación nunca se usa.', 'لا يُستخدم هذا الاستيراد أبدًا.'],
   'details.chooseImport': ['Choose a function to import', 'Choisir une fonction à importer', '选择要导入的函数', 'Elegir una función que importar', 'اختر دالة للاستيراد'],
   'details.localName': ['Name in this module', 'Nom dans ce module', '在此模块中的名称', 'Nombre en este módulo', 'الاسم في هذه الوحدة'],
   'details.removeImport': ['Remove this import', 'Retirer cet import', '移除此导入', 'Quitar esta importación', 'حذف هذا الاستيراد'],
