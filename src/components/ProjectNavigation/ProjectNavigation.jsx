@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Bug, ChevronDown, Clock3, Code2, Eye, FileInput, FileOutput, FilePlus, FolderOpen, Palette, Play, Save, Search, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
+import { supportedLanguages } from '../../utils/translations.js'
 import { transpilationLanguages } from '../../utils/transpilation/index.js'
 import './ProjectNavigation.css'
 
@@ -174,10 +175,8 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
       <span className="project-navigation__status" role="status">{busy ? t('nav.working') : message}</span>
       <label className="project-navigation__language">{t('nav.language')}
         <select value={language} onChange={(event) => setLanguage(event.target.value)} aria-label={t('nav.language')}>
-          <option value="en">{t('nav.english')}</option>
-          <option value="fr">{t('nav.french')}</option>
-        </select>
-      </label>
+          {supportedLanguages.map((option) => <option value={option.id} key={option.id}>{option.label}</option>)}
+        </select>      </label>
       {error && <div className="project-navigation__error" role="alert"><span>{error}</span><button type="button" aria-label={t('nav.dismiss')} onClick={onDismiss}><X size={14} aria-hidden="true" /></button></div>}
     </nav>
     {pendingImport && <ReplaceConfirmation titleKey="import.title" bodyKey="import.body" detail={pendingImport.path} confirmKey="import.confirm" onConfirm={onConfirmImport} onCancel={onCancelImport} />}

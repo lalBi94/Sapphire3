@@ -4,12 +4,19 @@ import { translate, translations } from '../utils/translations.js'
 
 const LanguageContext = createContext(null)
 
+// Langues écrites de droite à gauche : la direction HTML suit la langue active.
+const rightToLeftLanguages = new Set(['ar'])
+
 // Fournit une langue explicite aux composants, sans état global modifié pendant le rendu.
 export default function LanguageProvider({ children }) {
-  const [language, setLanguageState] = useState(() => readPreference('sapphire-language') === 'fr' ? 'fr' : 'en')
+  const [language, setLanguageState] = useState(() => {
+    const stored = readPreference('sapphire-language')
+    return typeof stored === 'string' && Object.hasOwn(translations, stored) ? stored : 'en'
+  })
 
   useEffect(() => {
     document.documentElement.lang = language
+    document.documentElement.dir = rightToLeftLanguages.has(language) ? 'rtl' : 'ltr'
   }, [language])
 
   // Conserve uniquement la préférence de langue, jamais le contenu du workspace.

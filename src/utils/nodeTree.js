@@ -23,3 +23,13 @@ export function isFullyExpanded(expandedNodeIds, expandableIds) {
   const expanded = new Set(expandedNodeIds ?? [])
   return expandableIds.every((id) => expanded.has(id))
 }
+
+// Décrit la position d'un nœud dans sa liste parente, ou null si rien ne peut être réordonné.
+export function siblingOrder(index, id) {
+  const parent = index.parents.get(id)?.[0]
+  if (!parent) return null
+  const list = parent.kind === 'module' ? index.modules.get(parent.id)?.rootNodeIds : index.nodes.get(parent.id)?.children?.[parent.slot]
+  if (!Array.isArray(list)) return null
+  const position = list.indexOf(id)
+  return position === -1 ? null : { position, count: list.length }
+}

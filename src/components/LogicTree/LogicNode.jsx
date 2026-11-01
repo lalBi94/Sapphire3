@@ -1,13 +1,14 @@
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { getNodeSchema } from '../../utils/logic/index.js'
 import { scrollNodeIntoCard } from '../../utils/cardScroll.js'
+import { siblingOrder } from '../../utils/nodeTree.js'
 import { kindLabel, nodeSummary, slotLabel } from './logicLabels.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 
 // Rend une construction avec ses slots ; les cycles ou liens manquants restent des fragments lisibles.
-export default function LogicNode({ id, index, selectedId, activeExecutionId, onSelect, ancestors, expandedIds, onToggle, onOpenActions, dropTarget }) {
+export default function LogicNode({ id, index, selectedId, activeExecutionId, onSelect, ancestors, expandedIds, onToggle, onOpenActions, dropTarget, onReorder }) {
   const { t } = useTranslation()
   const node = index.nodes.get(id)
   const schema = node ? getNodeSchema(node.kind) : null
@@ -19,6 +20,7 @@ export default function LogicNode({ id, index, selectedId, activeExecutionId, on
   const nodeRef = useRef(null)
   const active = activeExecutionId === id
   const drop = dropTarget?.kind === 'node' && dropTarget.id === id ? dropTarget : null
+  const order = onReorder ? siblingOrder(index, id) : null
 
   useEffect(() => {
     if (active) scrollNodeIntoCard(nodeRef.current, 'nearest')
@@ -50,6 +52,10 @@ export default function LogicNode({ id, index, selectedId, activeExecutionId, on
           {node.kind === 'FunctionDeclaration' && node.properties?.entryPoint === true && <span className="logic-node__entry-point">{t('canvas.startHere')}</span>}
           {diagnostics.length > 0 && <span className="logic-node__issues" aria-label={t(diagnostics.length === 1 ? 'canvas.issueCountOne' : 'canvas.issueCount', { count: diagnostics.length })}>{diagnostics.length}</span>}
         </button>
+        {order && order.count > 1 && <div className="logic-node__order">
+          <button type="button" className="logic-node__order-button" title={t('canvas.moveUp')} aria-label={t('canvas.moveUp')} disabled={order.position === 0} onClick={(event) => { event.stopPropagation(); onReorder(id, -1) }}><ArrowUp size={13} strokeWidth={2} aria-hidden="true" /></button>
+          <button type="button" className="logic-node__order-button" title={t('canvas.moveDown')} aria-label={t('canvas.moveDown')} disabled={order.position === order.count - 1} onClick={(event) => { event.stopPropagation(); onReorder(id, 1) }}><ArrowDown size={13} strokeWidth={2} aria-hidden="true" /></button>
+        </div>}
       </div>
       {summary && <div className={`logic-node__summary${expanded ? '' : ' logic-node__summary--collapsed'}`}>{summary}</div>}
       {expanded && slots.map(([slotName, slot]) => {
@@ -57,7 +63,7 @@ export default function LogicNode({ id, index, selectedId, activeExecutionId, on
         const children = Array.isArray(value) ? value : value === null || value === undefined ? [] : [value]
         return <div className="logic-node__slot" data-slot={slotName} key={slotName}>
           <span className="logic-node__slot-label">{slotLabel(slotName, t)}{slot.many ? ` [${children.length}]` : ''}</span>
-          {children.length === 0 ? <span className="logic-node__empty">{t(slot.required ? 'canvas.addSomething' : 'canvas.empty')}</span> : children.map((childId, position) => <LogicNode key={`${childId}:${position}`} id={childId} index={index} selectedId={selectedId} activeExecutionId={activeExecutionId} onSelect={onSelect} ancestors={[...ancestors, id]} expandedIds={expandedIds} onToggle={onToggle} onOpenActions={onOpenActions} dropTarget={dropTarget} />)}
+          {children.length === 0 ? <span className="logic-node__empty">{t(slot.required ? 'canvas.addSomething' : 'canvas.empty')}</span> : children.map((childId, position) => <LogicNode key={`${childId}:${position}`} id={childId} index={index} selectedId={selectedId} activeExecutionId={activeExecutionId} onSelect={onSelect} ancestors={[...ancestors, id]} expandedIds={expandedIds} onToggle={onToggle} onOpenActions={onOpenActions} dropTarget={dropTarget} onReorder={onReorder} />)}
         </div>
       })}
     </section>

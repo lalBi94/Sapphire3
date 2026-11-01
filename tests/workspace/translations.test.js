@@ -19,13 +19,18 @@ async function sourceFiles(directory) {
   return files
 }
 
-test('catalogue anglais/français : mêmes clés, textes présents et paramètres identiques', () => {
-  assert.deepEqual(Object.keys(translations.en), Object.keys(translations.fr))
+test('catalogue multilingue : mêmes clés, textes présents et paramètres identiques', () => {
+  const languages = Object.keys(translations)
+  const keys = Object.keys(translations.en)
+  assert.ok(languages.length >= 5, 'les cinq langues sont présentes')
+  for (const language of languages) assert.deepEqual(Object.keys(translations[language]), keys, language)
   for (const [key, english] of Object.entries(translations.en)) {
-    const french = translations.fr[key]
-    assert.equal(typeof french, 'string', key)
-    assert.ok(english.trim() && french.trim(), key)
-    assert.deepEqual(english.match(/\{\w+\}/g)?.sort(), french.match(/\{\w+\}/g)?.sort(), key)
+    for (const language of languages) {
+      const text = translations[language][key]
+      assert.equal(typeof text, 'string', `${language}:${key}`)
+      assert.ok(text.trim(), `${language}:${key}`)
+      assert.deepEqual(english.match(/\{\w+\}/g)?.sort(), text.match(/\{\w+\}/g)?.sort(), `${language}:${key}`)
+    }
   }
 })
 

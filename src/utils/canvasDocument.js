@@ -1,5 +1,5 @@
 import { moduleTypes } from './moduleTypes.js'
-import { createProject, createModule, analyzeProgram, createContextIndex, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, pasteSourceNode, moveSourceNode, duplicateSourceNode } from './logic/index.js'
+import { createProject, createModule, analyzeProgram, createContextIndex, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, pasteSourceNode, moveSourceNode, duplicateSourceNode } from './logic/index.js'
 
 // Recalcule les dérivés uniquement quand la source logique change.
 function withSource(state, project, analysis = analyzeProgram(project), index = createContextIndex(project, analysis)) {
@@ -22,6 +22,7 @@ function replaySourceMutation(state, action) {
     return imports.ok ? updateSourceNode(imports.project, action.id, action.patch) : imports
   }
   if (action.type === 'delete') return deleteSourceNodes(state.project, action.targetId, { index: state.index })
+  if (action.type === 'reorderNode') return reorderSourceNode(state.project, action.id, action.offset, { index: state.index })
   if (action.type === 'moduleExport') return setModuleExport(state.project, action.moduleId, action.nodeId, action.exported)
   if (action.type === 'moduleImport') return addModuleImport(state.project, action.moduleId, action.entry)
   if (action.type === 'moduleImportRemove') return removeModuleImport(state.project, action.moduleId, action.importId)
@@ -62,7 +63,7 @@ export function reduceDocument(state, action) {
     const next = { ...state, cards: state.cards.map((entry) => entry.id === card.id ? { ...entry, name: action.name } : entry) }
     return card.type === 'module' ? withSource(next, { ...state.project, modules: state.project.modules.map((module) => module.id === card.id ? { ...module, name: action.name } : module) }) : next
   }
-  if (['insert', 'configure', 'delete', 'moduleExport', 'moduleImport', 'moduleImportRemove', 'pasteNode', 'moveNode', 'duplicateNode'].includes(action.type)) {
+  if (['insert', 'configure', 'delete', 'reorderNode', 'moduleExport', 'moduleImport', 'moduleImportRemove', 'pasteNode', 'moveNode', 'duplicateNode'].includes(action.type)) {
     const result = state.project === action.previousProject ? action.prepared : replaySourceMutation(state, action)
     return result.ok ? withSource(state, result.project, result.analysis, result.index) : { ...state, mutationError: result.code }
   }

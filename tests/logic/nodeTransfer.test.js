@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode, analyzeProgram, simulateProgram, createContextIndex, deleteSourceNodes } from '../../src/utils/logic/index.js'
+import { captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode, reorderSourceNode, analyzeProgram, simulateProgram, createContextIndex, deleteSourceNodes } from '../../src/utils/logic/index.js'
+import { siblingOrder } from '../../src/utils/nodeTree.js'
 import { program, root, node, intType, stringType, booleanType } from './fixtures.js'
 
 const voidType = { kind: 'primitive', name: 'void' }
@@ -279,4 +280,34 @@ test('état incomplet représentable : copie sans valeur permise, capture de pre
   for (const clipboard of [null, {}, { version: 1, rootId: 'x', nodes: [null] }, { ...captured.clipboard, nodes: [...captured.clipboard.nodes, captured.clipboard.nodes[0]] }]) {
     assert.equal(pasteSourceNode(source, clipboard, receiver, { ids: [] }).ok, false)
   }
+})
+
+test('réordonnancement : les instructions changent de position sans changer d’identifiant', () => {
+  const source = fixture()
+  const before = JSON.stringify(source)
+  const index = createContextIndex(source, analyzeProgram(source))
+  assert.deepEqual(siblingOrder(index, 'printX'), { position: 1, count: 4 })
+  assert.equal(siblingOrder(index, 'body'), null, 'un slot unique ne se réordonne pas')
+
+  const up = reorderSourceNode(source, 'printText', -1, { index })
+  assert.equal(up.ok, true, JSON.stringify(up))
+  assert.deepEqual(up.project.nodes.find((node) => node.id === 'body').children.statements, ['x', 'printText', 'printX', 'return'])
+  assert.equal(JSON.stringify(source), before, 'la source d’origine n’est pas mutée')
+  assert.deepEqual(up.analysis.diagnostics, [])
+  assert.ok(up.analysis.semantic.references.some((entry) => entry.nodeId === 'xRef'), 'les références restent résolues')
+
+  const down = reorderSourceNode(up.project, 'printText', 1, { index: up.index })
+  assert.deepEqual(down.project.nodes.find((node) => node.id === 'body').children.statements, ['x', 'printX', 'printText', 'return'])
+
+  const roots = reorderSourceNode(source, 'worker', -1, { index })
+  assert.deepEqual(roots.project.modules.find((module) => module.id === 'm').rootNodeIds, ['worker', 'main'])
+
+  const boundary = reorderSourceNode(source, 'x', -1, { index })
+  assert.equal(boundary.ok, false)
+  assert.equal(boundary.code, 'REORDER_BOUNDARY')
+  assert.equal(boundary.project, source)
+
+  const single = reorderSourceNode(source, 'body', 1, { index })
+  assert.equal(single.ok, false)
+  assert.equal(single.code, 'REORDER_NOT_A_LIST')
 })

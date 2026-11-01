@@ -65,7 +65,7 @@ Un nœud peut être supprimé par « Delete block » dans son menu, ou depuis le
 
 Chaque nœud affiche une bordure colorée selon sa catégorie logique : variable, type, fonction, paramètre, condition, boucle, retour, bloc, instruction, opérateur, valeur ou incomplet. Le groupe est défini avec le schéma de la construction, et les couleurs sont des variables CSS partagées.
 
-L'interface propose l'anglais par défaut et le français, y compris aides, textes accessibles, résumés, diagnostics, erreurs et textes applicatifs des dialogues natifs. Le catalogue unique est dans `src/utils/translations.js` ; les contextes sont dans `src/contexts/`. Les noms saisis, types/opérateurs et sorties du programme restent inchangés ; les boutons et messages Windows suivent la langue système. Les commentaires et la documentation du projet sont en français. Langue, thème et chemins récents sont des préférences locales, séparées du workspace.
+L'interface propose l'anglais par défaut, le français, le chinois, l'espagnol et l'arabe, y compris aides, textes accessibles, résumés, diagnostics, erreurs et textes applicatifs des dialogues natifs. Le catalogue unique est dans `src/utils/translations.js` ; les contextes sont dans `src/contexts/`. La direction HTML suit la langue active (`rtl` pour l'arabe). Les noms saisis, types/opérateurs et sorties du programme restent inchangés ; les boutons et messages Windows suivent la langue système. Les commentaires et la documentation du projet sont en français. Langue, thème et chemins récents sont des préférences locales, séparées du workspace.
 
 Double-cliquez sur le titre d'un Module pour le renommer (ou Entrée/F2 sur son en-tête). Entrée ou sortie du champ valide, Échap annule.
 

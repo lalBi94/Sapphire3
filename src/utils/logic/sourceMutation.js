@@ -110,6 +110,32 @@ export function insertSourceNodes(project, request, bundle, options = {}) {
   return { ok: true, project: candidate, analysis, index: createContextIndex(candidate, analysis), nodeId: bundle.rootId }
 }
 
+// Réordonne une instruction dans sa liste parente, sans recréer ni remapper aucun identifiant.
+export function reorderSourceNode(project, nodeId, offset, options = {}) {
+  if (!Array.isArray(project?.modules) || !Array.isArray(project?.nodes)) return { ok: false, code: 'SOURCE_INVALID', project }
+  const index = options.index?.project === project && options.index.analysis ? options.index : createContextIndex(project, analyzeProgram(project))
+  const parent = index.parents.get(nodeId)?.[0]
+  if (!index.nodes.has(nodeId) || !parent) return { ok: false, code: 'TARGET_INVALID', project }
+  const list = parent.kind === 'module' ? index.modules.get(parent.id)?.rootNodeIds : index.nodes.get(parent.id)?.children?.[parent.slot]
+  if (!Array.isArray(list)) return { ok: false, code: 'REORDER_NOT_A_LIST', project }
+  const from = list.indexOf(nodeId)
+  const to = from + offset
+  if (from === -1) return { ok: false, code: 'TARGET_INVALID', project }
+  if (to < 0 || to >= list.length) return { ok: false, code: 'REORDER_BOUNDARY', project }
+  const reordered = [...list]
+  reordered.splice(from, 1)
+  reordered.splice(to, 0, nodeId)
+  const modules = parent.kind === 'module'
+    ? project.modules.map((entry) => entry?.id === parent.id ? { ...entry, rootNodeIds: reordered } : entry)
+    : project.modules
+  const nodes = parent.kind === 'module'
+    ? project.nodes
+    : project.nodes.map((entry) => entry?.id === parent.id ? { ...entry, children: { ...entry.children, [parent.slot]: reordered } } : entry)
+  const candidate = { ...project, modules, nodes }
+  const analysis = analyzeProgram(candidate)
+  return { ok: true, project: candidate, analysis, index: createContextIndex(candidate, analysis), nodeId }
+}
+
 // Modifie les seules propriétés configurables, en conservant tous les identifiants et liens existants.
 export function updateSourceNode(project, nodeId, patch) {
   if (!isRecord(patch) || Object.keys(patch).some((key) => !['properties', 'references'].includes(key))) return { ok: false, code: 'PATCH_INVALID', project }
