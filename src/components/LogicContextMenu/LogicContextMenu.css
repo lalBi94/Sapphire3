@@ -3,11 +3,14 @@
 .logic-context-menu__node-actions { border-left: 1px solid var(--color-border); }
 .logic-context-menu { cursor: grab; touch-action: none; }
 .logic-context-menu:active { cursor: grabbing; }
-.logic-context-menu__actions { min-width: 0; max-height: min(400px, calc(100dvh - var(--navigation-height) - 36px)); overflow-y: auto; }
+.logic-context-menu__actions { min-width: 0; max-height: min(400px, calc(100dvh - var(--navigation-height) - 36px)); overflow-y: auto; padding-inline: var(--space-control); padding-block-end: var(--space-control); }
 .logic-context-menu__title { color: var(--color-text-muted); padding: 9px; font-size: 11px; }
-.logic-context-menu__group { position: sticky; top: 0; z-index: 1; background: var(--surface-floating); color: var(--color-text); font-weight: 600; }
+/* Bande de catégorie : son fond couvre la colonne entière et masquait l'anneau lumineux
+   des blocs collés au-dessous ; le marge négative garde la bande pleine largeur pendant que
+   le survol passe l'action au-dessus d'elle. */
+.logic-context-menu__group { position: sticky; top: 0; z-index: 1; background: var(--surface-floating); color: var(--color-text); font-weight: 600; margin-inline: calc(-1 * var(--space-control)); padding-inline: calc(9px + var(--space-control)); }
 .logic-context-menu__actions button { display: flex; align-items: center; gap: var(--space-control); width: 100%; min-height: 32px; padding: 7px 9px; border: 0; border-radius: var(--radius-control); text-align: left; color: var(--color-text); background: transparent; font: inherit; font-size: 12px; cursor: pointer; }
-.logic-context-menu__actions button:hover:not(:disabled) { background: var(--color-hover); }
+.logic-context-menu__actions button:hover:not(:disabled) { z-index: 2; background: var(--color-hover); }
 .logic-context-menu__actions button:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }
 .logic-context-menu__actions button[aria-pressed='true'] { background: var(--color-selection-surface); color: var(--color-selection); box-shadow: inset 3px 0 0 var(--color-selection); font-weight: 600; }
 .logic-context-menu__actions button:disabled { color: var(--color-text-muted); opacity: var(--opacity-disabled); cursor: not-allowed; }
