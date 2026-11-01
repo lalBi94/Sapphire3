@@ -17,7 +17,7 @@ export function nodeDisplayName(node, t) {
 
 // Chemin logique du nœud, du module jusqu'au parent direct, pour distinguer deux homonymes.
 function nodeTrail(nodeId, index, t, moduleName) {
-  const parts = [moduleName]
+  const ancestors = []
   const visited = new Set([nodeId])
   let cursor = nodeId
   while (cursor) {
@@ -25,10 +25,10 @@ function nodeTrail(nodeId, index, t, moduleName) {
     if (!parent || visited.has(parent.id)) break
     visited.add(parent.id)
     const parentNode = index.nodes.get(parent.id)
-    if (parentNode) parts.unshift(nodeDisplayName(parentNode, t))
+    if (parentNode) ancestors.unshift(nodeDisplayName(parentNode, t))
     cursor = parent.id
   }
-  return parts.join(' › ')
+  return [moduleName, ...ancestors].join(' › ')
 }
 
 // Cherche tous les nœuds dont le nom, la construction ou le résumé contiennent le terme.
