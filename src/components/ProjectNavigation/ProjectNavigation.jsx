@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
-import { Bug, Check, ChevronDown, Clock3, Code2, Eye, FileInput, FileOutput, FolderOpen, Palette, Play, Save, Search, X } from 'lucide-react'
+import { Bug, ChevronDown, Clock3, Code2, Eye, FileInput, FileOutput, FolderOpen, Palette, Play, Save, Search, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
-import { useTheme } from '../../contexts/ThemeContext.jsx'
+import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
 import { transpilationLanguages } from '../../utils/transpilation/index.js'
 import './ProjectNavigation.css'
 
@@ -26,7 +26,6 @@ function ImportConfirmation({ path, onConfirm, onCancel }) {
 export default function ProjectNavigation({ busy, message, error, pendingImport, recentFiles, onSave, onSaveAs, onOpenSp3, onOpenRecent, onImport, onConfirmImport, onCancelImport, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile }) {
   const navigationRef = useRef(null)
   const { language, setLanguage, t } = useTranslation()
-  const { theme, themes, setTheme } = useTheme()
 
   useEffect(() => {
     // Ferme les volets lorsque l'utilisateur interagit ailleurs dans l'application.
@@ -146,16 +145,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
       <details name="workspace-menu" onToggle={handleToggle}>
         <summary><Palette size={13} aria-hidden="true" />{t('nav.theme')}<ChevronDown size={12} aria-hidden="true" /></summary>
         <div className="project-navigation__menu project-navigation__theme-menu">
-          <p>{t('theme.choose')}</p>
-          {themes.map((option) => (
-            <button type="button" className={`project-navigation__theme-option${option.id === theme.id ? ' project-navigation__theme-option--selected' : ''}`} aria-pressed={option.id === theme.id} key={option.id} onClick={() => setTheme(option.id)}>
-              <span className="project-navigation__theme-colors" aria-hidden="true">
-                {Object.values(option.colors).slice(0, 5).map((color, index) => <span key={`${option.id}:${index}`} style={{ backgroundColor: color }} />)}
-              </span>
-              <span className="project-navigation__theme-label">{t(option.labelKey)}</span>
-              {option.id === theme.id && <Check size={14} aria-hidden="true" />}
-            </button>
-          ))}
+          <ThemeMenu />
         </div>
       </details>
       <div className="project-navigation__run-controls">

@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { readPreference, writePreference } from '../services/preferences.js'
+import { customThemesKey, parseCustomThemes, resolveCustomColors } from '../utils/theme.js'
 
-const themes = [
+const presetThemes = [
   {
     id: 'sapphire',
     labelKey: 'theme.sapphire',
@@ -270,9 +271,15 @@ const themes = [
 
 const ThemeContext = createContext(null)
 
-// Cherche un thème connu à partir de son identifiant persistant.
-function findTheme(id) {
-  return themes.find((theme) => theme.id === id) ?? themes[0]
+// Retrouve un thème prédéfini par identifiant, sinon le premier.
+function findPreset(id) {
+  return presetThemes.find((theme) => theme.id === id) ?? presetThemes[0]
+}
+
+// Résout un thème personnalisé : ses couleurs remplacent celles de son thème de base.
+function resolveTheme(entry) {
+  const base = findPreset(entry.baseId)
+  return { id: entry.id, name: entry.name, mode: entry.mode, custom: true, overrides: entry.overrides, colors: resolveCustomColors(base.colors, entry.overrides) }
 }
 
 // Applique les couleurs d'un thème aux variables CSS communes de l'application.
@@ -283,25 +290,53 @@ function applyTheme(theme) {
   for (const [property, value] of Object.entries(theme.colors)) root.style.setProperty(property, value)
 }
 
-// Fournit le thème actif et sa préférence d'interface à toute l'application.
+// Fournit le thème actif, le catalogue prédéfini et les thèmes créés par l'utilisateur.
 export default function ThemeProvider({ children }) {
-  const [themeId, setThemeId] = useState(() => readPreference('sapphire-theme') ?? themes[0].id)
-  const theme = findTheme(themeId)
+  const [themeId, setThemeId] = useState(() => readPreference('sapphire-theme') ?? presetThemes[0].id)
+  const [customEntries, setCustomEntries] = useState(() => parseCustomThemes(readPreference(customThemesKey), presetThemes.map((theme) => theme.id)))
+  const customThemes = customEntries.map(resolveTheme)
+  const theme = customThemes.find((entry) => entry.id === themeId) ?? findPreset(themeId)
 
   useEffect(() => {
     applyTheme(theme)
     writePreference('sapphire-theme', theme.id)
   }, [theme])
 
-  // Change le thème et conserve uniquement cette préférence d'interface.
-  function setTheme(nextThemeId) {
-    setThemeId(findTheme(nextThemeId).id)
+  // Active un thème prédéfini ou personnalisé existant, sinon le thème par défaut.
+  function setTheme(id) {
+    const known = presetThemes.some((entry) => entry.id === id) || customEntries.some((entry) => entry.id === id)
+    setThemeId(known ? id : presetThemes[0].id)
   }
 
-  return <ThemeContext.Provider value={{ theme, themes, setTheme }}>{children}</ThemeContext.Provider>
+  // Crée un thème personnalisé copié du thème actif, le persiste et l'active, puis renvoie son identifiant.
+  function createTheme(name) {
+    const entry = { id: `custom-${crypto.randomUUID()}`, name, baseId: theme.custom ? theme.baseId : theme.id, mode: theme.mode, overrides: {} }
+    const next = [...customEntries, entry]
+    setCustomEntries(next)
+    writePreference(customThemesKey, JSON.stringify(next))
+    setThemeId(entry.id)
+    return entry.id
+  }
+
+  // Met à jour le nom, le mode ou les couleurs d'un thème personnalisé et conserve la nouvelle liste.
+  function updateTheme(id, patch) {
+    const next = customEntries.map((entry) => entry.id === id ? { ...entry, ...patch } : entry)
+    setCustomEntries(next)
+    writePreference(customThemesKey, JSON.stringify(next))
+  }
+
+  // Retire un thème personnalisé ; le thème actif retombe sur le premier prédéfini.
+  function deleteTheme(id) {
+    const next = customEntries.filter((entry) => entry.id !== id)
+    setCustomEntries(next)
+    writePreference(customThemesKey, JSON.stringify(next))
+    setThemeId((current) => current === id ? presetThemes[0].id : current)
+  }
+
+  return <ThemeContext.Provider value={{ theme, presetThemes, customThemes, setTheme, createTheme, updateTheme, deleteTheme }}>{children}</ThemeContext.Provider>
 }
 
-// Accède au catalogue et au thème actif depuis un composant React.
+// Accède au catalogue, aux thèmes personnalisés et au thème actif depuis un composant React.
 export function useTheme() {
   return useContext(ThemeContext)
 }
