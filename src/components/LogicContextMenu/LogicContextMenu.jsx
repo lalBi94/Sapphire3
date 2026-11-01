@@ -25,7 +25,7 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
   const { t } = useTranslation()
   const [slotName, setSlotName] = useState(initialSlot ?? '')
   const [kind, setKind] = useState('')
-  const [collapsedGroups, setCollapsedGroups] = useState(() => new Set())
+  const [expandedGroups, setExpandedGroups] = useState(() => new Set())
   const [position, setPosition] = useState({ x, y })
   const [bounded, setBounded] = useState(false)
   const menuRef = useRef(null)
@@ -48,7 +48,7 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
   }, [x, y])
 
   useEffect(() => {
-    const first = kind ? menuRef.current.querySelector('input, select, .node-form button') : menuRef.current.querySelector('[role="menuitem"]:not(:disabled):not(.logic-context-menu__group)')
+    const first = kind ? menuRef.current.querySelector('input, select, .node-form button') : menuRef.current.querySelector('[role="menuitem"]:not(:disabled):not(.logic-context-menu__group)') ?? menuRef.current.querySelector('[role="menuitem"]:not(:disabled)')
     const focused = first ?? menuRef.current
     focused.focus({ preventScroll: true })
   }, [kind, slotName])
@@ -96,9 +96,9 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
   }
 
-  // Replie ou déplie une catégorie, sans toucher aux autres.
+  // Déplie ou replie une catégorie ; toutes commencent repliées à l'ouverture du menu.
   function toggleGroup(group) {
-    setCollapsedGroups((current) => {
+    setExpandedGroups((current) => {
       const next = new Set(current)
       if (next.has(group)) next.delete(group)
       else next.add(group)
@@ -123,7 +123,7 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
         {!available.ok && <p>{diagnosticLabel(available.code, t)}</p>}
         {available.ok && !selectedSlot && available.slots.map((slot) => <button type="button" role="menuitem" key={slot.name} disabled={slot.occupied || slot.malformed} onClick={() => { setSlotName(slot.name); setKind('') }}><CircleDot className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{slotLabel(slot.name, t)}{slot.occupied ? t('canvas.alreadyUsed') : slot.many ? t('canvas.several') : ''}</button>)}
         {available.ok && selectedSlot && groupedActions(available.actions).map(([group, actions]) => {
-          const collapsed = collapsedGroups.has(group)
+          const collapsed = !expandedGroups.has(group)
           return <Fragment key={group}>
             <button type="button" role="menuitem" className="logic-context-menu__group" aria-expanded={!collapsed} title={t(collapsed ? 'menu.groupExpand' : 'menu.groupCollapse')} onClick={() => toggleGroup(group)}>
               {collapsed ? <ChevronRight size={14} strokeWidth={1.75} aria-hidden="true" /> : <ChevronDown size={14} strokeWidth={1.75} aria-hidden="true" />}
