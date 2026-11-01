@@ -25,3 +25,28 @@ test('largeur de texte : estimation sans DOM, idéogrammes comptés double', () 
   assert.ok(textWidth('汉字段落', 12) > textWidth('abcdef', 12), 'le CJK est plus large que le latin à taille égale')
   assert.ok(textWidth('abc', 12) > 0)
 })
+
+test('vue SVG : les cartes ne se chevauchent plus même superposées dans le canvas', () => {
+  const workspace = examples.find((example) => example.id === 'imports').build()
+  const index = createContextIndex(workspace.project, analyzeProgram(workspace.project))
+  // Deux modules placés au même endroit sur le canvas, comme le reproche initial.
+  const cards = workspace.presentation.cards.map((card) => ({ ...card, x: 0, y: 0 }))
+  const svg = buildWorkspaceSvg({ cards, index, links: getModuleLinks(index), describe: (node) => node.kind })
+  const rects = [...svg.matchAll(/<rect x="([-\d.]+)" y="([-\d.]+)" width="([\d.]+)" height="([\d.]+)" rx="14"/g)]
+    .map((match) => ({ x: Number(match[1]), y: Number(match[2]), width: Number(match[3]), height: Number(match[4]) }))
+  assert.equal(rects.length, 2, 'deux cartes rendues')
+  const [a, b] = rects
+  const overlap = a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
+  assert.equal(overlap, false, 'les cartes sont espacées')
+})
+
+test('vue SVG : un module exportateur est placé avant son utilisateur', () => {
+  const workspace = examples.find((example) => example.id === 'imports').build()
+  const index = createContextIndex(workspace.project, analyzeProgram(workspace.project))
+  const cards = [...workspace.presentation.cards].reverse()
+  const svg = buildWorkspaceSvg({ cards, index, links: getModuleLinks(index), describe: (node) => node.kind })
+  const libraryX = Number(svg.match(new RegExp(`<rect x="([-\\d.]+)"[^>]*rx="14"[^>]*/>\\s*<text[^>]*>Library<`))?.[1])
+  const appX = Number(svg.match(new RegExp(`<rect x="([-\\d.]+)"[^>]*rx="14"[^>]*/>\\s*<text[^>]*>App<`))?.[1])
+  assert.ok(Number.isFinite(libraryX) && Number.isFinite(appX), 'les deux modules sont mesurés')
+  assert.ok(libraryX < appX, 'la bibliothèque précède l’application')
+})
