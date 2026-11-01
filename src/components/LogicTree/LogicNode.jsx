@@ -8,7 +8,7 @@ import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 
 // Rend une construction avec ses slots ; les cycles ou liens manquants restent des fragments lisibles.
-export default function LogicNode({ id, index, selectedId, activeExecutionId, onSelect, ancestors, expandedIds, onToggle, onOpenActions, dropTarget, onReorder, heat = null, heatEnabled = false }) {
+export default function LogicNode({ id, index, selectedId, activeExecutionId, onSelect, ancestors, expandedIds, onToggle, onOpenActions, dropTarget, onReorder, heat = null, heatEnabled = false, unusedIds = null }) {
   const { t } = useTranslation()
   const node = index.nodes.get(id)
   const schema = node ? getNodeSchema(node.kind) : null
@@ -24,6 +24,7 @@ export default function LogicNode({ id, index, selectedId, activeExecutionId, on
   const heatEntry = heatEnabled ? heat?.get(id) ?? null : null
   const heatLevel = heatEntry?.level ?? 0
   const executions = heatEntry?.count ?? 0
+  const unused = Boolean(unusedIds?.has(id))
 
   useEffect(() => {
     if (active) scrollNodeIntoCard(nodeRef.current, 'nearest')
@@ -55,6 +56,7 @@ export default function LogicNode({ id, index, selectedId, activeExecutionId, on
           {node.kind === 'FunctionDeclaration' && node.properties?.entryPoint === true && <span className="logic-node__entry-point">{t('canvas.startHere')}</span>}
           {diagnostics.length > 0 && <span className="logic-node__issues" aria-label={t(diagnostics.length === 1 ? 'canvas.issueCountOne' : 'canvas.issueCount', { count: diagnostics.length })}>{diagnostics.length}</span>}
           {heatEnabled && executions > 0 && <span className="logic-node__heat" title={t('heatmap.count', { count: executions })} aria-label={t('heatmap.count', { count: executions })}>{executions}</span>}
+          {unused && <span className="logic-node__unused" title={t('canvas.unusedHint')} aria-label={t('canvas.unusedHint')}>{t('canvas.unused')}</span>}
         </button>
         {order && order.count > 1 && <div className="logic-node__order">
           <button type="button" className="logic-node__order-button" title={t('canvas.moveUp')} aria-label={t('canvas.moveUp')} disabled={order.position === 0} onClick={(event) => { event.stopPropagation(); onReorder(id, -1) }}><ArrowUp size={13} strokeWidth={2} aria-hidden="true" /></button>
@@ -67,7 +69,7 @@ export default function LogicNode({ id, index, selectedId, activeExecutionId, on
         const children = Array.isArray(value) ? value : value === null || value === undefined ? [] : [value]
         return <div className="logic-node__slot" data-slot={slotName} key={slotName}>
           <span className="logic-node__slot-label">{slotLabel(slotName, t)}{slot.many ? ` [${children.length}]` : ''}</span>
-          {children.length === 0 ? <span className="logic-node__empty">{t(slot.required ? 'canvas.addSomething' : 'canvas.empty')}</span> : children.map((childId, position) => <LogicNode key={`${childId}:${position}`} id={childId} index={index} selectedId={selectedId} activeExecutionId={activeExecutionId} onSelect={onSelect} ancestors={[...ancestors, id]} expandedIds={expandedIds} onToggle={onToggle} onOpenActions={onOpenActions} dropTarget={dropTarget} onReorder={onReorder} heat={heat} heatEnabled={heatEnabled} />)}
+          {children.length === 0 ? <span className="logic-node__empty">{t(slot.required ? 'canvas.addSomething' : 'canvas.empty')}</span> : children.map((childId, position) => <LogicNode key={`${childId}:${position}`} id={childId} index={index} selectedId={selectedId} activeExecutionId={activeExecutionId} onSelect={onSelect} ancestors={[...ancestors, id]} expandedIds={expandedIds} onToggle={onToggle} onOpenActions={onOpenActions} dropTarget={dropTarget} onReorder={onReorder} heat={heat} heatEnabled={heatEnabled} unusedIds={unusedIds} />)}
         </div>
       })}
     </section>

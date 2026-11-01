@@ -219,6 +219,8 @@ const messages = {
   'canvas.lock': ['Lock', 'Verrouiller', '锁定', 'Bloquear', 'قفل'],
   'canvas.unlock': ['Unlock', 'Déverrouiller', '解锁', 'Desbloquear', 'فتح القفل'],
   'canvas.lockedHint': ['Locked — unlock to move or resize', 'Verrouillé — déverrouillez pour déplacer ou redimensionner', '已锁定 — 解锁后可移动或调整大小', 'Bloqueado — desbloquea para mover o redimensionar', 'مقفل — افتح القفل للتحريك أو تغيير الحجم'],
+  'canvas.unused': ['unused', 'inutilisé', '未使用', 'sin usar', 'غير مستخدم'],
+  'canvas.unusedHint': ['This declaration is never used.', 'Cette déclaration n’est jamais utilisée.', '此声明从未使用。', 'Esta declaración nunca se usa.', 'لا يُستخدم هذا التعريف أبدًا.'],
   'canvas.expandAll': ['Expand all', 'Tout déplier', '全部展开', 'Desplegar todo', 'توسيع الكل'],
   'canvas.collapseAll': ['Collapse all', 'Tout replier', '全部折叠', 'Plegar todo', 'طيّ الكل'],
   'canvas.show': ['Show', 'Afficher', '显示', 'Mostrar', 'إظهار'],
