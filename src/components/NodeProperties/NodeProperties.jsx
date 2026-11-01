@@ -1,6 +1,8 @@
+import { Fragment } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { resolveContext, getNodeSchema } from '../../utils/logic/index.js'
 import { diagnosticLabel, kindLabel, nodeSummary, slotLabel } from '../LogicTree/logicLabels.js'
+import { ancestorNodeIds } from '../../utils/nodeTree.js'
 import NodeForm from '../NodeForm/NodeForm.jsx'
 import ModuleNameForm from './ModuleNameForm.jsx'
 import ModuleInterface from './ModuleInterface.jsx'
@@ -15,6 +17,20 @@ function hierarchyLabel(record, t) {
   const name = record?.properties?.name
   const kind = kindLabel(record?.kind ?? '', t)
   return name ? `${name} · ${kind}` : kind
+}
+
+// Compose le fil d'Ariane du nœud : module, puis chaque ancêtre parlant jusqu'au nœud sélectionné.
+function nodeTrail(index, nodeId, t) {
+  const node = index.nodes.get(nodeId)
+  if (!node) return []
+  const module = index.modules.get(node.moduleId)
+  const labels = ancestorNodeIds(index, nodeId)
+    .filter((id) => id === nodeId || index.nodes.get(id)?.kind !== 'Block')
+    .map((id) => {
+      const record = index.nodes.get(id)
+      return record?.properties?.name || kindLabel(record?.kind ?? '', t)
+    })
+  return [...(module ? [module.name || t('card.module')] : []), ...labels]
 }
 
 // Rend récursivement les descendants source sans laisser un cycle bloquer le panneau.
@@ -55,8 +71,15 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
   const diagnostics = index.analysis.diagnostics.filter((entry) => selected.kind === 'module' ? entry.location.moduleId === selected.id : entry.location.nodeId === selected.id)
   const configurable = schema && (schema.named || schema.declaresType || schema.declaresElementType || ['BinaryExpression', 'UnaryExpression', 'Reference'].includes(record.kind))
   const title = selected.kind === 'module' ? t('details.module') : record ? kindLabel(record.kind, t) : t('details.block')
+  const trail = selected.kind === 'node' ? nodeTrail(index, selected.id, t) : []
 
   return <FloatingPanel className="node-properties" title={title} label={t('details.title')} onClose={onClose}>
+    {trail.length > 1 && <nav className="node-properties__breadcrumb" aria-label={t('details.breadcrumb')}>
+      {trail.map((label, position) => <Fragment key={position}>
+        {position > 0 && <ChevronRight size={12} strokeWidth={2} aria-hidden="true" />}
+        <span className={position === trail.length - 1 ? 'node-properties__breadcrumb-current' : undefined}>{label}</span>
+      </Fragment>)}
+    </nav>}
     {!context.ok ? <p>{t('details.missingBlock')}</p> : <>
       {selected.kind === 'module' ? <ModuleNameForm key={`${record.id}:${record.name}`} module={record} onRename={onRename} /> : configurable ? <NodeForm key={`${record.id}:${JSON.stringify([record.properties, record.references])}`} kind={record.kind} initialNode={record} context={context} onSubmit={(patch) => onConfigure(record.id, patch)} /> : <p>{t('details.addParts')}</p>}
       {selected.kind === 'module' && <ModuleInterface key={record.id} module={record} project={project} analysis={index.analysis} index={index} onExport={onExport} onImport={onImport} onRemoveImport={onRemoveImport} />}

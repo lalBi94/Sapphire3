@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { analyzeProgram, createContextIndex } from '../../src/utils/logic/index.js'
-import { expandableNodeIdsByModule, expandAllNodeIds, isFullyExpanded } from '../../src/utils/nodeTree.js'
+import { expandableNodeIdsByModule, expandAllNodeIds, isFullyExpanded, ancestorNodeIds } from '../../src/utils/nodeTree.js'
 import { twoModules, debugFixture } from '../logic/fixtures.js'
 
 // Reconstruit l'index visuel exactement comme le fait le document du canvas.
@@ -31,4 +31,11 @@ test('tout déplier et tout replier : calculs de liste et état de la bascule', 
   assert.equal(isFullyExpanded(['a', 'b', 'leaf'], ['a', 'b']), true, 'les feuilles peuvent rester repliées')
   assert.equal(isFullyExpanded(['a'], ['a', 'b']), false)
   assert.equal(isFullyExpanded(['a', 'b'], []), false, 'rien à déplier ne se dit jamais tout déplié')
+})
+
+test('fil d’Ariane : ancêtres d’un nœud du plus haut au nœud, sans boucle', () => {
+  const index = indexOf(debugFixture())
+  assert.deepEqual(ancestorNodeIds(index, 'printAfter'), ['main', 'mainBody', 'printAfter'])
+  assert.deepEqual(ancestorNodeIds(index, 'main'), ['main'], 'une racine de module s’arrête à elle-même')
+  assert.deepEqual(ancestorNodeIds(index, 'unknown'), [])
 })

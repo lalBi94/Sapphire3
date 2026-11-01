@@ -331,6 +331,7 @@ const messages = {
   'details.resizeHint': ['Drag to resize. Use the arrow keys to adjust.', 'Faites glisser pour redimensionner. Utilisez les flèches pour ajuster.', '拖动以调整大小。使用方向键调整。', 'Arrastre para redimensionar. Use las flechas para ajustar.', 'اسحب لتغيير الحجم. استخدم مفاتيح الأسهم للضبط.'],
   'details.missingBlock': ['Missing block', 'Bloc introuvable', '缺少块', 'Bloque no encontrado', 'كتلة مفقودة'],
   'details.hierarchy': ['Project hierarchy', 'Hiérarchie du projet', '项目层级', 'Jerarquía del proyecto', 'تسلسل المشروع'],
+  'details.breadcrumb': ['Location', 'Emplacement', '位置', 'Ubicación', 'الموقع'],
   'details.noModules': ['No modules yet.', 'Aucun module pour le moment.', '暂无模块。', 'Aún no hay módulos.', 'لا توجد وحدات بعد.'],
   'details.exports': ['Functions shared with other modules', 'Fonctions partagées avec les autres modules', '与其他模块共享的函数', 'Funciones compartidas con otros módulos', 'دوال مشتركة مع الوحدات الأخرى'],
   'details.exportsHint': ['Export a top-level function before importing it into another module.', 'Exportez une fonction de premier niveau avant de l’importer dans un autre module.', '在将顶层函数导入其他模块之前，先导出它。', 'Exporte una función de primer nivel antes de importarla en otro módulo.', 'صدّر دالة من المستوى الأعلى قبل استيرادها في وحدة أخرى.'],

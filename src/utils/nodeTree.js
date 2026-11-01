@@ -33,3 +33,18 @@ export function siblingOrder(index, id) {
   const position = list.indexOf(id)
   return position === -1 ? null : { position, count: list.length }
 }
+
+// Liste les ancêtres d'un nœud, du plus haut au nœud lui-même, sans boucler sur une source invalide.
+export function ancestorNodeIds(index, id) {
+  const ids = []
+  const visited = new Set()
+  let cursor = id
+  while (cursor && !visited.has(cursor)) {
+    visited.add(cursor)
+    if (!index.nodes.has(cursor)) break
+    ids.unshift(cursor)
+    const parent = index.parents.get(cursor)?.[0]
+    cursor = parent?.kind === 'node' ? parent.id : null
+  }
+  return ids
+}
