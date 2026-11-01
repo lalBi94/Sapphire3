@@ -80,7 +80,7 @@ La catégorie de module `main` est retirée : une ancienne source v1 l'utilisant
 | `ArrayCreation` | `elementType` obligatoire, `size` expression entière, `initializer?` expression du type d'élément |
 | `ArrayAccess` | `array` expression tableau, `index` expression entière ; résultat : type de l'élément |
 
-`nodeSchema.js` centralise catégories, slots et opérateurs. Le champ `declaresType` identifie les constructions portant une annotation ; `declaresElementType` identifie celles portant un type d'élément de tableau. Une annotation sur un opérateur ou une référence est une erreur structurelle et ne peut pas forcer son type. Chaque schéma porte aussi un `group` stable (`variable`, `type`, `function`, `parameter`, `condition`, `loop`, `return`, `block`, `statement`, `operator`, `value`, `incomplete`) utilisé uniquement par l'interface pour la couleur de bordure ; il ne participe ni à la validation ni au typage. Les règles détaillées des opérateurs et conversions sont ci-dessous.
+`nodeSchema.js` centralise catégories, slots et opérateurs. Le champ `declaresType` identifie les constructions portant une annotation ; `declaresElementType` identifie celles portant un type d'élément de tableau. Une annotation sur un opérateur ou une référence est une erreur structurelle et ne peut pas forcer son type. Chaque schéma porte aussi un `group` stable (`variable`, `type`, `function`, `parameter`, `condition`, `loop`, `return`, `block`, `statement`, `operator`, `value`, `array`, `incomplete`) utilisé uniquement par l'interface — couleur de bordure des cartes et regroupement des propositions du menu d'ajout ; il ne participe ni à la validation ni au typage. Les règles détaillées des opérateurs et conversions sont ci-dessous.
 
 ## Portées, imports et types
 

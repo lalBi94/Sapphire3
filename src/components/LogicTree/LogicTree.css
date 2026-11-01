@@ -21,6 +21,7 @@
 .logic-node[data-group='statement'] { border-color: var(--color-node-statement); }
 .logic-node[data-group='operator'] { border-color: var(--color-node-operator); }
 .logic-node[data-group='value'] { border-color: var(--color-node-value); }
+.logic-node[data-group='array'] { border-color: var(--color-node-array); }
 .logic-node[data-group='incomplete'] { border-color: var(--color-node-incomplete); }
 .logic-node--collapsed { padding: 8px 10px; }
 .logic-node__header { display: flex; align-items: flex-start; gap: 4px; min-width: 0; padding-right: 22px; }

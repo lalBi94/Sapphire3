@@ -1,11 +1,23 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { ArrowLeft, CircleDot, ClipboardPaste, Copy, CopyPlus, GitBranch, Network, Plus, Trash2 } from 'lucide-react'
 import { getAvailableActions, getNodeSchema } from '../../utils/logic/index.js'
-import { diagnosticLabel, kindLabel, slotLabel } from '../LogicTree/logicLabels.js'
+import { diagnosticLabel, groupLabel, kindLabel, slotLabel } from '../LogicTree/logicLabels.js'
 import NodeForm from '../NodeForm/NodeForm.jsx'
 import DeleteAction from '../DeleteAction/DeleteAction.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './LogicContextMenu.css'
+
+// Regroupe les constructions proposées par catégorie visuelle du schéma, dans l'ordre du schéma.
+function groupedActions(actions) {
+  const groups = []
+  for (const action of actions) {
+    const group = getNodeSchema(action.kind)?.group ?? 'incomplete'
+    const bucket = groups.find((entry) => entry[0] === group)
+    if (bucket) bucket[1].push(action)
+    else groups.push([group, [action]])
+  }
+  return groups
+}
 
 // Propose le slot, puis la construction compatible et son formulaire latéral.
 export default function LogicContextMenu({ project, index, targetId, initialSlot, x, y, onInsert, onDelete, onDeleteModule, onOpenGraph, onCopy, onPaste, onDuplicate, hasClipboard, onClose, anchored = false }) {
@@ -91,7 +103,10 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
         {selectedSlot && available.slots.length > 1 && <button type="button" role="menuitem" onClick={() => { setSlotName(''); setKind('') }}><ArrowLeft className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.back')}</button>}
         {!available.ok && <p>{diagnosticLabel(available.code, t)}</p>}
         {available.ok && !selectedSlot && available.slots.map((slot) => <button type="button" role="menuitem" key={slot.name} disabled={slot.occupied || slot.malformed} onClick={() => { setSlotName(slot.name); setKind('') }}><CircleDot className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{slotLabel(slot.name, t)}{slot.occupied ? t('canvas.alreadyUsed') : slot.many ? t('canvas.several') : ''}</button>)}
-        {available.ok && selectedSlot && available.actions.map((action) => <button type="button" role="menuitem" key={action.id} aria-pressed={kind === action.kind} onClick={() => setKind(action.kind)}><Plus className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{kindLabel(action.kind, t)}</button>)}
+        {available.ok && selectedSlot && groupedActions(available.actions).map(([group, actions]) => <Fragment key={group}>
+          <div className="logic-context-menu__title logic-context-menu__group">{groupLabel(group, t)}</div>
+          {actions.map((action) => <button type="button" role="menuitem" key={action.id} aria-pressed={kind === action.kind} onClick={() => setKind(action.kind)}><Plus className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{kindLabel(action.kind, t)}</button>)}
+        </Fragment>)}
         {available.ok && (available.slots.length === 0 || (selectedSlot && available.actions.length === 0)) && <p>{t('canvas.nothingToAdd')}</p>}
       </div>
       <div className="logic-context-menu__actions logic-context-menu__node-actions" role="menu" aria-label={t('canvas.nodeActions')}>

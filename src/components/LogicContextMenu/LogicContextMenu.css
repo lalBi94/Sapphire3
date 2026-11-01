@@ -5,6 +5,7 @@
 .logic-context-menu:active { cursor: grabbing; }
 .logic-context-menu__actions { min-width: 0; max-height: min(400px, calc(100dvh - var(--navigation-height) - 36px)); overflow-y: auto; }
 .logic-context-menu__title { color: var(--color-text-muted); padding: 9px; font-size: 11px; }
+.logic-context-menu__group { position: sticky; top: 0; z-index: 1; background: var(--surface-floating); color: var(--color-text); font-weight: 600; }
 .logic-context-menu__actions button { display: flex; align-items: center; gap: var(--space-control); width: 100%; min-height: 32px; padding: 7px 9px; border: 0; border-radius: var(--radius-control); text-align: left; color: var(--color-text); background: transparent; font: inherit; font-size: 12px; cursor: pointer; }
 .logic-context-menu__actions button:hover:not(:disabled) { background: var(--color-hover); }
 .logic-context-menu__actions button:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }

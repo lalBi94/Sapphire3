@@ -63,5 +63,6 @@
   --color-node-statement: #7fb069;
   --color-node-operator: #4fb3a8;
   --color-node-value: #b5c95a;
+  --color-node-array: #e8d06a;
   --color-node-incomplete: #d8b184;
 }

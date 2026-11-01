@@ -35,9 +35,9 @@ export const nodeSchema = Object.freeze({
   CastExpression: { category: 'expression', group: 'operator', declaresType: true, slots: { argument: expression } },
   Hole: { category: 'hole', group: 'incomplete', slots: {} },
   // Tableaux : littéral, création bornée par une taille, puis accès par index.
-  ArrayLiteral: { category: 'expression', group: 'value', declaresElementType: true, slots: { elements: { categories: ['expression'], many: true, required: true } } },
-  ArrayCreation: { category: 'expression', group: 'value', declaresElementType: true, slots: { size: expression, initializer: { ...expression, required: false } } },
-  ArrayAccess: { category: 'expression', group: 'value', slots: { array: expression, index: expression } },
+  ArrayLiteral: { category: 'expression', group: 'array', declaresElementType: true, slots: { elements: { categories: ['expression'], many: true, required: true } } },
+  ArrayCreation: { category: 'expression', group: 'array', declaresElementType: true, slots: { size: expression, initializer: { ...expression, required: false } } },
+  ArrayAccess: { category: 'expression', group: 'array', slots: { array: expression, index: expression } },
 })
 
 export const binaryOperators = Object.freeze({

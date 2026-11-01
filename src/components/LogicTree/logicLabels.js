@@ -5,6 +5,11 @@ export function kindLabel(kind, t) {
   return Object.hasOwn(translations.en, `kind.${kind}`) ? t(`kind.${kind}`) : t('labels.unknownKind', { kind })
 }
 
+// Nomme les catégories visuelles du schéma, utilisées pour regrouper les propositions du menu.
+export function groupLabel(group, t) {
+  return Object.hasOwn(translations.en, `group.${group}`) ? t(`group.${group}`) : group
+}
+
 // Remplace les noms internes des emplacements par des mots utiles dans l'interface.
 export function slotLabel(slot, t) {
   const field = slot.replace(/^children\./, '').replace(/\[\d+\].*$/, '')

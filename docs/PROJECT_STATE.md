@@ -68,7 +68,7 @@
 | `src/components/CanvasModule/CanvasModule.jsx`, `CanvasModule.css` | Carte navigable/redimensionnable, menu en haut à droite, croissance mesurée après insertion et contenu logique en enfant |
 | `src/components/NodeMenuButton/NodeMenuButton.jsx`, `NodeMenuButton.css` | Unique « + » de menu en haut à droite, partagé entre cartes et nœuds |
 | `src/components/DeleteAction/DeleteAction.jsx`, `DeleteAction.css` | Confirmation locale partagée des suppressions (propriétés et menus), erreurs et focus clavier |
-| `src/components/LogicContextMenu/LogicContextMenu.jsx`, `LogicContextMenu.css` | Menu d'insertion piloté par le moteur : choix du slot, puis construction, puis formulaire latéral |
+| `src/components/LogicContextMenu/LogicContextMenu.jsx`, `LogicContextMenu.css` | Menu d'insertion piloté par le moteur : choix du slot, puis construction regroupée par catégorie `group` du schéma, puis formulaire latéral |
 | `src/components/LogicTree/LogicTree.jsx`, `LogicNode.jsx`, `logicLabels.js`, `LogicTree.css` | Rendu des nœuds source dans les conteneurs, avec slots, types résolus, diagnostics, pliage local, résumé d'une ligne, bordure colorée par groupe et focus d'exécution animé |
 | `src/components/NodeProperties/NodeProperties.jsx`, `ModuleNameForm.jsx`, `ModuleInterface.jsx`, `NodeCodePreview.jsx`, `NodeProperties.css` | Propriétés : édition, interface de module, aperçu de code ciblé, enfants, diagnostics, suppression et hiérarchie |
 | `src/components/FloatingPanel/FloatingPanel.jsx`, `FloatingPanel.css` | Cadre commun aux propriétés et graphes, géométrie locale et gestes pointeur/clavier |
