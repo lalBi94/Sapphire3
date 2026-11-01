@@ -1,4 +1,4 @@
-import { isId, isRecord, sourceFormatVersion, moduleKinds } from './logic/model.js'
+import { isId, isRecord, sourceFormatVersion, moduleKinds, createProject } from './logic/model.js'
 import { serializeSource } from './logic/serialization.js'
 import { moduleTypes, minimumModuleSize } from './moduleTypes.js'
 import { isEmbeddedImage } from './embeddedImage.js'
@@ -115,4 +115,9 @@ export function deserializeWorkspace(text) {
   const definition = moduleTypes.module
   const cards = data.modules.map((module, position) => ({ id: module.id, type: 'module', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: definition.width, height: definition.height, expandedNodeIds: [] }))
   return JSON.parse(serializeWorkspace(data, cards, { x: 0, y: 0, zoomLevel: 0 }))
+}
+
+// Produit un document vierge explicite pour repartir d'un workspace neuf, sans fichier associé.
+export function emptyWorkspace() {
+  return { project: createProject('workspace'), presentation: { cards: [], camera: { x: 0, y: 0, zoomLevel: 0 }, selected: null } }
 }

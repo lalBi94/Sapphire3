@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { initialDocument, reduceDocument, reduceHistory } from '../../src/utils/canvasDocument.js'
-import { serializeWorkspace, deserializeWorkspace } from '../../src/utils/workspaceFile.js'
+import { serializeWorkspace, deserializeWorkspace, emptyWorkspace } from '../../src/utils/workspaceFile.js'
 import { createModule, captureSourceNode, pasteSourceNode, duplicateSourceNode, moveSourceNode, deleteSourceNodes, insertSourceNodes, createNode } from '../../src/utils/logic/index.js'
 import { debugFixture, node, intType } from '../logic/fixtures.js'
 
@@ -159,4 +159,17 @@ test('rejeu refusé : destinataire occupé ou source supprimée, sans perte ni �
   const result = reduceHistory(history, { type: 'moveNode', previousProject: current, prepared: moved, id: 'deadPrint', receiver: { kind: 'module', id: 'other' } })
   assert.equal(result.present.project, deleted.project)
   assert.equal(result.past.length, 0)
+})
+
+test('nouveau document : un workspace vierge remplace le document par un état vide, sans historique', () => {
+  const workspace = emptyWorkspace()
+  const text = serializeWorkspace(workspace.project, workspace.presentation.cards, workspace.presentation.camera, workspace.presentation.selected)
+  const roundTrip = deserializeWorkspace(text)
+  assert.deepEqual(roundTrip.presentation.cards, [])
+  assert.deepEqual(roundTrip.project.modules, [])
+  assert.deepEqual(roundTrip.project.nodes, [])
+  const filled = reduceHistory({ past: [], present: reduceDocument(initialDocument(), { type: 'createCard', card: card('m') }), future: [] }, { type: 'replaceWorkspace', workspace })
+  assert.deepEqual(filled.present.cards, [])
+  assert.equal(filled.present.project.modules.length, 0)
+  assert.equal(filled.past.length, 0, 'le nouveau document repart sans historique')
 })

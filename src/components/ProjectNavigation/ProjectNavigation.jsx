@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react'
-import { Bug, ChevronDown, Clock3, Code2, Eye, FileInput, FileOutput, FolderOpen, Palette, Play, Save, Search, X } from 'lucide-react'
+import { Bug, ChevronDown, Clock3, Code2, Eye, FileInput, FileOutput, FilePlus, FolderOpen, Palette, Play, Save, Search, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
 import { transpilationLanguages } from '../../utils/transpilation/index.js'
 import './ProjectNavigation.css'
 
-// Bloque le remplacement du document tant qu'il n'a pas été confirmé explicitement.
-function ImportConfirmation({ path, onConfirm, onCancel }) {
+// Bloque un remplacement du document tant qu'il n'a pas été confirmé explicitement.
+function ReplaceConfirmation({ titleKey, bodyKey, detail, confirmKey, onConfirm, onCancel }) {
   const dialogRef = useRef(null)
   const { t } = useTranslation()
 
@@ -14,16 +14,16 @@ function ImportConfirmation({ path, onConfirm, onCancel }) {
     dialogRef.current.showModal()
   }, [])
 
-  return <dialog ref={dialogRef} className="project-navigation__confirmation" aria-labelledby="import-title" onCancel={onCancel}>
-    <h2 id="import-title">{t('import.title')}</h2>
-    <p>{t('import.body')}</p>
-    <p className="project-navigation__path">{path}</p>
-    <div><button type="button" autoFocus onClick={onCancel}>{t('import.cancel')}</button><button type="button" className="project-navigation__primary" onClick={onConfirm}>{t('import.confirm')}</button></div>
+  return <dialog ref={dialogRef} className="project-navigation__confirmation" aria-labelledby="replace-title" onCancel={onCancel}>
+    <h2 id="replace-title">{t(titleKey)}</h2>
+    <p>{t(bodyKey)}</p>
+    {detail && <p className="project-navigation__path">{detail}</p>}
+    <div><button type="button" autoFocus onClick={onCancel}>{t('import.cancel')}</button><button type="button" className="project-navigation__primary" onClick={onConfirm}>{t(confirmKey)}</button></div>
   </dialog>
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, message, error, pendingImport, recentFiles, onSave, onSaveAs, onOpenSp3, onOpenRecent, onImport, onConfirmImport, onCancelImport, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile }) {
+export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onOpenSp3, onOpenRecent, onImport, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile }) {
   const navigationRef = useRef(null)
   const { language, setLanguage, t } = useTranslation()
 
@@ -105,6 +105,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
       <details name="workspace-menu" onToggle={handleToggle}>
         <summary>{t('nav.settings')}<ChevronDown size={12} aria-hidden="true" /></summary>
         <div className="project-navigation__menu">
+          <button type="button" disabled={busy || !!pendingImport} onClick={onNew}><FilePlus size={14} aria-hidden="true" />{t('nav.new')}</button>
           <button type="button" disabled={busy || !!pendingImport} onClick={handleOpenSp3}><FolderOpen size={14} aria-hidden="true" />{t('nav.openSp3')}</button>
           <p>{t('nav.recentFiles')}</p>
           {recentFiles.length === 0
@@ -179,6 +180,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
       </label>
       {error && <div className="project-navigation__error" role="alert"><span>{error}</span><button type="button" aria-label={t('nav.dismiss')} onClick={onDismiss}><X size={14} aria-hidden="true" /></button></div>}
     </nav>
-    {pendingImport && <ImportConfirmation path={pendingImport.path} onConfirm={onConfirmImport} onCancel={onCancelImport} />}
+    {pendingImport && <ReplaceConfirmation titleKey="import.title" bodyKey="import.body" detail={pendingImport.path} confirmKey="import.confirm" onConfirm={onConfirmImport} onCancel={onCancelImport} />}
+    {pendingNew && <ReplaceConfirmation titleKey="new.title" bodyKey="new.body" confirmKey="new.confirm" onConfirm={onConfirmNew} onCancel={onCancelNew} />}
   </>
 }

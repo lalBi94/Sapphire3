@@ -412,7 +412,7 @@ export default function Canvas() {
 
   return (
     <div ref={workspaceRef} className="canvas-workspace">
-    <ProjectNavigation busy={files.busy} message={files.message} error={files.error} pendingImport={files.pendingImport} recentFiles={files.recentFiles} onSave={files.handleSave} onSaveAs={files.saveAs} onOpenSp3={files.handleOpenSp3} onOpenRecent={files.handleOpenRecent} onImport={files.handleImport} onConfirmImport={files.handleConfirmImport} onCancelImport={files.handleCancelImport} onDismiss={files.handleDismiss}
+    <ProjectNavigation busy={files.busy} message={files.message} error={files.error} pendingImport={files.pendingImport} pendingNew={files.pendingNew} recentFiles={files.recentFiles} onSave={files.handleSave} onSaveAs={files.saveAs} onOpenSp3={files.handleOpenSp3} onOpenRecent={files.handleOpenRecent} onImport={files.handleImport} onConfirmImport={files.handleConfirmImport} onCancelImport={files.handleCancelImport} onNew={files.handleNew} onConfirmNew={files.handleConfirmNew} onCancelNew={files.handleCancelNew} onDismiss={files.handleDismiss}
       canUndo={document.canUndo} canRedo={document.canRedo} onUndo={document.undo} onRedo={document.redo}
       onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={() => handleRecenter(getModulesBounds())}
       distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)}

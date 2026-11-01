@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { serializeWorkspace, deserializeWorkspace } from '../utils/workspaceFile.js'
+import { serializeWorkspace, deserializeWorkspace, emptyWorkspace } from '../utils/workspaceFile.js'
 import { exportWorkspaceFile, importWorkspaceFile, readWorkspaceFile, writeWorkspaceFile } from '../services/workspaceFiles.js'
 import { useTranslation } from '../contexts/LanguageContext.jsx'
 import { readPreference, writePreference, hydratePreferences } from '../services/preferences.js'
@@ -33,6 +33,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
   const [message, setMessage] = useState('')
   const [error, setError] = useState(null)
   const [pendingImport, setPendingImport] = useState(null)
+  const [pendingNew, setPendingNew] = useState(false)
   const [currentPath, setCurrentPath] = useState(null)
   const [recentFiles, setRecentFiles] = useState(loadRecentFiles)
   const operation = useRef(false)
@@ -212,6 +213,39 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     setPendingImport(null)
   }
 
+  // Détecte un document jamais enregistré dont le contenu disparaîtrait en repartant à zéro.
+  function hasUnsavedContent() {
+    return !currentPath && (cards.length > 0 || project.modules.length > 0 || project.nodes.length > 0)
+  }
+
+  // Écrit les dernières modifications en attente, puis remplace le document par un workspace vierge sans chemin.
+  async function startNewWorkspace() {
+    setPendingNew(false)
+    await autosaveToCurrentPath()
+    onReplace(emptyWorkspace())
+    lastSavedText.current = null
+    applyCurrentPath(null)
+    setError(null)
+    setMessage('files.new')
+  }
+
+  // Repart d'un document vierge, après confirmation seulement si des modifications risquent d'être perdues.
+  function handleNew() {
+    if (operation.current || pendingImport) return
+    if (hasUnsavedContent()) { setPendingNew(true); return }
+    startNewWorkspace()
+  }
+
+  // Confirme et démarre le nouveau document après validation explicite.
+  function handleConfirmNew() {
+    startNewWorkspace()
+  }
+
+  // Annule le démarrage et conserve intégralement le document courant.
+  function handleCancelNew() {
+    setPendingNew(false)
+  }
+
   // Efface un message d'échec sans relancer l'opération de fichier.
   function handleDismiss() {
     setError(null)
@@ -265,5 +299,5 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     return () => window.clearTimeout(timer)
   }, [project, cards, currentPath])
 
-  return { busy, message: message ? t(message) : '', error: error ? `${t(error.prefix)} ${failureLabel(error.failure, t)}` : '', pendingImport, recentFiles, handleSave, saveAs, handleOpenSp3, handleOpenRecent, handleImport, handleConfirmImport, handleCancelImport, handleDismiss }
+  return { busy, message: message ? t(message) : '', error: error ? `${t(error.prefix)} ${failureLabel(error.failure, t)}` : '', pendingImport, pendingNew, recentFiles, handleSave, saveAs, handleOpenSp3, handleOpenRecent, handleImport, handleConfirmImport, handleCancelImport, handleNew, handleConfirmNew, handleCancelNew, handleDismiss }
 }
