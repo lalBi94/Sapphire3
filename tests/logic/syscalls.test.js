@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { analyzeProgram, simulateProgram, createDebugSession, getSyscall, syscallIds } from '../../src/utils/logic/index.js'
+import { analyzeProgram, simulateProgram, createDebugSession, getSyscall, syscallIds, getNodeSchema } from '../../src/utils/logic/index.js'
 import { program, root, node, intType, stringType } from './fixtures.js'
 
 const voidType = { kind: 'primitive', name: 'void' }
@@ -24,6 +24,7 @@ test('appels système : le registre est cohérent et reproductible', () => {
     assert.ok(definition.returnType)
   }
   assert.equal(getSyscall('unknown'), null)
+  assert.equal(getNodeSchema('SystemCall').group, 'syscall', 'les appels système ont leur propre catégorie de menu')
   assert.equal(getSyscall('tick').run({ args: [], steps: 7 }), getSyscall('tick').run({ args: [], steps: 7 }))
 })
 
