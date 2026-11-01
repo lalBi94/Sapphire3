@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import CanvasGrid from '../CanvasGrid/CanvasGrid.jsx'
 import useCanvasPan from '../../hooks/useCanvasPan.jsx'
@@ -7,6 +7,7 @@ import useNodeTransfers from '../../hooks/useNodeTransfers.jsx'
 import CanvasStatus from '../CanvasStatus/CanvasStatus.jsx'
 import CanvasContextMenu from '../CanvasContextMenu/CanvasContextMenu.jsx'
 import CanvasModule from '../CanvasModule/CanvasModule.jsx'
+import CanvasLinks from '../CanvasLinks/CanvasLinks.jsx'
 import LogicTree from '../LogicTree/LogicTree.jsx'
 import LogicContextMenu from '../LogicContextMenu/LogicContextMenu.jsx'
 import NodeProperties from '../NodeProperties/NodeProperties.jsx'
@@ -15,7 +16,7 @@ import ProjectNavigation from '../ProjectNavigation/ProjectNavigation.jsx'
 import useWorkspaceFiles from '../../hooks/useWorkspaceFiles.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { diagnosticLabel } from '../LogicTree/logicLabels.js'
-import { createDebugSession, moveDebugSession, simulateProgram } from '../../utils/logic/index.js'
+import { createDebugSession, moveDebugSession, simulateProgram, getModuleLinks } from '../../utils/logic/index.js'
 import { transpileProgram } from '../../utils/transpilation/index.js'
 import { transpilationLanguages } from '../../utils/transpilation/languages.js'
 import { exportWorkspaceFile } from '../../services/workspaceFiles.js'
@@ -68,6 +69,8 @@ export default function Canvas() {
 
   const debugFrame = debugSession?.project === document.project ? debugSession.frames[debugSession.cursor] : null
   const activeExecutionId = debugSession ? debugFrame?.nodeId ?? null : execution?.trace[execution.index] ?? null
+  // Les liens intermodules ne dépendent que de l'analyse, pas du déplacement des cartes.
+  const moduleLinks = useMemo(() => getModuleLinks(document.index), [document.index])
 
   // Suit le bloc exécuté pour ouvrir ses propriétés sans réinitialiser la position du panneau.
   useEffect(() => {
@@ -334,6 +337,7 @@ export default function Canvas() {
       onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerEnd} onPointerCancel={handlePointerEnd} onLostPointerCapture={handlePointerEnd} onKeyDown={handleKeyDown} onContextMenu={handleContextMenu}
       onDragStart={transfers.handleDragStart} onDragOver={transfers.handleDragOver} onDrop={transfers.handleDrop} onDragEnd={transfers.handleDragEnd}>
       <CanvasGrid camera={camera} zoom={zoom} distorted={distorted} />
+      <CanvasLinks cards={document.cards} links={moduleLinks} camera={camera} zoom={zoom} />
       {document.cards.map((card) => <CanvasModule key={`${document.revision}:${card.id}`} module={card} camera={camera} zoom={zoom}
         dropState={transfers.dropTarget?.kind === 'module' && transfers.dropTarget.id === card.id ? transfers.dropTarget.ok ? 'valid' : 'invalid' : undefined}
         zIndex={activeCardId === card.id ? 2 : 1}
