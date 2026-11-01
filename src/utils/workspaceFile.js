@@ -64,6 +64,7 @@ function validatePresentation(project, presentation) {
     if (!Array.isArray(card.expandedNodeIds) || new Set(card.expandedNodeIds).size !== card.expandedNodeIds.length || card.expandedNodeIds.some((id) => !isId(id) || nodes.get(id)?.moduleId !== card.id || card.type !== 'module')) {
       throw workspaceError('Invalid expanded node data.')
     }
+    if (card.hidden !== undefined && typeof card.hidden !== 'boolean') throw workspaceError('Invalid card visibility.')
     ids.add(card.id)
   }
   if (project.modules.some((module) => !ids.has(module.id))) throw workspaceError('A module is missing its visual card.')
@@ -73,13 +74,19 @@ function validatePresentation(project, presentation) {
   }
 }
 
+// N'écrit le drapeau de carte masquée que lorsqu'il est vrai, pour garder les fichiers habituels inchangés.
+function exportableCard(card, nodes) {
+  const { hidden, ...rest } = card
+  return { ...rest, ...(hidden ? { hidden: true } : {}), expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) }
+}
+
 // Produit le même instantané JSON versionné pour les extensions .sp3 et .json.
 export function serializeWorkspace(project, cards, camera, selected = null) {
   validateProject(project)
   // Les identifiants de nœuds supprimés ne doivent pas survivre dans l'état de pliage exporté.
   const nodes = new Map(project.nodes.map((node) => [node.id, node]))
   const presentation = {
-    cards: cards.map((card) => ({ ...card, expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) })),
+    cards: cards.map((card) => exportableCard(card, nodes)),
     camera, selected,
   }
   validatePresentation(project, presentation)

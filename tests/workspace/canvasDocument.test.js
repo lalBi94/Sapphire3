@@ -59,6 +59,39 @@ test('import : historique isolé du précédent fichier et instantané réexport
   assert.doesNotThrow(() => serializeWorkspace(history.present.project, history.present.cards, workspace.presentation.camera))
 })
 
+test('masquer une carte : présentation seule, drapeau conservé et écrit seulement quand il est vrai', () => {
+  let history = { past: [], present: initialDocument(), future: [] }
+  for (const type of ['module', 'comment', 'image']) history = reduceHistory(history, { type: 'createCard', card: card(type, type) })
+  history = reduceHistory(history, { type: 'rename', id: 'module', name: 'Renamed' })
+  history = reduceHistory(history, { type: 'undo' })
+  const before = history
+  history = reduceHistory(history, { type: 'presentation', id: 'module', patch: { hidden: true } })
+  assert.equal(history.past.length, before.past.length, 'masquer ne crée pas une étape annulable')
+  assert.equal(history.future.length, 0, 'masquer invalide le redo comme toute édition de présentation')
+  assert.equal(history.present.project, before.present.project, 'la source logique reste la même carte mémoire')
+  assert.equal(history.present.project.modules.length, 1)
+  assert.deepEqual(history.present.cards.map((entry) => entry.hidden), [true, undefined, undefined])
+  const hidden = deserializeWorkspace(serializeWorkspace(history.present.project, history.present.cards, { x: 0, y: 0, zoomLevel: 0 }))
+  assert.deepEqual(hidden.presentation.cards.map((entry) => entry.id), ['module', 'comment', 'image'])
+  assert.equal(hidden.presentation.cards[0].hidden, true)
+  assert.equal(Object.hasOwn(hidden.presentation.cards[1], 'hidden'), false)
+  history = reduceHistory(history, { type: 'presentation', id: 'module', patch: { hidden: false } })
+  const shown = deserializeWorkspace(serializeWorkspace(history.present.project, history.present.cards, { x: 0, y: 0, zoomLevel: 0 }))
+  assert.equal(Object.hasOwn(shown.presentation.cards[0], 'hidden'), false, 'un drapeau faux n’est pas écrit dans le fichier')
+})
+
+test('visibilité de carte : import refusé pour un non-booléen, drapeau faux jamais écrit', () => {
+  const document = reduceDocument(initialDocument(), { type: 'createCard', card: card('module') })
+  const camera = { x: 0, y: 0, zoomLevel: 0 }
+  const written = (hidden) => JSON.parse(serializeWorkspace(document.project, hidden === undefined ? [card('module')] : [{ ...card('module'), hidden }], camera))
+  assert.equal(written(true).presentation.cards[0].hidden, true)
+  assert.equal(Object.hasOwn(written(false).presentation.cards[0], 'hidden'), false)
+  assert.doesNotThrow(() => deserializeWorkspace(JSON.stringify(written(true))))
+  const invalid = written(true)
+  invalid.presentation.cards[0].hidden = 'yes'
+  assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)), { message: 'Invalid card visibility.' })
+})
+
 // Installe un document de transfert sans API native ni historique préalable.
 function transferDocument() {
   const project = debugFixture()

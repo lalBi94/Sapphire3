@@ -53,6 +53,18 @@
   background: var(--color-yellow-soft);
 }
 
+/* Le repère de cartes masquées porte un libellé, contrairement aux boutons d'icône seule. */
+.canvas-status .canvas-status__hidden {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  padding-inline: 8px;
+  color: var(--color-text);
+  font: inherit;
+  white-space: nowrap;
+}
+
 .canvas-status button:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;

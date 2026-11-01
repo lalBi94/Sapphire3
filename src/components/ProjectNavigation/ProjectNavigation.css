@@ -17,7 +17,9 @@
 .project-navigation__language select { min-width: 88px; padding: 4px 6px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-surface-raised); color: var(--color-text); font: inherit; }
 .project-navigation button, .project-navigation__confirmation button { display: inline-flex; align-items: center; gap: var(--space-control); padding: 8px; border: 1px solid transparent; border-radius: var(--radius-control); background: transparent; color: var(--color-text); font: inherit; cursor: pointer; }
 .project-navigation__menu button { width: 100%; text-align: left; }
-.project-navigation__recent-file span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-navigation__recent-file span, .project-navigation__hidden-card span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-navigation__hidden-list { display: flex; flex-direction: column; max-height: 40vh; overflow-y: auto; }
+.project-navigation__hidden-card svg { flex-shrink: 0; }
 .project-navigation button:hover:not(:disabled) { background: var(--color-hover); }
 .project-navigation__run { color: var(--color-primary) !important; }
 .project-navigation__run-controls { display: flex; align-items: center; flex-shrink: 0; }

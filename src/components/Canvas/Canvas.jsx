@@ -75,6 +75,9 @@ export default function Canvas() {
   const activeExecutionId = debugSession ? debugFrame?.nodeId ?? null : execution?.trace[execution.index] ?? null
   // Les liens intermodules ne dépendent que de l'analyse, pas du déplacement des cartes.
   const moduleLinks = useMemo(() => getModuleLinks(document.index), [document.index])
+  // Une carte masquée reste dans le document et le fichier ; elle n'est simplement pas montée.
+  const visibleCards = useMemo(() => document.cards.filter((card) => !card.hidden), [document.cards])
+  const hiddenCards = useMemo(() => document.cards.filter((card) => card.hidden), [document.cards])
 
   // Suit le bloc exécuté pour ouvrir ses propriétés sans réinitialiser la position du panneau.
   useEffect(() => {
@@ -255,9 +258,9 @@ export default function Canvas() {
     setDebugSession(next)
   }
 
-  // Calcule le rectangle global des modules sans inclure les annotations de présentation.
+  // Calcule le rectangle global des modules visibles, sans inclure les annotations ni les cartes masquées.
   function getModulesBounds() {
-    const modules = document.cards.filter((card) => card.type === 'module')
+    const modules = document.cards.filter((card) => card.type === 'module' && !card.hidden)
     if (modules.length === 0) return { x: 0, y: 0, width: 0, height: 0 }
     const bounds = modules.reduce((current, module) => ({
       left: Math.min(current.left, module.x),
@@ -365,19 +368,41 @@ export default function Canvas() {
     return result
   }
 
+  // Enveloppe la carte sans la supprimer et referme toute sélection qui en dépend.
+  function handleHideCard(targetId) {
+    const card = document.cards.find((entry) => entry.id === targetId?.id)
+    if (!card) return
+    document.setCardHidden(card.id, true)
+    if (selected && (selected.id === card.id || document.index.nodes.get(selected.id)?.moduleId === card.id)) setSelected(null)
+    if (activeCardId === card.id) setActiveCardId(null)
+    menuTriggerRef.current = null
+    handleCloseMenu(true)
+  }
+
+  // Remet une carte masquée à la position conservée dans le document.
+  function handleShowCard(cardId) {
+    document.setCardHidden(cardId, false)
+  }
+
+  // Rouvre d'un coup toutes les cartes rangées hors du canvas.
+  function handleShowAllHidden() {
+    for (const card of hiddenCards) document.setCardHidden(card.id, false)
+  }
+
   return (
     <div ref={workspaceRef} className="canvas-workspace">
     <ProjectNavigation busy={files.busy} message={files.message} error={files.error} pendingImport={files.pendingImport} recentFiles={files.recentFiles} onSave={files.handleSave} onSaveAs={files.saveAs} onOpenSp3={files.handleOpenSp3} onOpenRecent={files.handleOpenRecent} onImport={files.handleImport} onConfirmImport={files.handleConfirmImport} onCancelImport={files.handleCancelImport} onDismiss={files.handleDismiss}
       canUndo={document.canUndo} canRedo={document.canRedo} onUndo={document.undo} onRedo={document.redo}
       onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={() => handleRecenter(getModulesBounds())}
       distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)}
+      hiddenCards={hiddenCards} onShowCard={handleShowCard} onShowAllHidden={handleShowAllHidden}
       hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onOpenSearch={search.show} onRunSimulation={handleRunSimulation} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} />
     <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label={t('canvas.aria')} tabIndex={0}
       onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerEnd} onPointerCancel={handlePointerEnd} onLostPointerCapture={handlePointerEnd} onKeyDown={handleKeyDown} onContextMenu={handleContextMenu}
       onDragStart={transfers.handleDragStart} onDragOver={transfers.handleDragOver} onDrop={transfers.handleDrop} onDragEnd={transfers.handleDragEnd}>
       <CanvasGrid camera={camera} zoom={zoom} distorted={distorted} />
-      <CanvasLinks cards={document.cards} links={moduleLinks} camera={camera} zoom={zoom} />
-      {document.cards.map((card) => <CanvasModule key={`${document.revision}:${card.id}`} module={card} camera={camera} zoom={zoom}
+      <CanvasLinks cards={visibleCards} links={moduleLinks} camera={camera} zoom={zoom} />
+      {visibleCards.map((card) => <CanvasModule key={`${document.revision}:${card.id}`} module={card} camera={camera} zoom={zoom}
         dropState={transfers.dropTarget?.kind === 'module' && transfers.dropTarget.id === card.id ? transfers.dropTarget.ok ? 'valid' : 'invalid' : undefined}
         zIndex={activeCardId === card.id ? 2 : 1}
         onActivate={() => bringCardToFront({ kind: card.type, id: card.id })}
@@ -390,7 +415,7 @@ export default function Canvas() {
         onRename={document.renameCard} onTextChange={document.updateComment} onImageChange={document.updateImage}>
         {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} dropTarget={transfers.dropTarget} />}
       </CanvasModule>)}
-      <CanvasStatus camera={camera} zoom={zoom} onRecenter={() => handleRecenter(getModulesBounds())} />
+      <CanvasStatus camera={camera} zoom={zoom} hiddenCount={hiddenCards.length} onShowAllHidden={handleShowAllHidden} onRecenter={() => handleRecenter(getModulesBounds())} />
       {transfers.notice && <div className={`canvas-transfer-status${transfers.notice.error ? ' canvas-transfer-status--error' : ''}`} data-canvas-ui role={transfers.notice.error ? 'alert' : 'status'} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
         <span>{transfers.notice.error ? diagnosticLabel(transfers.notice.error, t) : t(transfers.notice.message)}{transfers.notice.detail && ` · ${diagnosticLabel(transfers.notice.detail, t)}`}</span>
         <button type="button" aria-label={t('nav.dismiss')} onClick={transfers.dismiss}><X size={14} aria-hidden="true" /></button>
@@ -398,11 +423,11 @@ export default function Canvas() {
       <SimulationPanel result={simulationResult} running={Boolean(execution?.running)} currentStep={execution ? execution.index + 1 : 0} onClose={() => { setSimulationResult(null); setExecution(null) }} />
       {debugSession?.project === document.project && <DebugPanel session={debugSession} index={document.index} onAction={handleDebugAction} onClose={() => setDebugSession(null)} />}
       <TranspilePanel result={transpilationResult} exportError={transpileExportError} onExport={handleExportTranspilation} onClose={() => { setTranspilationResult(null); setTranspileExportError(null) }} />
-      {search.open && <NodeSearchPanel index={document.index} cards={document.cards} selectedId={selected?.kind === 'node' ? selected.id : null} focusToken={search.token} onReveal={handleRevealNode} onClose={handleCloseSearch} />}
+      {search.open && <NodeSearchPanel index={document.index} cards={visibleCards} selectedId={selected?.kind === 'node' ? selected.id : null} focusToken={search.token} onReveal={handleRevealNode} onClose={handleCloseSearch} />}
       {nodeGraph && <NodeGraphPanel project={document.project} index={document.index} target={nodeGraph.target} mode={nodeGraph.mode} onSelect={handleSelect} onClose={() => setNodeGraph(null)} />}
       {selected && <NodeProperties key={document.revision} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={handleSelect} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onExport={document.exportFunction} onImport={document.importFunction} onRemoveImport={document.removeImport} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
-      {contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} anchored={contextMenu.anchored} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onOpenGraph={handleOpenNodeGraph} onCopy={handleCopyNode} onPaste={transfers.pasteNode} onDuplicate={transfers.duplicateNode} hasClipboard={transfers.hasClipboard} onClose={handleCloseMenu} />
-        : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} onCreate={handleCreateModule} onClose={handleCloseMenu} anchored={contextMenu.anchored} commentId={contextMenu.targetId ? { id: contextMenu.targetId.id, type: contextMenu.targetId.kind } : null} onDeleteComment={handleDeleteComment} />)}
+      {contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} anchored={contextMenu.anchored} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onHideCard={handleHideCard} onOpenGraph={handleOpenNodeGraph} onCopy={handleCopyNode} onPaste={transfers.pasteNode} onDuplicate={transfers.duplicateNode} hasClipboard={transfers.hasClipboard} onClose={handleCloseMenu} />
+        : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} onCreate={handleCreateModule} onClose={handleCloseMenu} anchored={contextMenu.anchored} commentId={contextMenu.targetId ? { id: contextMenu.targetId.id, type: contextMenu.targetId.kind } : null} onDeleteComment={handleDeleteComment} onHideCard={handleHideCard} />)}
     </main>
     </div>
   )

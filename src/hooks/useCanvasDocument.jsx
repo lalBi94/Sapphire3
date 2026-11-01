@@ -133,6 +133,11 @@ export default function useCanvasDocument() {
     dispatch({ type: 'presentation', id, patch: { expandedNodeIds } })
   }
 
+  // Masque ou réaffiche une carte : portée purement visuelle, la source et l'historique restent intacts.
+  function setCardHidden(id, hidden) {
+    dispatch({ type: 'presentation', id, patch: { hidden } })
+  }
+
   // Charge un document validé et force le remontage des interactions locales des cartes.
   function replaceWorkspace(workspace) {
     dispatch({ type: 'replaceWorkspace', workspace })
@@ -148,5 +153,5 @@ export default function useCanvasDocument() {
     dispatch({ type: 'redo' })
   }
 
-  return { ...document, createCard, updateGeometry, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, duplicateNode, deleteNode, deleteModule, deleteComment, exportFunction, importFunction, removeImport, setExpandedNodes, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
+  return { ...document, createCard, updateGeometry, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, duplicateNode, deleteNode, deleteModule, deleteComment, exportFunction, importFunction, removeImport, setExpandedNodes, setCardHidden, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
 }

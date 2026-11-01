@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Box, Image, MessageSquare } from 'lucide-react'
+import { Box, EyeOff, Image, MessageSquare } from 'lucide-react'
 import { moduleTypes } from '../../utils/moduleTypes.js'
 import DeleteAction from '../DeleteAction/DeleteAction.jsx'
 import './CanvasContextMenu.css'
@@ -12,7 +12,7 @@ const menuIcons = {
 }
 
 // Propose les créations disponibles et gère la fermeture ainsi que le focus clavier.
-export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId = null, onDeleteComment, anchored = false }) {
+export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId = null, onDeleteComment, onHideCard, anchored = false }) {
   const menuRef = useRef(null)
   const { t } = useTranslation()
 
@@ -53,13 +53,16 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId =
       className="canvas-context-menu"
       data-canvas-ui
       data-canvas-scroll
-      style={{ left: `min(${x}px, max(8px, calc(100% - 192px)))`, top: anchored ? y : commentId ? `min(${y}px, max(8px, calc(100% - 240px)))` : y, maxHeight: anchored ? `calc(100% - ${y + 8}px)` : undefined }}
+      style={{ left: `min(${x}px, max(8px, calc(100% - 192px)))`, top: anchored ? y : commentId ? `min(${y}px, max(8px, calc(100% - 280px)))` : y, maxHeight: anchored ? `calc(100% - ${y + 8}px)` : undefined }}
       role="menu"
       aria-label={t(commentId ? 'canvas.visualMenu' : 'canvas.addMenu')}
       onPointerDown={(event) => event.stopPropagation()}
       onKeyDown={handleKeyDown}
     >
-      {commentId ? <DeleteAction targetId={commentId} kind={commentId.type ?? 'comment'} onDelete={onDeleteComment} menu /> : Object.keys(moduleTypes).map((type) => {
+      {commentId ? <>
+        <button type="button" role="menuitem" onClick={() => onHideCard(commentId)}><EyeOff className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.hide')} {t(moduleTypes[commentId.type ?? 'comment'].targetLabelKey)}</button>
+        <DeleteAction targetId={commentId} kind={commentId.type ?? 'comment'} onDelete={onDeleteComment} menu />
+      </> : Object.keys(moduleTypes).map((type) => {
         const Icon = menuIcons[type]
         return <button key={type} type="button" role="menuitem" onClick={() => onCreate(type)}>
           <Icon className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />
