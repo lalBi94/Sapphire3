@@ -38,6 +38,19 @@ export function captureBookmark(project, target, options = {}) {
   return { ok: true, bookmark: { version: 1, kind: 'function', name: root?.properties?.name ?? '', rootNodeIds: [captured.clipboard.rootId], nodes: captured.clipboard.nodes } }
 }
 
+// Décrit brièvement un favori pour l'interface : nom, signature et volumes, sans modifier l'instantané.
+export function describeBookmark(bookmark) {
+  const nodes = Array.isArray(bookmark?.nodes) ? bookmark.nodes : []
+  const byId = new Map(nodes.map((node) => [node.id, node]))
+  const functions = nodes.filter((node) => node?.kind === 'FunctionDeclaration').length
+  if (bookmark?.kind === 'function') {
+    const root = byId.get(bookmark.rootNodeIds?.[0])
+    const parameters = (root?.children?.parameters ?? []).map((id) => byId.get(id)?.properties?.type).filter(Boolean)
+    return { kind: 'function', name: root?.properties?.name ?? bookmark?.name ?? '', parameters, returnType: root?.properties?.type ?? null, nodeCount: nodes.length, functionCount: functions }
+  }
+  return { kind: 'module', name: bookmark?.name ?? '', parameters: [], returnType: null, nodeCount: nodes.length, functionCount: functions }
+}
+
 // Recopie un instantané dans un nouveau module en remappant identifiants, enfants et références.
 export function insertBookmark(project, bookmark, options = {}) {
   const { moduleId, moduleName, ids } = options

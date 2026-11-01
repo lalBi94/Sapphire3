@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { analyzeProgram, captureBookmark, insertBookmark } from '../../src/utils/logic/index.js'
+import { analyzeProgram, captureBookmark, insertBookmark, describeBookmark } from '../../src/utils/logic/index.js'
 import { program, root, node, intType } from './fixtures.js'
 
 const voidType = { kind: 'primitive', name: 'void' }
@@ -85,6 +85,22 @@ test('favori : une copie ne reprend jamais le rôle de point d’entrée', () =>
   assert.equal(result.ok, true)
   const copied = result.project.nodes.find((entry) => entry.id === result.rootNodeIds[0])
   assert.equal(copied.properties.entryPoint, false)
+})
+
+test('favori : le résumé expose nom, signature et volumes', () => {
+  const source = pureFunction()
+  const described = describeBookmark(captureBookmark(source, { kind: 'node', id: 'factorial' }).bookmark)
+  assert.equal(described.kind, 'function')
+  assert.equal(described.name, 'factorial')
+  assert.deepEqual(described.parameters, [intType])
+  assert.deepEqual(described.returnType, intType)
+  assert.equal(described.functionCount, 1)
+  assert.ok(described.nodeCount >= 6)
+
+  const moduleSummary = describeBookmark(captureBookmark(source, { kind: 'module', id: 'm' }).bookmark)
+  assert.equal(moduleSummary.kind, 'module')
+  assert.equal(moduleSummary.name, 'm')
+  assert.equal(moduleSummary.functionCount, 1)
 })
 
 test('favori : une entrée mal formée est refusée', () => {

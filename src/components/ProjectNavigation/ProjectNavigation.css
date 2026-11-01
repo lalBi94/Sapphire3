@@ -18,9 +18,11 @@
 .project-navigation__hint { font-size: 10px; line-height: 1.5; }
 .project-navigation__bookmarks { display: flex; flex-direction: column; max-height: 40vh; overflow-y: auto; }
 .project-navigation__bookmark { display: flex; align-items: center; gap: 4px; }
-.project-navigation__bookmark-insert { flex: 1 1 auto; min-width: 0; }
-.project-navigation__bookmark-insert span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.project-navigation__bookmark-delete { flex: 0 0 auto; padding: 6px; }
+.project-navigation__menu .project-navigation__bookmark-insert { width: auto; flex: 1 1 auto; min-width: 0; }
+.project-navigation__menu .project-navigation__bookmark-delete { width: auto; flex: 0 0 auto; padding: 6px; }
+.project-navigation__bookmark-text { display: flex; flex-direction: column; min-width: 0; }
+.project-navigation__bookmark-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-navigation__bookmark-summary { min-width: 0; color: var(--color-text-muted); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .project-navigation__bookmark svg { flex-shrink: 0; }
 .project-navigation button:hover:not(:disabled) { background: var(--color-hover); }
 .project-navigation__run { color: var(--color-primary) !important; }

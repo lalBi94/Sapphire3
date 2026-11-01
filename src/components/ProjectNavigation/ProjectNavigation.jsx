@@ -5,6 +5,8 @@ import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
 import { supportedLanguages } from '../../utils/translations.js'
 import { examples } from '../../utils/examples.js'
 import { transpilationLanguages } from '../../utils/transpilation/index.js'
+import { describeBookmark } from '../../utils/logic/index.js'
+import { typeLabel } from '../LogicTree/logicLabels.js'
 import './ProjectNavigation.css'
 
 // Bloque un remplacement du document tant qu'il n'a pas été confirmé explicitement.
@@ -168,10 +170,21 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
           {!canBookmark && <p className="project-navigation__hint">{t('bookmark.onlyPure')}</p>}
           {bookmarks.length === 0
             ? <p>{t('bookmark.empty')}</p>
-            : <div className="project-navigation__bookmarks">{bookmarks.map((entry) => <div className="project-navigation__bookmark" key={entry.id}>
-              <button type="button" className="project-navigation__bookmark-insert" title={t('bookmark.insert', { name: entry.name })} onClick={() => onInsertBookmark(entry.id)}><Download size={13} aria-hidden="true" /><span>{entry.name}</span></button>
-              <button type="button" className="project-navigation__bookmark-delete" aria-label={t('bookmark.delete', { name: entry.name })} title={t('bookmark.delete', { name: entry.name })} onClick={() => onDeleteBookmark(entry.id)}><Trash2 size={13} aria-hidden="true" /></button>
-            </div>)}
+            : <div className="project-navigation__bookmarks">{bookmarks.map((entry) => {
+              const describe = describeBookmark(entry)
+              const blocks = describe.nodeCount === 1 ? t('bookmark.blocksOne') : t('bookmark.blocks', { count: describe.nodeCount })
+              const functions = describe.functionCount === 1 ? t('bookmark.functionsOne') : t('bookmark.functions', { count: describe.functionCount })
+              const signature = describe.kind === 'function'
+                ? `(${describe.parameters.map((type) => typeLabel(type, t)).join(', ')}) → ${typeLabel(describe.returnType, t)}`
+                : functions
+              return <div className="project-navigation__bookmark" key={entry.id}>
+                <button type="button" className="project-navigation__bookmark-insert" title={t('bookmark.insert', { name: entry.name })} onClick={() => onInsertBookmark(entry.id)}><Download size={13} aria-hidden="true" /><span className="project-navigation__bookmark-text">
+                  <span className="project-navigation__bookmark-name">{describe.name || entry.name}</span>
+                  <span className="project-navigation__bookmark-summary">{signature} · {blocks}</span>
+                </span></button>
+                <button type="button" className="project-navigation__bookmark-delete" aria-label={t('bookmark.delete', { name: entry.name })} title={t('bookmark.delete', { name: entry.name })} onClick={() => onDeleteBookmark(entry.id)}><Trash2 size={13} aria-hidden="true" /></button>
+              </div>
+            })}
             </div>}
         </div>
       </details>
