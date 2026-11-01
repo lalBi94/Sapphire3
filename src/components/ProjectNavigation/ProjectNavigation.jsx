@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Bug, Check, ChevronDown, Clock3, Code2, FileInput, FileOutput, FolderOpen, Palette, Play, Save, X } from 'lucide-react'
+import { Bug, Check, ChevronDown, Clock3, Code2, FileInput, FileOutput, FolderOpen, Palette, Play, Save, Search, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { useTheme } from '../../contexts/ThemeContext.jsx'
 import { transpilationLanguages } from '../../utils/transpilation/index.js'
@@ -23,7 +23,7 @@ function ImportConfirmation({ path, onConfirm, onCancel }) {
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, message, error, pendingImport, recentFiles, onSave, onSaveAs, onOpenSp3, onOpenRecent, onImport, onConfirmImport, onCancelImport, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hasSelection, onOpenSelectionMenu, onRunSimulation, onDebugSp3, onTranspile }) {
+export default function ProjectNavigation({ busy, message, error, pendingImport, recentFiles, onSave, onSaveAs, onOpenSp3, onOpenRecent, onImport, onConfirmImport, onCancelImport, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile }) {
   const navigationRef = useRef(null)
   const { language, setLanguage, t } = useTranslation()
   const { theme, themes, setTheme } = useTheme()
@@ -56,6 +56,12 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
     const openMenu = navigationRef.current.querySelector('details[open]')
     closeMenus()
     openMenu?.querySelector('summary').focus()
+  }
+
+  // Ouvre la recherche Ctrl+F, avec ou sans sélection.
+  function handleOpenSearch() {
+    closeMenus()
+    if (onOpenSearch) onOpenSearch()
   }
 
   // Ferme le volet avant l'ouverture du dialogue de fichier.
@@ -115,6 +121,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
         <div className="project-navigation__menu">
           <button type="button" disabled={!canUndo} onClick={onUndo}>{t('nav.undo')}</button>
           <button type="button" disabled={!canRedo} onClick={onRedo}>{t('nav.redo')}</button>
+          <button type="button" onClick={handleOpenSearch}><Search size={14} aria-hidden="true" />{t('nav.search')}</button>
           {hasSelection && <button type="button" onClick={onOpenSelectionMenu}>{t('nav.addToSelection')}</button>}
         </div>
       </details>

@@ -4,6 +4,7 @@ import CanvasGrid from '../CanvasGrid/CanvasGrid.jsx'
 import useCanvasPan from '../../hooks/useCanvasPan.jsx'
 import useCanvasDocument from '../../hooks/useCanvasDocument.jsx'
 import useNodeTransfers from '../../hooks/useNodeTransfers.jsx'
+import useNodeSearch from '../../hooks/useNodeSearch.jsx'
 import CanvasStatus from '../CanvasStatus/CanvasStatus.jsx'
 import CanvasContextMenu from '../CanvasContextMenu/CanvasContextMenu.jsx'
 import CanvasModule from '../CanvasModule/CanvasModule.jsx'
@@ -24,6 +25,7 @@ import SimulationPanel from '../SimulationPanel/SimulationPanel.jsx'
 import DebugPanel from '../DebugPanel/DebugPanel.jsx'
 import TranspilePanel from '../TranspilePanel/TranspilePanel.jsx'
 import NodeGraphPanel from '../NodeGraphPanel/NodeGraphPanel.jsx'
+import NodeSearchPanel from '../NodeSearchPanel/NodeSearchPanel.jsx'
 import './Canvas.css'
 
 // Assemble présentation, document source et interactions, sans confondre position et syntaxe.
@@ -39,10 +41,12 @@ export default function Canvas() {
   const [transpilationResult, setTranspilationResult] = useState(null)
   const [transpileExportError, setTranspileExportError] = useState(null)
   const [nodeGraph, setNodeGraph] = useState(null)
+  const [revealTarget, setRevealTarget] = useState(null)
   const menuTriggerRef = useRef(null)
   const workspaceRef = useRef(null)
   const { language, t } = useTranslation()
   const document = useCanvasDocument()
+  const search = useNodeSearch()
   const selected = selection && (selection.kind === 'module' ? document.index.modules.has(selection.id) : document.index.nodes.has(selection.id)) ? selection : null
   const { camera, zoom, canvasRef, isPanning, handlePointerDown, handlePointerMove, handlePointerEnd, handleKeyDown, handleRecenter, zoomBy, resetZoom, restoreCamera } = useCanvasPan()
   const files = useWorkspaceFiles({ project: document.project, cards: document.cards, camera, selected, onReplace: handleReplaceWorkspace })
@@ -80,6 +84,14 @@ export default function Canvas() {
     if (moduleId) setActiveCardId(moduleId)
   }, [activeExecutionId])
 
+  // Une fois les ancêtres dépliés dans le DOM, amène le bloc recherché au centre de son module.
+  useEffect(() => {
+    if (!revealTarget) return
+    const element = workspaceRef.current?.querySelector(`[data-source-node="${revealTarget.nodeId}"]`)
+    if (element) element.scrollIntoView({ block: 'center', inline: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
+    setRevealTarget(null)
+  }, [revealTarget])
+
   // Restaure source, présentation et vue ensemble après confirmation d'import.
   function handleReplaceWorkspace(workspace) {
     transfers.reset()
@@ -109,6 +121,33 @@ export default function Canvas() {
   function handleSelect(targetId) {
     bringCardToFront(targetId)
     setSelected(targetId)
+  }
+
+  // Amène un bloc recherché à l'écran : ancêtres dépliés, sélection, module centré à l'échelle actuelle.
+  function handleRevealNode(nodeId) {
+    const moduleId = document.index.nodes.get(nodeId)?.moduleId
+    const card = document.cards.find((entry) => entry.id === moduleId)
+    if (!card) return
+    const expanded = new Set(card.expandedNodeIds ?? [])
+    let cursor = nodeId
+    const visited = new Set()
+    while (cursor && !visited.has(cursor)) {
+      visited.add(cursor)
+      expanded.add(cursor)
+      const parent = document.index.parents.get(cursor)?.find((entry) => entry.kind === 'node')
+      cursor = parent ? parent.id : null
+    }
+    document.setExpandedNodes(moduleId, [...expanded])
+    handleSelect({ kind: 'node', id: nodeId })
+    setGrowthRequest((current) => ({ moduleId, revision: current.revision + 1, documentRevision: document.revision }))
+    restoreCamera({ x: card.x + card.width / 2, y: card.y + card.height / 2, zoomLevel: camera.zoomLevel })
+    setRevealTarget({ nodeId, token: crypto.randomUUID() })
+  }
+
+  // Ferme la recherche et rend le clavier de navigation au canvas.
+  function handleCloseSearch() {
+    search.close()
+    canvasRef.current?.focus({ preventScroll: true })
   }
 
   // Identifie le nœud le plus proche, puis le module ; les annotations restent hors du moteur.
@@ -332,7 +371,7 @@ export default function Canvas() {
       canUndo={document.canUndo} canRedo={document.canRedo} onUndo={document.undo} onRedo={document.redo}
       onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={() => handleRecenter(getModulesBounds())}
       distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)}
-      hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onRunSimulation={handleRunSimulation} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} />
+      hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onOpenSearch={search.show} onRunSimulation={handleRunSimulation} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} />
     <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label={t('canvas.aria')} tabIndex={0}
       onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerEnd} onPointerCancel={handlePointerEnd} onLostPointerCapture={handlePointerEnd} onKeyDown={handleKeyDown} onContextMenu={handleContextMenu}
       onDragStart={transfers.handleDragStart} onDragOver={transfers.handleDragOver} onDrop={transfers.handleDrop} onDragEnd={transfers.handleDragEnd}>
@@ -359,6 +398,7 @@ export default function Canvas() {
       <SimulationPanel result={simulationResult} running={Boolean(execution?.running)} currentStep={execution ? execution.index + 1 : 0} onClose={() => { setSimulationResult(null); setExecution(null) }} />
       {debugSession?.project === document.project && <DebugPanel session={debugSession} index={document.index} onAction={handleDebugAction} onClose={() => setDebugSession(null)} />}
       <TranspilePanel result={transpilationResult} exportError={transpileExportError} onExport={handleExportTranspilation} onClose={() => { setTranspilationResult(null); setTranspileExportError(null) }} />
+      {search.open && <NodeSearchPanel index={document.index} cards={document.cards} selectedId={selected?.kind === 'node' ? selected.id : null} focusToken={search.token} onReveal={handleRevealNode} onClose={handleCloseSearch} />}
       {nodeGraph && <NodeGraphPanel project={document.project} index={document.index} target={nodeGraph.target} mode={nodeGraph.mode} onSelect={handleSelect} onClose={() => setNodeGraph(null)} />}
       {selected && <NodeProperties key={document.revision} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={handleSelect} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onExport={document.exportFunction} onImport={document.importFunction} onRemoveImport={document.removeImport} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
       {contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} anchored={contextMenu.anchored} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onOpenGraph={handleOpenNodeGraph} onCopy={handleCopyNode} onPaste={transfers.pasteNode} onDuplicate={transfers.duplicateNode} hasClipboard={transfers.hasClipboard} onClose={handleCloseMenu} />
