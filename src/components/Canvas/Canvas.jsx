@@ -597,7 +597,7 @@ export default function Canvas() {
         onSelect={() => handleSelect(card.type === 'module' ? { kind: 'module', id: card.id } : null)}
         onResize={(id, width, height) => document.updateGeometry(id, { width, height })}
         onMove={(id, x, y) => document.updateGeometry(id, { x, y })}
-        onRename={document.renameCard} onTextChange={document.updateComment} onImageChange={document.updateImage}
+        onRename={document.renameCard} onTextChange={document.updateComment} onImageChange={document.updateImage} onEmojiChange={document.setCardEmoji}
         onToggleLock={handleToggleLock}
         pure={pureIds.modules.has(card.id)}
         pulse={activeModuleId === card.id && executionStep !== null ? executionStep + 1 : null}

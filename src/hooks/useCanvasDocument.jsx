@@ -180,6 +180,11 @@ export default function useCanvasDocument() {
     dispatch({ type: 'presentation', id, patch: { locked } })
   }
 
+  // Pose ou retire l'emoji de présentation d'une carte, sans toucher à la source logique.
+  function setCardEmoji(id, emoji) {
+    dispatch({ type: 'presentation', id, patch: { emoji } })
+  }
+
   // Charge un document validé et force le remontage des interactions locales des cartes.
   function replaceWorkspace(workspace) {
     dispatch({ type: 'replaceWorkspace', workspace })
@@ -195,5 +200,5 @@ export default function useCanvasDocument() {
     dispatch({ type: 'redo' })
   }
 
-  return { ...document, createCard, updateGeometry, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, duplicateNode, deleteNode, deleteModule, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, setExpandedNodes, setCardHidden, setCardLocked, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
+  return { ...document, createCard, updateGeometry, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, duplicateNode, deleteNode, deleteModule, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, setExpandedNodes, setCardHidden, setCardLocked, setCardEmoji, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
 }

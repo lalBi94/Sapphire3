@@ -211,6 +211,21 @@ test('favori inséré : nouveau module, une seule étape undo/redo, source rejou
   assert.equal(history.present.cards.some((entry) => entry.id === 'fav'), false)
 })
 
+test('emoji de carte : conservé à l’aller-retour et refusé s’il est mal formé', () => {
+  const camera = { x: 0, y: 0, zoomLevel: 0 }
+  const document = reduceDocument(initialDocument(), { type: 'createCard', card: card('module') })
+  const withEmoji = reduceDocument(document, { type: 'presentation', id: 'module', patch: { emoji: '🚀' } })
+  assert.equal(withEmoji.cards[0].emoji, '🚀')
+  const text = serializeWorkspace(withEmoji.project, withEmoji.cards, camera)
+  assert.equal(JSON.parse(text).presentation.cards[0].emoji, '🚀')
+  assert.equal(deserializeWorkspace(text).presentation.cards[0].emoji, '🚀')
+  const empty = reduceDocument(document, { type: 'presentation', id: 'module', patch: { emoji: '' } })
+  assert.equal(Object.hasOwn(JSON.parse(serializeWorkspace(empty.project, empty.cards, camera)).presentation.cards[0], 'emoji'), false, 'un emoji vide n’est pas écrit')
+  const invalid = JSON.parse(text)
+  invalid.presentation.cards[0].emoji = 5
+  assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)), { message: 'Invalid card emoji.' })
+})
+
 test('contrats : conservés à l’aller-retour et refusés s’ils sont mal formés', () => {
   const camera = { x: 0, y: 0, zoomLevel: 0 }
   const document = reduceDocument(initialDocument(), { type: 'createCard', card: card('module') })

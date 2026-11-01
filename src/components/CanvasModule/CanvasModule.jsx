@@ -1,13 +1,69 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { ChevronsDownUp, ChevronsUpDown, Lock } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { ChevronsDownUp, ChevronsUpDown, Lock, Smile } from 'lucide-react'
 import { minimumModuleSize, moduleTypes } from '../../utils/moduleTypes.js'
 import { isEmbeddedImage } from '../../utils/embeddedImage.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './CanvasModule.css'
 
+// Choix d'emoji proposés d'un clic ; une saisie libre reste possible.
+const emojiPresets = ['📦', '⚙️', '🧩', '🔧', '🚀', '⭐', '🔥', '💡', '🧠', '📚', '🧪', '🛠️', '🎯', '🌐', '🔒', '❤️', '✅', '🧮', '🗂️', '📐']
+
+// Bouton d'emoji posé en haut à gauche du module ; le choix est rendu hors de la carte pour ne pas être rogné.
+function ModuleEmoji({ emoji, onChange }) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState('')
+  const [anchor, setAnchor] = useState(null)
+  const buttonRef = useRef(null)
+
+  useEffect(() => {
+    if (!open) return undefined
+    // Ferme le choix en visant ailleurs ou avec Échap.
+    function handleOutside(event) {
+      if (!event.target.closest('.module-emoji__popover') && !buttonRef.current?.contains(event.target)) setOpen(false)
+    }
+    function handleKey(event) { if (event.key === 'Escape') setOpen(false) }
+    document.addEventListener('pointerdown', handleOutside, true)
+    document.addEventListener('keydown', handleKey)
+    return () => { document.removeEventListener('pointerdown', handleOutside, true); document.removeEventListener('keydown', handleKey) }
+  }, [open])
+
+  // Ouvre le choix sous le bouton, borné à la fenêtre.
+  function toggle(event) {
+    event.stopPropagation()
+    if (open) { setOpen(false); return }
+    const rect = buttonRef.current.getBoundingClientRect()
+    const width = 232
+    setAnchor({ left: Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - width - 8)), top: rect.bottom + 6 })
+    setDraft('')
+    setOpen(true)
+  }
+
+  // Applique la valeur choisie puis referme le choix.
+  function choose(value) {
+    onChange(value.trim().slice(0, 8))
+    setOpen(false)
+  }
+
+  return <>
+    <button ref={buttonRef} type="button" className={`canvas-module__emoji${emoji ? ' canvas-module__emoji--set' : ''}`} aria-label={t('module.emojiAdd')} title={t('module.emojiAdd')} onPointerDown={(event) => event.stopPropagation()} onClick={toggle}>
+      {emoji ? <span aria-hidden="true">{emoji}</span> : <Smile size={14} strokeWidth={1.75} aria-hidden="true" />}
+    </button>
+    {open && anchor && createPortal(<div className="module-emoji__popover" role="dialog" aria-label={t('module.emojiPicker')} style={{ left: anchor.left, top: anchor.top }} onPointerDown={(event) => event.stopPropagation()}>
+      <div className="module-emoji__grid">{emojiPresets.map((value) => <button type="button" key={value} className="module-emoji__choice" aria-label={value} onClick={() => choose(value)} onPointerDown={(event) => event.stopPropagation()}>{value}</button>)}</div>
+      <div className="module-emoji__custom">
+        <input className="module-emoji__input" aria-label={t('module.emojiCustom')} value={draft} maxLength={8} placeholder="🙂" onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); choose(draft) } }} />
+        <button type="button" onClick={() => choose(draft)} onPointerDown={(event) => event.stopPropagation()}>{t('module.emojiApply')}</button>
+      </div>
+      {emoji && <button type="button" className="module-emoji__clear" onClick={() => choose('')} onPointerDown={(event) => event.stopPropagation()}>{t('module.emojiClear')}</button>}
+    </div>, document.body)}
+  </>
+}
+
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onRename, onTextChange, onImageChange, children, selected = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onRename, onTextChange, onImageChange, onEmojiChange, children, selected = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -232,7 +288,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
 
   return (
     <section
-      className={`canvas-module canvas-module--${module.type}${module.locked ? ' canvas-module--locked' : ''}${isMoving ? ' canvas-module--moving' : ''}${selected ? ' canvas-module--selected' : ''}${dropState ? ` canvas-module--drop-${dropState}` : ''}`}
+      className={`canvas-module canvas-module--${module.type}${definition.hasEmoji ? ' canvas-module--emoji' : ''}${module.locked ? ' canvas-module--locked' : ''}${isMoving ? ' canvas-module--moving' : ''}${selected ? ' canvas-module--selected' : ''}${dropState ? ` canvas-module--drop-${dropState}` : ''}`}
       aria-label={name}
       data-source-module={definition.hasText || definition.hasImage ? undefined : module.id}
       data-card-id={module.id}
@@ -252,6 +308,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
       <NodeMenuButton label={name} onOpen={onOpenActions} />
       {typeof pulse === 'number' && <span key={pulse} className="canvas-module__pulse" aria-hidden="true" />}
       <header className="canvas-module__header">
+        {definition.hasEmoji && <ModuleEmoji emoji={module.emoji ?? ''} onChange={(value) => onEmojiChange(module.id, value)} />}
         <h2>
           {editingName ? (
             <input

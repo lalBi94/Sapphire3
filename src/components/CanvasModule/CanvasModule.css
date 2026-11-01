@@ -40,6 +40,39 @@
 .canvas-module__header { padding-right: 36px; }
 .canvas-module > .node-menu-button { top: 9px; right: 8px; }
 
+/* Emoji du module : pastille cliquable en haut à gauche de la carte. */
+.canvas-module__emoji {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-left: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-small);
+  color: var(--color-text-muted);
+  background: transparent;
+  cursor: pointer;
+}
+.canvas-module__emoji:hover { color: var(--color-text); background: var(--color-hover); }
+.canvas-module__emoji:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.canvas-module__emoji--set { font-size: 18px; line-height: 1; }
+.canvas-module--emoji .canvas-module__move { padding-left: 4px; }
+
+/* Choix d'emoji : rendu hors de la carte (portail) pour ne pas être rogné. */
+.module-emoji__popover { position: fixed; z-index: 150; width: 232px; padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); corner-shape: var(--corner-shape); background: var(--surface-reflection), var(--surface-floating); box-shadow: var(--shadow-panel); color: var(--color-text); }
+.module-emoji__grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; }
+.module-emoji__choice { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: var(--radius-small); background: transparent; font-size: 16px; line-height: 1; cursor: pointer; }
+.module-emoji__choice:hover { background: var(--color-hover); }
+.module-emoji__choice:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }
+.module-emoji__custom { display: flex; gap: 6px; margin-top: 8px; }
+.module-emoji__input { flex: 1 1 auto; min-width: 0; padding: 4px 6px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-input); color: var(--color-text); font: inherit; }
+.module-emoji__custom button { flex: 0 0 auto; padding: 4px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: transparent; color: var(--color-text); font: inherit; cursor: pointer; }
+.module-emoji__custom button:hover { background: var(--color-hover); }
+.module-emoji__clear { margin-top: 6px; padding: 4px 8px; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--color-diagnostic); font: inherit; cursor: pointer; }
+.module-emoji__clear:hover { background: var(--color-hover); }
+
 /* Bascule de pliage, au même format que le bouton de menu posé dans le coin de la carte. */
 .canvas-module__expansion {
   flex: 0 0 auto;
