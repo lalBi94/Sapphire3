@@ -1,8 +1,9 @@
-import { Fragment } from 'react'
-import { ChevronRight } from 'lucide-react'
+import { Fragment, useState } from 'react'
+import { ChevronRight, Copy } from 'lucide-react'
 import { resolveContext, getNodeSchema } from '../../utils/logic/index.js'
 import { diagnosticLabel, kindLabel, nodeSummary, slotLabel } from '../LogicTree/logicLabels.js'
 import { ancestorNodeIds } from '../../utils/nodeTree.js'
+import { buildBugReport } from '../../utils/bugReport.js'
 import NodeForm from '../NodeForm/NodeForm.jsx'
 import ModuleNameForm from './ModuleNameForm.jsx'
 import ModuleInterface from './ModuleInterface.jsx'
@@ -64,7 +65,8 @@ function ProjectHierarchy({ project, index, selected, onSelect, t }) {
 
 // Affiche les propriétés et l'extrait de code dans le cadre flottant commun aux analyses.
 export default function NodeProperties({ selected, project, index, onConfigure, onRename, onSelect, onDelete, onDeleteModule, onExport, onImport, onRemoveImport, onClose, mutationError }) {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
+  const [reportState, setReportState] = useState('')
   const context = resolveContext(project, selected, undefined, index)
   const record = context.record
   const schema = selected.kind === 'node' && record ? getNodeSchema(record.kind) : null
@@ -72,6 +74,16 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
   const configurable = schema && (schema.named || schema.declaresType || schema.declaresElementType || ['BinaryExpression', 'UnaryExpression', 'Reference'].includes(record.kind))
   const title = selected.kind === 'module' ? t('details.module') : record ? kindLabel(record.kind, t) : t('details.block')
   const trail = selected.kind === 'node' ? nodeTrail(index, selected.id, t) : []
+
+  // Copie un rapport texte regroupant version, cible sélectionnée et diagnostics pour le signalement.
+  async function handleCopyReport() {
+    try {
+      await navigator.clipboard.writeText(buildBugReport({ project, index, target: selected, language }))
+      setReportState('details.reportCopied')
+    } catch {
+      setReportState('details.reportCopyFailed')
+    }
+  }
 
   return <FloatingPanel className="node-properties" title={title} label={t('details.title')} onClose={onClose}>
     {trail.length > 1 && <nav className="node-properties__breadcrumb" aria-label={t('details.breadcrumb')}>
@@ -91,6 +103,10 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
       <NodeCodePreview project={project} selected={selected} analysis={index.analysis} />
     </>}
     <h3>{t('details.issues')} · {diagnostics.length}</h3>
+    <div className="node-properties__report">
+      <button type="button" onClick={handleCopyReport}><Copy size={14} aria-hidden="true" />{t('details.report')}</button>
+      {reportState && <span role={reportState === 'details.reportCopyFailed' ? 'alert' : 'status'}>{t(reportState)}</span>}
+    </div>
     {mutationError && <p role="alert">{diagnosticLabel(mutationError, t)}</p>}
     {diagnostics.length === 0 ? <p>{t('details.noIssues')}</p> : <ul className="node-properties__diagnostics">{diagnostics.map((entry, position) => <li key={position}><strong>{diagnosticLabel(entry.code, t)}</strong>{entry.location.field && <small>{slotLabel(entry.location.field, t)}</small>}</li>)}</ul>}
     {context.ok && record && <div className="node-properties__danger"><DeleteAction key={`${selected.kind}:${record.id}`} targetId={record.id} kind={selected.kind} onDelete={selected.kind === 'module' ? onDeleteModule : onDelete} /></div>}

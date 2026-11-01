@@ -6,6 +6,11 @@
 .node-properties__breadcrumb span { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .node-properties__breadcrumb svg { flex-shrink: 0; opacity: 0.6; }
 .node-properties__breadcrumb-current { color: var(--color-text); font-weight: 600; }
+.node-properties__report { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+.node-properties__report button { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); color: var(--color-text); background: transparent; font: inherit; font-size: 10px; cursor: pointer; }
+.node-properties__report button:hover { background: var(--color-hover); }
+.node-properties__report button:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.node-properties__report span { color: var(--color-text-muted); font-size: 10px; }
 .node-properties__children { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0; }
 .node-properties__children span, .node-properties__children small { color: var(--color-text-muted); }
 .node-properties__children button { display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; border: 1px solid var(--color-selection-border); border-radius: var(--radius-small); color: var(--color-selection); background: var(--color-selection-surface); font: inherit; font-size: 10px; cursor: pointer; }
