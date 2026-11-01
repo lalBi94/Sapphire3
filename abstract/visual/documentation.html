@@ -1,0 +1,875 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Documentation visuelle — Sapphire 3</title>
+  <meta name="description" content="Documentation visuelle de Sapphire 3 : chaque aspect de l'application illustré par une capture réelle annotée, du canvas vide à la transpilation.">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+  <header class="site-header">
+    <p class="mark">Sapphire<span>3</span></p>
+    <nav aria-label="Navigation du site">
+      <a href="index.html">Projet</a>
+      <a href="documentation.html" aria-current="page">Documentation visuelle</a>
+      <a href="ast.html">Le modèle AST</a>
+    </nav>
+  </header>
+
+  <main>
+    <section>
+      <p class="kicker">Documentation visuelle</p>
+      <h1>Parcourir l'application, capture par capture</h1>
+      <p class="lede">
+        Toutes les images de cette page sont des captures de l'application en cours d'utilisation, à 1600 × 900.
+        Le projet illustré a été construit uniquement par l'interface&nbsp;: menus, formulaires, saisies clavier,
+        puis simulation. Aucune donnée n'a été injectée dans le document, aucune image n'a été retouchée. Les
+        repères jaunes sont posés en HTML&nbsp;: survolez une note (ou passez au clavier) pour encadrer la zone
+        correspondante, cliquez le repère pour le figer.
+      </p>
+      <ol class="toc">
+        <li><a href="#canvas">1 · Le canvas et son cadre</a></li>
+        <li><a href="#carte">2 · Poser une carte Module</a></li>
+        <li><a href="#menu">3 · Le menu d'ajout groupé</a></li>
+        <li><a href="#fonction">4 · Déclarer une fonction</a></li>
+        <li><a href="#expression">5 · Construire une expression</a></li>
+        <li><a href="#arborescence">6 · Lire l'arborescence</a></li>
+        <li><a href="#exports">7 · Publier : les exports</a></li>
+        <li><a href="#imports">8 · Emprunter : les imports</a></li>
+        <li><a href="#types">9 · Types, tableaux et point d'entrée</a></li>
+        <li><a href="#instructions">10 · Afficher et conditionner</a></li>
+        <li><a href="#dependances">11 · La flèche de dépendance</a></li>
+        <li><a href="#projet">12 · Le projet entier</a></li>
+        <li><a href="#annotations">13 · Notes et images</a></li>
+        <li><a href="#simulation">14 · Simuler et déboguer</a></li>
+        <li><a href="#analyses">15 · CFG et dépendances</a></li>
+        <li><a href="#transpilation">16 · Transpiler</a></li>
+        <li><a href="#apparence">17 · Thèmes, langue, grille, zoom</a></li>
+        <li><a href="#validation">18 · Ce que l'interface refuse</a></li>
+        <li><a href="#fichier">19 · Le fichier .sp3</a></li>
+        <li><a href="#limites">20 · Limites assumées</a></li>
+      </ol>
+    </section>
+
+    <section id="canvas" class="shot-anchor">
+      <div class="section-title">
+        <h2>1 · Le canvas et son cadre</h2>
+        <span class="tag">Navigation</span>
+      </div>
+      <p>
+        L'application tient dans une seule fenêtre sans barres figées&nbsp;: un canvas infini et un volet
+        d'actions, replié en permanence sur le côté. Le quadrillage est discret, courbé vers les bords et
+        assombri en périphérie, ce qui rend le déplacement lisible sans borner le document.
+      </p>
+      <figure class="shot" data-shot="01-canvas-vide">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/01-canvas-vide.png" alt="Canvas vide de Sapphire 3 avec son quadrillage courbé, le volet de navigation à gauche et le statut en bas." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="navigation">Le volet unique&nbsp;: fichiers récents, import/export, édition (annuler, rétablir), affichage, thème, réglages et simulation. Tout le reste se passe sur le canvas.</li>
+            <li data-marker="commandes">Les commandes de vue — agrandir, réduire, recentrer, zoom 100&nbsp;% — sont collées au statut pour rester atteignables sans déplacer la main.</li>
+            <li data-marker="statut">Statut du document&nbsp;: modules, nœuds et diagnostics à jour. Il change dès qu'une construction est ajoutée ou retirée.</li>
+            <li data-marker="grille">Le repère lui-même est une donnée d'affichage : les lignes sont courbées aux bords, la grille peut être mise droite pour aligner des cartes.</li>
+          </ol>
+        </div>
+        <figcaption><b>01 — Canvas vierge.</b> Rien n'est encore posé&nbsp;; le document logique est vide, le canevas est déjà infini.</figcaption>
+      </figure>
+      <p>
+        Déplacement&nbsp;: glisser avec le bouton gauche ou central dans le vide, ou flèches quand le canvas a le
+        focus. Zoom&nbsp;: molette centrée sur le milieu de la vue, plafonné à 400&nbsp;%, sans minimum appliqué&nbsp;;
+        glisser et zoomer se combinent sans saut ni réinitialisation.
+      </p>
+    </section>
+
+    <section id="carte" class="shot-anchor">
+      <div class="section-title">
+        <h2>2 · Poser une carte Module</h2>
+        <span class="tag">Structure</span>
+      </div>
+      <p>
+        Un clic droit dans le vide ouvre le menu du canvas. «&nbsp;Créer un module&nbsp;» pose une carte
+        immédiatement renommable&nbsp;: le titre est le nom du module source, pas une étiquette locale.
+      </p>
+      <figure class="shot" data-shot="02-menu-canvas">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/02-menu-canvas.png" alt="Menu contextuel du canvas proposant de créer un module, une note ou une image." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="menu">Menu du canvas&nbsp;: trois créations seulement — module, note, image. Le menu se referme par un clic dans le vide ou par Échap, sans effet de bord.</li>
+          </ol>
+        </div>
+        <figcaption><b>02 — Menu du canvas.</b> Le point d'entrée de toute création, au point exact où l'on veut poser la carte.</figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="03-module-vide">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/03-module-vide.png" alt="Carte Module vide titrée Calculs avec son bouton de menu et son texte d'invitation." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="carte">La carte Module est à la fois l'unité de rangement et l'unité de portée&nbsp;: tout ce qu'elle contient appartient à ce module, rien ne franchit sa frontière comme enfant syntaxique.</li>
+            <li data-marker="titre">Titre renommable en place&nbsp;; il engage le nom du module dans le modèle logique.</li>
+            <li data-marker="bouton">Le bouton de la carte ouvre les constructions racines — uniquement des fonctions et des types, car un module n'admet pas d'instructions libres à sa racine.</li>
+            <li data-marker="invitation">Invitation explicite quand la carte est vide. Elle disparaît dès la première construction&nbsp;: c'est un état du document, pas un message d'aide figé.</li>
+          </ol>
+        </div>
+        <figcaption><b>03 — Module «&nbsp;Calculs&nbsp;».</b> Vide, donc valide&nbsp;: un module sans racine n'est pas une erreur.</figcaption>
+      </figure>
+    </section>
+
+    <section id="menu" class="shot-anchor">
+      <div class="section-title">
+        <h2>3 · Le menu d'ajout groupé</h2>
+        <span class="tag">Création</span>
+      </div>
+      <p>
+        Les propositions ne sont pas une liste codée en dur&nbsp;: elles sont déduites du schéma du langage et du
+        contexte lexical. Un emplacement déjà occupé n'est pas proposé&nbsp;; une boucle n'est proposée que dans une
+        boucle&nbsp;; un <code>return</code> que dans une fonction.
+      </p>
+      <figure class="shot" data-shot="04-menu-blocs">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/04-menu-blocs.png" alt="Menu d'ajout avec les actions groupées par catégorie et les emplacements disponibles en colonnes." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="menu">Le menu d'ajout, ancré sur l'emplacement choisi. Il présente d'abord les emplacements, puis ce qu'ils acceptent.</li>
+            <li data-marker="colonnes">Première colonne&nbsp;: les slots atteignables depuis le contexte (racine, étapes, alors, sinon…). Chaque slot n'est proposé qu'une fois.</li>
+            <li data-marker="actions">Deuxième colonne&nbsp;: les constructions compatibles avec le slot visé, déduites de <code>nodeSchema</code>.</li>
+            <li data-marker="groupe">Regroupement par la catégorie <code>group</code> du schéma — déclarations, blocs, instructions, opérateurs, valeurs, tableaux. Cet identifiant sert aussi de couleur de bordure&nbsp;; il ne participe ni à la validation ni au typage.</li>
+          </ol>
+        </div>
+        <figcaption><b>04 — Menu d'ajout.</b> Un slot de la carte <b>Calculs</b>, avec ses constructions groupées.</figcaption>
+      </figure>
+    </section>
+
+    <section id="fonction" class="shot-anchor">
+      <div class="section-title">
+        <h2>4 · Déclarer une fonction</h2>
+        <span class="tag">Formulaire</span>
+      </div>
+      <p>
+        Chaque construction se crée par un formulaire, jamais par un glisser-déposer de blocs déjà formés. Le
+        formulaire valide avant d'écrire&nbsp;: un refus laisse la source inchangée.
+      </p>
+      <figure class="shot" data-shot="05-forme-fonction">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/05-forme-fonction.png" alt="Formulaire de création d'une fonction avec nom, type de retour et ajout d'une entrée." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="formulaire">Le panneau de formulaire apparaît à droite des colonnes d'actions, là où le canvas reste lisible. Il se déplace et se redimensionne.</li>
+            <li data-marker="nom">Le nom est une donnée du modèle logique, pas une étiquette d'affichage&nbsp;; il servira aux références et aux exports.</li>
+            <li data-marker="type">Type de retour, choisi dans le catalogue des primitives. <code>void</code> n'est autorisé qu'ici&nbsp;: c'est le seul endroit où il a un sens.</li>
+            <li data-marker="entree">Entrées ajoutées une à une&nbsp;: chaque <code>Parameter</code> est un nœud réel du langage, avec son nom et son type, et n'existe que dans la liste de sa fonction.</li>
+            <li data-marker="bouton">Création effective&nbsp;: si le résultat est invalide, un message bloque l'écriture et rien n'est inséré.</li>
+          </ol>
+        </div>
+        <figcaption><b>05 — Fonction <code>Double</code>.</b> Une entrée <code>valeur&nbsp;: int</code>, retour <code>int</code>.</figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="06-fonction-creee">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/06-fonction-creee.png" alt="Carte Calculs contenant la fonction Double avec ses étapes repliées." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-node="Calculs::Double (valeur)">Nœud fonction&nbsp;: replié sur son entête, il affiche sa signature réelle — nom, types des entrées, type de retour.</li>
+            <li data-node="Calculs::valeur">Le paramètre, enfant de la liste <code>parameters</code>. Sa couleur d'onglet vient de sa catégorie, pas de sa position.</li>
+            <li data-node="Calculs::Étapes">Le corps, un bloc dont le slot <code>body</code> est déjà occupé&nbsp;: il est donc montré comme conteneur «&nbsp;déjà utilisé&nbsp;», et les instructions s'ajoutent par son propre menu.</li>
+          </ol>
+        </div>
+        <figcaption><b>06 — Après création.</b> Une fonction, un bloc, aucune étape&nbsp;: encore incomplet, donc diagnostiqué, mais conservé.</figcaption>
+      </figure>
+    </section>
+
+    <section id="expression" class="shot-anchor">
+      <div class="section-title">
+        <h2>5 · Construire une expression</h2>
+        <span class="tag">Saisie typée</span>
+      </div>
+      <p>
+        Une valeur ne s'écrit pas dans un champ de texte libre. Chaque emplacement d'expression offre des modes —
+        littéral, référence, opération, conversion, tableau, appel — et chaque mode redemande les types attendus.
+        Un mode qui exige un type concret n'est proposé que si l'emplacement en attend un.
+      </p>
+      <figure class="shot" data-shot="07-forme-retour">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/07-forme-retour.png" alt="Formulaire de l'instruction Retour avec le mode de l'expression à retourner." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="formulaire">Instruction <code>ReturnStatement</code>&nbsp;: son unique slot <code>argument</code> est une expression, optionnelle en apparence mais contrainte par le type de retour.</li>
+            <li data-marker="case">Le choix de laisser l'argument vide est explicite. Une fonction non <code>void</code> sans valeur de retour produira <code>RETURN_MISSING</code>.</li>
+            <li data-marker="bouton">Créer le bloc&nbsp;: la validation d'insertion est refaite dans le moteur avant écriture, pas seulement dans le formulaire.</li>
+          </ol>
+        </div>
+        <figcaption><b>07 — Retour.</b></figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="08-forme-operation">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/08-forme-operation.png" alt="Formulaire d'une opération binaire avec le choix de l'opérateur." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="formulaire">Opération binaire&nbsp;: deux sous-expressions, chacune saisie dans son propre emplacement, chacune typée indépendamment.</li>
+            <li data-marker="operateur">Opérateurs réellement disponibles pour le type attendu&nbsp;: <code>+ - * / %</code>, comparaisons, <code>and</code> / <code>or</code>. Le type d'opérandes est demandé séparément, car aucune conversion implicite n'existe.</li>
+          </ol>
+        </div>
+        <figcaption><b>08 — <code>valeur * 2</code> comme opération.</b></figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="09-forme-reference">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/09-forme-reference.png" alt="Formulaire en mode référence listant les symboles visibles depuis la portée courante." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="formulaire">Mode «&nbsp;Utiliser une valeur&nbsp;»&nbsp;: la liste vient des symboles accessibles dans la portée, imports compris, et non de tous les noms du projet.</li>
+            <li data-marker="symbole">Choix du symbole <code>valeur</code>. Une référence n'est pas un enfant syntaxique&nbsp;: elle ne déplace ni ne duplique la déclaration.</li>
+          </ol>
+        </div>
+        <figcaption><b>09 — Références.</b> Le symbole est choisi dans une liste bornée par la portée&nbsp;; le champ
+        d'expression reste le même panneau, dans un autre mode.</figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="10-forme-litteral">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/10-forme-litteral.png" alt="Formulaire d'un littéral avec choix du type puis saisie de la valeur." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="formulaire">Littéral typé explicitement&nbsp;: aucune inférence depuis la valeur saisie.</li>
+            <li data-marker="type">Le type est choisi d'abord (<code>short int</code>, <code>short uint</code>, <code>int</code>, <code>uint</code>, <code>float</code>, <code>double</code>, <code>string</code>, <code>char</code>, <code>boolean</code>).</li>
+            <li data-marker="valeur">La valeur est validée dans le domaine du type&nbsp;: fraction dans un entier, hors bornes, texte avec espaces mal formé&nbsp;— refus avant écriture.</li>
+          </ol>
+        </div>
+        <figcaption><b>10 — Le <code>2</code> de <code>valeur * 2</code>.</b></figcaption>
+      </figure>
+    </section>
+
+    <section id="arborescence" class="shot-anchor">
+      <div class="section-title">
+        <h2>6 · Lire l'arborescence</h2>
+        <span class="tag">Représentation</span>
+      </div>
+      <p>
+        Une carte Module affiche l'arbre de ses nœuds. Chaque ligne est un nœud du modèle logique, plié ou déplié
+        pour la lecture uniquement&nbsp;: la source, elle, ne se replie pas.
+      </p>
+      <figure class="shot" data-shot="11-arborescence">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/11-arborescence.png" alt="Arborescence complète de la fonction Double : retour, opération, référence et littéral." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-node="Calculs::Retour">L'instruction de retour, seule étape du corps.</li>
+            <li data-node="Calculs::Opération">Le nœud <code>BinaryExpression</code>&nbsp;: son type vient de ses opérandes, il ne porte aucune annotation de type.</li>
+            <li data-node="Calculs::Utiliser une valeur">La référence <code>valeur</code>, résolue vers le paramètre.</li>
+            <li data-node="Calculs::Valeur">Le littéral <code>2</code>, typé <code>int</code> comme son opérande de gauche.</li>
+          </ol>
+        </div>
+        <figcaption><b>11 — <code>return valeur * 2</code>.</b> Quatre nœuds, trois relations différentes&nbsp;: propriété, parenté syntaxique, référence symbolique.</figcaption>
+      </figure>
+      <div class="notes-warning">
+        <p style="margin:0">
+          Une annotation de type posée sur un opérateur ou une référence est une erreur structurelle
+          (<code>STRUCTURE_INVALID</code>)&nbsp;: le schéma refuse les types qui ne peuvent pas en porter, et
+          l'interface ne propose pas le champ.
+        </p>
+      </div>
+    </section>
+
+    <section id="exports" class="shot-anchor">
+      <div class="section-title">
+        <h2>7 · Publier&nbsp;: les exports</h2>
+        <span class="tag">Interface de module</span>
+      </div>
+      <p>
+        Sélectionner une carte ouvre son panneau de propriétés&nbsp;: la hiérarchie du module, ses racines, ses
+        exports et ses imports. Un export ne crée rien&nbsp;: il publie une déclaration déjà présente à la racine.
+      </p>
+      <figure class="shot" data-shot="12-proprietes-module">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/12-proprietes-module.png" alt="Panneau de propriétés d'un module avec sa hiérarchie, ses exportations et ses importations." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="panneau">Panneau flottant&nbsp;: déplaçable, redimensionnable, refermable. Il lit le document, il ne le réécrit pas silencieusement.</li>
+            <li data-marker="exports">Exportations publiées, avec le nom visible côté récepteur.</li>
+            <li data-marker="hierarchie">La hiérarchie navigable du module&nbsp;: cliquer une ligne sélectionne le nœud correspondant sur le canvas.</li>
+            <li data-marker="enfants">Racines du module, dans l'ordre syntaxique de <code>rootNodeIds</code> — pas l'ordre du tableau global des nœuds.</li>
+          </ol>
+        </div>
+        <figcaption><b>12 — Propriétés de <code>Calculs</code>.</b></figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="13-export">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/13-export.png" alt="Formulaire d'export d'une fonction depuis le panneau de propriétés du module." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="interface">L'interface d'export&nbsp;: une déclaration racine, un nom publié. Seules les déclarations racines sont proposées&nbsp;: un paramètre ou une variable locale ne peut pas être publié.</li>
+            <li data-marker="bouton">L'ajout est validé par le moteur&nbsp;: doublon, cible absente ou déclaration non racine sont refusés avec un diagnostic.</li>
+          </ol>
+        </div>
+        <figcaption><b>13 — <code>Double</code> devient public.</b> Après cette action, un autre module peut l'importer.</figcaption>
+      </figure>
+    </section>
+
+    <section id="imports" class="shot-anchor">
+      <div class="section-title">
+        <h2>8 · Emprunter&nbsp;: les imports</h2>
+        <span class="tag">Intermodule</span>
+      </div>
+      <p>
+        Un import désigne une exportation précise d'un autre module et lui donne un nom local. C'est un lien
+        symbolique, jamais une copie&nbsp;: la fonction importée ne devient pas un enfant du module récepteur.
+      </p>
+      <figure class="shot" data-shot="14-import-vide">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/14-import-vide.png" alt="Formulaire d'import : module source et symboles exportés disponibles." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="panneau">Le panneau du module <b>Affichage</b>, qui va recevoir l'import.</li>
+            <li data-marker="formulaire">Formulaire d'import&nbsp;: il ne liste que les modules qui exportent réellement quelque chose.</li>
+            <li data-marker="selection">La cible, choisie parmi les exportations publiées. Pas d'import étoilé, pas de réexport, pas de chemin physique.</li>
+          </ol>
+        </div>
+        <figcaption><b>14 — Choisir ce qu'on emprunte.</b></figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="15-import-rempli">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/15-import-rempli.png" alt="Formulaire d'import complété avec le nom local Double." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="formulaire">Import de <code>Double</code> depuis <b>Calculs</b>.</li>
+            <li data-marker="nomLocal">Nom local <code>Double</code>&nbsp;: c'est ce nom qui sera visible dans les portées du module récepteur, et il peut différer du nom publié.</li>
+            <li data-marker="bouton">Ajout de l'import. À ce stade, aucune flèche n'apparaît&nbsp;: un import jamais utilisé n'est pas une dépendance.</li>
+          </ol>
+        </div>
+        <figcaption><b>15 — Import déclaré.</b> Le document est cohérent, mais rien ne relie encore les deux cartes.</figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="16-import-liste">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/16-import-liste.png" alt="Liste des importations du module affichant le nom local et le module d'origine, sans flèche sur le canvas." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="panneau">Le panneau, après l'ajout.</li>
+            <li data-marker="liste">L'import figure bien dans la liste, avec son origine. Et pourtant le canvas ne montre aucune flèche&nbsp;: les liens sont agrégés depuis les références réellement résolues vers des symboles importés.</li>
+          </ol>
+        </div>
+        <figcaption><b>16 — Import non utilisé.</b> Volontairement sans annotation de flèche&nbsp;: c'est justement le comportement documenté.</figcaption>
+      </figure>
+    </section>
+    <section id="types" class="shot-anchor">
+      <div class="section-title">
+        <h2>9 · Types, tableaux et point d'entrée</h2>
+        <span class="tag">Typage</span>
+      </div>
+      <p>
+        Le typage est statique et strict&nbsp;: une variable, une constante et un paramètre déclarent leur type,
+        chaque littéral porte le sien, et aucune conversion implicite n'existe entre deux types distincts.
+      </p>
+      <figure class="shot" data-shot="17-forme-entree">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/17-forme-entree.png" alt="Formulaire de création d'une fonction avec la case à cocher point d'entrée du programme." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="formulaire">Création d'une seconde fonction, <code>Principal</code>, dans le module <b>Affichage</b>.</li>
+            <li data-marker="case">Marquer «&nbsp;programme de départ&nbsp;» pose <code>properties.entryPoint: true</code>. Le marqueur est un booléen réservé aux fonctions, indépendant du nom&nbsp;: <code>main</code> tout court n'a aucun privilège.</li>
+            <li data-marker="bouton">Un seul point d'entrée par projet. S'il est déjà pris, la case est neutralisée&nbsp;; et si deux en existed dans un fichier importé, le moteur signale <code>ENTRY_POINT_DUPLICATE</code> sans supprimer les données.</li>
+          </ol>
+        </div>
+        <figcaption><b>17 — Le point d'entrée se désigne, il ne se déduit pas du nom.</b></figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="18-forme-tableau">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/18-forme-tableau.png" alt="Formulaire d'une variable de type tableau d'entiers avec ses six éléments saisis un par un." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="formulaire">Variable <code>nombres&nbsp;: int[]</code>. Les tableaux sont des types construits à part entière&nbsp;: annotables sur les variables, constantes et paramètres uniquement.</li>
+            <li data-marker="elements">Éléments saisis un par un, chacun dans son propre emplacement d'expression, et chacun tenu d'avoir exactement le type d'élément annoncé — sinon <code>TYPE_MISMATCH</code> localisé par index.</li>
+          </ol>
+        </div>
+        <figcaption><b>18 — <code>[4, 8, 15, 16, 23, 42]</code>.</b> Trois constructions existent pour les tableaux&nbsp;: littéral, création bornée par une taille, accès par index.</figcaption>
+      </figure>
+    </section>
+
+    <section id="instructions" class="shot-anchor">
+      <div class="section-title">
+        <h2>10 · Afficher et conditionner</h2>
+        <span class="tag">Instructions</span>
+      </div>
+      <figure class="shot" data-shot="19-forme-afficher">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/19-forme-afficher.png" alt="Formulaire de l'instruction Afficher avec un tableau en référence." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="formulaire">Instruction <code>PrintStatement</code>&nbsp;: elle ajoute la représentation textuelle de la valeur à la sortie de la simulation locale. C'est la seule capacité de sortie du simulateur.</li>
+            <li data-marker="symbole">La valeur affichée, en référence à <code>nombres</code>. Un <code>void</code> en entrée est refusé&nbsp;: <code>VOID_NOT_ALLOWED</code>.</li>
+          </ol>
+        </div>
+        <figcaption><b>19 — Afficher un tableau entier.</b></figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="20-forme-condition">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/20-forme-condition.png" alt="Formulaire de l'instruction Si avec une condition composée de deux littéraux et d'un opérateur de comparaison." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="formulaire">Instruction <code>IfStatement</code>&nbsp;: <code>test</code> booléen, <code>consequent</code> bloc, <code>alternate</code> bloc optionnel.</li>
+            <li data-marker="operateur">Comparaison <code>&gt;</code>&nbsp;: le résultat est <code>boolean</code> quelle que soit la nature des opérandes, mais leur type doit être numérique et identique des deux côtés.</li>
+            <li data-marker="operandes">Les deux sous-expressions, imbriquées dans le même panneau. La saisie d'une expression est récursive&nbsp;: chaque nœud enfant ouvre ses propres modes.</li>
+          </ol>
+        </div>
+        <figcaption><b>20 — <code>Si 15 &gt; 10</code>.</b> La branche fausse est absente, ce qui reste valide.</figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="21-forme-texte">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/21-forme-texte.png" alt="Formulaire d'une instruction Afficher une chaîne dans la branche alors du bloc Si." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="formulaire">Une chaîne littérale <code>"Le programme tourne"</code>, affichée dans la branche vraie. Le bloc <b>Alors</b> est un <code>Block</code> réel, avec ses propres étapes et sa propre portée.</li>
+          </ol>
+        </div>
+        <figcaption><b>21 — Une étape dans une branche.</b> Le menu qui a servi ici est celui du bloc <b>Alors</b>, pas celui de la fonction.</figcaption>
+      </figure>
+    </section>
+
+    <section id="dependances" class="shot-anchor">
+      <div class="section-title">
+        <h2>11 · La flèche de dépendance</h2>
+        <span class="tag">Liens intermodules</span>
+      </div>
+      <p>
+        Une instruction «&nbsp;Évaluer une valeur&nbsp;» reçoit une expression&nbsp;; en mode appel, elle vise une
+        fonction — notamment une fonction importée. C'est cet usage qui matérialise le lien.
+      </p>
+      <figure class="shot" data-shot="22-forme-appel">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/22-forme-appel.png" alt="Formulaire d'un appel de fonction avec le choix de la fonction importée et la saisie de l'argument." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="formulaire">Instruction <code>ExpressionStatement</code> portant un <code>CallExpression</code>&nbsp;: c'est la forme retenue pour appeler une fonction typée ou une procédure dans un bloc.</li>
+            <li data-marker="fonction">La fonction visée, <code>Double</code>, proposée parce qu'elle est importée et visible dans la portée.</li>
+            <li data-marker="argument">Argument <code>21</code>&nbsp;: une expression indépendante, typée, contrôlée contre la signature. Un nombre d'arguments incompatible donne <code>TYPE_MISMATCH</code>.</li>
+          </ol>
+        </div>
+        <figcaption><b>22 — <code>Double(21)</code>.</b> L'usage qui déclenche l'apparition du lien.</figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="23-lien">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/23-lien.png" alt="Deux cartes modules reliées par une flèche courbe partant du module exportateur et entrant dans le module récepteur." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="moduleGauche"><b>Calculs</b>, le module exportateur&nbsp;: la flèche en sort.</li>
+            <li data-marker="moduleDroit"><b>Affichage</b>, le module récepteur&nbsp;: la flèche y entre.</li>
+            <li data-marker="lien">Une seule direction par couple de modules, une courbe de Bézier dont les pointes touchent la face la plus directe. Le trait est dessiné dans un calque séparé, en coordonnées monde&nbsp;: il suit les cartes pendant le zoom et le déplacement.</li>
+          </ol>
+        </div>
+        <figcaption><b>23 — Le lien est apparu.</b> Il n'a été créé par aucune action&nbsp;: il résulte de l'analyse des références.</figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="24-lien-survol">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/24-lien-survol.png" alt="Infobulle au survol de la flèche indiquant le trajet Calculs vers Affichage et la liste des exportations utilisées." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="infobulle">Infobulle ancrée sur le point milieu de la courbe, dans la vue.</li>
+            <li data-marker="route">Le trajet, dans le sens réel de la dépendance&nbsp;: exportateur puis récepteur.</li>
+            <li data-marker="liste">Les exportations <em>réellement</em> utilisées, avec le nom publié, le nom local du récepteur et le nombre d'utilisations. Un import jamais référencé n'apparaît pas.</li>
+            <li data-marker="lien">La courbe s'épaissit et change de marqueur de flèche pendant le survol&nbsp;; un large chemin invisible sert de zone de capture, car le trait seul serait difficile à attraper.</li>
+          </ol>
+        </div>
+        <figcaption><b>24 — Survol.</b> La flèche répond à une question précise&nbsp;: qui dépend de qui, et pour quels symboles.</figcaption>
+      </figure>
+    </section>
+
+    <section id="projet" class="shot-anchor">
+      <div class="section-title">
+        <h2>12 · Le projet entier</h2>
+        <span class="tag">Document complet</span>
+      </div>
+      <p>
+        Deux modules, sept nœuds dans le premier, vingt-trois dans le second, une dépendance. L'état que la
+        simulation va recevoir.
+      </p>
+      <figure class="shot" data-shot="25-projet-complet">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/25-projet-complet.png" alt="Projet complet avec les deux modules dépliés, leurs blocs colorés et la flèche de dépendance." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-node="Affichage::Principal ()">Le point d'entrée, une fonction sans paramètre&nbsp;: condition exigée pour pouvoir simuler.</li>
+            <li data-node="Affichage::nombres">La variable tableau, modifiable, initialisée avec six éléments.</li>
+            <li data-node="Affichage::Tableau">Le littéral de tableau, qui porte le type de ses éléments et non son propre type de variable.</li>
+            <li data-node="Affichage::Si">Le bloc conditionnel et ses deux branches internes.</li>
+            <li data-node="Affichage::Appel de fonction">L'appel du <code>Double</code> importé — l'unique source de la flèche.</li>
+            <li data-node="Calculs::Double (valeur)">De l'autre côté, la fonction appelée dans son propre module, avec son paramètre.</li>
+            <li data-marker="lien">Le lien, désormais permanent, tant que l'usage existe.</li>
+          </ol>
+        </div>
+        <figcaption><b>25 — Projet complet,</b> arborescences dépliées. Les couleurs d'onglet suivent la catégorie du schéma&nbsp;; la sémantique ne change pas d'une thème à l'autre.</figcaption>
+      </figure>
+    </section>
+
+    <section id="annotations" class="shot-anchor">
+      <div class="section-title">
+        <h2>13 · Notes et images</h2>
+        <span class="tag">Présentation</span>
+      </div>
+      <p>
+        Le rangement visuel a le droit de ne pas être du code. Deux cartes d'annotation existent, déplacables et
+        redimensionnables, et elles restent hors du modèle logique, hors de l'AST et hors des commentaires de
+        code générés.
+      </p>
+      <figure class="shot" data-shot="26-note">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/26-note.png" alt="Carte note contenant un texte libre sur le sens des flèches." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="note">Carte note&nbsp;: titre et texte libres, aucun effet sur l'analyse, la simulation ou la transpilation.</li>
+            <li data-marker="texte">Le texte est éditable en place&nbsp;; il ne devient jamais un commentaire dans le code produit.</li>
+          </ol>
+        </div>
+        <figcaption><b>26 — Une note.</b> Utile pour documenter l'intention à côté du bloc concerné.</figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="27-image">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/27-image.png" alt="Carte image avec une image intégrée, sa légende et son titre renommé." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="carte">Carte image&nbsp;: l'image est intégrée au document, pas pointée par une URL distante. Un chemin local n'est jamais lu implicitement depuis un fichier importé.</li>
+            <li data-marker="image">Dépôt d'un fichier depuis l'explorateur, remplacement possible, suppression confirmée.</li>
+            <li data-marker="legende">Titre et légende, tous deux libres et locaux.</li>
+          </ol>
+        </div>
+        <figcaption><b>27 — Une image de repère.</b> Elle sert à organiser le canvas, jamais à exécuter quoi que ce soit.</figcaption>
+      </figure>
+    </section>
+
+    <section id="simulation" class="shot-anchor">
+      <div class="section-title">
+        <h2>14 · Simuler et déboguer</h2>
+        <span class="tag">Exécution locale</span>
+      </div>
+      <p>
+        Rien ne s'exécute tout seul. Une action explicite lance un interpréteur local, déterministe, coupé de
+        React, du DOM, de Neutralinojs et de tout réseau, avec un budget d'étapes et une profondeur d'appel
+        bornés.
+      </p>
+      <figure class="shot" data-shot="28-execution">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/28-execution.png" alt="Panneau de simulation pendant l'exécution, avec le compteur d'étapes et le nœud courant surligné dans l'arbre." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="panneau">Panneau de sortie&nbsp;: contenu en mémoire, sans fichier ni journal.</li>
+            <li data-marker="statut">Progression, en étapes exécutées sur le total de la trace.</li>
+            <li data-marker="noeud">Le nœud en cours d'exécution est repéré dans l'arbre&nbsp;: l'animation suit le document, pas une copie.</li>
+          </ol>
+        </div>
+        <figcaption><b>28 — Exécution.</b> Le simulateur refuse de démarrer sans analyse propre, sans point d'entrée, ou avec un point d'entrée paramétré.</figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="29-execution-terminee">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/29-execution-terminee.png" alt="Panneau de simulation terminé affichant les lignes de sortie produites par les instructions Afficher." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="panneau">Sortie de la simulation terminée.</li>
+            <li data-marker="sortie">Une ligne par instruction <code>Afficher</code> rencontrée, dans l'ordre réel d'exécution&nbsp;: le tableau, le texte de la branche vraie, puis le résultat de l'appel intermodule.</li>
+          </ol>
+        </div>
+        <figcaption><b>29 — Résultat.</b> Aucune saisie interactive, aucun effet natif, aucun accès réseau pendant une simulation.</figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="30-debug">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/30-debug.png" alt="Panneau de débogage avec les contrôles pas à pas, la mémoire et le nœud courant." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="panneau">Fenêtre de debug séparée, déplaçable et redimensionnable.</li>
+            <li data-marker="controles">Pas suivant, pas précédent, recommencer&nbsp;: la trace est un tableau d'identifiants, parcouru dans les deux sens, sans nouvelle exécution.</li>
+            <li data-marker="memoire">État mémoire reconstitué à l'étape courante, pour lire les variables sans les modifier.</li>
+            <li data-marker="statut">Position dans la session.</li>
+            <li data-marker="noeud">Le nœud ciblé est mis en évidence dans l'arbre&nbsp;: debug et document restent un seul et même état.</li>
+          </ol>
+        </div>
+        <figcaption><b>30 — Pas à pas.</b> Cinq étapes affichées ici&nbsp;; le budget par défaut est de 10&nbsp;000 étapes, borné et non auto-réglable.</figcaption>
+      </figure>
+    </section>
+
+    <section id="analyses" class="shot-anchor">
+      <div class="section-title">
+        <h2>15 · Graphe de contrôle et dépendances</h2>
+        <span class="tag">Analyse</span>
+      </div>
+      <p>
+        Deux vues dérivées, produites à la demande sur un nœud cible, jamais pendant la saisie.
+      </p>
+      <figure class="shot" data-shot="31-menu-analyses">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/31-menu-analyses.png" alt="Menu du bloc proposant d'ouvrir le graphe de contrôle et les dépendances." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="menu">Le menu du nœud <b>Principal ()</b>.</li>
+            <li data-marker="actions">Deux analyses disponibles sur la cible sélectionnée&nbsp;: graphe de contrôle, puis dépendances et appels.</li>
+          </ol>
+        </div>
+        <figcaption><b>31 — Choisir une cible d'analyse.</b></figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="32-cfg">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/32-cfg.png" alt="Panneau du graphe de contrôle montrant les blocs et les arêtes d'enchaînement." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="panneau">Vue déplaçable, avec sa propre zone de tracé.</li>
+            <li data-marker="graphe">Le CFG&nbsp;: sommets et arêtes, avec repli et recentrage sur la cible.</li>
+            <li data-marker="relations">Les relations affichées, issues de l'analyse existante — pas d'une seconde résolution des noms.</li>
+          </ol>
+        </div>
+        <figcaption><b>32 — Graphe de contrôle.</b> Résultat conservateur et informatif&nbsp;: «&nbsp;non parcouru&nbsp;» ne veut pas dire «&nbsp;inatteignable&nbsp;».</figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="33-dependances">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/33-dependances.png" alt="Panneau des dépendances et appels avec les sommets du sous-arbre et les arêtes typées." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="panneau">Panneau des dépendances.</li>
+            <li data-marker="graphe">Les descendants syntaxiques de la cible et leurs relations directes&nbsp;: <code>contains</code>, <code>reads</code>, <code>writes</code>, <code>calls</code>, <code>type</code>.</li>
+            <li data-marker="relations">Les entrants vers le sous-arbre sont conservés et les sommets extérieurs marqués <code>external</code>&nbsp;; les références non résolues restent listées, sans être masquées.</li>
+          </ol>
+        </div>
+        <figcaption><b>33 — Dépendances et appels.</b> Aucune fermeture transitive des fonctions appelées&nbsp;: on voit le voisinage réel, pas une abstraction.</figcaption>
+      </figure>
+    </section>
+
+    <section id="transpilation" class="shot-anchor">
+      <div class="section-title">
+        <h2>16 · Transpiler</h2>
+        <span class="tag">Traduction</span>
+      </div>
+      <figure class="shot" data-shot="34-transpile">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/34-transpile.png" alt="Panneau de transpilation montrant le code JavaScript produit depuis le projet visuel." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="panneau">Le panneau de transpilation, qui ne modifie jamais la source.</li>
+            <li data-marker="code">Le code équivalent&nbsp;: déclarations de modules et de fonctions, initialisations globales exécutées dans <code>main()</code>, appel final du point d'entrée désigné. Le fichier produit est autonome, sans <code>import</code> ni <code>export</code>, et n'embarque pas les budgets du simulateur.</li>
+            <li data-marker="actions">Choix de la cible. JavaScript et Python sont opérationnels&nbsp;; C/C++ et Java sont présents mais annoncés non disponibles, sans génération partielle.</li>
+          </ol>
+        </div>
+        <figcaption><b>34 — Le même arbre en texte.</b> La génération exige une analyse sans diagnostic bloquant&nbsp;; autrement, elle refuse et explique.</figcaption>
+      </figure>
+    </section>
+
+    <section id="apparence" class="shot-anchor">
+      <div class="section-title">
+        <h2>17 · Thèmes, langue, grille, zoom</h2>
+        <span class="tag">Préférences</span>
+      </div>
+      <p>
+        L'apparence et la langue sont des préférences locales, distinctes du document. Changer l'une ou l'autre ne
+        touche ni aux données ni à l'analyse.
+      </p>
+      <figure class="shot" data-shot="35-themes">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/35-themes.png" alt="Volet des thèmes avec les six palettes proposées et leurs couleurs." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="menu">Six thèmes, tous construits sur les mêmes jetons&nbsp;: fond, surface, bordure, primaire, sélection, diagnostics.</li>
+            <li data-marker="option">Aperçu couleur par entrée, sélection immédiate, mémorisée en préférence locale.</li>
+          </ol>
+        </div>
+        <figcaption><b>35 — Les thèmes.</b> Aucune feuille de style distante&nbsp;: les polices sont locales, les couleurs sont des variables.</figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="36-theme-neon">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/36-theme-neon.png" alt="Le même projet rendu avec le thème Néon : cartes, liens et volet changent de palette." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="carte">Les cartes gardent leur structure et leurs couleurs de catégorie&nbsp;: un thème change la palette, pas la sémantique.</li>
+            <li data-marker="lien">La courbe et ses marqueurs suivent la palette du thème.</li>
+            <li data-marker="navigation">Le volet, les boutons et les focus clavier se recalident sur les mêmes variables.</li>
+          </ol>
+        </div>
+        <figcaption><b>36 — Thème Néon.</b></figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="37-anglais">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/37-anglais.png" alt="Interface en anglais sur le même projet : volet, cartes et libellés traduits." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="navigation">Version anglaise du volet, catalogue centralisé dans l'application&nbsp;: les deux langues couvrent les libellés, les aides, les résumés, les erreurs et les dialogues natifs.</li>
+            <li data-marker="carte">Ce qui ne se traduit pas&nbsp;: les identifiants, les noms de types et d'opérateurs du langage, les contenus saisis et les sorties du programme. <code>Double</code> reste <code>Double</code>.</li>
+          </ol>
+        </div>
+        <figcaption><b>37 — Anglais.</b> Changer de langue ne change ni le document ni les diagnostics techniques du moteur.</figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="38-grille-droite">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/38-grille-droite.png" alt="Le canvas avec une grille droite au lieu de la grille courbée, pour aligner les cartes." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="grille">Grille droite, commutable&nbsp;: utile pour aligner plusieurs cartes au pixel.</li>
+            <li data-marker="lien">Les liens restent indépendants du choix de grille.</li>
+          </ol>
+        </div>
+        <figcaption><b>38 — Grille droite.</b></figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="39-canvas-zoom">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/39-canvas-zoom.png" alt="Vue dézoomée du canvas avec le statut de zoom et les cartes conservant leurs proportions." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="statut">Le pourcentage de zoom est affiché, avec un plafond à 400&nbsp;% et aucun plancher applicatif.</li>
+            <li data-marker="lien">Les traits sont recalculés depuis les coordonnées monde&nbsp;: ils ne s'épaississent pas et ne se décalent pas.</li>
+            <li data-marker="navigation">Le volet reste à l'échelle de l'interface&nbsp;: le zoom ne s'applique qu'au document.</li>
+          </ol>
+        </div>
+        <figcaption><b>39 — Zoom arrière.</b></figcaption>
+      </figure>
+    </section>
+
+    <section id="validation" class="shot-anchor">
+      <div class="section-title">
+        <h2>18 · Ce que l'interface refuse</h2>
+        <span class="tag">Validation</span>
+      </div>
+      <p>
+        Un formulaire n'écrit que ce qui est cohérent&nbsp;; et ce qui reste incohérent dans un fichier importé
+        n'est pas détruit, il est signalé.
+      </p>
+      <figure class="shot" data-shot="40-forme-erreur">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/40-forme-erreur.png" alt="Formulaire refusant la création d'une variable dont le nom est déjà pris dans la portée, avec son message d'erreur." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="formulaire">Tentative de créer une seconde variable <code>nombres</code> dans la même portée que la première.</li>
+            <li data-marker="erreur">Refus avec le code stable du moteur, traduit à l'affichage&nbsp;: <code>DECLARATION_CONFLICT</code>. Le document n'a pas bougé, et le formulaire reste ouvert pour correction.</li>
+          </ol>
+        </div>
+        <figcaption><b>40 — Insertion refusée.</b> La vérification est faite par le moteur après simulation de l'insertion, pas par une règle dupliquée dans l'interface.</figcaption>
+      </figure>
+
+      <figure class="shot" data-shot="41-diagnostic">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/41-diagnostic.png" alt="Fonction sans corps signalée par un badge, avec la liste des diagnostics dans le panneau de propriétés." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-marker="panneau">Le panneau du module, avec la liste des diagnostics localisés.</li>
+            <li data-marker="badges">Un badge sur la ligne concernée dans l'arbre&nbsp;: l'incomplétude est visible là où elle se trouve, pas seulement dans un journal.</li>
+            <li data-marker="diagnostics">Chaque diagnostic porte un code, une sévérité, un message et une localisation — module, nœud, champ. La représentation est conservée tant que la correction n'a pas été faite&nbsp;; la génération et la simulation restent simplement bloquées.</li>
+          </ol>
+        </div>
+        <figcaption><b>41 — Incomplet mais présent.</b> Une fonction sans corps existe dans le document&nbsp;; elle est signalée, jamais supprimée.</figcaption>
+      </figure>
+    </section>
+
+    <section id="fichier" class="shot-anchor">
+      <div class="section-title">
+        <h2>19 · Le fichier <code>.sp3</code></h2>
+        <span class="tag">Persistance</span>
+      </div>
+      <p>
+        Le document est un fichier choisi par l'utilisateur, jamais un répertoire imposé et jamais écrit en
+        arrière-plan. Trois voies, toutes explicites&nbsp;: ouvrir, enregistrer, importer ou exporter.
+      </p>
+      <ul>
+        <li>Une enveloppe <em>workspace</em> versionnée contient le document logique et les informations de
+        présentation — positions des cartes, notes, images intégrées. Les deux formats sont distincts&nbsp;: le
+        modèle logique ne dépend ni de la fenêtre ni de la mise en page.</li>
+        <li>Un fichier <code>.sp3</code> ou un JSON logique se lisent et s'écrivent par les dialogues natifs de
+        l'application&nbsp;; <code>Ctrl+S</code> enregistre le fichier courant.</li>
+        <li>Avant remplacement, la source est validée&nbsp;: en cas d'erreur ou d'annulation, le document en cours
+        reste intact. Une version inconnue est conservée et signalée, jamais migrée en silence.</li>
+        <li>Les préférences — langue, thème, cinq chemins récents — sont stockées à part, dans un répertoire
+        persistant utilisateur, jamais à côté de l'exécutable.</li>
+      </ul>
+      <div class="notes-soft">
+        <p style="margin:0">
+          Un document sans chemin (.sp3 non encore écrit) reste en mémoire jusqu'à sa première enregistrer&nbsp;; une fois
+          le fichier créé, chaque modification y est réécrite automatiquement (retard de 500&nbsp;ms) et le même fichier est
+          rouvert au prochain lancement.
+        </p>
+      </div>
+    </section>
+
+    <section id="limites" class="shot-anchor">
+      <div class="section-title">
+        <h2>20 · Limites assumées</h2>
+        <span class="tag">Ce qui n'est pas fini</span>
+      </div>
+      <p>Ce site ne prétend pas que tout existe. Les limites ci-dessous sont celles du document technique, résumées honnêtement.</p>
+      <table>
+        <thead>
+          <tr><th>Domaine</th><th>État réel</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Sorties du simulateur</td><td>Une seule capacité&nbsp;: <code>Afficher</code>. Pas de saisie interactive, pas d'effet natif, pas de réseau, pas de journal persistant.</td></tr>
+          <tr><td>Exécution</td><td>Uniquement sur action explicite&nbsp;; les vues d'exécution graphiques sont marquées «&nbsp;à venir&nbsp;» dans l'interface.</td></tr>
+          <tr><td>Langages cibles</td><td>JavaScript et Python opérationnels. C/C++ et Java désactivés&nbsp;— aucune promesse de génération.</td></tr>
+          <tr><td>Analyse</td><td>Conservatrice&nbsp;: aucune preuve générale sur les valeurs, les comparaisons numériques, les dépendances globales ou la terminaison.</td></tr>
+          <tr><td>Modèle objet</td><td>Évoqué comme direction, aucun contrat décidé. Pas de classes ni de structures dans le modèle source actuel&nbsp;; <code>TypeDeclaration</code> est un alias transparent.</td></tr>
+          <tr><td>Sous-modules</td><td>Absents&nbsp;: la hiérarchie des portées lexicales ne doit pas être confondue avec un rangement de modules.</td></tr>
+          <tr><td>Migrations</td><td>Aucune migration automatique. Une source d'une autre version est conservée et diagnostiquée.</td></tr>
+          <tr><td>Documentation</td><td>Évolutive&nbsp;: elle décrit l'incrément livré, pas le plan. Les sections manquantes signifient des fonctionnalités non encore demandées.</td></tr>
+        </tbody>
+      </table>
+      <p><a href="ast.html">Continuer avec le modèle AST</a> — ce que tout cela devient quand on regarde le document lui-même.</p>
+    </section>
+
+    <footer class="site-footer">
+      <p>Sapphire 3 · documentation visuelle · 42 captures réelles, 20 sections. Les repères d'annotation sont produits par la campagne de captures de l'application, en pourcentages de la vue 1600 × 900.</p>
+    </footer>
+  </main>
+
+  <script src="assets/shots-data.js"></script>
+  <script src="assets/site.js"></script>
+</body>
+</html>

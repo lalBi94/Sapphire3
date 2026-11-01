@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sapphire 3 — programmation visuelle fondée sur un AST</title>
+  <meta name="description" content="Sapphire 3 : environnement de programmation visuelle pour Windows, fondé sur un AST indépendant des langages cibles. Présentation, documentation visuelle et architecture du modèle logique.">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+  <header class="site-header">
+    <p class="mark">Sapphire<span>3</span></p>
+    <nav aria-label="Navigation du site">
+      <a href="index.html" aria-current="page">Projet</a>
+      <a href="documentation.html">Documentation visuelle</a>
+      <a href="ast.html">Le modèle AST</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" id="presentation">
+      <p class="kicker">Application desktop Windows · 0.1.0-alpha.1</p>
+      <h1>Des blocs qui sont de vrai code, pas des dessins qui y ressemblent</h1>
+      <p class="lede">
+        Sapphire 3 est un environnement de programmation visuelle. Chaque carte posée sur le canvas est une
+        construction du langage&nbsp;: une fonction, une variable typée, une boucle, un appel. Elles forment un
+        arbre syntaxique indépendant du langage cible, qu'un moteur analyse, type et vérifie avant toute
+        génération. Le texte n'a jamais été supprimé&nbsp;: il a seulement cessé d'être le point de départ.
+      </p>
+      <ul class="chips">
+        <li>React 19</li>
+        <li>Vite 8</li>
+        <li>JavaScript / JSX</li>
+        <li>CSS natif</li>
+        <li>Neutralinojs</li>
+        <li>pnpm</li>
+        <li>AST indépendant des cibles</li>
+        <li>Typage statique strict</li>
+      </ul>
+      <div class="grid">
+        <div class="card">
+          <h3>Ce qui fonctionne aujourd'hui</h3>
+          <p>
+            Canvas navigable avec zoom et repères, cartes Module, notes et images, fonctions et types déclarés à
+            la racine d'un module, blocs conditionnels et boucles, affectations, appels, tableaux, typage statique,
+            références intermodules avec flèches courbes, simulation locale pas à pas, graphe de contrôle,
+            dépendances, transpilation JavaScript et Python, six thèmes, interface anglais et français,
+            import/export <code>.sp3</code> et JSON.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Ce qui ne l'est pas encore</h3>
+          <p>
+            Aucune exécution automatique&nbsp;: la simulation est lancée par une action explicite. La sauvegarde automatique réécrit le fichier .sp3 courant après chaque modification (retard de 500 ms). Les cibles C/C++/Java sont présentes mais désactivées. Le modèle objet n'est pas décidé.
+            Les vues d'exécution graphiques sont annoncées comme «&nbsp;à venir&nbsp;» dans l'interface.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Un document, pas une maquette</h3>
+          <p>
+            Les captures de ce site proviennent de l'application réelle, pilotée par ses propres dialogues, sans
+            montage. Le projet illustré a été construit bloc par bloc dans l'interface, puis simulé.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="visite">
+      <div class="figure-wrap">
+        <figure class="shot shot-anchor" data-shot="42-apercu" id="apercu">
+          <div class="shot-layout">
+            <div class="shot-frame">
+              <img src="assets/shots/42-apercu.png" alt="Vue générale du canvas de Sapphire 3 avec deux modules reliés par une flèche courbe, une note et une carte image." width="1600" height="900">
+            </div>
+            <ol class="notes">
+              <li data-marker="carte">Deux cartes Module&nbsp;: <b>Calculs</b> publie une fonction, <b>Affichage</b> l'importe et l'appelle. Une carte porte la hiérarchie des blocs, l'autre ses propres étapes.</li>
+              <li data-marker="lien">La flèche courbe va du module exportateur vers le module récepteur. Elle n'apparaît que si une exportation est réellement utilisée&nbsp;: déplacer une carte ne crée ni ne supprime aucune dépendance.</li>
+              <li data-marker="statut">Le statut en bas à gauche rappelle la zoom courant et l'état d'analyse du document&nbsp;: nombre de modules, de nœuds et de diagnostics.</li>
+            </ol>
+          </div>
+          <figcaption><b>Aperçu.</b> Un projet complet, deux modules dépendants, annotations de présentation et vue dézoomée.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="demarche">
+      <h2>Comment le projet est conduit</h2>
+      <p>
+        Le développement avance par incréments volontairement petits&nbsp;: une capacité visuelle, puis son modèle
+        de données, puis son moteur, puis ses validations. Une direction de conception n'est jamais implémentée
+        sans être demandée, et une fonctionnalité n'est annoncée que si elle est réellement opérationnelle dans la
+        fenêtre de l'application.
+      </p>
+      <div class="notes-soft">
+        <p><b>Le code est écrit avec des assistants.</b> Sapphire 3 est un projet conduit en dialogue avec des
+        outils d'assistance au développement (OpenCode, DeepSeek V3.2, ChatGPT Sol&nbsp;6.1, GLM 3.2, Nemotron de
+        NVIDIA)&nbsp;: c'est un mode de fabrication assumé, pas un détail caché. Ce qui l'encadre&nbsp;: chaque
+        incrément est relu, testé (223 tests du moteur logique, runner Node natif, sans dépendance de test) et
+        validé dans l'interface avant d'être retenu. Le vocabulaire, les contrats et les limites sont décidés par
+        le projet, pas par le générateur.</p>
+        <p style="margin-bottom:0"><b>Cette documentation évolue avec le projet.</b> Elle décrit l'état atteint, pas
+        un plan. Les pages sont produites en même temps que les fonctionnalités&nbsp;: une capacité ajoutée ailleurs
+        se traduit ici par une nouvelle capture et une nouvelle section, et une capacité non encore livrée y est
+        explicitement marquée comme absente.</p>
+      </div>
+      <h3>Technologies</h3>
+      <table>
+        <thead>
+          <tr><th>Rôle</th><th>Choix</th><th>Remarque</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Interface</td><td><code>React 19.3.1</code>, composants fonctionnels JSX</td><td>Canvas plein écran, panneaux flottants déplacables, aucune bibliothèque d'interface tierce</td></tr>
+          <tr><td>Build</td><td><code>Vite 8.3.5</code></td><td>Serveur de développement local, compilation du frontend pour la distribution</td></tr>
+          <tr><td>Desktop</td><td><code>Neutralinojs 6.10.0</code> (<code>neu 11.8.0</code>)</td><td>Fenêtre native, dialogues de fichiers, accès disque&nbsp;; aucun backend, aucun service distant à l'exécution</td></tr>
+          <tr><td>Style</td><td>CSS natif + jetons dans <code>src/styles/tokens.css</code></td><td>Six thèmes, variables sémantiques, pas de charge distant de police ou de feuille de style</td></tr>
+          <tr><td>Icônes</td><td><code>lucide-react ^1.64.0</code></td><td>Utilisés comme glyphes décoratifs, toujours accompagnés d'un libellé ou d'<code>aria-label</code></td></tr>
+          <tr><td>Moteur logique</td><td>JavaScript pur dans <code>src/utils/logic/</code></td><td>Sans React, sans DOM, sans API native&nbsp;; source JSON versionnée, importable et testable seul</td></tr>
+          <tr><td>Tests</td><td><code>node --test</code></td><td>223 tests&nbsp;: scénarios valides, invalides, incomplets, localisations, non-mutation, conservation JSON</td></tr>
+          <tr><td>Documentation AST</td><td>LaTeX → PDF</td><td><code>abstract/ARCHITECTURE_AST.tex</code> et son PDF, compilés par <code>pnpm docs:ast</code></td></tr>
+        </tbody>
+      </table>
+      <p>
+        Dépôt du projet&nbsp;: <a href="https://github.com/lalBi94/Sapphire3" rel="noopener"><strong>github.com/lalBi94/Sapphire3</strong></a> —
+        sources, historique et issues de Sapphire 3. Le présent site n'est qu'un support de présentation&nbsp;: il ne
+        contient aucun code de l'application et n'en est pas une copie fonctionnelle.
+      </p>
+    </section>
+
+    <section id="par-ou-commencer">
+      <h2>Trois lectures possibles</h2>
+      <div class="grid">
+        <div class="card">
+          <h3><a href="documentation.html">Documentation visuelle</a></h3>
+          <p>Vingt sections, quarante-deux captures réelles annotées&nbsp;: créer un module, construire une
+          expression, déclarer un export, importer une fonction, lire une flèche de dépendance, simuler, déboguer
+          pas à pas, transpiler, changer de thème et de langue.</p>
+        </div>
+        <div class="card">
+          <h3><a href="ast.html">Le modèle AST</a></h3>
+          <p>Ce que le moteur stocke vraiment&nbsp;: la source JSON v1, les trois relations indépendantes, les
+          vingt-six constructions et leurs slots, le typage strict, les portées, les diagnostics, puis la route
+          vers l'analyse, la simulation et la transpilation.</p>
+        </div>
+        <div class="card">
+          <h3><a href="../ARCHITECTURE_AST.pdf">Architecture AST (PDF)</a></h3>
+          <p>Le document de référence, rédigé en LaTeX&nbsp;: objectif et périmètre, concepts et relations, flux et
+          responsabilités, structures et invariants, un exemple à deux modules, validations et limites connues.</p>
+        </div>
+      </div>
+      <div class="gallery">
+        <a href="documentation.html#arborescence"><img src="assets/shots/11-arborescence.png" alt="Arborescence des blocs d'une fonction, chaque nœud coloré par sa catégorie." loading="lazy"><span>Une fonction vue comme un arbre</span></a>
+        <a href="documentation.html#dependances"><img src="assets/shots/24-lien-survol.png" alt="Infobulle au survol d'une flèche de dépendance listant les exportations utilisées." loading="lazy"><span>Survol d'une dépendance</span></a>
+        <a href="documentation.html#simulation"><img src="assets/shots/30-debug.png" alt="Panneau de débogage avec contrôles pas à pas, mémoire et nœud courant surligné." loading="lazy"><span>Débogage pas à pas</span></a>
+        <a href="ast.html#source"><img src="assets/shots/34-transpile.png" alt="Panneau de transpilation montrant le code JavaScript équivalent d'un projet visuel." loading="lazy"><span>Le même arbre en JavaScript</span></a>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <div class="credits">
+        <p><b>Projet et direction</b><br>Bilal Boudjemline — Threadlock Systems</p>
+        <p><b>Assistance au développement</b><br>OpenCode · DeepSeek V3.2 · ChatGPT Sol 6.1 · GLM 3.2 · Nemotron (NVIDIA)</p>
+        <p><b>Captures</b><br>Application réelle, fenêtre de développement 1600 × 900, sans retouche des images&nbsp;: les annotations sont posées en HTML par-dessus les PNG.</p>
+      </div>
+      <p>Sapphire 3 — document de travail. L'état décrit ici correspond à l'incrément courant&nbsp;; la suite est en cours.</p>
+    </footer>
+  </main>
+
+  <script src="assets/shots-data.js"></script>
+  <script src="assets/site.js"></script>
+</body>
+</html>

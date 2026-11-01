@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Le modèle AST — Sapphire 3</title>
+  <meta name="description" content="Description détaillée du modèle logique de Sapphire 3 : source JSON v1, trois relations indépendantes, constructions et slots, typage statique strict, portées, diagnostics, analyse, simulation et transpilation.">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+  <header class="site-header">
+    <p class="mark">Sapphire<span>3</span></p>
+    <nav aria-label="Navigation du site">
+      <a href="index.html">Projet</a>
+      <a href="documentation.html">Documentation visuelle</a>
+      <a href="ast.html" aria-current="page">Le modèle AST</a>
+    </nav>
+  </header>
+
+  <main>
+    <section>
+      <p class="kicker">Modèle logique · format v1</p>
+      <h1>Ce que Sapphire 3 stocke vraiment</h1>
+      <p class="lede">
+        Sous les cartes, il y a un arbre. Pas un arbre d'images ni un arbre de widgets&nbsp;: un arbre syntaxique
+        typé, sérialisé en JSON, indépendant de tout langage cible, validé par un moteur qui ignore l'existence de
+        React, du DOM et de la fenêtre. Cette page décrit ce modèle, ses règles et ses refus.
+      </p>
+      <div class="notes-soft">
+        <p style="margin-bottom:6px"><b>Documents de référence</b></p>
+        <ul style="margin-bottom:0">
+          <li><a href="../ARCHITECTURE_AST.pdf"><code>ARCHITECTURE_AST.pdf</code></a> — le document technique complet, sept sections, généré depuis le LaTeX.</li>
+          <li><a href="../ARCHITECTURE_AST.tex"><code>ARCHITECTURE_AST.tex</code></a> — la source LaTeX de ce document, relisible et modifiable telle quelle.</li>
+          <li>Dans le dépôt&nbsp;: <code>docs/LOGIC_API.md</code> (contrats du moteur), <code>docs/WORKSPACE_FILES.md</code> (enveloppe <code>.sp3</code>), <code>src/utils/logic/</code> (l'implémentation).</li>
+        </ul>
+      </div>
+      <ol class="toc">
+        <li><a href="#principe">1 · Principe et périmètre</a></li>
+        <li><a href="#source">2 · La source JSON v1</a></li>
+        <li><a href="#relations">3 · Trois relations indépendantes</a></li>
+        <li><a href="#constructions">4 · Constructions et slots</a></li>
+        <li><a href="#portees">5 · Portées, symboles, imports</a></li>
+        <li><a href="#typage">6 · Typage statique strict</a></li>
+        <li><a href="#diagnostics">7 · Diagnostics</a></li>
+        <li><a href="#flux">8 · De la source aux résultats</a></li>
+        <li><a href="#execution">9 · Simulation et transpilation</a></li>
+        <li><a href="#invariants">10 · Invariants et refus</a></li>
+      </ol>
+    </section>
+
+    <section id="principe">
+      <h2>1 · Principe et périmètre</h2>
+      <p>
+        L'interface est une vue sur un document. Un module est une portée&nbsp;; une carte est la représentation
+        d'un module&nbsp;; une ligne d'arbre est la représentation d'un nœud. Supprimer la carte ne supprime pas
+        l'AST, et deux interfaces différentes pourraient lire la même source.
+      </p>
+      <div class="grid">
+        <div class="card">
+          <h3>Indépendance des cibles</h3>
+          <p>Le modèle ne connaît ni point-virgule, ni mot-clé d'un langage hôte, ni signature de compilation. Il
+          connaît des déclarations, des instructions, des expressions, des types et des références. Les langages
+          cibles arrivent après, par des backend enregistrés.</p>
+        </div>
+        <div class="card">
+          <h3>Le moteur est pur</h3>
+          <p><code>src/utils/logic/</code> n'importe ni React, ni DOM, ni Neutralinojs. Les fonctions ne modifient
+          pas leurs entrées&nbsp;; elles renvoient de nouvelles sources et des résultats dérivés. Il est testé seul,
+          par 223 tests Node sans dépendance de test.</p>
+        </div>
+        <div class="card">
+          <h3>Périmètre volontairement borné</h3>
+          <p>Pas de classes, pas de structures, pas de sous-modules, pas de surcharge, pas d'inférence de
+          secours. Une direction objet est évoquée, aucun contrat n'est décidé&nbsp;: rien de tout cela n'est
+          simulé dans le format.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="source">
+      <h2>2 · La source JSON v1</h2>
+      <p>
+        Un projet logique tient en quatre collections&nbsp;: une version, un identifiant, des modules, des nœuds
+        dans un tableau global à plat. Les listes <code>rootNodeIds</code> et les slots ordonnés portent l'ordre
+        syntaxique&nbsp;; l'ordre du tableau <code>nodes</code> n'a aucune signification.
+      </p>
+      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr))">
+        <div class="card">
+          <h3>Le projet et un module</h3>
+<pre class="tree"><code>{
+  "formatVersion": 1,
+  "id": "projet-demo",
+  "modules": [
+    {
+      "id": "mod-affichage",
+      "name": "Affichage",
+      "kind": "module",
+      "rootNodeIds": ["n-principal"],
+      "imports": [
+        { "id": "imp-double",
+          "moduleId": "mod-calculs",
+          "nodeId": "n-double",
+          "localName": "Double" }
+      ],
+      "exports": []
+    }
+  ],
+  "nodes": [ /* tous les nœuds, à plat */ ]
+}</code></pre>
+        </div>
+        <div class="card">
+          <h3>Un nœud</h3>
+<pre class="tree"><code>{
+  "id": "n-double",
+  "moduleId": "mod-calculs",
+  "kind": "FunctionDeclaration",
+  "properties": {
+    "name": "Double",
+    "type": { "kind": "primitive", "name": "int" },
+    "entryPoint": false
+  },
+  "children": {
+    "parameters": ["n-param"],
+    "body": "n-corps"
+  },
+  "references": {}
+}</code></pre>
+          <p style="margin-bottom:0"><code>properties</code> et <code>references</code> sont toujours des objets&nbsp;;
+          les slots optionnels acceptent <code>null</code> ou l'absence de clé. Une liste vide est valide&nbsp;; une
+          liste requise absente est diagnostiquée.</p>
+        </div>
+      </div>
+
+      <h3>Ce qui n'est pas dans cette source</h3>
+      <p>
+        L'AST analysé, les diagnostics, l'index des symboles, les caches et toute la présentation sont
+        <em>recalculés</em>, jamais enregistrés avec le modèle logique. La mise en page vit dans une enveloppe
+        distincte, qui emballe la source et y ajoute les cartes&nbsp;:
+      </p>
+<pre class="tree"><code>{
+  "application": "Sapphire 3",
+  "workspaceVersion": 1,
+  "project": { "formatVersion": 1, "id": "…", "modules": [], "nodes": [] },
+  "presentation": {
+    "cards": [],
+    "camera": { "x": 0, "y": 0, "zoomLevel": 0 },
+    "selected": null
+  }
+}</code></pre>
+      <p>
+        Une carte <code>module</code> partage l'identifiant et le nom de son module source — exactement une carte
+        par module. Les cartes <code>comment</code> et <code>image</code> n'existent que dans
+        <code>presentation</code>&nbsp;: elles ne passent jamais dans <code>project</code>, jamais dans l'AST,
+        jamais dans les commentaires du code généré. Une image est intégrée en Data URL&nbsp;; les URL distantes et
+        les chemins locaux sont refusés avant remplacement. Le lecteur accepte aussi une source logique v1 seule,
+        sans présentation&nbsp;: il crée alors une disposition déterministe, tout replié, vue à l'origine.
+      </p>
+    </section>
+
+    <section id="relations">
+      <h2>3 · Trois relations indépendantes</h2>
+      <p>C'est le point le plus facile à confondre, donc le plus explicitement séparé.</p>
+      <table>
+        <thead>
+          <tr><th>Champ</th><th>Nature</th><th>Conséquence</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>node.moduleId</code></td>
+            <td>Propriété logique</td>
+            <td>Le module qui possède le nœud. Les identifiants de nœuds sont uniques dans le projet&nbsp;; un
+            enfant ne traverse pas la frontière d'un module.</td>
+          </tr>
+          <tr>
+            <td><code>node.children</code></td>
+            <td>Imbrication syntaxique</td>
+            <td>La parenté réelle de l'arbre. Un nœud a au plus un parent syntaxique ou une entrée racine. C'est
+            cette relation, et elle seule, que <code>contains</code> décrit dans les graphes.</td>
+          </tr>
+          <tr>
+            <td><code>node.references.target</code></td>
+            <td>Lien symbolique</td>
+            <td>Une lecture ou une écriture d'un nom. Elle ne déplace ni ne réplique la déclaration, ne crée pas
+            de parenté, et peut viser une exportation d'un autre module.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        Une référence se donne par <code>{kind:'name', name}</code>, <code>{kind:'node', nodeId}</code> ou
+        <code>{kind:'import', importId}</code>. Une cible par identifiant reste soumise à l'accessibilité
+        lexicale&nbsp;; un import peut être visé par son identifiant indépendamment de son alias local. Les
+        relations <code>reads</code>, <code>writes</code>, <code>calls</code> et <code>type</code> des vues
+        d'analyse proviennent de cette seule relation symbolique, résolue par l'analyse sémantique.
+      </p>
+
+      <div class="card">
+        <h3>Le même graphe vu comme arbre et comme référence</h3>
+        <p><b>Parenté syntaxique ( children )</b></p>
+        <div class="tree">
+          <div class="node node--function"><b>FunctionDeclaration</b> <code>Double(valeur: int) → int</code><small>module Calculs · racine</small>
+            <div class="node node--parameter"><b>Parameter</b> <code>valeur: int</code><small>slot <code>parameters[]</code></small></div>
+            <div class="node node--block"><b>Block</b><small>slot <code>body</code></small>
+              <div class="node node--return"><b>ReturnStatement</b><small>slot <code>argument</code></small>
+                <div class="node node--operator"><b>BinaryExpression</b> <code>*</code><small>type dérivé&nbsp;: <code>int</code></small>
+                  <div class="node node--value"><b>Reference</b> <code>valeur</code><small>→ référence symbolique</small></div>
+                  <div class="node node--value"><b>Literal</b> <code>2&nbsp;: int</code></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p><b>Référence symbolique ( references )</b></p>
+        <p style="margin-bottom:0">
+          La ligne <code>Reference</code> ci-dessus ne contient aucun enfant&nbsp;: elle porte
+          <code>references.target</code> vers le nœud <code>Parameter</code>. Dans le module <b>Affichage</b>, une
+          autre référence vise l'<em>import</em> de <code>Double</code>, qui pointe lui-même vers le nœud
+          <code>Double</code> du module <b>Calculs</b>. Le paramètre et l'appel restent dans des modules
+          différents&nbsp;: rien n'est copié, rien n'est remonté. C'est cette référence, une fois résolue, qui
+          produit la flèche entre les deux cartes.
+        </p>
+      </div>
+    </section>
+
+    <section id="constructions">
+      <h2>4 · Constructions et slots</h2>
+      <p>
+        Vingt-six sortes de nœuds, toutes décrites dans un seul objet figé, <code>nodeSchema</code>. Ce schéma
+        pilote la validation, le typage et les propositions du menu d'ajout&nbsp;: il n'existe aucune liste
+        d'actions codée en dur ailleurs.
+      </p>
+      <table>
+        <thead>
+          <tr><th><code>kind</code></th><th>Catégorie</th><th>Propriétés et slots</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>VariableDeclaration</code></td><td>declaration</td><td><code>name</code>, <code>type</code> obligatoires&nbsp;; <code>initializer?</code> expression</td></tr>
+          <tr><td><code>ConstantDeclaration</code></td><td>declaration</td><td><code>name</code>, <code>type</code>&nbsp;; <code>initializer</code> requis</td></tr>
+          <tr><td><code>FunctionDeclaration</code></td><td>declaration</td><td><code>name</code>, <code>type</code> (retour), <code>entryPoint?</code> booléen&nbsp;; <code>parameters[]</code>, <code>body</code> Block</td></tr>
+          <tr><td><code>Parameter</code></td><td>parameter</td><td><code>name</code>, <code>type</code>&nbsp;; uniquement dans <code>parameters[]</code></td></tr>
+          <tr><td><code>TypeDeclaration</code></td><td>declaration</td><td><code>name</code>, <code>type</code>&nbsp;; alias transparent d'un primitif</td></tr>
+          <tr><td><code>Block</code></td><td>statement</td><td><code>statements[]</code>&nbsp;: déclarations ou instructions</td></tr>
+          <tr><td><code>ReturnStatement</code></td><td>statement</td><td><code>argument?</code> expression&nbsp;; uniquement dans une fonction</td></tr>
+          <tr><td><code>PrintStatement</code></td><td>statement</td><td><code>value</code> expression non <code>void</code></td></tr>
+          <tr><td><code>IfStatement</code></td><td>statement</td><td><code>test</code> booléen, <code>consequent</code> Block, <code>alternate?</code> Block</td></tr>
+          <tr><td><code>WhileStatement</code></td><td>statement</td><td><code>test</code> booléen, <code>body</code> Block</td></tr>
+          <tr><td><code>ForStatement</code></td><td>statement</td><td><code>initializer?</code>, <code>test?</code>, <code>update?</code>, <code>body</code> Block</td></tr>
+          <tr><td><code>BreakStatement</code>, <code>ContinueStatement</code></td><td>statement</td><td>aucun slot&nbsp;; boucle obligatoire, sans traverser une frontière de fonction</td></tr>
+          <tr><td><code>ExpressionStatement</code></td><td>statement</td><td><code>expression</code>&nbsp;: la forme retenue pour un appel dont on ignore le résultat</td></tr>
+          <tr><td><code>AssignmentStatement</code></td><td>statement</td><td><code>target</code> Reference ou ArrayAccess, <code>value</code> expression</td></tr>
+          <tr><td><code>BinaryExpression</code></td><td>expression</td><td><code>operator</code>, <code>left</code>, <code>right</code></td></tr>
+          <tr><td><code>UnaryExpression</code></td><td>expression</td><td><code>operator</code>, <code>operand</code></td></tr>
+          <tr><td><code>Literal</code></td><td>expression</td><td><code>type</code> obligatoire et <code>value</code> strictement compatible</td></tr>
+          <tr><td><code>Reference</code></td><td>expression</td><td><code>references.target</code></td></tr>
+          <tr><td><code>CallExpression</code></td><td>expression</td><td><code>callee</code> expression, <code>arguments[]</code></td></tr>
+          <tr><td><code>CastExpression</code></td><td>expression</td><td><code>type</code> cible, <code>argument</code> expression</td></tr>
+          <tr><td><code>Hole</code></td><td>hole</td><td>incomplétude explicite&nbsp;; diagnostic bloquant, représentation conservée</td></tr>
+          <tr><td><code>ArrayLiteral</code></td><td>expression</td><td><code>elementType</code>, <code>elements[]</code> du même type</td></tr>
+          <tr><td><code>ArrayCreation</code></td><td>expression</td><td><code>elementType</code>, <code>size</code> entier, <code>initializer?</code> de l'élément</td></tr>
+          <tr><td><code>ArrayAccess</code></td><td>expression</td><td><code>array</code> tableau, <code>index</code> entier&nbsp;; résultat = type de l'élément</td></tr>
+        </tbody>
+      </table>
+      <p>
+        Le schéma porte aussi, pour chaque construction, un <code>group</code> stable (<code>variable</code>,
+        <code>type</code>, <code>function</code>, <code>parameter</code>, <code>condition</code>,
+        <code>loop</code>, <code>return</code>, <code>block</code>, <code>statement</code>,
+        <code>operator</code>, <code>value</code>, <code>array</code>, <code>incomplete</code>). Ce champ sert à
+        l'interface seulement — couleur de bordure des lignes d'arbre et regroupement des propositions du menu. Il
+        n'intervient ni dans la validation ni dans le typage, et reste distinct de <code>category</code>, qui elle,
+        détermine la compatibilité syntaxique d'un slot.
+      </p>
+      <p>
+        <code>declaresType</code> marque les constructions autorisées à porter une annotation&nbsp;;
+        <code>declaresElementType</code> celles qui portent un type d'élément de tableau. Une annotation posée sur
+        un opérateur ou une référence est une erreur structurelle&nbsp;: elle ne peut pas forcer un type.
+      </p>
+
+      <figure class="shot shot-anchor" data-shot="25-projet-complet">
+        <div class="shot-layout">
+          <div class="shot-frame">
+            <img src="assets/shots/25-projet-complet.png" alt="Le même arbre affiché dans l'application : deux modules, leurs blocs et la flèche de dépendance." width="1600" height="900">
+          </div>
+          <ol class="notes">
+            <li data-node="Calculs::Retour">Ce que la page appelle <code>ReturnStatement</code> s'affiche «&nbsp;Retour&nbsp;»&nbsp;; le libellé est une vue, la sorte est une donnée.</li>
+            <li data-node="Calculs::Opération">Un <code>BinaryExpression</code>&nbsp;: aucun <code>properties.type</code> dans la source, un type dérivé par l'analyse.</li>
+            <li data-node="Affichage::Tableau">Un <code>ArrayLiteral</code> qui déclare le type de ses éléments, pas le sien.</li>
+            <li data-node="Affichage::Appel de fonction">Un <code>ExpressionStatement</code> portant un <code>CallExpression</code>&nbsp;: la référence qui relie les deux modules.</li>
+          </ol>
+        </div>
+        <figcaption><b>Le schéma à l'écran.</b> Chaque ligne correspond à un enregistrement de <code>nodes</code>&nbsp;; aucune ne représente la présentation.</figcaption>
+      </figure>
+    </section>
+
+    <section id="portees">
+      <h2>5 · Portées, symboles, imports</h2>
+      <ul>
+        <li>Une portée par module&nbsp;; une par fonction, partagée avec ses paramètres et son bloc principal&nbsp;;
+        une par bloc imbriqué et par <code>for</code>.</li>
+        <li>Un espace de noms commun aux valeurs et aux types. Les déclarations d'une portée sont collectées avant
+        résolution&nbsp;: pas de <em>temporal dead zone</em>, pas d'analyse d'ordre d'initialisation à ce stade.</li>
+        <li>Un nom peut masquer une déclaration d'une portée externe. Un doublon dans la même portée est une
+        erreur, et la première déclaration reste choisie pour permettre l'inspection.</li>
+        <li>Export&nbsp;: <code>{nodeId, name}</code>, uniquement pour une déclaration racine. Import&nbsp;:
+        <code>{id, moduleId, nodeId, localName}</code>, uniquement vers un nœud explicitement exporté d'un autre
+        module.</li>
+        <li>Les imports peuvent être cycliques&nbsp;: aucune exécution ni analyse de cycle d'initialisation n'est
+        engagée. Pas de réexport, pas d'import étoilé, pas de résolution de chemin physique.</li>
+      </ul>
+      <p>
+        Le lien visuel entre deux cartes est une agrégation de ces références résolues&nbsp;:
+        <code>getModuleLinks(index)</code> renvoie, par couple de modules, une seule direction de l'exportateur
+        vers le récepteur, avec la liste des exportations <em>réellement utilisées</em> et leur nombre
+        d'utilisations. Un import jamais référencé ne produit aucun lien. La fonction est pure.
+      </p>
+      <h3>Le point d'entrée</h3>
+      <p>
+        Un projet valide contient zéro ou une seule fonction portant <code>properties.entryPoint: true</code>.
+        Absent ou <code>false</code>, la fonction est ordinaire, même si elle s'appelle <code>main</code>. Un
+        marqueur non booléen, ou posé sur une autre construction, donne <code>ENTRY_POINT_INVALID</code>&nbsp;; un
+        second marqueur donne <code>ENTRY_POINT_DUPLICATE</code>, localisé sur son nœud et sur le champ, y compris
+        dans des fragments détachés. Les données invalides restent inspectables et sérialisables&nbsp;: aucune
+        suppression automatique, mais <code>canGenerate</code> devient faux. Aucune exécution implicite n'est
+        attachée à ce marqueur&nbsp;; le simulateur l'exige simplement sans paramètres.
+      </p>
+    </section>
+
+    <section id="typage">
+      <h2>6 · Typage statique strict</h2>
+      <p>
+        Un seul catalogue, <code>primitives.js</code>. Les bornes sont celles du langage logique, pas d'un langage
+        hôte. Aucune conversion implicite, même sans perte de précision.
+      </p>
+      <table>
+        <thead>
+          <tr><th>Type</th><th>Domaine</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>short int</code></td><td>entier signé 16 bits&nbsp;: -32 768 à 32 767</td><td rowspan="4">Le calcul interne entier utilise BigInt, jamais persisté dans la source ni exposé comme type.</td></tr>
+          <tr><td><code>short uint</code></td><td>entier non signé 16 bits&nbsp;: 0 à 65 535</td></tr>
+          <tr><td><code>int</code></td><td>entier signé 32 bits</td></tr>
+          <tr><td><code>uint</code></td><td>entier non signé 32 bits</td></tr>
+          <tr><td><code>float</code></td><td>IEEE 754 binaire32</td><td>Chaque résultat arithmétique est de nouveau arrondi en binaire32&nbsp;; les textes sont arrondis directement, sans double arrondi via binaire64.</td></tr>
+          <tr><td><code>double</code></td><td>IEEE 754 binaire64</td><td>Arrondi au plus proche, égalités vers le significande pair&nbsp;; subnormaux autorisés, infinis et NaN refusés.</td></tr>
+          <tr><td><code>string</code></td><td>chaîne, vide autorisé</td><td>Aucune conversion en nombre, aucune concaténation, aucune comparaison ordonnée.</td></tr>
+          <tr><td><code>char</code></td><td>un scalaire Unicode unique</td><td>Y compris hors BMP&nbsp;; ni paire de scalaires, ni surrogate isolé.</td></tr>
+          <tr><td><code>boolean</code></td><td><code>true</code> / <code>false</code></td><td>Jamais 0/1 ni une chaîne&nbsp;; aucune arithmétique.</td></tr>
+          <tr><td><code>void</code></td><td>absence de valeur</td><td>Annotation de retour de fonction uniquement, et nulle part ailleurs.</td></tr>
+        </tbody>
+      </table>
+      <p>
+        <code>number</code>, <code>any</code> et <code>unknown</code> sont rejetés comme types logiques. Toutes les
+        déclarations, tous les paramètres et tous les littéraux portent un type explicite&nbsp;; une annotation
+        absente ou invalide est diagnostiquée et ne produit aucun type de secours. Une déclaration ne récupère
+        jamais le type de son initialiseur.
+      </p>
+
+      <h3>Tableaux</h3>
+      <p>
+        Un tableau est un type construit <code>{kind:'array', elementType}</code>, annotable <b>uniquement</b> sur
+        une variable, une constante ou un paramètre. Un type tableau sur un retour de fonction, un alias ou une
+        conversion est refusé (<code>TYPE_INVALID</code>). L'élément doit être un primitif non <code>void</code>&nbsp;;
+        les tableaux imbriqués sont refusés dans cette version. Trois constructions portent
+        <code>properties.elementType</code>&nbsp;: <code>ArrayLiteral</code>, <code>ArrayCreation</code>,
+        <code>ArrayAccess</code>. Une case jamais remplie ne reçoit aucune valeur inventée&nbsp;: sa lecture échoue
+        comme une variable sans initialiseur, et les éléments d'une constante ne sont pas modifiables.
+      </p>
+
+      <h3>Opérateurs</h3>
+      <table>
+        <thead>
+          <tr><th>Opérateur</th><th>Opérandes</th><th>Résultat</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>+ - * /</code></td><td>deux numériques du même type</td><td>ce même type&nbsp;; division entière tronquée vers zéro, sans promotion</td></tr>
+          <tr><td><code>%</code></td><td>entiers du même type</td><td>reste associé à la troncation, signe du dividende&nbsp;; division ou reste par zéro interdits</td></tr>
+          <tr><td><code>&lt; &lt;= &gt; &gt;=</code></td><td>mêmes types numériques</td><td><code>boolean</code></td></tr>
+          <tr><td><code>== !=</code></td><td>même primitif non <code>void</code></td><td><code>boolean</code>&nbsp;; pas de comparaison de signatures de fonctions</td></tr>
+          <tr><td><code>and or</code>, <code>not</code></td><td>booléens uniquement</td><td><code>boolean</code></td></tr>
+          <tr><td><code>+</code> unaire</td><td>numérique</td><td>type conservé, bornes comprises</td></tr>
+          <tr><td><code>-</code> unaire</td><td>numérique signé uniquement</td><td>interdit pour <code>short uint</code> et <code>uint</code></td></tr>
+        </tbody>
+      </table>
+      <p>
+        Les conditions de <code>if</code>, <code>while</code> et <code>for</code> exigent <code>boolean</code>. Le
+        nombre et les types des arguments d'un appel doivent correspondre exactement à la signature&nbsp;; un appel
+        invalide n'obtient pas le type de retour comme secours. Une fonction non <code>void</code> doit retourner la
+        bonne valeur sur tous les chemins démontrés par un vérificateur simple — retour direct, séquence de blocs,
+        deux branches d'un <code>if</code>&nbsp;; les boucles ne prouvent rien seules, et les cas non prouvés sont
+        refusés conservativement, sans exécuter aucune condition.
+      </p>
+
+      <h3>Conversions explicites</h3>
+      <p>
+        <code>CastExpression</code> porte le type cible et son argument. Les conversions entre les six primitifs
+        numériques sont permises, ainsi que l'identité d'un primitif non vide&nbsp;; pas de conversion chaîne/nombre,
+        booléen/nombre ou <code>char</code>/<code>string</code>. Vers un entier&nbsp;: troncature vers zéro puis
+        contrôle exact du domaine — une négative ne passe pas en non signé, une réduction de largeur ne reboucle
+        pas. Vers un flottant&nbsp;: la perte de précision est acceptée parce que demandée, mais dépassement et
+        sous-flux vers zéro restent des erreurs.
+      </p>
+    </section>
+
+    <section id="diagnostics">
+      <h2>7 · Diagnostics</h2>
+      <p>
+        Un diagnostic est un enregistrement sérialisable, jamais une exception&nbsp;: il peut être affiché, conservé
+        dans un fichier, comparé dans un test.
+      </p>
+<pre class="tree"><code>{
+  "code": "TYPE_MISMATCH",
+  "severity": "error",
+  "message": "Les types doivent être strictement identiques ; une conversion explicite est nécessaire.",
+  "location": { "projectId": "…", "moduleId": "…", "nodeId": "…", "field": "children.right" }
+}</code></pre>
+      <p>
+        <code>severity</code> vaut <code>error</code>, <code>warning</code> ou <code>info</code>&nbsp;; seul
+        <code>error</code> bloque génération et simulation. Les identifiants inapplicables valent <code>null</code>.
+        Les messages techniques sont en français&nbsp;; l'interface traduit le <em>code</em>, sans jamais analyser le
+        texte du message, ce qui garde le moteur indépendant de la langue affichée.
+      </p>
+      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr))">
+        <div class="card">
+          <h3>Structure et identité</h3>
+          <p><code>SOURCE_INVALID</code>, <code>FORMAT_VERSION_UNSUPPORTED</code>, <code>ID_INVALID</code>,
+          <code>ID_DUPLICATE</code>, <code>MODULE_INVALID</code>, <code>NODE_NOT_FOUND</code>,
+          <code>STRUCTURE_INVALID</code>, <code>NODE_KIND_UNKNOWN</code>, <code>NODE_INCOMPLETE</code>,
+          <code>SYNTAX_CYCLE</code>, <code>SYNTAX_MULTIPLE_PARENTS</code>, <code>NODE_DETACHED</code>,
+          <code>DEPTH_EXCEEDED</code>, <code>PLACEMENT_ILLEGAL</code></p>
+        </div>
+        <div class="card">
+          <h3>Sens et interfaces</h3>
+          <p><code>REFERENCE_UNRESOLVED</code>, <code>DECLARATION_CONFLICT</code>, <code>IMPORT_INVALID</code>,
+          <code>EXPORT_INVALID</code>, <code>ENTRY_POINT_INVALID</code>, <code>ENTRY_POINT_DUPLICATE</code></p>
+        </div>
+        <div class="card">
+          <h3>Types et nombres</h3>
+          <p><code>TYPE_MISMATCH</code>, <code>TYPE_REQUIRED</code>, <code>TYPE_INVALID</code>,
+          <code>EXPRESSION_UNTYPED</code>, <code>VOID_NOT_ALLOWED</code>, <code>TYPE_CYCLE</code>,
+          <code>CONSTANT_CYCLE</code>, <code>LITERAL_INVALID</code>, <code>NUMERIC_OVERFLOW</code>,
+          <code>NUMERIC_UNDERFLOW</code>, <code>DIVISION_BY_ZERO</code>, <code>RETURN_MISSING</code>,
+          <code>JSON_INVALID</code></p>
+        </div>
+      </div>
+      <p>
+        Une source incomplète reste représentable&nbsp;: un littéral sans valeur, un appel partiel, un retour sans
+        argument, un <code>Hole</code> sont acceptés comme document, signalés comme bloquants pour la production,
+        et en aucun cas supprimés pour «&nbsp;faire propre&nbsp;». La séparation est volontaire&nbsp;: le droit
+        d'inspecter un programme invalide ne doit pas dépendre du droit de produire du code.
+      </p>
+    </section>
+
+    <section id="flux">
+      <h2>8 · De la source aux résultats</h2>
+      <p>
+        <code>analyzeProgram(source)</code> enchaîne trois passes pures et cumulatives, puis décide&nbsp;:
+      </p>
+      <div class="flow">
+        <div class="step"><b>1 · AST</b> Structure, identifiants, parentés, module, marques d'entrée.<code>ast.js</code></div>
+        <div class="step"><b>2 · Sémantique</b> Portées, symboles, résolution des références, imports et exports, placements.<code>semantics.js</code></div>
+        <div class="step"><b>3 · Types</b> Typage statique, signatures dérivées, vérification des retours, constantes.<code>typeAnalysis.js</code></div>
+        <div class="step"><b>Résultat</b> <code>ast</code>, <code>semantic</code>, <code>diagnostics</code>, <code>index</code>, et <code>canGenerate</code> = aucun diagnostic bloquant.</div>
+      </div>
+      <p>
+        Les vues dérivées consomment ce résultat sans jamais le recomposer à leur façon&nbsp;: le graphe de contrôle
+        et le graphe de dépendances réutilisent les références déjà résolues, l'atteignabilité repart de
+        l'initialisation globale et du point d'entrée en suivant les cibles d'appels (imports et récursion
+        comprise), et l'agrégation des liens entre modules lit le même index.
+      </p>
+      <div class="notes-warning">
+        <p style="margin:0">
+          Une analyse est conservatrice par conception&nbsp;: pas de preuve générale sur les valeurs des variables,
+          les comparaisons numériques, les dépendances globales ou la terminaison des appels. Une condition inconnue
+          garde tous les chemins possibles. <b>Non parcouru lors d'une simulation ne veut pas dire
+          inatteignable.</b>
+        </p>
+      </div>
+    </section>
+
+    <section id="execution">
+      <h2>9 · Simulation et transpilation</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Simuler</h3>
+          <p><code>simulateProgram(project, { maxSteps = 10000 })</code>&nbsp;: exécution locale déterministe, sur
+          action explicite uniquement. Elle exige une analyse sans diagnostic bloquant et une fonction marquée
+          point d'entrée sans paramètre. Elle rend <code>ok</code>, <code>output</code> (lignes de texte),
+          <code>trace</code> (identifiants source dans l'ordre), puis le résultat et le nombre de pas, ou un code
+          d'erreur stable. Budget de pas et profondeur d'appel bornés&nbsp;; sortie et trace restent en mémoire.
+          Aucune saisie interactive, aucun effet natif, aucun réseau.</p>
+        </div>
+        <div class="card">
+          <h3>Transpiler</h3>
+          <p><code>transpileProgram(project, { target })</code>&nbsp;: réutilise <code>analyzeProgram()</code> puis
+          délègue à un backend enregistré. JavaScript et Python sont opérationnels&nbsp;; C/C++ et Java sont
+          désactivés. Les déclarations de modules et de fonctions sont écrites avant <code>main()</code>,
+          l'initialisation globale y est exécutée, puis le point d'entrée désigné est appelé. Le backend exige
+          exactement un point d'entrée, ne modifie jamais la source et refuse avec des diagnostics stables plutôt
+          que d'émettre du code incertain.</p>
+        </div>
+      </div>
+      <p>
+        Un même calcul arithmétique sert les deux chemins&nbsp;: les opérations numériques embarquées dans le code
+        généré proviennent de la même fabrique que celles du simulateur — BigInt pour les entiers, arrondi binaire32,
+        conversions, dépassements, sous-flux et division par zéro identiques. Le fichier produit n'embarque pas les
+        budgets du simulateur et n'est jamais exécuté automatiquement par l'application.
+      </p>
+    </section>
+
+    <section id="invariants">
+      <h2>10 · Invariants et refus</h2>
+      <table>
+        <thead>
+          <tr><th>Invariant</th><th>Effet observable</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Les fonctions du moteur ne modifient pas leurs entrées</td><td>Un échec d'insertion renvoie exactement la même source&nbsp;; annuler et rétablir ne peuvent pas corrompre un document.</td></tr>
+          <tr><td>Les identifiants viennent de l'appelant et ne sont jamais régénérés</td><td>Une sélection, une référence ou une position reste valable après une modification.</td></tr>
+          <tr><td>Un nœud a au plus un parent syntaxique</td><td><code>SYNTAX_MULTIPLE_PARENTS</code> et <code>SYNTAX_CYCLE</code> sont des erreurs dures, pas des avertissements.</td></tr>
+          <tr><td>Les résultats dérivés sont des instantanés en lecture seule</td><td>Les panneaux d'analyse ne peuvent pas écrire dans le document par accident.</td></tr>
+          <tr><td>La conservation JSON prime sur la normalisation</td><td>Une version inconnue, une catégorie de module obsolète ou un doublon d'entrée restent conservés et diagnostiqués&nbsp;; aucune migration silencieuse.</td></tr>
+        </tbody>
+      </table>
+      <p>
+        Ce modèle est la partie stable du projet. L'interface, les cartes, les thèmes et les panneaux changent plus
+        vite que lui&nbsp;: c'est exactement le but. Une capacité nouvelle qui n'arrive pas à s'écrire dans ces
+        enregistrements-là n'est pas une fonctionnalité à brancher sur un affichage, c'est une extension du modèle à
+        décider, discuter et documenter d'abord.
+      </p>
+      <div class="notes-soft">
+        <p style="margin-bottom:6px"><b>Aller plus loin</b></p>
+        <ul style="margin-bottom:0">
+          <li><a href="../ARCHITECTURE_AST.pdf">ARCHITECTURE_AST.pdf</a> — la version longue, avec le raisonnement de conception et l'exemple à deux modules développé.</li>
+          <li><a href="../ARCHITECTURE_AST.tex">ARCHITECTURE_AST.tex</a> — la source LaTeX&nbsp;; <code>pnpm docs:ast</code> la compile et dépose le PDF à côté.</li>
+          <li><a href="documentation.html">Documentation visuelle</a> — ces mêmes règles, telles qu'elles se voient dans l'application.</li>
+        </ul>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <p>Sapphire 3 · modèle logique v1. Les noms de champs, codes de diagnostic, bornes de types et règles
+      d'opérateurs de cette page sont relevés dans <code>docs/LOGIC_API.md</code> et l'implémentation de
+      <code>src/utils/logic/</code>&nbsp;; cette documentation évolue au fur et à mesure du projet.</p>
+    </footer>
+  </main>
+
+  <script src="assets/shots-data.js"></script>
+  <script src="assets/site.js"></script>
+</body>
+</html>
