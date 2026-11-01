@@ -1,6 +1,7 @@
 import { ArrowRight, CornerUpRight, RotateCcw, SkipBack, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
+import { snapPanelToArea } from '../../utils/panelSnap.js'
 import { failureLabel } from '../../utils/translations.js'
 import { kindLabel, typeLabel } from '../LogicTree/logicLabels.js'
 import './DebugPanel.css'
@@ -28,11 +29,14 @@ export default function DebugPanel({ session, index, onAction, onClose }) {
   const finished = !frame || frame.status !== 'paused'
   const currentNode = index.nodes.get(frame?.nodeId)
 
-  // Contraint le déplacement et la taille à la surface visible, avec un minimum utilisable.
-  function adjust(origin, mode, dx, dy, bounds) {
+  // Contraint le déplacement et la taille à la surface visible ; au pointeur, la fenêtre s'aimante aux bords.
+  function adjust(origin, mode, dx, dy, bounds, snap = false) {
     const width = mode === 'resize' ? Math.min(Math.max(240, bounds.width - origin.x - 8), Math.max(240, origin.width + dx)) : origin.width
     const height = mode === 'resize' ? Math.min(Math.max(180, bounds.height - origin.y - 8), Math.max(180, origin.height + dy)) : origin.height
-    setGeometry({ x: Math.min(Math.max(8, bounds.width - width - 8), Math.max(8, origin.x + (mode === 'move' ? dx : 0))), y: Math.min(Math.max(8, bounds.height - height - 8), Math.max(8, origin.y + (mode === 'move' ? dy : 0))), width, height })
+    const x = Math.min(Math.max(8, bounds.width - width - 8), Math.max(8, origin.x + (mode === 'move' ? dx : 0)))
+    const y = Math.min(Math.max(8, bounds.height - height - 8), Math.max(8, origin.y + (mode === 'move' ? dy : 0)))
+    const position = snap && mode === 'move' ? snapPanelToArea({ x, y, width, height, areaWidth: bounds.width, areaHeight: bounds.height }) : { x, y }
+    setGeometry({ ...position, width, height })
   }
 
   // Capture la poignée choisie sans déclencher le déplacement du canvas.
@@ -43,15 +47,16 @@ export default function DebugPanel({ session, index, onAction, onClose }) {
     const rect = panel.getBoundingClientRect()
     event.preventDefault()
     event.currentTarget.focus({ preventScroll: true })
-    event.currentTarget.setPointerCapture(event.pointerId)
+    // Le geste est enregistré avant la capture : une capture indisponible ne bloque pas le déplacement.
     gesture.current = { pointerId: event.pointerId, mode, x: event.clientX, y: event.clientY, origin: { x: rect.left - bounds.left, y: rect.top - bounds.top, width: rect.width, height: rect.height }, bounds }
+    try { event.currentTarget.setPointerCapture(event.pointerId) } catch { /* capture indisponible */ }
   }
 
   // Suit le pointeur capturé en pixels d'interface, indépendamment du zoom du workspace.
   function handleMove(event) {
     const current = gesture.current
     if (!current || current.pointerId !== event.pointerId) return
-    adjust(current.origin, current.mode, event.clientX - current.x, event.clientY - current.y, current.bounds)
+    adjust(current.origin, current.mode, event.clientX - current.x, event.clientY - current.y, current.bounds, true)
   }
 
   // Termine aussi les gestes annulés et les captures perdues.
