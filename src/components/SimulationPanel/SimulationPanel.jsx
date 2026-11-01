@@ -13,7 +13,13 @@ export default function SimulationPanel({ result, running = false, currentStep =
         <h2>{t('simulation.title')}</h2>
         <button type="button" aria-label={t('simulation.close')} onClick={onClose}><X size={16} aria-hidden="true" /></button>
       </header>
-      {result.ok ? <><p className="simulation-panel__status">{running ? t('simulation.running') : t('simulation.completed')} · {currentStep}/{result.trace.length} {t(result.trace.length === 1 ? 'simulation.step' : 'simulation.steps')}</p><pre>{result.output.join('\n') || t('simulation.noOutput')}</pre></> : <p className="simulation-panel__error" role="alert">{failureLabel({ code: result.errorCode ?? 'SIMULATION_FAILED' }, t)}</p>}
+      {result.ok ? <><p className="simulation-panel__status">{running ? t('simulation.running') : t('simulation.completed')} · {currentStep}/{result.trace.length} {t(result.trace.length === 1 ? 'simulation.step' : 'simulation.steps')}</p><pre>{result.output.join('\n') || t('simulation.noOutput')}</pre>
+        {result.contracts?.total > 0 && <section className="simulation-panel__contracts" aria-label={t('contracts.title')}>
+          <h3>{t('contracts.title')}</h3>
+          {result.contracts.violations.length === 0
+            ? <p role="status">{t('contracts.satisfied', { count: result.contracts.total })}</p>
+            : <ul>{result.contracts.violations.map((violation, position) => <li key={position} role="alert">{t('contracts.violated', { name: violation.name, rule: t(`contract.${violation.kind}`), step: violation.step, value: violation.value })}</li>)}</ul>}
+        </section>}</> : <p className="simulation-panel__error" role="alert">{failureLabel({ code: result.errorCode ?? 'SIMULATION_FAILED' }, t)}</p>}
     </aside>
   )
 }

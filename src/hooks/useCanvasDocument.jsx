@@ -1,6 +1,6 @@
 import { useReducer } from 'react'
 import { moduleTypes } from '../utils/moduleTypes.js'
-import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode } from '../utils/logic/index.js'
+import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode } from '../utils/logic/index.js'
 import { initialDocument, reduceHistory } from '../utils/canvasDocument.js'
 
 // Expose les éditions de document ; sélection et navigation restent dans les composants UI.
@@ -91,6 +91,13 @@ export default function useCanvasDocument() {
     return prepared
   }
 
+  // Change les contraintes vérifiables d'un nœud, sans toucher à ses propriétés ni à la géométrie.
+  function setNodeContracts(id, contracts) {
+    const prepared = setSourceNodeContracts(document.project, id, contracts)
+    if (prepared.ok) dispatch({ type: 'contracts', previousProject: document.project, prepared, id, contracts })
+    return prepared
+  }
+
   // Supprime le nœud et ses descendants ; les références restantes produisent leurs diagnostics.
   function deleteNode(id) {
     const targetId = id && typeof id === 'object' ? id : { kind: 'node', id }
@@ -165,5 +172,5 @@ export default function useCanvasDocument() {
     dispatch({ type: 'redo' })
   }
 
-  return { ...document, createCard, updateGeometry, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, duplicateNode, deleteNode, deleteModule, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setExpandedNodes, setCardHidden, setCardLocked, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
+  return { ...document, createCard, updateGeometry, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, duplicateNode, deleteNode, deleteModule, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, setExpandedNodes, setCardHidden, setCardLocked, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
 }

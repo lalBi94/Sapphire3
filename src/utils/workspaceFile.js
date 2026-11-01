@@ -1,4 +1,5 @@
 import { isId, isRecord, sourceFormatVersion, moduleKinds, createProject } from './logic/model.js'
+import { isContractKind } from './logic/contracts.js'
 import { serializeSource } from './logic/serialization.js'
 import { moduleTypes, minimumModuleSize } from './moduleTypes.js'
 import { isEmbeddedImage } from './embeddedImage.js'
@@ -39,6 +40,7 @@ function validateProject(project) {
     if (node.properties.type?.name !== undefined && typeof node.properties.type.name !== 'string') throw workspaceError('Invalid type name.')
     if (node.properties.value !== null && typeof node.properties.value === 'object') throw workspaceError('Invalid literal value.')
     if (!Object.values(node.children).every((value) => Array.isArray(value) ? value.every(validNodeLink) : validNodeLink(value))) throw workspaceError('Invalid child identifiers.')
+    if (node.contracts !== undefined && (!Array.isArray(node.contracts) || node.contracts.some((contract) => !isRecord(contract) || !isContractKind(contract.kind)))) throw workspaceError('Invalid node contracts.')
   }
 }
 

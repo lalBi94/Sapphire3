@@ -11,6 +11,15 @@
 .node-properties__report button:hover { background: var(--color-hover); }
 .node-properties__report button:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .node-properties__report span { color: var(--color-text-muted); font-size: 10px; }
+.node-properties__contracts ul { margin: 0 0 8px; padding: 0; list-style: none; display: grid; gap: 4px; }
+.node-properties__contracts li { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 6px; border: 1px solid var(--color-border); border-radius: var(--radius-small); }
+.node-properties__contracts li button { display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: var(--radius-small); background: transparent; color: var(--color-text-muted); cursor: pointer; }
+.node-properties__contracts li button:hover { color: var(--color-diagnostic); }
+.node-properties__contracts-hint { margin: 0 0 8px; font-size: 10px; }
+.node-properties__contracts-add { display: flex; gap: 6px; }
+.node-properties__contracts-add select { flex: 1; min-width: 0; padding: 4px 6px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-input); color: var(--color-text); font: inherit; }
+.node-properties__contracts-add button { padding: 4px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: transparent; color: var(--color-text); font: inherit; font-size: 10px; cursor: pointer; }
+.node-properties__contracts-add button:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
 .node-properties__children { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0; }
 .node-properties__children span, .node-properties__children small { color: var(--color-text-muted); }
 .node-properties__children button { display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; border: 1px solid var(--color-selection-border); border-radius: var(--radius-small); color: var(--color-selection); background: var(--color-selection-surface); font: inherit; font-size: 10px; cursor: pointer; }

@@ -5,6 +5,7 @@ import { diagnosticCodes as codes } from './diagnostics.js'
 import { isId, isRecord } from './model.js'
 import { sameType, primitiveType, acceptsOperand, arrayType } from './primitives.js'
 import { binaryOperators, unaryOperators, getNodeSchema } from './nodeSchema.js'
+import { normalizeContracts } from './contracts.js'
 
 const hardInsertionCodes = new Set([
   codes.invalidStructure, codes.missingNode, codes.invalidModule, codes.multipleParents, codes.cycle,
@@ -132,6 +133,17 @@ export function reorderSourceNode(project, nodeId, offset, options = {}) {
     ? project.nodes
     : project.nodes.map((entry) => entry?.id === parent.id ? { ...entry, children: { ...entry.children, [parent.slot]: reordered } } : entry)
   const candidate = { ...project, modules, nodes }
+  const analysis = analyzeProgram(candidate)
+  return { ok: true, project: candidate, analysis, index: createContextIndex(candidate, analysis), nodeId }
+}
+
+// Modifie les contraintes attachées à un nœud sans toucher à ses propriétés ni à ses liens.
+export function setSourceNodeContracts(project, nodeId, contracts) {
+  if (!Array.isArray(project?.nodes)) return { ok: false, code: 'SOURCE_INVALID', project }
+  const matches = project.nodes.filter((node) => node?.id === nodeId)
+  if (matches.length !== 1) return { ok: false, code: 'TARGET_INVALID', project }
+  const normalized = normalizeContracts(contracts)
+  const candidate = { ...project, nodes: project.nodes.map((node) => node?.id === nodeId ? { ...node, contracts: normalized } : node) }
   const analysis = analyzeProgram(candidate)
   return { ok: true, project: candidate, analysis, index: createContextIndex(candidate, analysis), nodeId }
 }

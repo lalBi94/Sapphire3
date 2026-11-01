@@ -5,4 +5,8 @@
 .simulation-panel header button:hover { background: var(--color-hover); color: var(--color-text); }
 .simulation-panel__status { margin: 0 0 8px; color: var(--color-text-muted); }
 .simulation-panel pre { min-height: 36px; max-height: 170px; margin: 0; padding: 8px; overflow: auto; border: 1px solid var(--color-border); border-radius: var(--radius-small); color: var(--color-text); background: var(--color-surface-raised); white-space: pre-wrap; overflow-wrap: anywhere; }
+.simulation-panel__contracts { margin-top: 10px; }
+.simulation-panel__contracts h3 { margin: 0 0 6px; font-size: 11px; font-weight: 600; }
+.simulation-panel__contracts ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.simulation-panel__contracts li { padding: 5px 6px; border: 1px solid var(--color-diagnostic); border-radius: var(--radius-small); color: var(--color-diagnostic); font-size: 11px; }
 .simulation-panel__error { margin: 0; color: var(--color-diagnostic); line-height: 1.5; }

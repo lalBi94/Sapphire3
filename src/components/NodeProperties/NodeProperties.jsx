@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react'
-import { ChevronRight, Copy } from 'lucide-react'
-import { resolveContext, getNodeSchema } from '../../utils/logic/index.js'
+import { ChevronRight, Copy, X } from 'lucide-react'
+import { resolveContext, getNodeSchema, contractKinds } from '../../utils/logic/index.js'
 import { diagnosticLabel, kindLabel, nodeSummary, slotLabel } from '../LogicTree/logicLabels.js'
 import { ancestorNodeIds } from '../../utils/nodeTree.js'
 import { buildBugReport } from '../../utils/bugReport.js'
@@ -64,14 +64,16 @@ function ProjectHierarchy({ project, index, selected, onSelect, t }) {
 }
 
 // Affiche les propriétés et l'extrait de code dans le cadre flottant commun aux analyses.
-export default function NodeProperties({ selected, project, index, onConfigure, onRename, onSelect, onDelete, onDeleteModule, onExport, onImport, onRemoveImport, onClose, mutationError }) {
+export default function NodeProperties({ selected, project, index, onConfigure, onRename, onSelect, onDelete, onDeleteModule, onExport, onImport, onRemoveImport, onContracts, onClose, mutationError }) {
   const { t, language } = useTranslation()
   const [reportState, setReportState] = useState('')
+  const [contractKind, setContractKind] = useState('')
   const context = resolveContext(project, selected, undefined, index)
   const record = context.record
   const schema = selected.kind === 'node' && record ? getNodeSchema(record.kind) : null
   const diagnostics = index.analysis.diagnostics.filter((entry) => selected.kind === 'module' ? entry.location.moduleId === selected.id : entry.location.nodeId === selected.id)
   const configurable = schema && (schema.named || schema.declaresType || schema.declaresElementType || ['BinaryExpression', 'UnaryExpression', 'Reference'].includes(record.kind))
+  const contractable = selected.kind === 'node' && Boolean(record) && ['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(record.kind)
   const title = selected.kind === 'module' ? t('details.module') : record ? kindLabel(record.kind, t) : t('details.block')
   const trail = selected.kind === 'node' ? nodeTrail(index, selected.id, t) : []
 
@@ -95,6 +97,23 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
     {!context.ok ? <p>{t('details.missingBlock')}</p> : <>
       {selected.kind === 'module' ? <ModuleNameForm key={`${record.id}:${record.name}`} module={record} onRename={onRename} /> : configurable ? <NodeForm key={`${record.id}:${JSON.stringify([record.properties, record.references])}`} kind={record.kind} initialNode={record} context={context} onSubmit={(patch) => onConfigure(record.id, patch)} /> : <p>{t('details.addParts')}</p>}
       {selected.kind === 'module' && <ModuleInterface key={record.id} module={record} project={project} analysis={index.analysis} index={index} onExport={onExport} onImport={onImport} onRemoveImport={onRemoveImport} />}
+      {contractable && <section className="node-properties__contracts" aria-label={t('contracts.title')}>
+        <h3>{t('contracts.title')}</h3>
+        <p className="node-properties__contracts-hint">{t('contracts.hint')}</p>
+        {(record.contracts ?? []).length === 0
+          ? <p>{t('contracts.none')}</p>
+          : <ul>{record.contracts.map((contract, position) => <li key={`${contract.kind}:${position}`}>
+            <span>{t(`contract.${contract.kind}`)}</span>
+            <button type="button" aria-label={`${t('contracts.remove')} · ${t(`contract.${contract.kind}`)}`} title={t('contracts.remove')} onClick={() => onContracts(record.id, record.contracts.filter((_, index2) => index2 !== position))}><X size={13} aria-hidden="true" /></button>
+          </li>)}</ul>}
+        <div className="node-properties__contracts-add">
+          <select value={contractKind} onChange={(event) => setContractKind(event.target.value)} aria-label={t('contracts.choose')}>
+            <option value="">{t('contracts.choose')}</option>
+            {contractKinds.map((kind) => <option key={kind} value={kind}>{t(`contract.${kind}`)}</option>)}
+          </select>
+          <button type="button" disabled={!contractKind} onClick={() => { onContracts(record.id, [...(record.contracts ?? []), { kind: contractKind }]); setContractKind('') }}>{t('contracts.add')}</button>
+        </div>
+      </section>}
       <h3>{selected.kind === 'module' ? t('details.topBlocks') : t('details.parts')}</h3>
       {(selected.kind === 'module' ? [['rootNodeIds', record.rootNodeIds]] : Object.entries(record.children ?? {})).map(([slot, value]) => <div className="node-properties__children" key={slot}><span>{slotLabel(slot, t)}</span>
         {(Array.isArray(value) ? value : value ? [value] : []).map((id, position) => <button type="button" key={`${id}:${position}`} onClick={() => onSelect({ kind: 'node', id })}>{index.nodes.get(id)?.properties?.name || (index.nodes.get(id) ? kindLabel(index.nodes.get(id).kind, t) : t('details.missingBlock'))}<ChevronRight size={14} strokeWidth={1.75} aria-hidden="true" /></button>)}

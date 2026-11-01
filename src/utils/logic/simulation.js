@@ -1,6 +1,7 @@
 import { analyzeProgram } from './analysis.js'
 import { validateLiteral, convertConstant, evaluateBinary, evaluateUnary } from './numericConstants.js'
 import { createDebugRecorder } from './debugTrace.js'
+import { satisfiesContract, normalizeContracts } from './contracts.js'
 
 // Ajoute un code stable sans introduire de traduction ni de dépendance UI dans le moteur.
 function simulationError(code, message) {
@@ -17,6 +18,16 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   const references = new Map(analysis.semantic.references.map((reference) => [reference.nodeId, reference]))
   const types = new Map(analysis.semantic.nodeTypes.map((entry) => [entry.nodeId, entry.type]))
   const functions = new Map(analysis.semantic.symbols.filter((symbol) => symbol.kind === 'FunctionDeclaration').map((symbol) => [symbol.nodeId, nodes.get(symbol.nodeId)]))
+  // Contraintes vérifiables attachées aux nœuds, lues sur la valeur du symbole déclaré.
+  const contracts = []
+  for (const node of project.nodes) {
+    const kinds = normalizeContracts(node?.contracts).map((contract) => contract.kind)
+    if (kinds.length) contracts.push({ nodeId: node.id, name: node.properties?.name || node.id, kinds })
+  }
+  const contractViolations = []
+  const contractStates = new Map()
+  let contractObservations = 0
+  const maximumContractViolations = 100
   const entry = [...functions.values()].find((node) => node?.properties?.entryPoint === true)
   const output = []
   const trace = []
@@ -155,8 +166,52 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     throw simulationError('SIMULATION_UNSUPPORTED', `Unsupported expression: ${node.kind}.`)
   }
 
-  // Exécute une instruction et propage les contrôles de flux jusqu'à leur propriétaire.
+  // Lit une liaison sans lever d'erreur : une valeur absente rend le contrat non évaluable.
+  function peekBinding(nodeId, environment) {
+    let current = environment
+    while (current) {
+      if (current.values.has(nodeId)) {
+        const value = current.values.get(nodeId)
+        return value === uninitialized ? undefined : value
+      }
+      current = current.parent
+    }
+    return undefined
+  }
+
+  // Vérifie chaque contrat sur l'état courant ; une violation n'est signalée qu'une fois par valeur observée.
+  function checkContracts(environment) {
+    if (contracts.length === 0) return
+    for (const entry of contracts) {
+      const value = peekBinding(entry.nodeId, environment)
+      if (value === undefined) continue
+      for (const kind of entry.kinds) {
+        const satisfied = satisfiesContract(kind, value)
+        if (satisfied === null) continue
+        contractObservations += 1
+        const key = `${entry.nodeId}:${kind}`
+        if (satisfied) { contractStates.delete(key); continue }
+        const observed = formatValue(value)
+        const previous = contractStates.get(key)
+        if (!previous || previous !== observed) {
+          contractStates.set(key, observed)
+          if (contractViolations.length < maximumContractViolations) contractViolations.push({ nodeId: entry.nodeId, name: entry.name, kind, step: steps, value: observed })
+        }
+      }
+    }
+  }
+
+  // Vérifie les contrats après chaque instruction, même si un retour interrompt la suite.
   function executeStatement(node, environment) {
+    try {
+      runStatement(node, environment)
+    } finally {
+      checkContracts(environment)
+    }
+  }
+
+  // Exécute une instruction et propage les contrôles de flux jusqu'à leur propriétaire.
+  function runStatement(node, environment) {
     if (debug) {
       lastEnvironment = environment
       lastScopes = [...activeScopes]
@@ -290,7 +345,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     }
     const result = executeFunction(entry, [])
     debug?.record(null, global, [], 'completed')
-    return { ok: true, output, trace, result: typeof result === 'bigint' ? Number(result) : result, steps, ...(debug ? { debugFrames: debug.frames } : {}) }
+    return { ok: true, output, trace, result: typeof result === 'bigint' ? Number(result) : result, steps, contracts: { total: contracts.reduce((count, entry) => count + entry.kinds.length, 0), observations: contractObservations, violations: contractViolations }, ...(debug ? { debugFrames: debug.frames } : {}) }
   } catch (error) {
     const errorCode = error?.code ?? 'SIMULATION_FAILED'
     debug?.record(lastInstructionId, lastEnvironment, lastScopes, 'error', errorCode)

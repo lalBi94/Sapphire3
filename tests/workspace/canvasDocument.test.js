@@ -189,3 +189,16 @@ test('verrouillage de carte : drapeau de présentation, sans étape d’historiq
   assert.equal(history.present.cards[0].locked, true)
   assert.equal(history.past.length, 0, 'le verrou est une présentation, pas une étape d’historique')
 })
+
+test('contrats : conservés à l’aller-retour et refusés s’ils sont mal formés', () => {
+  const camera = { x: 0, y: 0, zoomLevel: 0 }
+  const document = reduceDocument(initialDocument(), { type: 'createCard', card: card('module') })
+  document.project.nodes.push({ id: 'x', moduleId: 'module', kind: 'VariableDeclaration', properties: { name: 'x', type: { kind: 'primitive', name: 'int' } }, children: { initializer: null }, references: {}, contracts: [{ kind: 'positive' }] })
+  document.project.modules[0].rootNodeIds.push('x')
+  const text = serializeWorkspace(document.project, document.cards, camera)
+  const roundTrip = deserializeWorkspace(text)
+  assert.deepEqual(roundTrip.project.nodes.find((node) => node.id === 'x').contracts, [{ kind: 'positive' }])
+  const invalid = JSON.parse(text)
+  invalid.project.nodes.find((node) => node.id === 'x').contracts = [{ kind: 'bogus' }]
+  assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)), { message: 'Invalid node contracts.' })
+})
