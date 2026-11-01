@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Copy, Download, X } from 'lucide-react'
+import { Copy, FileOutput, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { failureLabel } from '../../utils/translations.js'
 import { transpilationLanguages } from '../../utils/transpilation/languages.js'
@@ -32,7 +32,7 @@ export default function TranspilePanel({ result, exportError, onExport, onClose 
       </header>
       <div className="transpile-panel__actions">
         <button type="button" onClick={handleCopy} disabled={!result.code}><Copy size={14} aria-hidden="true" />{t('transpile.copy')}</button>
-        <button type="button" onClick={onExport} disabled={!result.ok}><Download size={14} aria-hidden="true" />{t('transpile.export', values)}</button>
+        <button type="button" onClick={onExport} disabled={!result.ok}><FileOutput size={14} aria-hidden="true" />{t('transpile.export', values)}</button>
         {copyMessage && <span role={copyMessage === 'transpile.copyFailed' ? 'alert' : 'status'}>{t(copyMessage)}</span>}
       </div>
       {exportError && <p className="transpile-panel__error" role="alert">{t('errors.couldNotExport')} {failureLabel(exportError, t)}</p>}

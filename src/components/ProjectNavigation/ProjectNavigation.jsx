@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Bug, Check, ChevronDown, Clock3, Code2, Download, FolderOpen, Palette, Play, Save, Upload, X } from 'lucide-react'
+import { Bug, Check, ChevronDown, Clock3, Code2, FileInput, FileOutput, FolderOpen, Palette, Play, Save, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { useTheme } from '../../contexts/ThemeContext.jsx'
 import { transpilationLanguages } from '../../utils/transpilation/index.js'
@@ -106,8 +106,8 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
             ? <p>{t('nav.noRecentFiles')}</p>
             : recentFiles.map((path) => <button type="button" className="project-navigation__recent-file" title={path} disabled={busy || !!pendingImport} onClick={() => handleOpenRecent(path)} key={path}><Clock3 size={14} aria-hidden="true" /><span>{path}</span></button>)}
           <button type="button" disabled={busy || !!pendingImport} onClick={handleSave}><Save size={14} aria-hidden="true" />{t('nav.saveSp3')}</button>
-          <button type="button" disabled={busy || !!pendingImport} onClick={handleImport}><Upload size={14} aria-hidden="true" />{t('nav.import')}</button>
-          <button type="button" disabled={busy || !!pendingImport} onClick={() => handleSaveAs('json')}><Download size={14} aria-hidden="true" />{t('nav.exportJson')}</button>
+          <button type="button" disabled={busy || !!pendingImport} onClick={handleImport}><FileInput size={14} aria-hidden="true" />{t('nav.import')}</button>
+          <button type="button" disabled={busy || !!pendingImport} onClick={() => handleSaveAs('json')}><FileOutput size={14} aria-hidden="true" />{t('nav.exportJson')}</button>
         </div>
       </details>
       <details name="workspace-menu" onToggle={handleToggle}>
