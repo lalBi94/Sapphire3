@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { getNodeSchema } from '../../utils/logic/index.js'
+import { scrollNodeIntoCard } from '../../utils/cardScroll.js'
 import { kindLabel, nodeSummary, slotLabel } from './logicLabels.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
@@ -20,7 +21,7 @@ export default function LogicNode({ id, index, selectedId, activeExecutionId, on
   const drop = dropTarget?.kind === 'node' && dropTarget.id === id ? dropTarget : null
 
   useEffect(() => {
-    if (active) nodeRef.current?.scrollIntoView({ block: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
+    if (active) scrollNodeIntoCard(nodeRef.current, 'nearest')
   }, [active])
 
   // L'événement ne remonte pas à un autre nœud ou au module contenant la sélection.

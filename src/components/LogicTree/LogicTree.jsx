@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import LogicNode from './LogicNode.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './LogicTree.css'
@@ -13,9 +13,16 @@ function moduleNodeIds(module, index) {
 }
 
 // Parcourt les racines source dans leur ordre ; les nœuds sont pliés tant qu'ils ne sont pas dépliés.
-export default function LogicTree({ module, index, selectedId, onSelect, expandedNodeIds, onExpandedChange, onOpenActions, activeExecutionId = null, executionExpandedNodeIds = [], dropTarget }) {
+export default function LogicTree({ module, index, selectedId, onSelect, expandedNodeIds, onExpandedChange, onOpenActions, activeExecutionId = null, executionExpandedNodeIds = [], executionSession = null, dropTarget }) {
   const knownIds = useRef(null)
+  // Nœuds repliés à la main malgré le dépli automatique de la simulation en cours.
+  const [executionCollapsed, setExecutionCollapsed] = useState(() => new Set())
   const { t } = useTranslation()
+
+  // Un nouveau Run ou une nouvelle session de debug repart d'un dépli automatique complet.
+  useEffect(() => {
+    setExecutionCollapsed(new Set())
+  }, [executionSession])
 
   // Déplie les nœuds ajoutés après le montage, ainsi que leurs parents, sans rouvrir l'existant.
   useEffect(() => {
@@ -39,13 +46,26 @@ export default function LogicTree({ module, index, selectedId, onSelect, expande
     onExpandedChange([...next])
   }, [module, index, expandedNodeIds, onExpandedChange])
 
-  const expandedIds = new Set([...expandedNodeIds, ...(activeExecutionId ? executionExpandedNodeIds : [])])
+  const forcedIds = executionExpandedNodeIds.filter((id) => !executionCollapsed.has(id))
+  const expandedIds = new Set([...expandedNodeIds, ...(activeExecutionId ? forcedIds : [])])
 
   // Mémorise seulement les nœuds explicitement dépliés, sans toucher à la source logique.
+  // Un nœud déplié automatiquement par la simulation se replie pour de bon et n'est pas ré-ouvert par la suite.
   function handleToggle(id) {
     const next = new Set(expandedNodeIds)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
+    if (expandedIds.has(id)) {
+      const onlyForced = !next.has(id)
+      next.delete(id)
+      if (onlyForced) setExecutionCollapsed((current) => new Set(current).add(id))
+    } else {
+      next.add(id)
+      setExecutionCollapsed((current) => {
+        if (!current.has(id)) return current
+        const remaining = new Set(current)
+        remaining.delete(id)
+        return remaining
+      })
+    }
     onExpandedChange([...next])
   }
 

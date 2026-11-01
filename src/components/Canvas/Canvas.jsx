@@ -14,6 +14,7 @@ import LogicContextMenu from '../LogicContextMenu/LogicContextMenu.jsx'
 import NodeProperties from '../NodeProperties/NodeProperties.jsx'
 import { moduleTypes } from '../../utils/moduleTypes.js'
 import { expandableNodeIdsByModule, expandAllNodeIds, isFullyExpanded } from '../../utils/nodeTree.js'
+import { scrollNodeIntoCard } from '../../utils/cardScroll.js'
 import ProjectNavigation from '../ProjectNavigation/ProjectNavigation.jsx'
 import useWorkspaceFiles from '../../hooks/useWorkspaceFiles.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
@@ -74,6 +75,8 @@ export default function Canvas() {
 
   const debugFrame = debugSession?.project === document.project ? debugSession.frames[debugSession.cursor] : null
   const activeExecutionId = debugSession ? debugFrame?.nodeId ?? null : execution?.trace[execution.index] ?? null
+  // Identité de la session d'exécution courante : un nouveau Run ou une nouvelle session de debug réinitialise le repli manuel.
+  const executionSession = debugSession?.project === document.project ? debugSession.frames : execution?.trace ?? null
   // Les liens intermodules ne dépendent que de l'analyse, pas du déplacement des cartes.
   const moduleLinks = useMemo(() => getModuleLinks(document.index), [document.index])
   // Une carte masquée reste dans le document et le fichier ; elle n'est simplement pas montée.
@@ -94,7 +97,7 @@ export default function Canvas() {
   useEffect(() => {
     if (!revealTarget) return
     const element = workspaceRef.current?.querySelector(`[data-source-node="${revealTarget.nodeId}"]`)
-    if (element) element.scrollIntoView({ block: 'center', inline: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
+    if (element) scrollNodeIntoCard(element, 'center')
     setRevealTarget(null)
   }, [revealTarget])
 
@@ -432,7 +435,7 @@ export default function Canvas() {
         onMove={(id, x, y) => document.updateGeometry(id, { x, y })}
         onRename={document.renameCard} onTextChange={document.updateComment} onImageChange={document.updateImage}
         expansionState={document.index.modules.has(card.id) ? getExpansionState(card.id) : null} onToggleExpansion={(id) => handleExpansion(id, getExpansionState(id) !== 'collapse')}>
-        {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} dropTarget={transfers.dropTarget} />}
+        {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} dropTarget={transfers.dropTarget} />}
       </CanvasModule>)}
       <CanvasStatus camera={camera} zoom={zoom} hiddenCount={hiddenCards.length} onShowAllHidden={handleShowAllHidden} onRecenter={() => handleRecenter(getModulesBounds())} />
       {transfers.notice && <div className={`canvas-transfer-status${transfers.notice.error ? ' canvas-transfer-status--error' : ''}`} data-canvas-ui role={transfers.notice.error ? 'alert' : 'status'} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
