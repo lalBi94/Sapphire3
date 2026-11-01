@@ -1,4 +1,5 @@
 import { failureLabel, translations } from '../../utils/translations.js'
+import { getNodeSchema } from '../../utils/logic/index.js'
 
 // Présente les discriminants du langage sans dupliquer son catalogue de constructions.
 export function kindLabel(kind, t) {
@@ -34,6 +35,12 @@ export function typeLabel(type, t) {
 // Distingue une fonction exportée d'une fonction locale sans modifier son nom de référence.
 export function symbolLabel(symbol) {
   return symbol?.external && symbol.moduleName ? `${symbol.name} · ${symbol.moduleName}` : symbol?.name ?? ''
+}
+
+// Ligne courte d'un nœud : genre, nom saisi et résumé utile, sans reconstruire l'AST.
+export function nodeLine(node, index, t) {
+  const summary = nodeSummary(node, index, getNodeSchema(node.kind), t)
+  return `${kindLabel(node.kind, t)}${node.properties?.name ? ` · ${node.properties.name}` : ''}${summary ? ` · ${summary}` : ''}`
 }
 
 // Résume une seule ligne de données utiles, sans reconstruire l'AST ni inventer de valeur.

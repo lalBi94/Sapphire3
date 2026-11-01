@@ -46,6 +46,10 @@
 .logic-node__issues { flex: 0 0 auto; color: var(--color-diagnostic); }
 .logic-node__heat { flex: 0 0 auto; min-width: 18px; padding: 1px 4px; border-radius: var(--radius-small); color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 18%, transparent); font-size: 10px; font-variant-numeric: tabular-nums; text-align: center; }
 .logic-node__unused { flex: 0 0 auto; padding: 1px 4px; border: 1px solid var(--color-diagnostic); border-radius: var(--radius-small); color: var(--color-diagnostic); font-size: 9px; white-space: nowrap; }
+/* Aperçu d'un bloc replié : rendu hors de la carte pour ne pas être rogné par le défilement. */
+.logic-node__preview { position: fixed; z-index: 200; max-height: 260px; overflow: auto; padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); corner-shape: var(--corner-shape); background: var(--surface-reflection), var(--surface-floating); box-shadow: var(--shadow-panel); color: var(--color-text); font-size: 11px; line-height: 1.5; pointer-events: none; }
+.logic-node__preview-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.logic-node__preview-more { margin-top: 4px; color: var(--color-text-muted); }
 .logic-node__entry-point { flex: 0 0 auto; padding: 1px 4px; border: 1px solid var(--color-primary); border-radius: var(--radius-small); corner-shape: var(--corner-shape); color: var(--color-primary); font-size: 10px; }
 .logic-node__summary { display: flex; flex-wrap: wrap; gap: 6px; color: var(--color-text-muted); font-size: 10px; margin-top: 4px; overflow-wrap: anywhere; }
 .logic-node__summary--collapsed { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

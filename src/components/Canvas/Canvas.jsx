@@ -21,8 +21,8 @@ import { executionCounts, heatLevels, ancestorCounts } from '../../utils/executi
 import ProjectNavigation from '../ProjectNavigation/ProjectNavigation.jsx'
 import useWorkspaceFiles from '../../hooks/useWorkspaceFiles.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
-import { diagnosticLabel, kindLabel, nodeSummary } from '../LogicTree/logicLabels.js'
-import { createDebugSession, moveDebugSession, simulateProgram, getModuleLinks, getNodeSchema, getUnusedDeclarationIds } from '../../utils/logic/index.js'
+import { diagnosticLabel, nodeLine } from '../LogicTree/logicLabels.js'
+import { createDebugSession, moveDebugSession, simulateProgram, getModuleLinks, getUnusedDeclarationIds } from '../../utils/logic/index.js'
 import { transpileProgram } from '../../utils/transpilation/index.js'
 import { transpilationLanguages } from '../../utils/transpilation/languages.js'
 import { exportWorkspaceFile } from '../../services/workspaceFiles.js'
@@ -289,10 +289,7 @@ export default function Canvas() {
       index: document.index,
       links: moduleLinks,
       colors: svgPalette(),
-      describe: (node) => {
-        const summary = nodeSummary(node, document.index, getNodeSchema(node.kind), t)
-        return `${kindLabel(node.kind, t)}${node.properties?.name ? ` ${node.properties.name}` : ''}${summary ? ` · ${summary}` : ''}`
-      },
+      describe: (node) => nodeLine(node, document.index, t),
     })
     await files.exportText('svg', svg)
   }

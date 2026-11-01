@@ -1,9 +1,10 @@
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { getNodeSchema } from '../../utils/logic/index.js'
 import { scrollNodeIntoCard } from '../../utils/cardScroll.js'
-import { siblingOrder } from '../../utils/nodeTree.js'
-import { kindLabel, nodeSummary, slotLabel } from './logicLabels.js'
+import { siblingOrder, foldedPreviewLines } from '../../utils/nodeTree.js'
+import { kindLabel, nodeLine, nodeSummary, slotLabel } from './logicLabels.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 
@@ -25,10 +26,36 @@ export default function LogicNode({ id, index, selectedId, activeExecutionId, on
   const heatLevel = heatEntry?.level ?? 0
   const executions = heatEntry?.count ?? 0
   const unused = Boolean(unusedIds?.has(id))
+  const [preview, setPreview] = useState(null)
+  // Un nœud replié qui contient vraiment quelque chose peut montrer un aperçu au survol.
+  const previewable = Boolean(node) && !expanded && Object.values(node.children ?? {}).some((value) => Array.isArray(value) ? value.length > 0 : Boolean(value))
 
   useEffect(() => {
     if (active) scrollNodeIntoCard(nodeRef.current, 'nearest')
   }, [active])
+
+  // Aperçu au survol : les premières instructions du bloc replié, sans le déplier.
+  function showPreview() {
+    if (!previewable || !nodeRef.current) return
+    const rect = nodeRef.current.getBoundingClientRect()
+    const width = 340
+    const data = foldedPreviewLines(index, id, (entry) => nodeLine(entry, index, t), 8)
+    setPreview({
+      width,
+      left: Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - width - 8)),
+      below: rect.bottom < window.innerHeight * 0.62,
+      top: rect.bottom + 6,
+      bottom: window.innerHeight - rect.top + 6,
+      lines: data.lines,
+      hidden: data.hidden,
+    })
+  }
+
+  // Referme l'aperçu sauf si le focus reste dans le nœud.
+  function hidePreview(event) {
+    if (event?.type === 'blur' && event.currentTarget.contains(event.relatedTarget)) return
+    setPreview(null)
+  }
 
   // L'événement ne remonte pas à un autre nœud ou au module contenant la sélection.
   function handleSelect(event) {
@@ -44,8 +71,8 @@ export default function LogicNode({ id, index, selectedId, activeExecutionId, on
 
   if (!node) return <p className="logic-tree__missing">{t('canvas.blockMissing')}</p>
   if (ancestors.includes(id) || ancestors.length >= 60) return <p className="logic-tree__missing">{t('canvas.blockHidden')}</p>
-  return (
-    <section ref={nodeRef} className={`logic-node${selectedId === id ? ' logic-node--selected' : ''}${active ? ' logic-node--executing' : ''}${expanded ? '' : ' logic-node--collapsed'}${drop ? ` logic-node--drop-${drop.ok ? 'valid' : 'invalid'}` : ''}${heatEnabled ? ` logic-node--heat-${heatLevel}` : ''}`} data-executions={heatEnabled ? executions : undefined} data-source-node={id} data-group={schema?.group ?? 'incomplete'} aria-current={active ? 'step' : undefined} aria-label={name} onClick={handleSelect}>
+  return (<>
+    <section ref={nodeRef} className={`logic-node${selectedId === id ? ' logic-node--selected' : ''}${active ? ' logic-node--executing' : ''}${expanded ? '' : ' logic-node--collapsed'}${drop ? ` logic-node--drop-${drop.ok ? 'valid' : 'invalid'}` : ''}${heatEnabled ? ` logic-node--heat-${heatLevel}` : ''}`} data-executions={heatEnabled ? executions : undefined} data-source-node={id} data-group={schema?.group ?? 'incomplete'} aria-current={active ? 'step' : undefined} aria-label={name} onClick={handleSelect} onMouseEnter={showPreview} onMouseLeave={hidePreview} onFocus={showPreview} onBlur={hidePreview}>
       <NodeMenuButton label={name} onOpen={(event) => onOpenActions(event, { kind: 'node', id })} />
       <div className="logic-node__header">
         <button type="button" className="logic-node__toggle" aria-expanded={expanded} aria-label={t(expanded ? 'canvas.collapse' : 'canvas.expand', { name })} onClick={handleToggle}>
@@ -73,5 +100,11 @@ export default function LogicNode({ id, index, selectedId, activeExecutionId, on
         </div>
       })}
     </section>
+    {preview && previewable && createPortal(<div className="logic-node__preview" role="tooltip" aria-label={t('canvas.preview')} style={{ left: preview.left, width: preview.width, ...(preview.below ? { top: preview.top } : { bottom: preview.bottom }) }}>
+      {preview.lines.length === 0 && <div className="logic-node__preview-more">{t('canvas.previewEmpty')}</div>}
+      {preview.lines.map((line, position) => <div className="logic-node__preview-line" key={position} style={{ paddingLeft: line.depth * 12 }}>{line.text}</div>)}
+      {preview.hidden > 0 && <div className="logic-node__preview-more">{t('canvas.previewMore', { count: preview.hidden })}</div>}
+    </div>, document.body)}
+  </>
   )
 }
