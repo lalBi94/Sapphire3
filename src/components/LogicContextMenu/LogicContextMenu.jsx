@@ -21,11 +21,12 @@ function groupedActions(actions) {
 }
 
 // Propose le slot, puis la construction compatible et son formulaire latéral.
-export default function LogicContextMenu({ project, index, targetId, initialSlot, x, y, onInsert, onDelete, onDeleteModule, onHideCard, onExpansion, onOpenGraph, onCopy, onPaste, onDuplicate, hasClipboard, canToggleExpansion = false, onClose, anchored = false }) {
+export default function LogicContextMenu({ project, index, targetId, initialSlot, x, y, onInsert, onDelete, onDeleteModule, onHideCard, onExpansion, onOpenGraph, onCopy, onPaste, onDuplicate, hasClipboard, canToggleExpansion = false, onClose }) {
   const { t } = useTranslation()
   const [slotName, setSlotName] = useState(initialSlot ?? '')
   const [kind, setKind] = useState('')
   const [position, setPosition] = useState({ x, y })
+  const [bounded, setBounded] = useState(false)
   const menuRef = useRef(null)
   const moveRef = useRef(null)
   const available = getAvailableActions(project, targetId, slotName || undefined, { index })
@@ -37,7 +38,12 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
     const menu = menuRef.current
     const parent = menu.offsetParent
     if (!parent) return
-    setPosition({ x: Math.max(8, Math.min(x, parent.clientWidth - menu.offsetWidth - 8)), y: Math.max(8, Math.min(y, parent.clientHeight - 220)) })
+    // Place le menu d'après sa hauteur naturelle : il remonte plutôt que d'être coupé en bas.
+    setPosition({
+      x: Math.max(8, Math.min(x, parent.clientWidth - menu.offsetWidth - 8)),
+      y: Math.max(8, Math.min(y, parent.clientHeight - menu.offsetHeight - 8)),
+    })
+    setBounded(true)
   }, [x, y])
 
   useEffect(() => {
@@ -92,7 +98,8 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
   const menuStyle = {
     left: position.x,
     top: position.y,
-    maxHeight: anchored ? `calc(100% - ${position.y + 8}px)` : undefined,
+    // Après mesure, borne la hauteur à l'espace restant sous la position choisie.
+    maxHeight: bounded ? `calc(100% - ${position.y + 8}px)` : undefined,
   }
 
   return (
