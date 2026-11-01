@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { initialDocument, reduceDocument, reduceHistory } from '../../src/utils/canvasDocument.js'
 import { serializeWorkspace, deserializeWorkspace, emptyWorkspace } from '../../src/utils/workspaceFile.js'
-import { createModule, captureSourceNode, pasteSourceNode, duplicateSourceNode, moveSourceNode, deleteSourceNodes, insertSourceNodes, createNode } from '../../src/utils/logic/index.js'
+import { createModule, captureSourceNode, pasteSourceNode, duplicateSourceNode, moveSourceNode, deleteSourceNodes, insertSourceNodes, createNode, captureBookmark, insertBookmark } from '../../src/utils/logic/index.js'
 import { debugFixture, node, intType } from '../logic/fixtures.js'
 
 // Fournit une carte valide sans dépendre des identifiants aléatoires du hook React.
@@ -188,6 +188,27 @@ test('verrouillage de carte : drapeau de présentation, sans étape d’historiq
   const history = reduceHistory({ past: [], present: document, future: [] }, { type: 'presentation', id: 'module', patch: { locked: true } })
   assert.equal(history.present.cards[0].locked, true)
   assert.equal(history.past.length, 0, 'le verrou est une présentation, pas une étape d’historique')
+})
+
+test('favori inséré : nouveau module, une seule étape undo/redo, source rejouable', () => {
+  let history = transferDocument()
+  const before = history.present.project
+  const captured = captureBookmark(before, { kind: 'node', id: 'unused' })
+  assert.equal(captured.ok, true)
+  const bookmark = { id: 'b1', savedAt: 0, ...captured.bookmark }
+  const ids = bookmark.nodes.map((_, index) => `fav-${index}`)
+  const prepared = insertBookmark(before, bookmark, { moduleId: 'fav', moduleName: 'Favourite', ids })
+  assert.equal(prepared.ok, true)
+  history = reduceHistory(history, { type: 'insertBookmark', previousProject: before, prepared, bookmark, moduleId: 'fav', moduleName: 'Favourite', ids, position: { x: 10, y: 20 } })
+  assert.equal(history.past.length, 1)
+  assert.equal(history.present.project, prepared.project)
+  const cardEntry = history.present.cards.find((entry) => entry.id === 'fav')
+  assert.equal(cardEntry.name, 'Favourite')
+  assert.equal(cardEntry.x, 10)
+  assert.equal(cardEntry.y, 20)
+  history = reduceHistory(history, { type: 'undo' })
+  assert.equal(history.present.project, before)
+  assert.equal(history.present.cards.some((entry) => entry.id === 'fav'), false)
 })
 
 test('contrats : conservés à l’aller-retour et refusés s’ils sont mal formés', () => {

@@ -4,6 +4,12 @@ const messages = {
   'nav.view': ['View', 'Affichage', '视图', 'Ver', 'عرض'],
   'nav.theme': ['Theme', 'Thème', '主题', 'Tema', 'المظهر'],
   'nav.examples': ['Examples', 'Exemples', '示例', 'Ejemplos', 'أمثلة'],
+  'nav.bookmarks': ['Bookmarks', 'Favoris', '收藏', 'Favoritos', 'المفضلة'],
+  'bookmark.save': ['Save selection', 'Enregistrer la sélection', '保存所选', 'Guardar la selección', 'حفظ التحديد'],
+  'bookmark.onlyPure': ['Select a pure function or module (no side effect, no external dependency) to save it.', 'Sélectionnez une fonction ou un module pur (aucun effet de bord, aucune dépendance externe) pour l’enregistrer.', '请选择一个纯函数或纯模块（无副作用、无外部依赖）以保存。', 'Selecciona una función o módulo puro (sin efectos secundarios ni dependencias externas) para guardarlo.', 'اختر دالة أو وحدة نقية (بلا أثر جانبي ولا اعتماد خارجي) لحفظها.'],
+  'bookmark.empty': ['No saved bookmarks yet.', 'Aucun favori enregistré pour l’instant.', '尚无已保存的收藏。', 'Aún no hay favoritos guardados.', 'لا توجد مفضلات محفوظة بعد.'],
+  'bookmark.insert': ['Insert {name}', 'Insérer {name}', '插入 {name}', 'Insertar {name}', 'إدراج {name}'],
+  'bookmark.delete': ['Delete {name}', 'Supprimer {name}', '删除 {name}', 'Eliminar {name}', 'حذف {name}'],
   'nav.settings': ['Settings', 'Réglages', '设置', 'Ajustes', 'الإعدادات'],
   'nav.language': ['Language', 'Langue', '语言', 'Idioma', 'اللغة'],
   'nav.openSp3': ['Open .sp3 file', 'Ouvrir un fichier .sp3', '打开 .sp3 文件', 'Abrir un archivo .sp3', 'فتح ملف .sp3'],
@@ -224,6 +230,8 @@ const messages = {
   'canvas.unused': ['unused', 'inutilisé', '未使用', 'sin usar', 'غير مستخدم'],
   'canvas.unusedHint': ['This declaration is never used.', 'Cette déclaration n’est jamais utilisée.', '此声明从未使用。', 'Esta declaración nunca se usa.', 'لا يُستخدم هذا التعريف أبدًا.'],
   'canvas.unusedParamHint': ['This parameter is never used.', 'Ce paramètre n’est jamais utilisé.', '此参数从未使用。', 'Este parámetro nunca se usa.', 'لا تُستخدم هذه المعلمة أبدًا.'],
+  'canvas.pure': ['pure', 'pur', '纯', 'puro', 'نقي'],
+  'canvas.pureHint': ['No side effect and no external dependency.', 'Aucun effet de bord ni dépendance externe.', '无副作用且无外部依赖。', 'Sin efectos secundarios ni dependencias externas.', 'لا أثر جانبي ولا اعتماد خارجي.'],
   'canvas.preview': ['Collapsed preview', 'Aperçu du bloc replié', '折叠预览', 'Vista previa contraída', 'معاينة مطوية'],
   'canvas.previewMore': ['… {count} more', '… {count} de plus', '… 还有 {count} 项', '… {count} más', '… {count} أخرى'],
   'canvas.previewEmpty': ['No instruction.', 'Aucune instruction.', '无指令。', 'Ninguna instrucción.', 'لا تعليمات.'],
@@ -608,6 +616,10 @@ const messages = {
   'error.SIMULATION_UNSUPPORTED': ['This construction cannot be simulated.', 'Cette construction ne peut pas être simulée.', '无法模拟此构造。', 'Esta construcción no se puede simular.', 'لا يمكن محاكاة هذا البناء.'],
   'error.SIMULATION_FAILED': ['The simulation stopped unexpectedly.', 'La simulation s’est arrêtée de manière inattendue.', '模拟意外停止。', 'La simulación se detuvo de forma inesperada.', 'توقفت المحاكاة بشكل غير متوقع.'],
   'error.DEBUG_HISTORY_LIMIT': ['Debug history memory limit reached. The recorded states remain available.', 'La limite mémoire de l’historique de debug est atteinte. Les états enregistrés restent consultables.', '已达到调试历史内存上限。已记录的状态仍可查看。', 'Se ha alcanzado el límite de memoria del historial de depuración. Los estados registrados siguen disponibles.', 'تم بلوغ حد ذاكرة سجل التنقيح. تبقى الحالات المسجلة متاحة.'],
+  'error.BOOKMARK_INVALID': ['This bookmark could not be inserted.', 'Ce favori n’a pas pu être inséré.', '无法插入此收藏。', 'No se pudo insertar este favorito.', 'تعذّر إدراج هذه المفضلة.'],
+  'error.BOOKMARK_IMPURE': ['Only a pure function or module can be saved.', 'Seule une fonction ou un module pur peut être enregistré.', '只能保存纯函数或纯模块。', 'Solo se puede guardar una función o módulo puro.', 'لا يمكن حفظ إلا دالة أو وحدة نقية.'],
+  'error.BOOKMARK_TARGET_INVALID': ['This selection cannot be saved as a bookmark.', 'Cette sélection ne peut pas être enregistrée comme favori.', '无法将此选择保存为收藏。', 'Esta selección no se puede guardar como favorito.', 'لا يمكن حفظ هذا التحديد كمفضلة.'],
+  'error.PURITY_TARGET_INVALID': ['This element cannot be checked for purity.', 'Cet élément ne peut pas être analysé en pureté.', '无法检查此元素的纯度。', 'No se puede analizar la pureza de este elemento.', 'تعذّر فحص نقاء هذا العنصر.'],
 }
 
 // Langues proposées dans le sélecteur, avec leur nom natif.

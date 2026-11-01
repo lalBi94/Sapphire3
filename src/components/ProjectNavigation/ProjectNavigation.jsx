@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Bug, ChevronDown, Clock3, Code2, Eye, FileInput, FileOutput, FilePlus, FolderOpen, Library, Palette, Play, Save, SaveAll, Search, VectorSquare, X } from 'lucide-react'
+import { Bug, Bookmark, BookmarkPlus, ChevronDown, Clock3, Code2, Download, Eye, FileInput, FileOutput, FilePlus, FolderOpen, Library, Palette, Play, Save, SaveAll, Search, Trash2, VectorSquare, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
 import { supportedLanguages } from '../../utils/translations.js'
@@ -25,7 +25,7 @@ function ReplaceConfirmation({ titleKey, bodyKey, detail, confirmKey, onConfirm,
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, heatmapAvailable = false, heatmap = false, onToggleHeatmap, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile, selectedFunction = null, onOpenFunction }) {
+export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, heatmapAvailable = false, heatmap = false, onToggleHeatmap, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile, selectedFunction = null, onOpenFunction, bookmarks = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark }) {
   const navigationRef = useRef(null)
   const { language, setLanguage, t } = useTranslation()
 
@@ -159,6 +159,20 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
         <div className="project-navigation__menu">
           <p>{t('examples.choose')}</p>
           {examples.map((example) => <button type="button" key={example.id} onClick={() => { closeMenus(); onOpenExample(example.id) }}>{t(example.labelKey)}</button>)}
+        </div>
+      </details>
+      <details name="workspace-menu" onToggle={handleToggle}>
+        <summary><Bookmark size={13} aria-hidden="true" />{t('nav.bookmarks')}<ChevronDown size={12} aria-hidden="true" /></summary>
+        <div className="project-navigation__menu">
+          <button type="button" disabled={!canBookmark} onClick={onSaveBookmark}><BookmarkPlus size={14} aria-hidden="true" />{t('bookmark.save')}</button>
+          {!canBookmark && <p className="project-navigation__hint">{t('bookmark.onlyPure')}</p>}
+          {bookmarks.length === 0
+            ? <p>{t('bookmark.empty')}</p>
+            : <div className="project-navigation__bookmarks">{bookmarks.map((entry) => <div className="project-navigation__bookmark" key={entry.id}>
+              <button type="button" className="project-navigation__bookmark-insert" title={t('bookmark.insert', { name: entry.name })} onClick={() => onInsertBookmark(entry.id)}><Download size={13} aria-hidden="true" /><span>{entry.name}</span></button>
+              <button type="button" className="project-navigation__bookmark-delete" aria-label={t('bookmark.delete', { name: entry.name })} title={t('bookmark.delete', { name: entry.name })} onClick={() => onDeleteBookmark(entry.id)}><Trash2 size={13} aria-hidden="true" /></button>
+            </div>)}
+            </div>}
         </div>
       </details>
       <div className="project-navigation__run-controls">

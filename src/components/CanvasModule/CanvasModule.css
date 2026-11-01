@@ -65,6 +65,17 @@
   outline-offset: 2px;
 }
 
+/* Pastille de pureté : aucune dépendance externe, aucun effet de bord. */
+.canvas-module__pure {
+  flex: 0 0 auto;
+  padding: 1px 5px;
+  border: 1px solid var(--color-pure);
+  border-radius: var(--radius-small);
+  color: var(--color-pure);
+  font-size: 9px;
+  letter-spacing: 0.02em;
+}
+
 /* Verrou de carte : visible seulement quand la carte est verrouillée, pour la débloquer vite. */
 .canvas-module__lock {
   flex: 0 0 auto;

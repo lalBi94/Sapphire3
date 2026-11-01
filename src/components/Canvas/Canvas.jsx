@@ -22,10 +22,11 @@ import ProjectNavigation from '../ProjectNavigation/ProjectNavigation.jsx'
 import useWorkspaceFiles from '../../hooks/useWorkspaceFiles.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { diagnosticLabel, nodeLine } from '../LogicTree/logicLabels.js'
-import { createDebugSession, moveDebugSession, simulateProgram, getModuleLinks, getUnusedDeclarationIds } from '../../utils/logic/index.js'
+import { createDebugSession, moveDebugSession, simulateProgram, getModuleLinks, getUnusedDeclarationIds, getPureIds, captureBookmark } from '../../utils/logic/index.js'
 import { transpileProgram } from '../../utils/transpilation/index.js'
 import { transpilationLanguages } from '../../utils/transpilation/languages.js'
 import { exportWorkspaceFile } from '../../services/workspaceFiles.js'
+import { loadBookmarks, saveBookmarks } from '../../services/bookmarks.js'
 import SimulationPanel from '../SimulationPanel/SimulationPanel.jsx'
 import FunctionPanel from '../FunctionPanel/FunctionPanel.jsx'
 import DebugPanel from '../DebugPanel/DebugPanel.jsx'
@@ -51,6 +52,7 @@ export default function Canvas() {
   const [functionTarget, setFunctionTarget] = useState(null)
   const [functionResult, setFunctionResult] = useState(null)
   const [revealTarget, setRevealTarget] = useState(null)
+  const [bookmarks, setBookmarks] = useState(() => loadBookmarks())
   const menuTriggerRef = useRef(null)
   const workspaceRef = useRef(null)
   const { language, t } = useTranslation()
@@ -107,6 +109,13 @@ export default function Canvas() {
   const activeModuleId = activeExecutionId ? document.index.nodes.get(activeExecutionId)?.moduleId ?? null : null
   // Déclarations jamais utilisées : indicateur discret dans l'arbre.
   const unusedIds = useMemo(() => new Set(getUnusedDeclarationIds(document.project, document.analysis)), [document.project, document.analysis])
+  // Fonctions et modules purs : pastille discrète et seuls favoris enregistrables.
+  const pureIds = useMemo(() => getPureIds(document.project, document.analysis), [document.project, document.analysis])
+  // Seules une fonction ou un module pur peuvent être enregistrés comme favori.
+  const bookmarkTarget = !selected ? null
+    : selected.kind === 'node'
+      ? (document.index.nodes.get(selected.id)?.kind === 'FunctionDeclaration' && pureIds.functions.has(selected.id) ? 'function' : null)
+      : (selected.kind === 'module' && pureIds.modules.has(selected.id) ? 'module' : null)
   const functionNode = functionTarget ? document.index.nodes.get(functionTarget) ?? null : null
   const functionSignature = functionNode ? (functionNode.children.parameters ?? []).map((id) => `${document.index.nodes.get(id)?.properties?.name}:${JSON.stringify(document.index.nodes.get(id)?.properties?.type)}`).join('|') : ''
   // Les nœuds qui contiennent autre chose ne dépendent que de la source analysée.
@@ -240,6 +249,45 @@ export default function Canvas() {
     if (!contextMenu) return
     document.createCard(type, { x: contextMenu.worldX, y: contextMenu.worldY }, t(moduleTypes[type].labelKey))
     handleCloseMenu(true)
+  }
+
+  // Enregistre la fonction ou le module pur sélectionné dans la bibliothèque personnelle.
+  function handleSaveBookmark() {
+    if (!bookmarkTarget) return
+    const result = captureBookmark(document.project, selected, { analysis: document.analysis, index: document.index })
+    if (!result.ok) return
+    const entry = { id: crypto.randomUUID(), savedAt: Date.now(), ...result.bookmark }
+    const next = [entry, ...bookmarks.filter((existing) => !(existing.kind === entry.kind && existing.name === entry.name))]
+    setBookmarks(next)
+    saveBookmarks(next)
+  }
+
+  // Insère un favori dans un nouveau module, le sélectionne et le cadre dans la vue.
+  function handleInsertBookmark(bookmarkId) {
+    const bookmark = bookmarks.find((entry) => entry.id === bookmarkId)
+    if (!bookmark) return
+    const position = nextBookmarkPosition()
+    const result = document.insertSavedBookmark(bookmark, position)
+    if (!result.ok) return
+    setSelected({ kind: 'module', id: result.moduleId })
+    setActiveCardId(result.moduleId)
+    restoreCamera({ x: position.x + moduleTypes.module.width / 2, y: position.y + moduleTypes.module.height / 2, zoomLevel: camera.zoomLevel })
+  }
+
+  // Retire un favori de la bibliothèque sans toucher au document courant.
+  function handleDeleteBookmark(bookmarkId) {
+    const next = bookmarks.filter((entry) => entry.id !== bookmarkId)
+    setBookmarks(next)
+    saveBookmarks(next)
+  }
+
+  // Situe la carte d'un favori à droite des modules existants, ou au centre de la vue.
+  function nextBookmarkPosition() {
+    const modules = document.cards.filter((card) => card.type === 'module')
+    if (modules.length === 0) return { x: camera.x - moduleTypes.module.width / 2, y: camera.y - moduleTypes.module.height / 2 }
+    const right = Math.max(...modules.map((card) => card.x + card.width))
+    const top = Math.min(...modules.map((card) => card.y))
+    return { x: right + 80, y: top }
   }
 
   // Lance une simulation locale uniquement sur un programme statiquement valide.
@@ -508,7 +556,8 @@ export default function Canvas() {
       distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)}
       heatmapAvailable={Boolean(heat)} heatmap={heatEnabled} onToggleHeatmap={() => setHeatEnabled((current) => !current)}
       hiddenCards={hiddenCards} onShowCard={handleShowCard} onShowAllHidden={handleShowAllHidden}
-      hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onOpenSearch={search.show} onRunSimulation={handleRunSimulation} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} selectedFunction={selectedFunction} onOpenFunction={handleOpenFunction} />
+      hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onOpenSearch={search.show} onRunSimulation={handleRunSimulation} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} selectedFunction={selectedFunction} onOpenFunction={handleOpenFunction}
+      bookmarks={bookmarks} canBookmark={Boolean(bookmarkTarget)} onSaveBookmark={handleSaveBookmark} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark} />
     <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label={t('canvas.aria')} tabIndex={0}
       onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerEnd} onPointerCancel={handlePointerEnd} onLostPointerCapture={handlePointerEnd} onKeyDown={handleKeyDown} onContextMenu={handleContextMenu}
       onDragStart={transfers.handleDragStart} onDragOver={transfers.handleDragOver} onDrop={transfers.handleDrop} onDragEnd={transfers.handleDragEnd}>
@@ -526,9 +575,10 @@ export default function Canvas() {
         onMove={(id, x, y) => document.updateGeometry(id, { x, y })}
         onRename={document.renameCard} onTextChange={document.updateComment} onImageChange={document.updateImage}
         onToggleLock={handleToggleLock}
+        pure={pureIds.modules.has(card.id)}
         pulse={activeModuleId === card.id && executionStep !== null ? executionStep + 1 : null}
         expansionState={document.index.modules.has(card.id) ? getExpansionState(card.id) : null} onToggleExpansion={(id) => handleExpansion(id, getExpansionState(id) !== 'collapse')}>
-        {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} onReorder={(id, offset) => document.reorderNode(id, offset)} heat={heat} heatEnabled={heatEnabled && Boolean(heat)} unusedIds={unusedIds} dropTarget={transfers.dropTarget} />}
+        {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} onReorder={(id, offset) => document.reorderNode(id, offset)} heat={heat} heatEnabled={heatEnabled && Boolean(heat)} unusedIds={unusedIds} pureIds={pureIds.functions} dropTarget={transfers.dropTarget} />}
       </CanvasModule>)}
       <CanvasStatus camera={camera} zoom={zoom} hiddenCount={hiddenCards.length} onShowAllHidden={handleShowAllHidden} onRecenter={() => handleRecenter(getModulesBounds())} />
       <Minimap modules={minimapModules} camera={camera} zoom={zoom} canvasRef={canvasRef} onNavigate={panTo} />

@@ -1,7 +1,16 @@
 import { useReducer } from 'react'
 import { moduleTypes } from '../utils/moduleTypes.js'
-import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode } from '../utils/logic/index.js'
+import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark } from '../utils/logic/index.js'
 import { initialDocument, reduceHistory } from '../utils/canvasDocument.js'
+
+// Évite deux cartes Module du même nom lors de l'insertion d'un favori.
+function uniqueModuleName(names, base) {
+  const fallback = typeof base === 'string' && base.trim() ? base.trim() : 'Bookmark'
+  if (!names.has(fallback)) return fallback
+  let suffix = 2
+  while (names.has(`${fallback} ${suffix}`)) suffix += 1
+  return `${fallback} ${suffix}`
+}
 
 // Expose les éditions de document ; sélection et navigation restent dans les composants UI.
 export default function useCanvasDocument() {
@@ -82,6 +91,17 @@ export default function useCanvasDocument() {
     const prepared = duplicateSourceNode(document.project, id, { ids, index: document.index })
     if (prepared.ok) dispatch({ type: 'duplicateNode', previousProject: document.project, prepared, id, ids })
     return prepared
+  }
+
+  // Insère un favori personnel dans un nouveau module, en une seule étape d'historique.
+  function insertSavedBookmark(bookmark, position) {
+    if (!Array.isArray(bookmark?.nodes) || bookmark.nodes.length === 0) return { ok: false, code: 'BOOKMARK_INVALID' }
+    const moduleId = crypto.randomUUID()
+    const ids = bookmark.nodes.map(() => crypto.randomUUID())
+    const moduleName = uniqueModuleName(new Set(document.cards.filter((card) => card.type === 'module').map((card) => card.name)), bookmark.name)
+    const prepared = insertBookmark(document.project, bookmark, { moduleId, moduleName, ids, index: document.index })
+    if (prepared.ok) dispatch({ type: 'insertBookmark', previousProject: document.project, prepared, bookmark, moduleId, moduleName, ids, position })
+    return { ...prepared, moduleId, moduleName }
   }
 
   // Réordonne une instruction dans sa liste parente, sans recréer le nœud ni changer ses identifiants.
@@ -172,5 +192,5 @@ export default function useCanvasDocument() {
     dispatch({ type: 'redo' })
   }
 
-  return { ...document, createCard, updateGeometry, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, duplicateNode, deleteNode, deleteModule, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, setExpandedNodes, setCardHidden, setCardLocked, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
+  return { ...document, createCard, updateGeometry, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, duplicateNode, deleteNode, deleteModule, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, setExpandedNodes, setCardHidden, setCardLocked, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
 }

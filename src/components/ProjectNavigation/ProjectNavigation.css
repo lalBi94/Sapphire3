@@ -15,6 +15,13 @@
 .project-navigation__recent-file span, .project-navigation__hidden-card span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .project-navigation__hidden-list { display: flex; flex-direction: column; max-height: 40vh; overflow-y: auto; }
 .project-navigation__hidden-card svg { flex-shrink: 0; }
+.project-navigation__hint { font-size: 10px; line-height: 1.5; }
+.project-navigation__bookmarks { display: flex; flex-direction: column; max-height: 40vh; overflow-y: auto; }
+.project-navigation__bookmark { display: flex; align-items: center; gap: 4px; }
+.project-navigation__bookmark-insert { flex: 1 1 auto; min-width: 0; }
+.project-navigation__bookmark-insert span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-navigation__bookmark-delete { flex: 0 0 auto; padding: 6px; }
+.project-navigation__bookmark svg { flex-shrink: 0; }
 .project-navigation button:hover:not(:disabled) { background: var(--color-hover); }
 .project-navigation__run { color: var(--color-primary) !important; }
 .project-navigation__run-controls { display: flex; align-items: center; flex-shrink: 0; }

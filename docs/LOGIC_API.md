@@ -32,6 +32,10 @@ Point d'entrée : `src/utils/logic/index.js`. JavaScript pur, sans React, DOM, A
 | `setModuleExport(project, moduleId, nodeId, exported)` | Ajoute ou retire un export de fonction racine ; refus `EXPORT_IN_USE` si un autre module l'importe encore |
 | `addModuleImport(project, moduleId, {id, targetModuleId, nodeId, localName})` | Ajoute un import stable ; crée l'export manquant dans le module source. Refuse cible non fonction, doublon et nom local déjà pris |
 | `removeModuleImport(project, moduleId, importId)` | Retire uniquement la liaison d'import ; déclaration et références restantes conservées |
+| `analyzePurity(project, {kind, id}, analysis?)` | `{ok, pure, externalNodeIds, sideEffectNodeIds, unresolvedNodeIds}` ; une fonction ou un module est pur si aucune référence interne ne vise un nœud extérieur et qu'aucun affichage n'est présent |
+| `getPureIds(project, analysis?)` | `{functions, modules}` : ensembles d'identifiants purs, pour les pastilles de l'interface |
+| `captureBookmark(project, {kind, id}, {analysis?, index?})` | `{ok, bookmark}` ; instantané portable d'une cible pure, sinon `BOOKMARK_IMPURE` ou `BOOKMARK_TARGET_INVALID` |
+| `insertBookmark(project, bookmark, {moduleId, moduleName, ids, index?})` | `{ok, project, analysis, moduleId, rootNodeIds}` ou `BOOKMARK_INVALID` ; recopie dans un nouveau module en remappant identifiants, enfants et références |
 
 `diagnosticCodes`, `sourceFormatVersion`, `moduleKinds`, `nodeSchema`, `getNodeSchema`, `binaryOperators`, `unaryOperators`, `primitiveDefinitions`, `primitiveType(name)`, `sameType` et `acceptsOperand` sont également exportés. `primitiveType` renvoie uniquement un primitif autorisé, ou `null` comme absence de résultat. Aucun type de secours n'existe. La catégorie Module est définie dans `model.js` et réutilisée par les libellés visuels ; les cartes Module partagent l'identifiant de leur module source, tandis que les annotations Comment restent hors du moteur. Les contrats JSDoc sont dans `model.js`, `ast.js`, `semantics.js`, `diagnostics.js`, `contextResolver.js` et `sourceMutation.js` ; aucun TypeScript ajouté.
 
@@ -287,6 +291,12 @@ Les scopes portent un identifiant d'activation distinct du nœud source : récur
 `simulateProgram(project, {captureDebug:true})` fournit ces captures dans `debugFrames` ; l'option est utilisée par `createDebugSession`. Sans cette option, son contrat de résultat et sa trace habituelle restent inchangés. Le budget d'exécution et la profondeur d'appel restent ceux de la simulation. La rétention est en outre bornée à 200 000 entrées d'instantanés (variables, scopes, références de sorties et arrêts cumulés), puis produit `DEBUG_HISTORY_LIMIT` et un unique état terminal. Les états déjà enregistrés restent réversibles. Les chaînes sont immuables, les Map runtime ne sont jamais exposées dans les snapshots.
 
 L'UI ferme le debug dès une modification de source, un undo/redo source ou un import ; les changements purement visuels ne l'invalident pas. Mémoire, trace, historique de debug, position et dimensions du panneau ne sont pas enregistrés dans le workspace. Le dépliage d'exécution reste temporaire. Le panneau de propriétés suit le bloc exécuté pendant la simulation et le debug, sans changer sa position. La future vue graphique compacte reste seulement annoncée par deux actions désactivées.
+
+## Pureté et favoris personnels
+
+`analyzePurity(project, {kind: 'node' | 'module', id}, analysis?)` décide si une fonction ou un module est **pur** : toutes les références internes doivent viser un nœud du sous-arbre (ou du module), et aucun `PrintStatement` n'est toléré. Le résultat reste informatif, sans diagnostic bloquant ; une cible inconnue renvoie `PURITY_TARGET_INVALID`. `getPureIds(project, analysis?)` assemble les ensembles `{functions, modules}` d'identifiants purs pour les pastilles de l'interface.
+
+`captureBookmark(project, {kind, id}, {analysis?, index?})` fige une cible **pure** en un instantané portable `{version: 1, kind, name, rootNodeIds, nodes}` : clones des nœuds, enfants conservés et références résolues réécrites en `{kind: 'node', nodeId}`. `insertBookmark(project, bookmark, {moduleId, moduleName, ids, index?})` recopie cet instantané dans un **nouveau module** : identifiants, `moduleId`, enfants et cibles de références sont remappés vers `ids`, le rôle de point d'entrée n'est jamais repris, puis la source est réanalysée ; un instantané mal formé est refusé sans toucher au projet. La bibliothèque personnelle persiste hors du workspace dans `src/services/bookmarks.js` (préférence `sapphire-bookmarks`, cinquante entrées au plus).
 
 ## Vérification et documentation compilée
 
