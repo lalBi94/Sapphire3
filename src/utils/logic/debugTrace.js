@@ -7,6 +7,7 @@ export function createDebugRecorder(analysis, global, output, uninitialized) {
 
   // Distingue une valeur non initialisée d'une vraie chaîne ou d'un booléen.
   function displayValue(value) {
+    if (value && typeof value === 'object' && value.pointer === true) return value.label
     if (typeof value === 'symbol') return 'uninitialized'
     if (Array.isArray(value)) {
       const shown = value.slice(0, 8).map((element) => displayValue(element)).join(', ')

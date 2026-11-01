@@ -113,6 +113,13 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     return result.value
   }
 
+  // Compare deux adresses par l'emplacement désigné, jamais par l'objet qui les porte.
+  function sameAddress(left, right) {
+    if (left.kind !== right.kind) return false
+    if (left.kind === 'element') return left.array === right.array && left.index === right.index
+    return left.nodeId === right.nodeId && left.environment === right.environment
+  }
+
   // Convertit une valeur entière source en index JavaScript et contrôle les bornes du tableau.
   function arrayIndex(value, array) {
     const index = typeof value === 'bigint' ? Number(value) : value
@@ -144,12 +151,38 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       if (operator === 'and' && !left) return false
       if (operator === 'or' && left) return true
       const right = valueOf(nodes.get(node.children.right), environment)
+      // Deux adresses sont égales si elles désignent le même emplacement, pas le même objet.
+      if (['==', '!='].includes(operator) && (left?.pointer === true || right?.pointer === true)) {
+        const equal = left?.pointer === true && right?.pointer === true && sameAddress(left, right)
+        return operator === '==' ? equal : !equal
+      }
       return checked(evaluateBinary(operator, left, right, types.get(node.children.left)?.name))
     }
     if (node.kind === 'UnaryExpression') {
       const operator = node.properties.operator
-      if (operator === '&' || operator === '*') throw simulationError('SIMULATION_UNSUPPORTED', 'Pointers are not executable in this simulation.')
-      return checked(evaluateUnary(operator, valueOf(nodes.get(node.children.operand), environment), types.get(node.id)?.name))
+      const operand = nodes.get(node.children.operand)
+      // Adresse d'une valeur stockable : référence à une variable ou à un élément de tableau.
+      if (operator === '&') {
+        if (operand?.kind === 'ArrayAccess') {
+          const array = valueOf(nodes.get(operand.children.array), environment)
+          if (!Array.isArray(array)) throw simulationError('SIMULATION_REFERENCE', 'The addressed value is not an array element.')
+          const index = arrayIndex(valueOf(nodes.get(operand.children.index), environment), array)
+          step(operand)
+          return { pointer: true, kind: 'element', array, index, label: `&[${index}]` }
+        }
+        const symbol = symbols.get(references.get(operand?.id)?.symbolId)
+        if (!symbol) throw simulationError('SIMULATION_REFERENCE', 'The address target cannot be resolved.')
+        step(operand)
+        return { pointer: true, kind: 'reference', nodeId: symbol.nodeId, environment, label: `&${nodes.get(symbol.nodeId)?.properties?.name ?? symbol.nodeId}` }
+      }
+      // Lecture de la valeur pointée à travers l'adresse.
+      if (operator === '*') {
+        const pointer = valueOf(operand, environment)
+        if (pointer?.pointer !== true) throw simulationError('SIMULATION_REFERENCE', 'The dereferenced value is not an address.')
+        if (pointer.kind === 'element') return readElement(pointer.array, pointer.index)
+        return readBinding(pointer.nodeId, pointer.environment)
+      }
+      return checked(evaluateUnary(operator, valueOf(operand, environment), types.get(node.id)?.name))
     }
     if (node.kind === 'CastExpression') {
       const value = valueOf(nodes.get(node.children.argument), environment)
@@ -406,12 +439,14 @@ function typeText(type) {
   if (!type) return null
   if (type.kind === 'primitive') return type.name
   if (type.kind === 'array') return `${typeText(type.elementType) ?? '?'}[]`
+  if (type.kind === 'pointer') return `${typeText(type.pointee) ?? '?'}*`
   if (type.kind === 'function') return 'function'
   return type.kind
 }
 
 // Rend une valeur de simulation lisible sans perdre la distinction booléenne.
 function formatValue(value) {
+  if (value && typeof value === 'object' && value.pointer === true) return value.label
   if (value === undefined) return 'undefined'
   if (typeof value === 'boolean') return value ? 'true' : 'false'
   if (typeof value === 'symbol') return 'uninitialized'

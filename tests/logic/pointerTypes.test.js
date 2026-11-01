@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { analyzeProgram, sameType, acceptsOperand, pointerType, isPointerType, pointerPointee, isValidPointee, simulateProgram } from '../../src/utils/logic/index.js'
+import { analyzeProgram, sameType, acceptsOperand, pointerType, isPointerType, pointerPointee, isValidPointee, simulateProgram, createDebugSession } from '../../src/utils/logic/index.js'
 import { transpileProgram } from '../../src/utils/transpilation/index.js'
 import { initialNodeForm, typeFromName, expressionDraft } from '../../src/components/NodeForm/nodeConfiguration.js'
 import { typeLabel } from '../../src/components/LogicTree/logicLabels.js'
@@ -106,7 +106,8 @@ test('pointeurs : les formulaires relisent et construisent le type et l’opéra
   assert.equal(draft.children.operand.kind, 'Reference')
 })
 
-test('pointeurs : la simulation et la transpilation les refusent proprement', () => {
+// Construit un programme exécutable : `x`, son adresse dans `p`, et une fonction d'entrée.
+function executablePointerProgram() {
   const source = program('m')
   root(source, 'm', 'x', 'VariableDeclaration', { name: 'x', type: intType }, { initializer: 'one' })
   node(source, 'm', 'one', 'Literal', { type: intType, value: 1 })
@@ -114,14 +115,64 @@ test('pointeurs : la simulation et la transpilation les refusent proprement', ()
   node(source, 'm', 'addressOfX', 'UnaryExpression', { operator: '&' }, { operand: 'xRef' })
   node(source, 'm', 'xRef', 'Reference', {}, {}, { target: { kind: 'node', nodeId: 'x' } })
   root(source, 'm', 'main', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'body' })
+  return source
+}
+
+test('pointeurs : la simulation lit à travers une adresse et observe les mutations', () => {
+  const source = executablePointerProgram()
+  node(source, 'm', 'body', 'Block', {}, { statements: ['printFirst', 'assignX', 'printSecond'] })
+  node(source, 'm', 'printFirst', 'PrintStatement', {}, { value: 'derefFirst' })
+  node(source, 'm', 'derefFirst', 'UnaryExpression', { operator: '*' }, { operand: 'pRefFirst' })
+  node(source, 'm', 'pRefFirst', 'Reference', {}, {}, { target: { kind: 'node', nodeId: 'p' } })
+  node(source, 'm', 'assignX', 'AssignmentStatement', {}, { target: 'xTarget', value: 'five' })
+  node(source, 'm', 'xTarget', 'Reference', {}, {}, { target: { kind: 'node', nodeId: 'x' } })
+  node(source, 'm', 'five', 'Literal', { type: intType, value: 5 })
+  node(source, 'm', 'printSecond', 'PrintStatement', {}, { value: 'derefSecond' })
+  node(source, 'm', 'derefSecond', 'UnaryExpression', { operator: '*' }, { operand: 'pRefSecond' })
+  node(source, 'm', 'pRefSecond', 'Reference', {}, {}, { target: { kind: 'node', nodeId: 'p' } })
+
+  const simulation = simulateProgram(source)
+  assert.equal(simulation.ok, true)
+  assert.deepEqual(simulation.output, ['1', '5'], 'la même adresse relit la valeur mise à jour')
+  const pointerVariable = simulation.variables.find((entry) => entry.name === 'p')
+  assert.equal(pointerVariable.type, 'int*')
+  assert.equal(pointerVariable.value, '&x')
+})
+
+test('pointeurs : l’adresse d’un élément de tableau est exécutable et débogable', () => {
+  const source = program('m')
+  root(source, 'm', 'data', 'VariableDeclaration', { name: 'data', type: { kind: 'array', elementType: intType } }, { initializer: 'list' })
+  node(source, 'm', 'list', 'ArrayLiteral', { elementType: intType }, { elements: ['one', 'two', 'three'] })
+  node(source, 'm', 'one', 'Literal', { type: intType, value: 1 })
+  node(source, 'm', 'two', 'Literal', { type: intType, value: 2 })
+  node(source, 'm', 'three', 'Literal', { type: intType, value: 3 })
+  root(source, 'm', 'p', 'VariableDeclaration', { name: 'p', type: intPointer }, { initializer: 'addressOfElement' })
+  node(source, 'm', 'addressOfElement', 'UnaryExpression', { operator: '&' }, { operand: 'element' })
+  node(source, 'm', 'element', 'ArrayAccess', {}, { array: 'dataRef', index: 'oneIndex' })
+  node(source, 'm', 'dataRef', 'Reference', {}, {}, { target: { kind: 'node', nodeId: 'data' } })
+  node(source, 'm', 'oneIndex', 'Literal', { type: intType, value: 1 })
+  root(source, 'm', 'main', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'body' })
   node(source, 'm', 'body', 'Block', {}, { statements: ['show'] })
   node(source, 'm', 'show', 'PrintStatement', {}, { value: 'derefP' })
   node(source, 'm', 'derefP', 'UnaryExpression', { operator: '*' }, { operand: 'pRef' })
   node(source, 'm', 'pRef', 'Reference', {}, {}, { target: { kind: 'node', nodeId: 'p' } })
 
   const simulation = simulateProgram(source)
-  assert.equal(simulation.ok, false)
-  assert.equal(simulation.errorCode, 'SIMULATION_UNSUPPORTED')
+  assert.equal(simulation.ok, true)
+  assert.deepEqual(simulation.output, ['2'])
+
+  const session = createDebugSession(source)
+  assert.ok(session.frames.length > 0)
+  const pointerValues = session.frames.flatMap((frame) => frame.globals).filter((entry) => entry.name === 'p' && entry.initialized)
+  assert.equal(pointerValues.at(-1).value, '&[1]')
+})
+
+test('pointeurs : la transpilation les refuse, faute d’équivalent cible', () => {
+  const source = executablePointerProgram()
+  node(source, 'm', 'body', 'Block', {}, { statements: ['show'] })
+  node(source, 'm', 'show', 'PrintStatement', {}, { value: 'derefP' })
+  node(source, 'm', 'derefP', 'UnaryExpression', { operator: '*' }, { operand: 'pRef' })
+  node(source, 'm', 'pRef', 'Reference', {}, {}, { target: { kind: 'node', nodeId: 'p' } })
 
   const web = transpileProgram(source, { target: 'javascript' })
   assert.equal(web.ok, false)
