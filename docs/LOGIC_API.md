@@ -292,4 +292,4 @@ L'UI ferme le debug dès une modification de source, un undo/redo source ou un i
 
 `pnpm test` : runner natif Node, sans dépendance de test. Les tests couvrent les scénarios valides, invalides et incomplets, les localisations, les identifiants, la conservation JSON, la non-mutation, l'indépendance des imports du moteur et l'API contextuelle (actions, factory, mutations atomiques, suppression, cache). `pnpm build` vérifie que le frontend compile avec l'intégration ; les passes du moteur sont vérifiées par les tests Node, pas par le build.
 
-Rapport court : `ARCHITECTURE_AST.tex` et `ARCHITECTURE_AST.pdf` à la racine. Compilation reproductible avec le script `pnpm docs:ast` (MiKTeX/pdfLaTeX installé requis). Les fichiers auxiliaires restent dans `build/latex/`, ignoré par Git.
+Rapport court : `ARCHITECTURE_AST.tex` et `ARCHITECTURE_AST.pdf` dans `abstract/`. Compilation reproductible avec le script `pnpm docs:ast` (MiKTeX/pdfLaTeX installé requis). Les fichiers auxiliaires restent dans `build/latex/`, ignoré par Git.

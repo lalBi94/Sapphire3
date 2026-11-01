@@ -27,14 +27,17 @@ une erreur ne détruit ni la source ni la possibilité d'inspecter l'arbre.
 
 Le périmètre livré couvre la construction de l'AST, les portées lexicales,
 les références locales et intermodules, un typage statique strict et la
-sérialisation JSON versionnée. Le moteur est du JavaScript pur, sans React,
-DOM, Neutralinojs ou dépendance npm. L'interface graphique existante reste
-inchangée et n'est pas encore branchée au moteur.
+sérialisation JSON versionnée. S'y ajoutent, sur action explicite seulement,
+une \textbf{simulation locale} déterministe, un \textbf{débogage pas à pas},
+des \textbf{contrats de nœud} vérifiés pendant l'exécution, une \textbf{analyse
+de graphes} (dépendances, flot de contrôle, accessibilité) et une
+\textbf{transpilation} vers JavaScript et Python. Le moteur est du JavaScript
+pur, sans React, DOM, Neutralinojs ou dépendance npm ; l'interface graphique
+est désormais branchée à ce moteur.
 
-\textbf{Exclus :} simulation, suggestions contextuelles, génération de code,
-analyse de flot avancée, modèles objets, persistance sur disque et éditeur
-spécifique à chaque construction. Le document décrit des fondations, pas
-un compilateur complet.
+\textbf{Exclus :} suggestions contextuelles, exécution automatique, génération
+de code implicite, analyse de flot avancée, modèles objets et persistance
+propre du moteur. Le document décrit des fondations, pas un compilateur complet.
 
 \section*{2. Concepts et relations distinctes}
 \begin{tabular}{@{}p{29mm}p{131mm}@{}}
@@ -49,7 +52,10 @@ par des constructions hiérarchiques. Les \code{sourceId} restent stables.\\[3pt
 \textbf{Scope} & Portée lexicale avec parent ; elle ne correspond pas nécessairement
 au module propriétaire.\\[3pt]
 \textbf{Symbol} & Déclaration accessible depuis une portée, ou alias d'import,
-associé à son nœud et à un type statique résolu ; un échec reste diagnostiqué sans type de secours.\\
+associé à son nœud et à un type statique résolu ; un échec reste diagnostiqué sans type de secours.\\[3pt]
+\textbf{Contract} & Contrainte déclarative optionnelle (\code{positive},
+\code{nonNegative}, \code{nonEmpty}) attachée à une variable, une constante ou
+un paramètre et évaluée pendant l'exécution.\\
 \end{tabular}
 
 \textbf{Trois relations indépendantes :} appartenance par \code{moduleId},
@@ -57,10 +63,14 @@ imbrication par \code{children}, référence par \code{references.target}.
 Une référence vers une déclaration ne la transforme pas en enfant de l'appelant.
 Une connexion graphique n'a donc aucun sens logique implicite.
 
-Les catégories source \code{module} et \code{main} sont reconnues ; Main ne
-déclenche aucune exécution. Un projet valide possède zéro ou un seul Main ;
-chaque Main supplémentaire est diagnostiqué sans suppression. Les sous-modules
-ne sont pas introduits à ce stade.
+L'ancienne catégorie source \code{main} est retirée. Un projet valide contient
+zéro ou une seule fonction portant \code{properties.entryPoint: true},
+indépendamment de son nom ; toute désignation supplémentaire produit
+\code{ENTRY\_POINT\_DUPLICATE} et un marqueur mal placé
+\code{ENTRY\_POINT\_INVALID}, sans suppression des données invalides. Aucun nom,
+signature cible ni appel implicite n'est imposé : la simulation, le débogage et
+la transpilation n'agissent que sur un lancement explicite. Les sous-modules ne
+sont pas introduits à ce stade.
 
 \newpage
 \chaptertitle{2}{Architecture et invariants}
@@ -71,6 +81,11 @@ $\longrightarrow$
 \fbox{\parbox[c][12mm][c]{43mm}{\centering AST logique\\arbres + fragments}}
 $\longrightarrow$
 \fbox{\parbox[c][12mm][c]{43mm}{\centering Modèle sémantique\\portées + types}}
+
+\smallskip
+\fbox{\parbox{147mm}{\centering Services dérivés, sur action explicite :
+simulation locale, débogage, contrats, graphes d'analyse,
+transpilation JavaScript et Python.}}
 
 \smallskip
 \fbox{\parbox{147mm}{\centering Diagnostics structurés à chaque passe ;
@@ -84,18 +99,32 @@ d'identifiant, catégories, slots et opérateurs centralisés.\\[3pt]
 cycles, parents multiples et propriétaires ; parcours et fragments détachés.\\[3pt]
 \code{semantics.js} & Collecte des portées et déclarations, contrôle des
 imports/exports et résolution des références.\\[3pt]
-\code{typeAnalysis.js} & Annotations obligatoires, signatures et expressions
-statiquement déterminées, sans conversion implicite ni type de secours.\\[3pt]
-\code{primitives.js},\newline\code{numericConstants.js} & Catalogue de dix primitifs,
-bornes, arrondis et contrôles des expressions constantes.\\[3pt]
-\code{diagnostics.js} & Codes stables, gravité, message et localisation.\\[3pt]
-\code{serialization.js} & Lecture/écriture JSON sans migration implicite.\\
+\code{typeAnalysis.js},\newline\code{primitives.js} & Annotations obligatoires,
+signatures, tableaux et expressions statiquement déterminées ; catalogue des
+dix primitifs, bornes et arrondis.\\[3pt]
+\code{numericConstants.js} & Contrôles des expressions constantes : conversions,
+dépassements, sous-flux et division par zéro.\\[3pt]
+\code{diagnostics.js},\newline\code{serialization.js} & Codes stables, gravité,
+localisation ; lecture et écriture JSON sans migration implicite.\\[3pt]
+\code{sourceMutation.js},\newline\code{nodeFactory.js},\newline\code{actionResolver.js},\newline\code{contextResolver.js} & Édition contextuelle
+atomique : actions disponibles, cache d'analyse, insertion, mise à jour,
+suppression et réordonnancement.\\[3pt]
+\code{simulation.js},\newline\code{contracts.js} & Interpréteur local déterministe,
+trace, valeurs observées et contrats vérifiés après chaque instruction.\\[3pt]
+\code{debugging.js},\newline\code{reachability.js} & Session de débogage
+déterministe (états préparés puis parcourus) et analyse conservatrice d'accessibilité.\\[3pt]
+\code{nodeGraphs.js},\newline\code{moduleLinks.js} & Graphes de dépendances et de
+flot de contrôle d'un sous-arbre ; liens intermodules réellement utilisés.\\[3pt]
+\code{nodeTransfer.js},\newline\code{moduleInterface.js},\newline\code{deadCode.js},\newline\code{deletionImpact.js} & Transferts de sous-arbres,
+exports/imports de module, déclarations inutilisées et impact d'une suppression.\\
 \end{tabular}
 
-Tous ces fichiers sont dans \code{src/utils/logic/} ; l'API publique est
+Ces fichiers sont dans \code{src/utils/logic/} ; l'API publique est
 \code{index.js}. La fonction \code{analyzeProgram(source)} renvoie
 \code{source}, \code{ast}, \code{semantic}, \code{diagnostics} et
-\code{canGenerate}. Les fonctions ne modifient pas la source.
+\code{canGenerate}, sans jamais modifier la source. Les backends de
+transpilation vivent séparément dans \code{src/utils/transpilation/} ;
+JavaScript et Python sont actifs, C, C++ et Java restent indisponibles.
 
 \section*{4. Structures et invariants}
 \begin{itemize}
@@ -105,8 +134,10 @@ uniques dans leur module. Aucun identifiant n'est recréé pendant les passes.
 \item Un enfant syntaxique a au plus un parent et appartient au même module.
 L'ordre des listes de slots est significatif, pas celui du tableau \code{nodes}.
 \item Déclarations : variables, constantes, fonctions, paramètres et alias de
-types. Instructions : blocs, retours, affectations, conditions et boucles.
-Expressions : littéraux, références, appels et opérations unaires/binaires.
+types. Instructions : blocs, retours, affectations, conditions, boucles
+(\code{break}/\code{continue} compris), instructions d'expression et affichage.
+Expressions : littéraux, références, appels, opérations unaires/binaires,
+littéraux et créations de tableaux, accès à un élément et conversions.
 \item Un slot requis absent produit \code{Hole}. Un lien impossible produit
 \code{Invalid}. Les fragments détachés restent visibles ; la source conserve
 également les enregistrements malformés ou dupliqués.
@@ -114,7 +145,10 @@ Expressions : littéraux, références, appels et opérations unaires/binaires.
 ou alias transparent \code{named}. Signature \code{function} dérivée pour les
 fonctions. Dix primitifs : \code{short int}, \code{short uint}, \code{int},
 \code{uint}, \code{float}, \code{double}, \code{string}, \code{char},
-\code{boolean}, \code{void} (retour uniquement). Aucune promotion implicite.
+\code{boolean}, \code{void} (retour uniquement). Le type tableau
+\code{\{kind:'array', elementType\}} s'annote uniquement sur une variable, une
+constante ou un paramètre, avec un élément primitif non \code{void}. Aucune
+promotion ni conversion implicite.
 \end{itemize}
 
 \newpage
@@ -182,52 +216,76 @@ inapplicables sont nuls. Les codes ne dépendent pas de la langue du message.
 Contrôles structurels : identifiants invalides/dupliqués, enfant absent,
 mauvais propriétaire, catégories illégales, cycles, parents multiples,
 fragments détachés et slots incomplets. Contrôles sémantiques : référence
-inaccessible, import/export invalide, conflit de déclaration, retour hors
-fonction, contrôle de boucle hors boucle, affectation d'une constante.
+inaccessible, import/export invalide, conflit de déclaration, point d'entrée
+dupliqué ou invalide, retour hors fonction, contrôle de boucle hors boucle,
+affectation d'une constante.
 
 Typage strict : annotations, initialisation, opérateurs, conditions booléennes,
-signatures/appels, affectations et retours. Les expressions non typables
-restent inspectables sans type publié. Le contrôle de retour accepte les blocs
-et les deux branches d'un \code{if}, mais ne prouve pas les retours via les boucles.
+signatures/appels, affectations et retours. Les tableaux (littéral, création,
+accès) doivent respecter le type d'élément annoncé ; les tableaux imbriqués et
+un alias nommé comme élément sont refusés. Les expressions non typables restent
+inspectables sans type publié. Le contrôle de retour accepte les blocs et les
+deux branches d'un \code{if}, mais ne prouve pas les retours via les boucles.
 Entiers signés/non signés de 16/32 bits, flottants IEEE 754 de 32/64 bits ;
 \code{char} est un scalaire Unicode. Les conversions \code{CastExpression}
 sont numériques explicites, avec troncature ou arrondi et contrôle des bornes.
 
 \textbf{Vérifications exécutées :} \code{pnpm test}, runner natif Node :
-\textbf{60 tests réussis, 0 échec}. Couverture de l'unicité de Main, des modules vides,
-déclarations multiples, fonctions/paramètres/retours, conditions et boucles
-imbriquées, références locales, import intermodule, références absentes,
-conflits, programmes incomplets, erreurs de type et reconstruction JSON.
-Des tests supplémentaires contrôlent les identifiants, localisations,
-sources gelées, fragments détachés, champs malformés, profondeurs,
-bornes numériques, sous-flux, arrondis difficiles et conversions interdites.
+\textbf{285 tests réussis, 0 échec}. Couverture de la construction de l'AST,
+des portées et références, du typage et des tableaux, des bornes et arrondis
+numériques, de la sérialisation JSON, de la simulation (tableaux, contrats et
+fonction choisie compris), du débogage pas à pas et de l'accessibilité, des
+graphes de dépendances et de flot, de la transpilation JavaScript et Python,
+des transferts de sous-arbres, des exports/imports et de la détection des
+déclarations inutilisées.
 
 \code{pnpm build} : frontend compilé avec succès. Ce contrôle protège le
 frontend existant ; le moteur séparé est vérifié par les tests Node, pas par
-la compilation du bundle. Seules les catégories Module/Main sont partagées
-avec l'UI. Aucune nouvelle fonction
-native n'a été ajoutée ; pas de nouvelle vérification Neutralinojs.
+la compilation du bundle. Le moteur reste sans React, DOM ni API native ;
+l'interface ne partage avec lui que les identifiants de module et les libellés.
+Aucune fonction native nouvelle n'a été ajoutée pour ce document.
 
-\section*{7. Évolution sans couplage prématuré}
-La simulation pourra consommer l'AST et les symboles résolus, puis publier
-des événements indexés par \code{sourceId}. Les suggestions exploiteront
-les portées et les types au point d'édition. Chaque générateur abaissera
-ensuite les mêmes constructions vers sa cible ; aucun AST Babel n'est utilisé.
+\section*{7. Simulation, contrats et transpilation}
+Sur action explicite, \code{simulateProgram} exécute le point d'entrée — ou une
+fonction choisie avec des entrées typées — sans modifier la source. Le résultat
+reste en mémoire : sorties, trace ordonnée d'identifiants de nœuds, valeur de
+retour et variables observées. Un budget de pas (1 à 100 000) et une profondeur
+d'appel bornée (200) limitent le travail ; boucles non terminantes et appels
+trop profonds sont interrompus proprement. Les tableaux s'exécutent localement,
+avec contrôle des bornes et des cases jamais remplies.
 
-Un futur générateur devra refuser les diagnostics bloquants.
-\code{canGenerate} signifie seulement « aucune erreur détectée par les passes
-actuelles », et non une garantie d'exécutabilité. Aucun de ces trois moteurs
-n'est implémenté et aucun système de plugins n'a été inventé.
+Les contrats \code{positive}, \code{nonNegative} et \code{nonEmpty} attachés à
+une déclaration sont évalués après chaque instruction ; leurs violations sont
+signalées sans interrompre le programme. Le débogage réutilise le même
+interpréteur : les états sont préparés puis parcourus (suivant entrant dans les
+appels, sortie de scope, retour à l'arrêt précédent, redémarrage), sans
+exécution native suspendue.
+
+La transpilation délègue à des backends enregistrés : JavaScript et Python sont
+actifs, C, C++ et Java restent indisponibles. Les diagnostics bloquants
+empêchent toute génération ; un point d'entrée paramétré est refusé plutôt
+qu'appelé sans arguments. Le code produit n'est jamais exécuté automatiquement
+par l'application.
+
+\section*{8. Évolution sans couplage prématuré}
+La simulation, le débogage et la transpilation consomment déjà l'AST et les
+symboles résolus. Les \textbf{suggestions contextuelles} au point d'édition et
+de \textbf{nouveaux générateurs} de cibles restent à venir ; chaque générateur
+devra refuser les diagnostics bloquants. \code{canGenerate} signifie seulement
+« aucune erreur détectée par les passes actuelles », et non une garantie
+d'exécutabilité. Aucun de ces moteurs n'est implémenté et aucun système de
+plugins n'a été inventé.
 
 Le format v1 préserve les champs supplémentaires. Une version inconnue est
 conservée et signalée, sans migration. La sérialisation refuse les données
 non JSON au lieu de les supprimer silencieusement. Les profondeurs d'analyse
 et de sérialisation sont bornées pour éviter les dépassements de pile.
 
-\textbf{Limites assumées :} pas de sous-modules, objets, génériques, réexports ou
-résolution de fichiers. Les dépassements constants sont diagnostiqués ; les
-valeurs reçues à l'exécution ne sont pas bornées globalement par cette analyse.
-Les futurs backends devront appliquer les mêmes opérations contrôlées, sans
-rebouclage. L'API complète
-et les conventions de slots sont décrites dans \code{docs/LOGIC\_API.md}.
+\textbf{Limites assumées :} pas de sous-modules, objets, génériques, réexports
+ni résolution de fichiers ; un tableau porte un élément primitif unique, sans
+tableau imbriqué. Les dépassements constants sont diagnostiqués ; les valeurs
+reçues à l'exécution ne sont pas bornées globalement par l'analyse. Les cibles
+C, C++ et Java sont annoncées mais indisponibles. Les futurs backends devront
+appliquer les mêmes opérations contrôlées, sans rebouclage. L'API complète et
+les conventions de slots sont décrites dans \code{docs/LOGIC\_API.md}.
 \end{document}
