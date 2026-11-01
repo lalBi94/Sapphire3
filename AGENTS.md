@@ -138,9 +138,9 @@ Un fichier = une responsabilité principale. Ne pas multiplier les fichiers ou l
 
 ## Distribution et confidentialité
 
-- Distribution : non configurée. Aucun dépôt distant ni sous-dossier de distribution autorisé pour l'instant.
-- Le dépôt de développement conserve les sources ; le dépôt imbriqué de distribution ne contient que les documents, crédits, scripts et notes de versions autorisés. Les builds et exécutables sont ignorés par Git et publiés comme assets de release.
-- Pour le desktop Windows, appliquer `docs/DISTRIBUTION.md` : construction du frontend compilé, conteneur Neutralinojs, licences, ZIP versionné, manifeste `update.json`, audit et publication GitHub Releases.
+- Distribution configurée sur le dépôt public unique `lalBi94/Sapphire3` : sources sur `master`, paquets portables en assets de GitHub Releases. Aucun second dépôt, sous-module, remote supplémentaire, manifeste `update.json` ni updater.
+- Le dépôt Git ne contient que les sources, la documentation et les scripts. Les exécutables, `resources.neu`, ZIP et dossiers compilés restent ignorés par Git et ne sont jamais ajoutés à l'historique.
+- Pour le desktop Windows, appliquer `docs/DISTRIBUTION.md` : reconfiguration de production, compilation Vite, conteneur Neutralinojs, licences, ZIP portable, SHA‑256, audit et publication GitHub Releases en préversion avec tag de version.
 - Une demande de publication autorise la publication concernée dans le dépôt de distribution configuré, pas un push des sources privées, un changement de visibilité ou l'exposition de données.
 - Pour un site web, ne pas créer d'exécutable ni appliquer un updater Windows. Le déploiement web, son hébergeur et ses commandes restent à définir explicitement.
 - Ne jamais annoncer une release publiée avant d'avoir vérifié la release distante, ses assets et son manifeste applicable.
