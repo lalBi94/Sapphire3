@@ -51,14 +51,18 @@ export function describeBookmark(bookmark) {
   return { kind: 'module', name: bookmark?.name ?? '', parameters: [], returnType: null, nodeCount: nodes.length, functionCount: functions }
 }
 
-// Recopie un instantané dans un nouveau module en remappant identifiants, enfants et références.
+// Recopie un instantané dans un module neuf ou existant, en remappant identifiants, enfants et références.
 export function insertBookmark(project, bookmark, options = {}) {
   const { moduleId, moduleName, ids } = options
+  const existingModule = options.existingModule === true
   if (bookmark?.version !== 1 || !Array.isArray(bookmark.nodes) || bookmark.nodes.length === 0) return { ok: false, code: 'BOOKMARK_INVALID' }
-  if (typeof moduleId !== 'string' || !moduleId || typeof moduleName !== 'string' || !moduleName) return { ok: false, code: 'BOOKMARK_INVALID' }
+  if (typeof moduleId !== 'string' || !moduleId) return { ok: false, code: 'BOOKMARK_INVALID' }
+  if (!existingModule && (typeof moduleName !== 'string' || !moduleName)) return { ok: false, code: 'BOOKMARK_INVALID' }
   if (!Array.isArray(ids) || ids.length !== bookmark.nodes.length || new Set(ids).size !== ids.length) return { ok: false, code: 'BOOKMARK_INVALID' }
   const roots = [...new Set(bookmark.rootNodeIds ?? [])]
   if (roots.length === 0 || roots.some((id) => !bookmark.nodes.some((node) => node.id === id))) return { ok: false, code: 'BOOKMARK_INVALID' }
+  const target = (project.modules ?? []).find((module) => module.id === moduleId)
+  if (existingModule && !target) return { ok: false, code: 'BOOKMARK_INVALID' }
   const remap = new Map(bookmark.nodes.map((node, position) => [node.id, ids[position]]))
   let nodes
   try {
@@ -77,12 +81,34 @@ export function insertBookmark(project, bookmark, options = {}) {
   } catch {
     return { ok: false, code: 'BOOKMARK_INVALID' }
   }
-  const module = createModule(moduleId, moduleName)
-  module.rootNodeIds = roots.map((id) => remap.get(id))
-  const next = { ...project, modules: [...project.modules, module], nodes: [...project.nodes, ...nodes] }
+  const newRoots = roots.map((id) => remap.get(id))
+  // Un module existant garde ses noms : un nom de racine déjà pris reçoit un suffixe libre.
+  if (existingModule) {
+    const names = new Set((project.nodes ?? []).filter((node) => node.moduleId === moduleId && typeof node.properties?.name === 'string').map((node) => node.properties.name))
+    const rootIds = new Set(newRoots)
+    for (const node of nodes) {
+      if (!rootIds.has(node.id) || typeof node.properties?.name !== 'string') continue
+      const base = node.properties.name
+      if (!names.has(base)) { names.add(base); continue }
+      let suffix = 2
+      while (names.has(`${base}${suffix}`)) suffix += 1
+      node.properties.name = `${base}${suffix}`
+      names.add(node.properties.name)
+    }
+  }
+  let modules
+  if (existingModule) {
+    modules = (project.modules ?? []).map((module) => module.id === moduleId ? { ...module, rootNodeIds: [...(module.rootNodeIds ?? []), ...newRoots] } : module)
+  } else {
+    const module = createModule(moduleId, moduleName)
+    module.rootNodeIds = newRoots
+    modules = [...(project.modules ?? []), module]
+  }
+  const next = { ...project, modules, nodes: [...(project.nodes ?? []), ...nodes] }
   const analysis = analyzeProgram(next)
-  const owned = new Set([...ids, moduleId])
-  const invalid = analysis.diagnostics.filter((entry) => entry.severity === 'error' && (owned.has(entry.location?.nodeId) || entry.location?.moduleId === moduleId))
+  const previous = options.analysis ?? analyzeProgram(project)
+  const known = new Set(previous.diagnostics.map((entry) => JSON.stringify([entry.code, entry.location])))
+  const invalid = analysis.diagnostics.filter((entry) => entry.severity === 'error' && !known.has(JSON.stringify([entry.code, entry.location])))
   if (invalid.length) return { ok: false, code: 'BOOKMARK_INVALID', diagnostics: invalid }
-  return { ok: true, project: next, analysis, moduleId, rootNodeIds: module.rootNodeIds }
+  return { ok: true, project: next, analysis, moduleId, rootNodeIds: newRoots, existingModule }
 }

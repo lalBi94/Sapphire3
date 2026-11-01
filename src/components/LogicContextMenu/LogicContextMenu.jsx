@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, CircleDot, ChevronsDownUp, ChevronsUpDown, ClipboardPaste, Copy, CopyPlus, EyeOff, GitBranch, Lock, LockOpen, Network, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, BookmarkPlus, CircleDot, ChevronsDownUp, ChevronsUpDown, ClipboardPaste, Copy, CopyPlus, EyeOff, GitBranch, Lock, LockOpen, Network, Plus, Trash2 } from 'lucide-react'
 import { getAvailableActions, getNodeSchema } from '../../utils/logic/index.js'
 import { moduleTypes } from '../../utils/moduleTypes.js'
 import { diagnosticLabel, groupLabel, kindLabel, slotLabel } from '../LogicTree/logicLabels.js'
@@ -21,7 +21,7 @@ function groupedActions(actions) {
 }
 
 // Propose le slot, puis la construction compatible et son formulaire latéral.
-export default function LogicContextMenu({ project, index, targetId, initialSlot, x, y, onInsert, onDelete, onDeleteModule, onHideCard, onLockCard, targetLocked = false, onExpansion, onOpenGraph, onCopy, onPaste, onDuplicate, hasClipboard, canToggleExpansion = false, onClose }) {
+export default function LogicContextMenu({ project, index, targetId, initialSlot, x, y, onInsert, onDelete, onDeleteModule, onHideCard, onLockCard, targetLocked = false, onExpansion, onOpenGraph, onCopy, onPaste, onDuplicate, hasClipboard, canToggleExpansion = false, showBookmark = false, canBookmark = false, onBookmark, onClose }) {
   const { t } = useTranslation()
   const [slotName, setSlotName] = useState(initialSlot ?? '')
   const [kind, setKind] = useState('')
@@ -124,6 +124,7 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
         {targetId.kind === 'node' && <button type="button" role="menuitem" disabled={!canDuplicate} title={t(canDuplicate ? 'transfer.duplicateHint' : 'transfer.duplicateUnavailable')} onClick={() => onDuplicate(targetId)}><CopyPlus className="menu-icon" size={16} aria-hidden="true" />{t('transfer.duplicate')}</button>}
         <button type="button" role="menuitem" onClick={() => onOpenGraph(targetId, 'dependencies')}><Network className="menu-icon" size={16} aria-hidden="true" />{t('graph.dependencies')}</button>
         <button type="button" role="menuitem" onClick={() => onOpenGraph(targetId, 'cfg')}><GitBranch className="menu-icon" size={16} aria-hidden="true" />{t('graph.cfg')}</button>
+        {showBookmark && <button type="button" role="menuitem" disabled={!canBookmark} title={t(canBookmark ? 'bookmark.saveHint' : 'bookmark.onlyPure')} onClick={() => onBookmark(targetId)}><BookmarkPlus className="menu-icon" size={16} aria-hidden="true" />{t('bookmark.save')}</button>}
         {canToggleExpansion && available.target?.kind === 'module' && <>
           <button type="button" role="menuitem" onClick={() => onExpansion(available.target.id, true)}><ChevronsUpDown className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.expandAll')}</button>
           <button type="button" role="menuitem" onClick={() => onExpansion(available.target.id, false)}><ChevronsDownUp className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.collapseAll')}</button>

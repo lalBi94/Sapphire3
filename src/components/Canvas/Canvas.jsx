@@ -111,11 +111,6 @@ export default function Canvas() {
   const unusedIds = useMemo(() => new Set(getUnusedDeclarationIds(document.project, document.analysis)), [document.project, document.analysis])
   // Fonctions et modules purs : pastille discrète et seuls favoris enregistrables.
   const pureIds = useMemo(() => getPureIds(document.project, document.analysis), [document.project, document.analysis])
-  // Seules une fonction ou un module pur peuvent être enregistrés comme favori.
-  const bookmarkTarget = !selected ? null
-    : selected.kind === 'node'
-      ? (document.index.nodes.get(selected.id)?.kind === 'FunctionDeclaration' && pureIds.functions.has(selected.id) ? 'function' : null)
-      : (selected.kind === 'module' && pureIds.modules.has(selected.id) ? 'module' : null)
   const functionNode = functionTarget ? document.index.nodes.get(functionTarget) ?? null : null
   const functionSignature = functionNode ? (functionNode.children.parameters ?? []).map((id) => `${document.index.nodes.get(id)?.properties?.name}:${JSON.stringify(document.index.nodes.get(id)?.properties?.type)}`).join('|') : ''
   // Les nœuds qui contiennent autre chose ne dépendent que de la source analysée.
@@ -251,27 +246,52 @@ export default function Canvas() {
     handleCloseMenu(true)
   }
 
-  // Enregistre la fonction ou le module pur sélectionné dans la bibliothèque personnelle.
-  function handleSaveBookmark() {
-    if (!bookmarkTarget) return
-    const result = captureBookmark(document.project, selected, { analysis: document.analysis, index: document.index })
-    if (!result.ok) return
+  // Indique si une cible peut être enregistrée comme favori, et si elle est pure.
+  function bookmarkStatus(target) {
+    if (!target) return { show: false, can: false }
+    if (target.kind === 'module') return { show: true, can: pureIds.modules.has(target.id) }
+    if (target.kind === 'node' && document.index.nodes.get(target.id)?.kind === 'FunctionDeclaration') return { show: true, can: pureIds.functions.has(target.id) }
+    return { show: false, can: false }
+  }
+
+  // Enregistre une cible pure dans la bibliothèque personnelle, sans toucher au document.
+  function saveBookmarkFor(target) {
+    const result = captureBookmark(document.project, target, { analysis: document.analysis, index: document.index })
+    if (!result.ok) return result
     const entry = { id: crypto.randomUUID(), savedAt: Date.now(), ...result.bookmark }
     const next = [entry, ...bookmarks.filter((existing) => !(existing.kind === entry.kind && existing.name === entry.name))]
     setBookmarks(next)
     saveBookmarks(next)
+    return result
   }
 
-  // Insère un favori dans un nouveau module, le sélectionne et le cadre dans la vue.
-  function handleInsertBookmark(bookmarkId) {
+  // Enregistre la sélection pure depuis le volet des favoris.
+  function handleSaveBookmark() {
+    if (bookmarkStatus(selected).can) saveBookmarkFor(selected)
+  }
+
+  // Enregistre une cible pure directement depuis le menu d'un nœud ou d'un module.
+  function handleBookmarkTarget(target) {
+    if (saveBookmarkFor(target).ok) handleCloseMenu(true)
+  }
+
+  // Insère un favori dans un module choisi, ou dans un nouveau module sélectionné et cadré.
+  function handleInsertBookmark(bookmarkId, targetModuleId = null) {
     const bookmark = bookmarks.find((entry) => entry.id === bookmarkId)
     if (!bookmark) return
-    const position = nextBookmarkPosition()
-    const result = document.insertSavedBookmark(bookmark, position)
+    const existing = Boolean(targetModuleId && document.index.modules.has(targetModuleId))
+    const position = existing ? null : nextBookmarkPosition()
+    const result = document.insertSavedBookmark(bookmark, { targetModuleId: existing ? targetModuleId : null, position })
     if (!result.ok) return
-    setSelected({ kind: 'module', id: result.moduleId })
-    setActiveCardId(result.moduleId)
-    restoreCamera({ x: position.x + moduleTypes.module.width / 2, y: position.y + moduleTypes.module.height / 2, zoomLevel: camera.zoomLevel })
+    const rootId = result.rootNodeIds?.[0] ?? null
+    if (existing) {
+      if (rootId) setSelected({ kind: 'node', id: rootId })
+      setActiveCardId(result.moduleId)
+    } else {
+      setSelected({ kind: 'module', id: result.moduleId })
+      setActiveCardId(result.moduleId)
+      restoreCamera({ x: position.x + moduleTypes.module.width / 2, y: position.y + moduleTypes.module.height / 2, zoomLevel: camera.zoomLevel })
+    }
   }
 
   // Retire un favori de la bibliothèque sans toucher au document courant.
@@ -557,7 +577,7 @@ export default function Canvas() {
       heatmapAvailable={Boolean(heat)} heatmap={heatEnabled} onToggleHeatmap={() => setHeatEnabled((current) => !current)}
       hiddenCards={hiddenCards} onShowCard={handleShowCard} onShowAllHidden={handleShowAllHidden}
       hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onOpenSearch={search.show} onRunSimulation={handleRunSimulation} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} selectedFunction={selectedFunction} onOpenFunction={handleOpenFunction}
-      bookmarks={bookmarks} canBookmark={Boolean(bookmarkTarget)} onSaveBookmark={handleSaveBookmark} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark} />
+      bookmarks={bookmarks} modules={document.cards.filter((card) => card.type === 'module').map((card) => ({ id: card.id, name: card.name }))} canBookmark={bookmarkStatus(selected).can} onSaveBookmark={handleSaveBookmark} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark} />
     <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label={t('canvas.aria')} tabIndex={0}
       onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerEnd} onPointerCancel={handlePointerEnd} onLostPointerCapture={handlePointerEnd} onKeyDown={handleKeyDown} onContextMenu={handleContextMenu}
       onDragStart={transfers.handleDragStart} onDragOver={transfers.handleDragOver} onDrop={transfers.handleDrop} onDragEnd={transfers.handleDragEnd}>
@@ -593,7 +613,7 @@ export default function Canvas() {
       {search.open && <NodeSearchPanel index={document.index} cards={visibleCards} selectedId={selected?.kind === 'node' ? selected.id : null} focusToken={search.token} onReveal={handleRevealNode} onClose={handleCloseSearch} />}
       {nodeGraph && <NodeGraphPanel project={document.project} index={document.index} target={nodeGraph.target} mode={nodeGraph.mode} onSelect={handleSelect} onClose={() => setNodeGraph(null)} />}
       {selected && <NodeProperties key={document.revision} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={handleSelect} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onExport={document.exportFunction} onImport={document.importFunction} onRemoveImport={document.removeImport} onContracts={document.setNodeContracts} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
-      {contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onHideCard={handleHideCard} onLockCard={handleToggleLock} targetLocked={isCardLocked(contextMenu.targetId?.id)} onExpansion={(id, expand) => { handleExpansion(id, expand); handleCloseMenu(true) }} canToggleExpansion={contextMenu.targetId?.kind === 'module' && (expandableIds.get(contextMenu.targetId.id)?.length ?? 0) > 0} onOpenGraph={handleOpenNodeGraph} onCopy={handleCopyNode} onPaste={transfers.pasteNode} onDuplicate={transfers.duplicateNode} hasClipboard={transfers.hasClipboard} onClose={handleCloseMenu} />
+      {contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onHideCard={handleHideCard} onLockCard={handleToggleLock} targetLocked={isCardLocked(contextMenu.targetId?.id)} onExpansion={(id, expand) => { handleExpansion(id, expand); handleCloseMenu(true) }} canToggleExpansion={contextMenu.targetId?.kind === 'module' && (expandableIds.get(contextMenu.targetId.id)?.length ?? 0) > 0} onOpenGraph={handleOpenNodeGraph} onCopy={handleCopyNode} onPaste={transfers.pasteNode} onDuplicate={transfers.duplicateNode} hasClipboard={transfers.hasClipboard} showBookmark={bookmarkStatus(contextMenu.targetId).show} canBookmark={bookmarkStatus(contextMenu.targetId).can} onBookmark={handleBookmarkTarget} onClose={handleCloseMenu} />
         : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} onCreate={handleCreateModule} onClose={handleCloseMenu} anchored={contextMenu.anchored} commentId={contextMenu.targetId ? { id: contextMenu.targetId.id, type: contextMenu.targetId.kind } : null} onDeleteComment={handleDeleteComment} onHideCard={handleHideCard} onLockCard={handleToggleLock} commentLocked={isCardLocked(contextMenu.targetId?.id)} />)}
     </main>
     </div>

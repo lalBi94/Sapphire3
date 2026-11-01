@@ -24,6 +24,9 @@
 .project-navigation__bookmark-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .project-navigation__bookmark-summary { min-width: 0; color: var(--color-text-muted); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .project-navigation__bookmark svg { flex-shrink: 0; }
+.project-navigation__bookmark-entry { display: flex; flex-direction: column; }
+.project-navigation__destinations { display: flex; flex-direction: column; margin: 2px 0 4px 12px; padding-left: 6px; border-left: 1px solid var(--color-border); }
+.project-navigation__destinations p { margin: 4px; }
 .project-navigation button:hover:not(:disabled) { background: var(--color-hover); }
 .project-navigation__run { color: var(--color-primary) !important; }
 .project-navigation__run-controls { display: flex; align-items: center; flex-shrink: 0; }

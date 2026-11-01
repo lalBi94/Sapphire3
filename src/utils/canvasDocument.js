@@ -49,8 +49,9 @@ export function reduceDocument(state, action) {
   if (action.type === 'insertBookmark') {
     const result = state.project === action.previousProject
       ? action.prepared
-      : insertBookmark(state.project, action.bookmark, { moduleId: action.moduleId, moduleName: action.moduleName, ids: action.ids, index: state.index })
+      : insertBookmark(state.project, action.bookmark, { moduleId: action.moduleId, moduleName: action.moduleName, ids: action.ids, existingModule: action.existingModule, index: state.index })
     if (!result.ok) return { ...state, mutationError: result.code }
+    if (action.existingModule) return withSource(state, result.project, result.analysis, result.index)
     const definition = moduleTypes.module
     const card = { id: action.moduleId, type: 'module', name: action.moduleName, x: action.position.x, y: action.position.y, width: definition.width, height: definition.height, expandedNodeIds: [] }
     return withSource({ ...state, cards: [...state.cards, card] }, result.project, result.analysis, result.index)

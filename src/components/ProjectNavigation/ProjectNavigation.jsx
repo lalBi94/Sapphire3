@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Bug, Bookmark, BookmarkPlus, ChevronDown, Clock3, Code2, Download, Eye, FileInput, FileOutput, FilePlus, FolderOpen, Library, Palette, Play, Save, SaveAll, Search, Trash2, VectorSquare, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
@@ -27,8 +27,9 @@ function ReplaceConfirmation({ titleKey, bodyKey, detail, confirmKey, onConfirm,
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, heatmapAvailable = false, heatmap = false, onToggleHeatmap, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile, selectedFunction = null, onOpenFunction, bookmarks = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark }) {
+export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, heatmapAvailable = false, heatmap = false, onToggleHeatmap, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile, selectedFunction = null, onOpenFunction, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark }) {
   const navigationRef = useRef(null)
+  const [insertingId, setInsertingId] = useState(null)
   const { language, setLanguage, t } = useTranslation()
 
   useEffect(() => {
@@ -50,7 +51,17 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
 
   // Referme les menus sans modifier la sélection ou la vue du document.
   function closeMenus() {
+    setInsertingId(null)
     for (const menu of navigationRef.current.querySelectorAll('details')) menu.open = false
+  }
+
+  // Ouvre le choix de destination d'un favori, ou l'insère au plus simple.
+  function handleBookmarkInsert(entry, describe) {
+    if (describe.kind !== 'function' || modules.length === 0) {
+      onInsertBookmark(entry.id, null)
+      return
+    }
+    setInsertingId((current) => current === entry.id ? null : entry.id)
   }
 
   // Rend le focus au déclencheur du volet fermé au clavier.
@@ -177,12 +188,19 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
               const signature = describe.kind === 'function'
                 ? `(${describe.parameters.map((type) => typeLabel(type, t)).join(', ')}) → ${typeLabel(describe.returnType, t)}`
                 : functions
-              return <div className="project-navigation__bookmark" key={entry.id}>
-                <button type="button" className="project-navigation__bookmark-insert" title={t('bookmark.insert', { name: entry.name })} onClick={() => onInsertBookmark(entry.id)}><Download size={13} aria-hidden="true" /><span className="project-navigation__bookmark-text">
-                  <span className="project-navigation__bookmark-name">{describe.name || entry.name}</span>
-                  <span className="project-navigation__bookmark-summary">{signature} · {blocks}</span>
-                </span></button>
-                <button type="button" className="project-navigation__bookmark-delete" aria-label={t('bookmark.delete', { name: entry.name })} title={t('bookmark.delete', { name: entry.name })} onClick={() => onDeleteBookmark(entry.id)}><Trash2 size={13} aria-hidden="true" /></button>
+              return <div className="project-navigation__bookmark-entry" key={entry.id}>
+                <div className="project-navigation__bookmark">
+                  <button type="button" className="project-navigation__bookmark-insert" title={t('bookmark.insert', { name: entry.name })} onClick={() => handleBookmarkInsert(entry, describe)}><Download size={13} aria-hidden="true" /><span className="project-navigation__bookmark-text">
+                    <span className="project-navigation__bookmark-name">{describe.name || entry.name}</span>
+                    <span className="project-navigation__bookmark-summary">{signature} · {blocks}</span>
+                  </span></button>
+                  <button type="button" className="project-navigation__bookmark-delete" aria-label={t('bookmark.delete', { name: entry.name })} title={t('bookmark.delete', { name: entry.name })} onClick={() => onDeleteBookmark(entry.id)}><Trash2 size={13} aria-hidden="true" /></button>
+                </div>
+                {insertingId === entry.id && <div className="project-navigation__destinations">
+                  <p>{t('bookmark.destination')}</p>
+                  <button type="button" onClick={() => { setInsertingId(null); onInsertBookmark(entry.id, null) }}>{t('bookmark.newModule')}</button>
+                  {modules.map((module) => <button type="button" key={module.id} onClick={() => { setInsertingId(null); onInsertBookmark(entry.id, module.id) }}>{t('bookmark.intoModule', { name: module.name })}</button>)}
+                </div>}
               </div>
             })}
             </div>}

@@ -93,15 +93,18 @@ export default function useCanvasDocument() {
     return prepared
   }
 
-  // Insère un favori personnel dans un nouveau module, en une seule étape d'historique.
-  function insertSavedBookmark(bookmark, position) {
+  // Insère un favori dans un module neuf (avec sa carte) ou existant, en une seule étape d'historique.
+  function insertSavedBookmark(bookmark, options = {}) {
     if (!Array.isArray(bookmark?.nodes) || bookmark.nodes.length === 0) return { ok: false, code: 'BOOKMARK_INVALID' }
-    const moduleId = crypto.randomUUID()
     const ids = bookmark.nodes.map(() => crypto.randomUUID())
-    const moduleName = uniqueModuleName(new Set(document.cards.filter((card) => card.type === 'module').map((card) => card.name)), bookmark.name)
-    const prepared = insertBookmark(document.project, bookmark, { moduleId, moduleName, ids, index: document.index })
-    if (prepared.ok) dispatch({ type: 'insertBookmark', previousProject: document.project, prepared, bookmark, moduleId, moduleName, ids, position })
-    return { ...prepared, moduleId, moduleName }
+    const existing = Boolean(options.targetModuleId && document.index.modules.has(options.targetModuleId))
+    const moduleId = existing ? options.targetModuleId : crypto.randomUUID()
+    const moduleName = existing
+      ? document.index.modules.get(moduleId)?.name ?? ''
+      : uniqueModuleName(new Set(document.cards.filter((card) => card.type === 'module').map((card) => card.name)), bookmark.name)
+    const prepared = insertBookmark(document.project, bookmark, { moduleId, moduleName, ids, existingModule: existing, index: document.index })
+    if (prepared.ok) dispatch({ type: 'insertBookmark', previousProject: document.project, prepared, bookmark, moduleId, moduleName, ids, existingModule: existing, position: options.position ?? null })
+    return { ...prepared, moduleId, moduleName, existingModule: existing }
   }
 
   // Réordonne une instruction dans sa liste parente, sans recréer le nœud ni changer ses identifiants.

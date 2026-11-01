@@ -103,6 +103,23 @@ test('favori : le résumé expose nom, signature et volumes', () => {
   assert.equal(moduleSummary.functionCount, 1)
 })
 
+test('favori : une fonction peut rejoindre un module existant, avec suffixe en cas de conflit', () => {
+  const source = pureFunction()
+  const bookmark = { id: 'b3', savedAt: 0, ...captureBookmark(source, { kind: 'node', id: 'factorial' }).bookmark }
+  const target = program('host')
+  root(target, 'host', 'factorial', 'FunctionDeclaration', { name: 'factorial', type: voidType }, { parameters: [], body: 'hostBody' })
+  node(target, 'host', 'hostBody', 'Block', {}, { statements: [] })
+  const before = target.modules.length
+  const result = insertBookmark(target, bookmark, { moduleId: 'host', ids: freshIds(bookmark, 'into'), existingModule: true })
+  assert.equal(result.ok, true)
+  assert.equal(result.project.modules.length, before, 'aucun module supplémentaire')
+  const module = result.project.modules.find((entry) => entry.id === 'host')
+  assert.equal(module.rootNodeIds.length, 2)
+  const added = result.project.nodes.find((entry) => entry.id === result.rootNodeIds[0])
+  assert.equal(added.properties.name, 'factorial2', 'un nom déjà pris reçoit un suffixe')
+  assert.deepEqual(analyzeProgram(result.project).diagnostics.filter((entry) => entry.severity === 'error'), [])
+})
+
 test('favori : une entrée mal formée est refusée', () => {
   const target = program('other')
   assert.equal(insertBookmark(target, { version: 1, nodes: [] }, { moduleId: 'm', moduleName: 'M', ids: [] }).code, 'BOOKMARK_INVALID')
