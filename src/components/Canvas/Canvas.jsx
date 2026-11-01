@@ -15,10 +15,11 @@ import NodeProperties from '../NodeProperties/NodeProperties.jsx'
 import { moduleTypes } from '../../utils/moduleTypes.js'
 import { expandableNodeIdsByModule, expandAllNodeIds, isFullyExpanded } from '../../utils/nodeTree.js'
 import { scrollNodeIntoCard } from '../../utils/cardScroll.js'
+import { buildWorkspaceSvg } from '../../utils/workspaceSvg.js'
 import ProjectNavigation from '../ProjectNavigation/ProjectNavigation.jsx'
 import useWorkspaceFiles from '../../hooks/useWorkspaceFiles.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
-import { diagnosticLabel } from '../LogicTree/logicLabels.js'
+import { diagnosticLabel, kindLabel } from '../LogicTree/logicLabels.js'
 import { createDebugSession, moveDebugSession, simulateProgram, getModuleLinks } from '../../utils/logic/index.js'
 import { transpileProgram } from '../../utils/transpilation/index.js'
 import { transpilationLanguages } from '../../utils/transpilation/languages.js'
@@ -255,6 +256,30 @@ export default function Canvas() {
     }
   }
 
+  // Exporte tout le workspace déplié en une vue d'ensemble SVG, à partir de la présentation courante.
+  async function handleExportSvg() {
+    const svg = buildWorkspaceSvg({
+      cards: document.cards,
+      index: document.index,
+      links: moduleLinks,
+      colors: svgPalette(),
+      describe: (node) => `${kindLabel(node.kind, t)}${node.properties?.name ? ` · ${node.properties.name}` : ''}`,
+    })
+    await files.exportText('svg', svg)
+  }
+
+  // Relit les couleurs du thème actif pour peindre la vue d'ensemble SVG.
+  function svgPalette() {
+    const styles = window.getComputedStyle(window.document.documentElement)
+    const read = (name) => styles.getPropertyValue(name).trim() || undefined
+    const groups = ['variable', 'type', 'function', 'parameter', 'condition', 'loop', 'return', 'block', 'statement', 'operator', 'value', 'array', 'incomplete']
+    return {
+      background: read('--color-black'), surface: read('--color-module-surface'), comment: read('--color-comment-surface'),
+      border: read('--color-border'), text: read('--color-text'), muted: read('--color-text-muted'), accent: read('--color-yellow'),
+      node: Object.fromEntries(groups.map((group) => [group, read(`--color-node-${group}`)])),
+    }
+  }
+
   // Ne change que le curseur de lecture et l'instantané mémoire exposé au débogueur.
   function handleDebugAction(action) {
     const next = moveDebugSession(debugSession, action)
@@ -412,7 +437,7 @@ export default function Canvas() {
 
   return (
     <div ref={workspaceRef} className="canvas-workspace">
-    <ProjectNavigation busy={files.busy} message={files.message} error={files.error} pendingImport={files.pendingImport} pendingNew={files.pendingNew} recentFiles={files.recentFiles} onSave={files.handleSave} onSaveAs={files.saveAs} onOpenSp3={files.handleOpenSp3} onOpenRecent={files.handleOpenRecent} onImport={files.handleImport} onOpenExample={files.handleOpenExample} onConfirmImport={files.handleConfirmImport} onCancelImport={files.handleCancelImport} onNew={files.handleNew} onConfirmNew={files.handleConfirmNew} onCancelNew={files.handleCancelNew} onDismiss={files.handleDismiss}
+    <ProjectNavigation busy={files.busy} message={files.message} error={files.error} pendingImport={files.pendingImport} pendingNew={files.pendingNew} recentFiles={files.recentFiles} onSave={files.handleSave} onSaveAs={files.saveAs} onExportSvg={handleExportSvg} onOpenSp3={files.handleOpenSp3} onOpenRecent={files.handleOpenRecent} onImport={files.handleImport} onOpenExample={files.handleOpenExample} onConfirmImport={files.handleConfirmImport} onCancelImport={files.handleCancelImport} onNew={files.handleNew} onConfirmNew={files.handleConfirmNew} onCancelNew={files.handleCancelNew} onDismiss={files.handleDismiss}
       canUndo={document.canUndo} canRedo={document.canRedo} onUndo={document.undo} onRedo={document.redo}
       onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={() => handleRecenter(getModulesBounds())}
       distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)}

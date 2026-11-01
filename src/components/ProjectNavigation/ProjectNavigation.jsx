@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Bug, ChevronDown, Clock3, Code2, Eye, FileInput, FileOutput, FilePlus, FolderOpen, Library, Palette, Play, Save, SaveAll, Search, X } from 'lucide-react'
+import { Bug, ChevronDown, Clock3, Code2, Eye, FileInput, FileOutput, FilePlus, FolderOpen, Library, Palette, Play, Save, SaveAll, Search, VectorSquare, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
 import { supportedLanguages } from '../../utils/translations.js'
@@ -25,7 +25,7 @@ function ReplaceConfirmation({ titleKey, bodyKey, detail, confirmKey, onConfirm,
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile }) {
+export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile }) {
   const navigationRef = useRef(null)
   const { language, setLanguage, t } = useTranslation()
 
@@ -117,6 +117,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
           <button type="button" disabled={busy || !!pendingImport} onClick={() => handleSaveAs('sp3')}><SaveAll size={14} aria-hidden="true" />{t('nav.saveAsSp3')}</button>
           <button type="button" disabled={busy || !!pendingImport} onClick={handleImport}><FileInput size={14} aria-hidden="true" />{t('nav.import')}</button>
           <button type="button" disabled={busy || !!pendingImport} onClick={() => handleSaveAs('json')}><FileOutput size={14} aria-hidden="true" />{t('nav.exportJson')}</button>
+          <button type="button" disabled={busy || !!pendingImport} onClick={() => { closeMenus(); onExportSvg() }}><VectorSquare size={14} aria-hidden="true" />{t('nav.exportSvg')}</button>
         </div>
       </details>
       <details name="workspace-menu" onToggle={handleToggle}>

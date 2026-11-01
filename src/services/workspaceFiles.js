@@ -3,7 +3,7 @@ import { transpilationLanguages } from '../utils/transpilation/languages.js'
 
 let clientPromise
 const maximumFileSize = 20 * 1024 * 1024
-const exportFormats = Object.freeze({ sp3: 'files.sp3Filter', json: 'files.jsonFilter', ...Object.fromEntries(transpilationLanguages.filter((option) => option.available).map((option) => [option.extension, option.filterKey])) })
+const exportFormats = Object.freeze({ sp3: 'files.sp3Filter', json: 'files.jsonFilter', svg: 'files.svgFilter', ...Object.fromEntries(transpilationLanguages.filter((option) => option.available).map((option) => [option.extension, option.filterKey])) })
 
 // Transporte un code et ses paramètres sans lier les accès natifs à React ou à une langue globale.
 function fileError(code, values = {}) {

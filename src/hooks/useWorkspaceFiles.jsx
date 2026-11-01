@@ -93,6 +93,24 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     }
   }
 
+  // Exporte un document annexe (SVG…) au chemin choisi, sans changer le fichier de workspace courant.
+  async function exportText(extension, text) {
+    if (operation.current || pendingImport) return
+    operation.current = true
+    setBusy(true)
+    setError(null)
+    setMessage('')
+    try {
+      const path = await exportWorkspaceFile(extension, text, language)
+      if (path) setMessage('files.exported')
+    } catch (failure) {
+      setError({ prefix: 'errors.couldNotSave', failure })
+    } finally {
+      operation.current = false
+      setBusy(false)
+    }
+  }
+
   // Enregistre directement le fichier ouvert, ou ouvre Enregistrer sous pour un nouveau document.
   async function handleSave() {
     if (currentPath) {
@@ -314,5 +332,5 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     return () => window.clearTimeout(timer)
   }, [project, cards, currentPath])
 
-  return { busy, message: message ? t(message) : '', error: error ? `${t(error.prefix)} ${failureLabel(error.failure, t)}` : '', pendingImport, pendingNew, recentFiles, handleSave, saveAs, handleOpenSp3, handleOpenRecent, handleImport, handleOpenExample, handleConfirmImport, handleCancelImport, handleNew, handleConfirmNew, handleCancelNew, handleDismiss }
+  return { busy, message: message ? t(message) : '', error: error ? `${t(error.prefix)} ${failureLabel(error.failure, t)}` : '', pendingImport, pendingNew, recentFiles, handleSave, saveAs, exportText, handleOpenSp3, handleOpenRecent, handleImport, handleOpenExample, handleConfirmImport, handleCancelImport, handleNew, handleConfirmNew, handleCancelNew, handleDismiss }
 }
