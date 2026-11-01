@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, CircleDot, ClipboardPaste, Copy, CopyPlus, EyeOff, GitBranch, Network, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, CircleDot, ChevronsDownUp, ChevronsUpDown, ClipboardPaste, Copy, CopyPlus, EyeOff, GitBranch, Network, Plus, Trash2 } from 'lucide-react'
 import { getAvailableActions, getNodeSchema } from '../../utils/logic/index.js'
 import { moduleTypes } from '../../utils/moduleTypes.js'
 import { diagnosticLabel, groupLabel, kindLabel, slotLabel } from '../LogicTree/logicLabels.js'
@@ -21,7 +21,7 @@ function groupedActions(actions) {
 }
 
 // Propose le slot, puis la construction compatible et son formulaire latéral.
-export default function LogicContextMenu({ project, index, targetId, initialSlot, x, y, onInsert, onDelete, onDeleteModule, onHideCard, onOpenGraph, onCopy, onPaste, onDuplicate, hasClipboard, onClose, anchored = false }) {
+export default function LogicContextMenu({ project, index, targetId, initialSlot, x, y, onInsert, onDelete, onDeleteModule, onHideCard, onExpansion, onOpenGraph, onCopy, onPaste, onDuplicate, hasClipboard, canToggleExpansion = false, onClose, anchored = false }) {
   const { t } = useTranslation()
   const [slotName, setSlotName] = useState(initialSlot ?? '')
   const [kind, setKind] = useState('')
@@ -117,6 +117,10 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
         {targetId.kind === 'node' && <button type="button" role="menuitem" disabled={!canDuplicate} title={t(canDuplicate ? 'transfer.duplicateHint' : 'transfer.duplicateUnavailable')} onClick={() => onDuplicate(targetId)}><CopyPlus className="menu-icon" size={16} aria-hidden="true" />{t('transfer.duplicate')}</button>}
         <button type="button" role="menuitem" onClick={() => onOpenGraph(targetId, 'dependencies')}><Network className="menu-icon" size={16} aria-hidden="true" />{t('graph.dependencies')}</button>
         <button type="button" role="menuitem" onClick={() => onOpenGraph(targetId, 'cfg')}><GitBranch className="menu-icon" size={16} aria-hidden="true" />{t('graph.cfg')}</button>
+        {canToggleExpansion && available.target?.kind === 'module' && <>
+          <button type="button" role="menuitem" onClick={() => onExpansion(available.target.id, true)}><ChevronsUpDown className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.expandAll')}</button>
+          <button type="button" role="menuitem" onClick={() => onExpansion(available.target.id, false)}><ChevronsDownUp className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.collapseAll')}</button>
+        </>}
         {available.ok && available.target?.kind === 'node' && <button type="button" role="menuitem" className="logic-context-menu__delete" title={t('canvas.deleteInside')} onClick={() => onDelete(targetId)}><Trash2 className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.deleteBlock')}</button>}
         {available.target?.kind === 'module' && <button type="button" role="menuitem" onClick={() => onHideCard(available.target)}><EyeOff className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.hide')} {t(moduleTypes.module.targetLabelKey)}</button>}
         {available.ok && available.target?.kind === 'module' && <DeleteAction targetId={available.target.id} kind="module" onDelete={onDeleteModule} menu />}

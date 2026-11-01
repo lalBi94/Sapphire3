@@ -162,6 +162,8 @@ const messages = {
   'canvas.imageCaptionPlaceholder': ['Add a caption…', 'Ajouter une légende…'],
   'canvas.center': ['Center the view', 'Recentrer la vue'],
   'canvas.hide': ['Hide', 'Masquer'],
+  'canvas.expandAll': ['Expand all', 'Tout déplier'],
+  'canvas.collapseAll': ['Collapse all', 'Tout replier'],
   'canvas.show': ['Show', 'Afficher'],
   'canvas.showAll': ['Show all hidden items', 'Afficher tous les éléments masqués'],
   'canvas.hiddenOne': ['1 hidden item', '1 élément masqué'],

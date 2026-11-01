@@ -40,6 +40,31 @@
 .canvas-module__header { padding-right: 36px; }
 .canvas-module > .node-menu-button { top: 9px; right: 8px; }
 
+/* Bascule de pliage, au même format que le bouton de menu posé dans le coin de la carte. */
+.canvas-module__expansion {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--color-border-hover);
+  border-radius: var(--radius-small);
+  color: var(--color-text-muted);
+  background: var(--color-surface-raised);
+  cursor: pointer;
+}
+
+.canvas-module__expansion:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.canvas-module__expansion:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
 .canvas-module__move {
   display: flex;
   align-items: center;

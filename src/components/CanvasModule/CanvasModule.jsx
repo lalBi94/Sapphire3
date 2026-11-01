@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { ChevronsDownUp, ChevronsUpDown } from 'lucide-react'
 import { minimumModuleSize, moduleTypes } from '../../utils/moduleTypes.js'
 import { isEmbeddedImage } from '../../utils/embeddedImage.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
@@ -6,7 +7,7 @@ import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './CanvasModule.css'
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onRename, onTextChange, onImageChange, children, selected = false, onSelect, onOpenActions, onActivate, zIndex = 1, fitRequest = 0, dropState }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onRename, onTextChange, onImageChange, children, selected = false, onSelect, onOpenActions, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -46,6 +47,8 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
 
   const definition = moduleTypes[module.type]
   const name = module.name || t(definition.labelKey)
+  // La bascule d'en-tête promet l'action inverse de l'état actuel du pliage.
+  const expansionLabel = t(expansionState === 'collapse' ? 'canvas.collapseAll' : 'canvas.expandAll')
 
   // Ouvre un brouillon de titre sans modifier le nom tant qu'il n'est pas validé.
   function handleRenameStart() {
@@ -279,6 +282,16 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
             </button>
           )}
         </h2>
+        {expansionState && <button
+          type="button"
+          className="canvas-module__expansion"
+          aria-label={`${expansionLabel} · ${name}`}
+          title={expansionLabel}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => { event.stopPropagation(); onToggleExpansion(module.id) }}
+        >
+          {expansionState === 'collapse' ? <ChevronsDownUp size={14} strokeWidth={2} aria-hidden="true" /> : <ChevronsUpDown size={14} strokeWidth={2} aria-hidden="true" />}
+        </button>}
       </header>
       {definition.hasText ? (
         <textarea
