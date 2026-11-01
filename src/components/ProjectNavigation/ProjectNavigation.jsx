@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react'
-import { Bug, ChevronDown, Clock3, Code2, Eye, FileInput, FileOutput, FilePlus, FolderOpen, Palette, Play, Save, SaveAll, Search, X } from 'lucide-react'
+import { Bug, ChevronDown, Clock3, Code2, Eye, FileInput, FileOutput, FilePlus, FolderOpen, Library, Palette, Play, Save, SaveAll, Search, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
 import { supportedLanguages } from '../../utils/translations.js'
+import { examples } from '../../utils/examples.js'
 import { transpilationLanguages } from '../../utils/transpilation/index.js'
 import './ProjectNavigation.css'
 
@@ -24,7 +25,7 @@ function ReplaceConfirmation({ titleKey, bodyKey, detail, confirmKey, onConfirm,
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onOpenSp3, onOpenRecent, onImport, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile }) {
+export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile }) {
   const navigationRef = useRef(null)
   const { language, setLanguage, t } = useTranslation()
 
@@ -151,6 +152,13 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
           <ThemeMenu />
         </div>
       </details>
+      <details name="workspace-menu" onToggle={handleToggle}>
+        <summary><Library size={13} aria-hidden="true" />{t('nav.examples')}<ChevronDown size={12} aria-hidden="true" /></summary>
+        <div className="project-navigation__menu">
+          <p>{t('examples.choose')}</p>
+          {examples.map((example) => <button type="button" key={example.id} onClick={() => { closeMenus(); onOpenExample(example.id) }}>{t(example.labelKey)}</button>)}
+        </div>
+      </details>
       <div className="project-navigation__run-controls">
         <details name="workspace-menu" onToggle={handleToggle}>
           <summary><Code2 size={13} aria-hidden="true" />{t('transpile.button')}<ChevronDown size={12} aria-hidden="true" /></summary>
@@ -180,7 +188,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
         </select>      </label>
       {error && <div className="project-navigation__error" role="alert"><span>{error}</span><button type="button" aria-label={t('nav.dismiss')} onClick={onDismiss}><X size={14} aria-hidden="true" /></button></div>}
     </nav>
-    {pendingImport && <ReplaceConfirmation titleKey="import.title" bodyKey="import.body" detail={pendingImport.path} confirmKey="import.confirm" onConfirm={onConfirmImport} onCancel={onCancelImport} />}
+    {pendingImport && <ReplaceConfirmation titleKey="import.title" bodyKey="import.body" detail={pendingImport.detail ?? pendingImport.path} confirmKey="import.confirm" onConfirm={onConfirmImport} onCancel={onCancelImport} />}
     {pendingNew && <ReplaceConfirmation titleKey="new.title" bodyKey="new.body" confirmKey="new.confirm" onConfirm={onConfirmNew} onCancel={onCancelNew} />}
   </>
 }

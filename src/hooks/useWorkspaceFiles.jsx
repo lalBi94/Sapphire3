@@ -3,6 +3,7 @@ import { serializeWorkspace, deserializeWorkspace, emptyWorkspace } from '../uti
 import { exportWorkspaceFile, importWorkspaceFile, readWorkspaceFile, writeWorkspaceFile } from '../services/workspaceFiles.js'
 import { useTranslation } from '../contexts/LanguageContext.jsx'
 import { readPreference, writePreference, hydratePreferences } from '../services/preferences.js'
+import { examples } from '../utils/examples.js'
 import { failureLabel } from '../utils/translations.js'
 
 const recentFilesStorageKey = 'sapphire-recent-sp3-files'
@@ -197,13 +198,27 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     }
   }
 
+  // Prépare un exemple local puis attend la confirmation avant de remplacer le document.
+  function handleOpenExample(exampleId) {
+    if (operation.current || pendingImport) return
+    const example = examples.find((entry) => entry.id === exampleId)
+    if (!example) return
+    try {
+      const text = JSON.stringify(example.build())
+      setPendingImport({ workspace: deserializeWorkspace(text), path: null, text, detail: t(example.labelKey) })
+    } catch (failure) {
+      setError({ prefix: 'errors.couldNotOpen', failure })
+    }
+  }
+
   // Remplace le document seulement à la demande explicite de l'utilisateur.
   function handleConfirmImport() {
     if (!pendingImport) return
+    const path = typeof pendingImport.path === 'string' && pendingImport.path.toLowerCase().endsWith('.sp3') ? pendingImport.path : null
     onReplace(pendingImport.workspace)
-    lastSavedText.current = pendingImport.text
-    applyCurrentPath(pendingImport.path.toLowerCase().endsWith('.sp3') ? pendingImport.path : null)
-    if (pendingImport.path.toLowerCase().endsWith('.sp3')) rememberRecentFile(pendingImport.path)
+    lastSavedText.current = path ? pendingImport.text : null
+    applyCurrentPath(path)
+    if (path) rememberRecentFile(path)
     setPendingImport(null)
     setMessage('files.opened')
   }
@@ -299,5 +314,5 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     return () => window.clearTimeout(timer)
   }, [project, cards, currentPath])
 
-  return { busy, message: message ? t(message) : '', error: error ? `${t(error.prefix)} ${failureLabel(error.failure, t)}` : '', pendingImport, pendingNew, recentFiles, handleSave, saveAs, handleOpenSp3, handleOpenRecent, handleImport, handleConfirmImport, handleCancelImport, handleNew, handleConfirmNew, handleCancelNew, handleDismiss }
+  return { busy, message: message ? t(message) : '', error: error ? `${t(error.prefix)} ${failureLabel(error.failure, t)}` : '', pendingImport, pendingNew, recentFiles, handleSave, saveAs, handleOpenSp3, handleOpenRecent, handleImport, handleOpenExample, handleConfirmImport, handleCancelImport, handleNew, handleConfirmNew, handleCancelNew, handleDismiss }
 }
