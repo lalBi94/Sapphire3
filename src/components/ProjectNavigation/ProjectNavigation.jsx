@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Bug, ChevronDown, Clock3, Code2, Eye, FileInput, FileOutput, FilePlus, FolderOpen, Palette, Play, Save, Search, X } from 'lucide-react'
+import { Bug, ChevronDown, Clock3, Code2, Eye, FileInput, FileOutput, FilePlus, FolderOpen, Palette, Play, Save, SaveAll, Search, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
 import { supportedLanguages } from '../../utils/translations.js'
@@ -113,6 +113,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
             ? <p>{t('nav.noRecentFiles')}</p>
             : recentFiles.map((path) => <button type="button" className="project-navigation__recent-file" title={path} disabled={busy || !!pendingImport} onClick={() => handleOpenRecent(path)} key={path}><Clock3 size={14} aria-hidden="true" /><span>{path}</span></button>)}
           <button type="button" disabled={busy || !!pendingImport} onClick={handleSave}><Save size={14} aria-hidden="true" />{t('nav.saveSp3')}</button>
+          <button type="button" disabled={busy || !!pendingImport} onClick={() => handleSaveAs('sp3')}><SaveAll size={14} aria-hidden="true" />{t('nav.saveAsSp3')}</button>
           <button type="button" disabled={busy || !!pendingImport} onClick={handleImport}><FileInput size={14} aria-hidden="true" />{t('nav.import')}</button>
           <button type="button" disabled={busy || !!pendingImport} onClick={() => handleSaveAs('json')}><FileOutput size={14} aria-hidden="true" />{t('nav.exportJson')}</button>
         </div>

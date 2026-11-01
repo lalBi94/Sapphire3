@@ -10,6 +10,7 @@ const messages = {
   'nav.recentFiles': ['Recent files', 'Fichiers récents', '最近的文件', 'Archivos recientes', 'الملفات الأخيرة'],
   'nav.noRecentFiles': ['No recent .sp3 files.', 'Aucun fichier .sp3 récent.', '没有最近的 .sp3 文件。', 'No hay archivos .sp3 recientes.', 'لا توجد ملفات .sp3 حديثة.'],
   'nav.saveSp3': ['Save .sp3', 'Enregistrer le .sp3', '保存 .sp3', 'Guardar el .sp3', 'حفظ .sp3'],
+  'nav.saveAsSp3': ['Save as…', 'Enregistrer sous…', '另存为…', 'Guardar como…', 'حفظ باسم…'],
   'nav.import': ['Import .sp3 / .json', 'Importer .sp3 / .json', '导入 .sp3 / .json', 'Importar .sp3 / .json', 'استيراد .sp3 / .json'],
   'nav.exportSp3': ['Export .sp3', 'Exporter .sp3', '导出 .sp3', 'Exportar .sp3', 'تصدير .sp3'],
   'nav.exportJson': ['Export JSON', 'Exporter JSON', '导出 JSON', 'Exportar JSON', 'تصدير JSON'],
