@@ -1,14 +1,14 @@
-import { sameType, acceptsOperand, primitiveDefinitions, primitiveType } from '../../utils/logic/index.js'
+import { acceptsOperand, primitiveDefinitions, primitiveType } from '../../utils/logic/index.js'
 import NodeValueInput from './NodeValueInput.jsx'
-import { emptyExpression, expressionOperators, expressionOperandType } from './nodeConfiguration.js'
+import { emptyExpression, expressionOperators, expressionOperandType, expressionSymbols } from './nodeConfiguration.js'
 import { symbolLabel } from '../LogicTree/logicLabels.js'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 
 // Configure les expressions imbriquées directement dans le formulaire de création, avec typage strict.
-export default function ExpressionInput({ label, value = emptyExpression(), onChange, type, symbols, required, allowIncomplete = false, depth = 0 }) {
+// `allowAnyType` couvre un emplacement sans type attendu, par exemple une instruction d'expression : une lecture ou un appel, y compris de procédure.
+export default function ExpressionInput({ label, value = emptyExpression(), onChange, type, symbols, required, allowIncomplete = false, depth = 0, allowAnyType = false }) {
   const { t } = useTranslation()
-  const matching = symbols.filter((symbol) => sameType(type, symbol.type))
-  const functions = symbols.filter((symbol) => symbol.type?.kind === 'function' && sameType(type, symbol.type.returnType))
+  const { references: matching, functions } = expressionSymbols(symbols, type, allowAnyType)
   const functionSymbol = functions.find((symbol) => symbol.id === value.symbolId)
   const operators = expressionOperators(value.mode, type)
   const operandType = expressionOperandType(value, type)
@@ -36,20 +36,22 @@ export default function ExpressionInput({ label, value = emptyExpression(), onCh
   }
 
   const isList = type?.kind === 'array'
+  // Les modes qui imposent un type concret (littéral, opération, conversion) ne sont proposés que si ce slot en attend un.
+  const concrete = Boolean(type)
 
   return (
     <fieldset className="expression-input">
       <legend>{label}</legend>
       <label>{t('form.value')}
-        <select aria-label={t('expression.expression', { label })} value={value.mode} onChange={handleModeChange} required={required} disabled={!type}>
+        <select aria-label={t('expression.expression', { label })} value={value.mode} onChange={handleModeChange} required={required} disabled={!concrete && !allowAnyType}>
           <option value="">{required ? t('form.chooseName') : t('form.leaveEmpty')}</option>
-          {!isList && <option value="literal">{t('expression.literal')}</option>}<option value="reference">{t('expression.reference')}</option>
-          {nested && !isList && expressionOperators('binary', type).length > 0 && <option value="binary">{t('expression.binary')}</option>}
-          {nested && !isList && expressionOperators('unary', type).length > 0 && <option value="unary">{t('expression.unary')}</option>}
+          {concrete && !isList && <option value="literal">{t('expression.literal')}</option>}<option value="reference">{t('expression.reference')}</option>
+          {nested && concrete && !isList && expressionOperators('binary', type).length > 0 && <option value="binary">{t('expression.binary')}</option>}
+          {nested && concrete && !isList && expressionOperators('unary', type).length > 0 && <option value="unary">{t('expression.unary')}</option>}
           {nested && isList && <option value="arrayLiteral">{t('expression.arrayLiteral')}</option>}
           {nested && isList && <option value="arrayCreation">{t('expression.arrayCreation')}</option>}
           {nested && <option value="call" disabled={functions.length === 0}>{t('expression.call')}</option>}
-          {nested && !isList && acceptsOperand('numeric', type) && <option value="cast">{t('expression.cast')}</option>}
+          {nested && concrete && !isList && acceptsOperand('numeric', type) && <option value="cast">{t('expression.cast')}</option>}
         </select>
       </label>
       {value.mode === 'literal' && <NodeValueInput label={t('expression.value', { label })} typeName={type?.name} value={value.value} empty={value.empty} onEmptyChange={(empty) => onChange({ ...value, empty })} required={!allowIncomplete} onChange={(next) => onChange({ ...value, value: next })} />}

@@ -1,8 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { primitiveType, createNodeBundle, insertSourceNodes } from '../../src/utils/logic/index.js'
-import { initialNodeForm, nodeConfiguration, expressionDraft, expressionOperators, expressionOperandType } from '../../src/components/NodeForm/nodeConfiguration.js'
+import { primitiveType, createNodeBundle, insertSourceNodes, simulateProgram } from '../../src/utils/logic/index.js'
+import { initialNodeForm, nodeConfiguration, expressionDraft, expressionOperators, expressionOperandType, expressionSymbols } from '../../src/components/NodeForm/nodeConfiguration.js'
 import { program, root, node, intType, booleanType } from './fixtures.js'
+
+const voidType = { kind: 'primitive', name: 'void' }
 
 // Exerce la même insertion atomique que le formulaire, avec des identifiants reproductibles.
 function insertDraft(source, draft) {
@@ -11,6 +13,42 @@ function insertDraft(source, draft) {
   assert.equal(bundle.ok, true)
   return insertSourceNodes(source, { targetId: { kind: 'module', id: 'm' }, slot: 'rootNodeIds' }, bundle)
 }
+
+// Exerce la même insertion que le formulaire d’ajout ouvert sur un bloc ; les identifiants restent uniques entre insertions successives.
+let blockSequence = 0
+function insertInBlock(source, blockId, draft) {
+  const bundle = createNodeBundle('m', draft, () => `stmt-${(blockSequence += 1)}`)
+  assert.equal(bundle.ok, true)
+  return insertSourceNodes(source, { targetId: { kind: 'node', id: blockId }, slot: 'statements' }, bundle)
+}
+
+// Programme avec une procédure qui écrit dans un global, une fonction typée et un point d’entrée vide.
+function callableProgram() {
+  const source = program('m')
+  root(source, 'm', 'total', 'VariableDeclaration', { name: 'total', type: intType }, { initializer: 'zero' })
+  node(source, 'm', 'zero', 'Literal', { type: intType, value: 0 })
+  root(source, 'm', 'add', 'FunctionDeclaration', { name: 'add', type: voidType }, { parameters: ['amount'], body: 'addBody' })
+  node(source, 'm', 'amount', 'Parameter', { name: 'amount', type: intType })
+  node(source, 'm', 'addBody', 'Block', {}, { statements: ['write'] })
+  node(source, 'm', 'write', 'AssignmentStatement', {}, { target: 'totalRef', value: 'sum' })
+  node(source, 'm', 'totalRef', 'Reference', {}, {}, { target: { kind: 'name', name: 'total' } })
+  node(source, 'm', 'sum', 'BinaryExpression', { operator: '+' }, { left: 'totalRef2', right: 'amountRef' })
+  node(source, 'm', 'totalRef2', 'Reference', {}, {}, { target: { kind: 'name', name: 'total' } })
+  node(source, 'm', 'amountRef', 'Reference', {}, {}, { target: { kind: 'name', name: 'amount' } })
+  root(source, 'm', 'four', 'FunctionDeclaration', { name: 'four', type: intType }, { parameters: [], body: 'fourBody' })
+  node(source, 'm', 'fourBody', 'Block', {}, { statements: ['back'] })
+  node(source, 'm', 'back', 'ReturnStatement', {}, { argument: 'literalFour' })
+  node(source, 'm', 'literalFour', 'Literal', { type: intType, value: 4 })
+  root(source, 'm', 'start', 'FunctionDeclaration', { name: 'start', type: voidType, entryPoint: true }, { parameters: [], body: 'startBody' })
+  node(source, 'm', 'startBody', 'Block', {}, { statements: [] })
+  return source
+}
+
+const callables = [
+  { id: 'symbol-add', nodeId: 'add', name: 'add', type: { kind: 'function', parameters: [intType], returnType: voidType } },
+  { id: 'symbol-four', nodeId: 'four', name: 'four', type: { kind: 'function', parameters: [], returnType: intType } },
+  { id: 'symbol-total', nodeId: 'total', name: 'total', type: intType },
+]
 
 // Prépare une comparaison sans ouvrir successivement les slots left et right.
 function comparison(left = { mode: 'literal', value: '2' }) {
@@ -101,4 +139,52 @@ test('types incompatibles refusés atomiquement et opérande vide représentable
   assert.equal(partial.ok, true)
   assert.ok(partial.analysis.diagnostics.some((entry) => entry.code === 'NODE_INCOMPLETE'))
   assert.equal(expressionDraft(undefined, primitiveType('boolean'), []), null)
+})
+
+test('choix d’expression : type imposé, ou lecture et tout appel quand aucun type n’est attendu', () => {
+  const typed = expressionSymbols(callables, intType)
+  assert.deepEqual(typed.references.map((symbol) => symbol.id), ['symbol-total'])
+  assert.deepEqual(typed.functions.map((symbol) => symbol.id), ['symbol-four'])
+  const free = expressionSymbols(callables, null, true)
+  assert.deepEqual(free.references.map((symbol) => symbol.id), ['symbol-total'])
+  assert.deepEqual(free.functions.map((symbol) => symbol.id), ['symbol-add', 'symbol-four'])
+  assert.deepEqual(expressionSymbols(callables, null), { references: [], functions: [] })
+})
+
+test('formulaire Évaluer une valeur : procédure, fonction typée, puis lecture dans un bloc', () => {
+  const form = initialNodeForm('ExpressionStatement', null, null, callables)
+  const procedure = callableProgram()
+
+  form.expression = { mode: 'call', symbolId: 'symbol-add', arguments: [{ mode: 'literal', value: '7' }] }
+  const draft = nodeConfiguration('ExpressionStatement', form, callables)
+  assert.equal(draft.children.expression.children.arguments[0].properties.type.name, 'int')
+  const called = insertInBlock(procedure, 'startBody', draft)
+  assert.equal(called.ok, true)
+
+  form.expression = { mode: 'call', symbolId: 'symbol-four', arguments: [] }
+  const valued = insertInBlock(called.project, 'startBody', nodeConfiguration('ExpressionStatement', form, callables))
+  assert.equal(valued.ok, true)
+
+  form.expression = { mode: 'reference', symbolId: 'symbol-total' }
+  const read = insertInBlock(valued.project, 'startBody', nodeConfiguration('ExpressionStatement', form, callables))
+  assert.equal(read.ok, true)
+  assert.deepEqual(read.analysis.diagnostics, [])
+  assert.equal(read.analysis.canGenerate, true)
+
+  const statements = read.project.nodes.filter((entry) => entry.kind === 'ExpressionStatement')
+  assert.equal(statements.length, 3)
+  assert.equal(statements.every((entry) => Boolean(entry.children.expression)), true)
+  const expressed = statements.map((entry) => read.analysis.semantic.nodeTypes.find((type) => type.nodeId === entry.children.expression)?.type)
+  assert.deepEqual(expressed[0], voidType)
+  assert.deepEqual(expressed[1], intType)
+  assert.deepEqual(expressed[2], intType)
+
+  const printForm = initialNodeForm('PrintStatement', null, null, callables)
+  printForm.expression = { mode: 'reference', symbolId: 'symbol-total' }
+  const shown = insertInBlock(read.project, 'startBody', nodeConfiguration('PrintStatement', printForm, callables))
+  assert.equal(shown.ok, true)
+  assert.deepEqual(shown.analysis.diagnostics, [])
+  const simulation = simulateProgram(shown.project)
+  assert.deepEqual(simulation.output, ['7'])
+  assert.equal(simulation.trace.filter((id) => id === 'write').length, 1)
 })

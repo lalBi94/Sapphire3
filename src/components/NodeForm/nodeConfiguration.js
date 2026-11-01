@@ -29,6 +29,15 @@ export function expressionOperandType(value, type) {
   return candidate && acceptsOperand(rule.operands, candidate) ? candidate : null
 }
 
+// Liste ce qu'une expression peut lire ou appeler.
+// `allowAnyType` couvre un emplacement sans type attendu, comme une instruction d'expression : toute lecture et tout appel, procédure `void` comprise.
+export function expressionSymbols(symbols, type, allowAnyType = false) {
+  return {
+    references: symbols.filter((symbol) => allowAnyType ? symbol.type?.kind !== 'function' : sameType(type, symbol.type)),
+    functions: symbols.filter((symbol) => symbol.type?.kind === 'function' && (allowAnyType || sameType(type, symbol.type.returnType))),
+  }
+}
+
 // Prépare un brouillon UI à partir des seules propriétés existantes, sans valeur logique inventée.
 export function initialNodeForm(kind, node, expectedType, symbols) {
   const properties = node?.properties ?? {}
@@ -141,6 +150,8 @@ export function nodeConfiguration(kind, form, symbols, initialNode = null) {
     children[kind === 'IfStatement' ? 'consequent' : 'body'] = emptyBlock()
   }
   if (kind === 'PrintStatement') children.value = expressionDraft(form.expression, type, symbols)
+  // Une instruction d'expression n'impose aucun type : un appel, y compris de procédure, ou une lecture.
+  if (kind === 'ExpressionStatement') children.expression = expressionDraft(form.expression, null, symbols)
   if (kind === 'FunctionDeclaration') {
     children.parameters = form.parameters.map((parameter) => ({ kind: 'Parameter', properties: { name: parameter.name.trim(), ...(typeFromName(parameter.typeName) ? { type: typeFromName(parameter.typeName) } : {}) } }))
     children.body = emptyBlock()
