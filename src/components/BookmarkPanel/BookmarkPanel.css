@@ -1,0 +1,17 @@
+/* Fenêtre des favoris : placée à gauche pour ne pas recouvrir les propriétés ; hauteur selon le contenu. */
+.bookmark-panel { right: auto; left: var(--space-panel); bottom: auto; width: 360px; max-height: min(620px, 70%); }
+.bookmark-panel__empty { margin: 0; color: var(--color-text-muted); }
+.bookmark-panel__list { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.bookmark-panel__item { padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-control); corner-shape: var(--corner-shape); background: var(--color-glass-reflection); }
+.bookmark-panel__heading { display: flex; align-items: center; gap: 8px; }
+.bookmark-panel__heading strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bookmark-panel__kind { flex: 0 0 auto; padding: 1px 6px; border: 1px solid var(--color-pure); border-radius: var(--radius-small); color: var(--color-pure); font-size: 10px; }
+.bookmark-panel__signature { margin: 6px 0 0; overflow-wrap: anywhere; }
+.bookmark-panel__facts { margin: 4px 0 0; color: var(--color-text-muted); font-size: 11px; }
+.bookmark-panel__contents { margin: 4px 0 0; font-size: 11px; overflow-wrap: anywhere; }
+.bookmark-panel__contents span { color: var(--color-text-muted); }
+.bookmark-panel__actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.bookmark-panel__actions select { flex: 1 1 120px; min-width: 0; padding: 4px 6px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-surface-raised); color: var(--color-text); font: inherit; }
+.bookmark-panel__actions button { padding: 4px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: transparent; color: var(--color-text); font: inherit; cursor: pointer; }
+.bookmark-panel__actions button:hover { background: var(--color-hover); }
+.bookmark-panel__delete { color: var(--color-diagnostic); }

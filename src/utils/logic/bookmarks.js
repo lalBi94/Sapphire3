@@ -42,13 +42,15 @@ export function captureBookmark(project, target, options = {}) {
 export function describeBookmark(bookmark) {
   const nodes = Array.isArray(bookmark?.nodes) ? bookmark.nodes : []
   const byId = new Map(nodes.map((node) => [node.id, node]))
-  const functions = nodes.filter((node) => node?.kind === 'FunctionDeclaration').length
+  const functions = nodes.filter((node) => node?.kind === 'FunctionDeclaration')
+  const rootNames = (bookmark?.rootNodeIds ?? []).map((id) => byId.get(id)?.properties?.name).filter((name) => typeof name === 'string' && name)
+  const functionNames = functions.map((node) => node?.properties?.name).filter((name) => typeof name === 'string' && name)
   if (bookmark?.kind === 'function') {
     const root = byId.get(bookmark.rootNodeIds?.[0])
     const parameters = (root?.children?.parameters ?? []).map((id) => byId.get(id)?.properties?.type).filter(Boolean)
-    return { kind: 'function', name: root?.properties?.name ?? bookmark?.name ?? '', parameters, returnType: root?.properties?.type ?? null, nodeCount: nodes.length, functionCount: functions }
+    return { kind: 'function', name: root?.properties?.name ?? bookmark?.name ?? '', parameters, returnType: root?.properties?.type ?? null, nodeCount: nodes.length, functionCount: functions.length, rootNames, functionNames }
   }
-  return { kind: 'module', name: bookmark?.name ?? '', parameters: [], returnType: null, nodeCount: nodes.length, functionCount: functions }
+  return { kind: 'module', name: bookmark?.name ?? '', parameters: [], returnType: null, nodeCount: nodes.length, functionCount: functions.length, rootNames, functionNames }
 }
 
 // Recopie un instantané dans un module neuf ou existant, en remappant identifiants, enfants et références.

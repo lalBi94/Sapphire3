@@ -95,12 +95,15 @@ test('favori : le résumé expose nom, signature et volumes', () => {
   assert.deepEqual(described.parameters, [intType])
   assert.deepEqual(described.returnType, intType)
   assert.equal(described.functionCount, 1)
+  assert.deepEqual(described.rootNames, ['factorial'])
+  assert.deepEqual(described.functionNames, ['factorial'])
   assert.ok(described.nodeCount >= 6)
 
   const moduleSummary = describeBookmark(captureBookmark(source, { kind: 'module', id: 'm' }).bookmark)
   assert.equal(moduleSummary.kind, 'module')
   assert.equal(moduleSummary.name, 'm')
   assert.equal(moduleSummary.functionCount, 1)
+  assert.deepEqual(moduleSummary.functionNames, ['factorial'])
 })
 
 test('favori : une fonction peut rejoindre un module existant, avec suffixe en cas de conflit', () => {
