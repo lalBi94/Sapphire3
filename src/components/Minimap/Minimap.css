@@ -1,0 +1,20 @@
+.minimap {
+  position: absolute;
+  left: var(--space-panel);
+  bottom: var(--space-panel);
+  z-index: 2;
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  corner-shape: var(--corner-shape);
+  background: var(--surface-reflection), var(--surface-floating);
+  box-shadow: var(--shadow-panel);
+  cursor: pointer;
+  line-height: 0;
+  touch-action: none;
+}
+
+.minimap:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.minimap svg { display: block; }
+.minimap__module { fill: var(--color-anthracite-raised); stroke: var(--color-border-hover); stroke-width: 1; }
+.minimap__view { fill: var(--color-yellow-soft); stroke: var(--color-primary); stroke-width: 1.5; }

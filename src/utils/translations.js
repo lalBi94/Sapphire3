@@ -198,6 +198,8 @@ const messages = {
   'canvas.imageCaption': ['Caption', 'Légende', '图注', 'Leyenda', 'التسمية'],
   'canvas.imageCaptionPlaceholder': ['Add a caption…', 'Ajouter une légende…', '添加图注…', 'Añadir una leyenda…', 'أضف تسمية…'],
   'canvas.center': ['Center the view', 'Recentrer la vue', '居中视图', 'Centrar la vista', 'توسيط العرض'],
+  'minimap.label': ['Workspace minimap', 'Mini-carte du workspace', '工作区迷你地图', 'Minimapa del espacio de trabajo', 'خريطة مصغرة لمساحة العمل'],
+  'minimap.hint': ['Click or drag to move the view', 'Cliquez ou faites glisser pour déplacer la vue', '点击或拖动以移动视图', 'Haga clic o arrastre para mover la vista', 'انقر أو اسحب لتحريك العرض'],
   'canvas.hide': ['Hide', 'Masquer', '隐藏', 'Ocultar', 'إخفاء'],
   'canvas.lock': ['Lock', 'Verrouiller', '锁定', 'Bloquear', 'قفل'],
   'canvas.unlock': ['Unlock', 'Déverrouiller', '解锁', 'Desbloquear', 'فتح القفل'],

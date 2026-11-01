@@ -130,6 +130,12 @@ export default function useCanvasPan() {
     canvasRef.current.focus({ preventScroll: true })
   }
 
+  // Recentre la vue sur un point monde sans changer le zoom ni l'état du canvas.
+  function panTo(x, y) {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return
+    setCamera((current) => ({ ...current, x, y }))
+  }
+
   // Restaure une vue validée sans conserver un éventuel geste de déplacement.
   function restoreCamera(nextCamera) {
     const pointerId = dragRef.current?.pointerId
@@ -149,6 +155,7 @@ export default function useCanvasPan() {
     handlePointerEnd,
     handleKeyDown,
     handleRecenter,
+    panTo,
     setZoomLevel,
     zoomBy,
     resetZoom,

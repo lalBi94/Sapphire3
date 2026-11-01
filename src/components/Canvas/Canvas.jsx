@@ -6,6 +6,7 @@ import useCanvasDocument from '../../hooks/useCanvasDocument.jsx'
 import useNodeTransfers from '../../hooks/useNodeTransfers.jsx'
 import useNodeSearch from '../../hooks/useNodeSearch.jsx'
 import CanvasStatus from '../CanvasStatus/CanvasStatus.jsx'
+import Minimap from '../Minimap/Minimap.jsx'
 import CanvasContextMenu from '../CanvasContextMenu/CanvasContextMenu.jsx'
 import CanvasModule from '../CanvasModule/CanvasModule.jsx'
 import CanvasLinks from '../CanvasLinks/CanvasLinks.jsx'
@@ -51,7 +52,7 @@ export default function Canvas() {
   const document = useCanvasDocument()
   const search = useNodeSearch()
   const selected = selection && (selection.kind === 'module' ? document.index.modules.has(selection.id) : document.index.nodes.has(selection.id)) ? selection : null
-  const { camera, zoom, canvasRef, isPanning, handlePointerDown, handlePointerMove, handlePointerEnd, handleKeyDown, handleRecenter, zoomBy, resetZoom, restoreCamera } = useCanvasPan()
+  const { camera, zoom, canvasRef, isPanning, handlePointerDown, handlePointerMove, handlePointerEnd, handleKeyDown, handleRecenter, panTo, zoomBy, resetZoom, restoreCamera } = useCanvasPan()
   const files = useWorkspaceFiles({ project: document.project, cards: document.cards, camera, selected, onReplace: handleReplaceWorkspace })
   const transfers = useNodeTransfers({ project: document.project, index: document.index, selected, workspaceRef, onPaste: document.pasteNode, onMove: document.moveNode, onDuplicate: document.duplicateNode, onTransferred: handleNodeTransferred })
 
@@ -83,6 +84,8 @@ export default function Canvas() {
   // Une carte masquée reste dans le document et le fichier ; elle n'est simplement pas montée.
   const visibleCards = useMemo(() => document.cards.filter((card) => !card.hidden), [document.cards])
   const hiddenCards = useMemo(() => document.cards.filter((card) => card.hidden), [document.cards])
+  // La mini-carte ne montre que les modules visibles, comme le cadre de recentrage.
+  const minimapModules = useMemo(() => visibleCards.filter((card) => card.type === 'module').map(({ id, x, y, width, height }) => ({ id, x, y, width, height })), [visibleCards])
   // Les nœuds qui contiennent autre chose ne dépendent que de la source analysée.
   const expandableIds = useMemo(() => expandableNodeIdsByModule(document.index), [document.index])
 
@@ -475,6 +478,7 @@ export default function Canvas() {
         {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} onReorder={(id, offset) => document.reorderNode(id, offset)} dropTarget={transfers.dropTarget} />}
       </CanvasModule>)}
       <CanvasStatus camera={camera} zoom={zoom} hiddenCount={hiddenCards.length} onShowAllHidden={handleShowAllHidden} onRecenter={() => handleRecenter(getModulesBounds())} />
+      <Minimap modules={minimapModules} camera={camera} zoom={zoom} canvasRef={canvasRef} onNavigate={panTo} />
       {transfers.notice && <div className={`canvas-transfer-status${transfers.notice.error ? ' canvas-transfer-status--error' : ''}`} data-canvas-ui role={transfers.notice.error ? 'alert' : 'status'} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
         <span>{transfers.notice.error ? diagnosticLabel(transfers.notice.error, t) : t(transfers.notice.message)}{transfers.notice.detail && ` · ${diagnosticLabel(transfers.notice.detail, t)}`}</span>
         <button type="button" aria-label={t('nav.dismiss')} onClick={transfers.dismiss}><X size={14} aria-hidden="true" /></button>
