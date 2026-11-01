@@ -7,7 +7,7 @@ import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './CanvasModule.css'
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onRename, onTextChange, onImageChange, children, selected = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onRename, onTextChange, onImageChange, children, selected = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -250,6 +250,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
       onClick={onSelect}
     >
       <NodeMenuButton label={name} onOpen={onOpenActions} />
+      {typeof pulse === 'number' && <span key={pulse} className="canvas-module__pulse" aria-hidden="true" />}
       <header className="canvas-module__header">
         <h2>
           {editingName ? (

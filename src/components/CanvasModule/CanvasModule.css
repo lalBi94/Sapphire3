@@ -308,3 +308,23 @@
   fill: none;
   stroke: currentColor;
 }
+
+/* Logic Pulse : halo bref autour de la carte à chaque pas d'exécution dans ce module. */
+.canvas-module__pulse {
+  position: absolute;
+  inset: -2px;
+  z-index: 3;
+  border-radius: inherit;
+  corner-shape: var(--corner-shape);
+  pointer-events: none;
+  animation: canvas-module-pulse 520ms ease-out forwards;
+}
+
+@keyframes canvas-module-pulse {
+  0% { box-shadow: 0 0 0 2px var(--color-primary), 0 0 22px color-mix(in srgb, var(--color-primary) 45%, transparent); opacity: 1; }
+  100% { box-shadow: 0 0 0 0 transparent, 0 0 0 transparent; opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas-module__pulse { animation: none; opacity: 0; }
+}

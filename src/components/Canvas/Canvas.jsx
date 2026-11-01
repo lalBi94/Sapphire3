@@ -102,6 +102,9 @@ export default function Canvas() {
   }, [heatCounts, document.index])
   // Fonction sélectionnée : seule cible proposée pour « Run/Debug this function ».
   const selectedFunction = useMemo(() => selected?.kind === 'node' && document.index.nodes.get(selected.id)?.kind === 'FunctionDeclaration' ? { id: selected.id } : null, [selected, document.index])
+  // Logic Pulse : la carte du module qui vient d'exécuter un pas pulse brièvement.
+  const executionStep = debugSession ? debugSession.cursor : execution ? execution.index : null
+  const activeModuleId = activeExecutionId ? document.index.nodes.get(activeExecutionId)?.moduleId ?? null : null
   const functionNode = functionTarget ? document.index.nodes.get(functionTarget) ?? null : null
   const functionSignature = functionNode ? (functionNode.children.parameters ?? []).map((id) => `${document.index.nodes.get(id)?.properties?.name}:${JSON.stringify(document.index.nodes.get(id)?.properties?.type)}`).join('|') : ''
   // Les nœuds qui contiennent autre chose ne dépendent que de la source analysée.
@@ -524,6 +527,7 @@ export default function Canvas() {
         onMove={(id, x, y) => document.updateGeometry(id, { x, y })}
         onRename={document.renameCard} onTextChange={document.updateComment} onImageChange={document.updateImage}
         onToggleLock={handleToggleLock}
+        pulse={activeModuleId === card.id && executionStep !== null ? executionStep + 1 : null}
         expansionState={document.index.modules.has(card.id) ? getExpansionState(card.id) : null} onToggleExpansion={(id) => handleExpansion(id, getExpansionState(id) !== 'collapse')}>
         {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} onReorder={(id, offset) => document.reorderNode(id, offset)} heat={heat} heatEnabled={heatEnabled && Boolean(heat)} dropTarget={transfers.dropTarget} />}
       </CanvasModule>)}
