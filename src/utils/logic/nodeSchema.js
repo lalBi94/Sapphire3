@@ -60,6 +60,9 @@ export const unaryOperators = Object.freeze({
   '-': { operands: 'signedNumeric', result: 'same' },
   '+': { operands: 'numeric', result: 'same' },
   not: { operands: 'boolean', result: 'boolean' },
+  // Adresse d'une valeur stockable, et lecture de la valeur pointée par un pointeur.
+  '&': { operands: 'addressable', result: 'pointer' },
+  '*': { operands: 'pointer', result: 'pointee' },
 })
 
 // Consulte seulement les définitions propres pour accepter aussi des identifiants hostiles.

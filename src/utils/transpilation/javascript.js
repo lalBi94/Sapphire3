@@ -45,7 +45,12 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
       return `sapphireChecked(sapphireNumeric.evaluateBinary(${JSON.stringify(node.properties.operator)}, ${left}, ${right}, ${JSON.stringify(operandType)}))`
     }
     if (node.kind === 'UnaryExpression') {
-      return `sapphireChecked(sapphireNumeric.evaluateUnary(${JSON.stringify(node.properties.operator)}, ${expression(child(node, 'operand'))}, ${JSON.stringify(typeByNode.get(node.sourceId)?.name)}))`
+      const operator = node.properties.operator
+      if (operator === '&' || operator === '*') {
+        diagnostics.push(createDiagnostic('TRANSPILE_EXPRESSION_UNSUPPORTED', `Opérateur ${operator} (pointeur) non pris en charge par le backend JavaScript.`, node.location))
+        return 'undefined'
+      }
+      return `sapphireChecked(sapphireNumeric.evaluateUnary(${JSON.stringify(operator)}, ${expression(child(node, 'operand'))}, ${JSON.stringify(typeByNode.get(node.sourceId)?.name)}))`
     }
     if (node.kind === 'CallExpression') {
       return `${expression(child(node, 'callee'))}(${(node.children.arguments ?? []).map(expression).join(', ')})`

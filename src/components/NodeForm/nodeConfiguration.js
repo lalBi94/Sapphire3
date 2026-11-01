@@ -1,4 +1,4 @@
-import { primitiveType, primitiveDefinitions, arrayType, isArrayType, isValidElementType, getNodeSchema, binaryOperators, unaryOperators, acceptsOperand, sameType } from '../../utils/logic/index.js'
+import { primitiveType, primitiveDefinitions, arrayType, isArrayType, isValidElementType, pointerType, isPointerType, pointerPointee, isValidPointee, getNodeSchema, binaryOperators, unaryOperators, acceptsOperand, sameType } from '../../utils/logic/index.js'
 
 // Types entiers proposés pour l'index d'un accès à un élément de tableau ; une seule liste partagée par les formulaires.
 export const integerTypeNames = Object.freeze(Object.keys(primitiveDefinitions).filter((name) => acceptsOperand('integer', primitiveType(name))))
@@ -8,19 +8,33 @@ export function emptyExpression() {
   return { mode: '', value: '', empty: false, symbolId: '', operator: '', operandTypeName: '' }
 }
 
-// Convertit un nom de type choisi ('int' ou 'int[]') en type logique, sans inventer de synonyme.
+// Convertit un nom de type choisi ('int', 'int[]' ou 'int*') en type logique, sans inventer de synonyme.
 export function typeFromName(name) {
   if (typeof name !== 'string' || name === '') return null
   if (name.endsWith('[]')) {
     const element = primitiveType(name.slice(0, -2))
     return element && element.name !== 'void' ? arrayType(element) : null
   }
+  if (name.endsWith('*')) {
+    const pointee = primitiveType(name.slice(0, -1))
+    return pointee && pointee.name !== 'void' ? pointerType(pointee) : null
+  }
   return primitiveType(name)
 }
 
 // Filtre les opérations par leur résultat attendu, depuis les règles du moteur.
+// `&` n'apparaît que pour un pointeur attendu, `*` (déréférencement) que lorsque la valeur pointée est attendue.
 export function expressionOperators(mode, type) {
-  return Object.entries(mode === 'unary' ? unaryOperators : binaryOperators).filter(([, rule]) => !type || (rule.result === 'same' ? acceptsOperand(rule.operands, type) : sameType(primitiveType(rule.result), type)))
+  const entries = Object.entries(mode === 'unary' ? unaryOperators : binaryOperators)
+  if (mode === 'unary') {
+    return entries.filter(([operator, rule]) => {
+      if (operator === '&') return isPointerType(type)
+      if (operator === '*') return isValidPointee(type)
+      if (!type) return true
+      return rule.result === 'same' ? acceptsOperand(rule.operands, type) : sameType(primitiveType(rule.result), type)
+    })
+  }
+  return entries.filter(([, rule]) => !type || (rule.result === 'same' ? acceptsOperand(rule.operands, type) : sameType(primitiveType(rule.result), type)))
 }
 
 // Type que doit viser un accès par index pour que son élément remplisse `type` ; null si ce type ne peut pas être un élément.
@@ -36,6 +50,8 @@ export function arrayIndexType(name) {
 
 // Résout le type explicitement choisi des opérandes, ou celui imposé par l'opération.
 export function expressionOperandType(value, type) {
+  if (value.mode === 'unary' && value.operator === '&') return isPointerType(type) ? pointerPointee(type) : null
+  if (value.mode === 'unary' && value.operator === '*') return isValidPointee(type) ? pointerType(type) : null
   const operators = value.mode === 'unary' ? unaryOperators : binaryOperators
   const rule = Object.hasOwn(operators, value.operator) ? operators[value.operator] : null
   if (!rule) return null
@@ -60,6 +76,7 @@ export function initialNodeForm(kind, node, expectedType, symbols) {
   const declared = properties.type
   const typeName = declared?.kind === 'named' ? '@alias'
     : declared?.kind === 'array' && declared.elementType?.kind === 'primitive' ? `${declared.elementType.name}[]`
+    : declared?.kind === 'pointer' && declared.pointee?.kind === 'primitive' ? `${declared.pointee.name}*`
     : declared?.kind === 'primitive' ? declared.name
     : (kind === 'Literal' || kind === 'CastExpression') && expectedType?.kind === 'primitive' ? expectedType.name : ''
   // Le type d'élément d'un tableau est imposé par le slot attendu à la création, sinon librement choisi.

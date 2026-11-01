@@ -146,7 +146,11 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       const right = valueOf(nodes.get(node.children.right), environment)
       return checked(evaluateBinary(operator, left, right, types.get(node.children.left)?.name))
     }
-    if (node.kind === 'UnaryExpression') return checked(evaluateUnary(node.properties.operator, valueOf(nodes.get(node.children.operand), environment), types.get(node.id)?.name))
+    if (node.kind === 'UnaryExpression') {
+      const operator = node.properties.operator
+      if (operator === '&' || operator === '*') throw simulationError('SIMULATION_UNSUPPORTED', 'Pointers are not executable in this simulation.')
+      return checked(evaluateUnary(operator, valueOf(nodes.get(node.children.operand), environment), types.get(node.id)?.name))
+    }
     if (node.kind === 'CastExpression') {
       const value = valueOf(nodes.get(node.children.argument), environment)
       const target = types.get(node.id)?.name

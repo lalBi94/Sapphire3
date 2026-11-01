@@ -1,4 +1,4 @@
-import { acceptsOperand, primitiveDefinitions, primitiveType, isValidElementType } from '../../utils/logic/index.js'
+import { acceptsOperand, primitiveDefinitions, primitiveType, isValidElementType, isPointerType } from '../../utils/logic/index.js'
 import NodeValueInput from './NodeValueInput.jsx'
 import { emptyExpression, expressionOperators, expressionOperandType, expressionSymbols, integerTypeNames, accessedArrayType, arrayIndexType } from './nodeConfiguration.js'
 import { symbolLabel } from '../LogicTree/logicLabels.js'
@@ -13,7 +13,9 @@ export default function ExpressionInput({ label, value = emptyExpression(), onCh
   const operators = expressionOperators(value.mode, type)
   const operandType = expressionOperandType(value, type)
   const rule = operators.find(([operator]) => operator === value.operator)?.[1]
-  const chooseOperandType = rule && rule.operands !== 'boolean' && rule.result !== 'same'
+  // `&` et `*` imposent le type de leur opérande : aucun choix de type à proposer.
+  const fixedOperand = value.mode === 'unary' && ['&', '*'].includes(value.operator)
+  const chooseOperandType = rule && !fixedOperand && rule.operands !== 'boolean' && rule.result !== 'same'
   const nested = depth < 6
 
   // Remplace uniquement le brouillon visé, sans conserver de champs incompatibles d'un autre mode.
@@ -41,6 +43,7 @@ export default function ExpressionInput({ label, value = emptyExpression(), onCh
   }
 
   const isList = type?.kind === 'array'
+  const isPointer = isPointerType(type)
   // Les modes qui imposent un type concret (littéral, opération, conversion) ne sont proposés que si ce slot en attend un.
   const concrete = Boolean(type)
 
@@ -50,8 +53,8 @@ export default function ExpressionInput({ label, value = emptyExpression(), onCh
       <label>{t('form.value')}
         <select aria-label={t('expression.expression', { label })} value={value.mode} onChange={handleModeChange} required={required} disabled={!concrete && !allowAnyType}>
           <option value="">{required ? t('form.chooseName') : t('form.leaveEmpty')}</option>
-          {concrete && !isList && <option value="literal">{t('expression.literal')}</option>}<option value="reference">{t('expression.reference')}</option>
-          {nested && concrete && !isList && expressionOperators('binary', type).length > 0 && <option value="binary">{t('expression.binary')}</option>}
+          {concrete && !isList && !isPointer && <option value="literal">{t('expression.literal')}</option>}<option value="reference">{t('expression.reference')}</option>
+          {nested && concrete && !isList && !isPointer && expressionOperators('binary', type).length > 0 && <option value="binary">{t('expression.binary')}</option>}
           {nested && concrete && !isList && expressionOperators('unary', type).length > 0 && <option value="unary">{t('expression.unary')}</option>}
           {nested && isList && <option value="arrayLiteral">{t('expression.arrayLiteral')}</option>}
           {nested && isList && <option value="arrayCreation">{t('expression.arrayCreation')}</option>}

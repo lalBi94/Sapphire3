@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { primitiveType, createNodeBundle, insertSourceNodes, simulateProgram } from '../../src/utils/logic/index.js'
+import { primitiveType, pointerType, createNodeBundle, insertSourceNodes, simulateProgram } from '../../src/utils/logic/index.js'
 import { initialNodeForm, nodeConfiguration, expressionDraft, expressionOperators, expressionOperandType, expressionSymbols, accessedArrayType, arrayIndexType } from '../../src/components/NodeForm/nodeConfiguration.js'
 import { program, root, node, intType, booleanType } from './fixtures.js'
 
@@ -77,7 +77,12 @@ test('règles d’opérateurs partagées et absence de type numérique implicite
   assert.ok(expressionOperators('binary', booleanType).some(([operator]) => operator === '<'))
   assert.ok(!expressionOperators('binary', booleanType).some(([operator]) => operator === '+'))
   assert.ok(expressionOperators('binary', intType).some(([operator]) => operator === '+'))
-  assert.deepEqual(expressionOperators('unary', booleanType).map(([operator]) => operator), ['not'])
+  assert.deepEqual(expressionOperators('unary', booleanType).map(([operator]) => operator), ['not', '*'])
+  assert.deepEqual(expressionOperators('unary', pointerType(intType)).map(([operator]) => operator), ['&'])
+  assert.ok(expressionOperators('unary', intType).some(([operator]) => operator === '*'))
+  assert.ok(!expressionOperators('unary', intType).some(([operator]) => operator === '&'))
+  assert.deepEqual(expressionOperandType({ mode: 'unary', operator: '&' }, pointerType(intType)), intType)
+  assert.deepEqual(expressionOperandType({ mode: 'unary', operator: '*' }, intType), pointerType(intType))
   assert.equal(expressionOperandType({ mode: 'binary', operator: '<', operandTypeName: '' }, booleanType), null)
   assert.equal(expressionOperandType({ mode: 'binary', operator: '<', operandTypeName: 'string' }, booleanType), null)
   assert.deepEqual(expressionOperandType({ mode: 'binary', operator: 'and' }, booleanType), booleanType)

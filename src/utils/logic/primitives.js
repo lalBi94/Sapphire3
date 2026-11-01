@@ -1,5 +1,5 @@
 // Seul catalogue des types logiques : les bornes ne dépendent pas d'un langage cible.
-// Les tableaux sont des types construits dont l'élément est un primitif ou un type nommé.
+// Les tableaux et les pointeurs sont des types construits dont l'élément ou la cible est un primitif.
 const definitions = {
   'short int': { category: 'integer', bits: 16, signed: true, min: -32768, max: 32767 },
   'short uint': { category: 'integer', bits: 16, signed: false, min: 0, max: 65535 },
@@ -34,17 +34,20 @@ export function isNumeric(name) {
 
 // Partage le domaine d'un opérateur entre son vérificateur et ses formulaires de configuration.
 export function acceptsOperand(rule, type) {
-  if (!type || type.kind !== 'primitive' || type.name === 'void') return false
+  if (!type) return false
+  if (rule === 'pointer') return isPointerType(type)
+  if (rule === 'addressable') return isValidPointee(type)
+  if (rule === 'matching') return (type.kind === 'primitive' && type.name !== 'void') || isPointerType(type)
+  if (type.kind !== 'primitive' || type.name === 'void') return false
   const definition = getPrimitive(type.name)
   if (!definition) return false
-  if (rule === 'matching') return true
   if (rule === 'numeric') return isNumeric(type.name)
   if (rule === 'integer') return definition.category === 'integer'
   if (rule === 'signedNumeric') return isNumeric(type.name) && definition.signed
   return type.name === rule
 }
 
-// Compare exactement des primitifs ou des signatures statiques déjà entièrement résolues.
+// Compare exactement des primitifs, des signatures ou des pointeurs déjà entièrement résolus.
 export function sameType(left, right) {
   if (!left || !right || left.kind !== right.kind) return false
   if (left.kind === 'primitive') return left.name === right.name
@@ -55,6 +58,9 @@ export function sameType(left, right) {
   }
   if (left.kind === 'array') {
     return sameType(left.elementType, right.elementType)
+  }
+  if (left.kind === 'pointer') {
+    return sameType(left.pointee, right.pointee)
   }
   return false
 }
@@ -77,5 +83,26 @@ export function arrayElementType(type) {
 
 // Vérifie si un type peut servir de type d'élément (primitif uniquement pour cette version).
 export function isValidElementType(type) {
+  return type?.kind === 'primitive' && type.name !== 'void'
+}
+
+// Crée un type pointeur vers un primitif non void, ou null si la cible n'est pas valide.
+export function pointerType(pointee) {
+  if (!isValidPointee(pointee)) return null
+  return Object.freeze({ kind: 'pointer', pointee })
+}
+
+// Vérifie si un type est un type pointeur.
+export function isPointerType(type) {
+  return type?.kind === 'pointer'
+}
+
+// Extrait le type visé par un pointeur, ou null si ce n'est pas un pointeur.
+export function pointerPointee(type) {
+  return isPointerType(type) ? type.pointee : null
+}
+
+// Vérifie si un type peut être la cible d'un pointeur (primitif non void uniquement).
+export function isValidPointee(type) {
   return type?.kind === 'primitive' && type.name !== 'void'
 }

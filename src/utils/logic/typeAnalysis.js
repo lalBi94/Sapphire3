@@ -1,7 +1,7 @@
 import { createDiagnostic, diagnosticCodes as codes } from './diagnostics.js'
 import { isRecord } from './model.js'
 import { binaryOperators, unaryOperators, getNodeSchema } from './nodeSchema.js'
-import { getPrimitive, primitiveType, isNumeric, sameType, acceptsOperand, arrayType, isArrayType } from './primitives.js'
+import { getPrimitive, primitiveType, isNumeric, sameType, acceptsOperand, arrayType, isArrayType, pointerType, pointerPointee } from './primitives.js'
 import { validateLiteral, convertConstant, evaluateBinary, evaluateUnary } from './numericConstants.js'
 
 // Extrait un enfant simple sans interpréter un trou ou une liste malformée comme une expression.
@@ -68,6 +68,13 @@ export function analyzeTypes(semantic, projectId) {
       } else {
         type = arrayType(element)
       }
+    } else if (isRecord(sourceType) && sourceType.kind === 'pointer') {
+      const pointee = isRecord(sourceType.pointee) && sourceType.pointee.kind === 'primitive' ? primitiveType(sourceType.pointee.name) : null
+      if (!pointee || pointee.name === 'void') {
+        report(codes.invalidType, 'Un pointeur doit viser un primitif non void.', node, 'properties.type')
+      } else {
+        type = pointerType(pointee)
+      }
     } else if (isRecord(sourceType) && sourceType.kind === 'named') {
       const symbol = typeSymbols.get(node.sourceId)
       if (symbol && nodes.has(symbol.nodeId)) type = annotation(nodes.get(symbol.nodeId))
@@ -80,6 +87,10 @@ export function analyzeTypes(semantic, projectId) {
     }
     if (type?.kind === 'array' && !['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(node.kind)) {
       report(codes.invalidType, 'Un type tableau n’est autorisé que pour une variable, une constante ou un paramètre.', node, 'properties.type')
+      type = null
+    }
+    if (type?.kind === 'pointer' && !['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(node.kind)) {
+      report(codes.invalidType, 'Un type pointeur n’est autorisé que pour une variable, une constante ou un paramètre.', node, 'properties.type')
       type = null
     }
     annotationActive.delete(node.sourceId)
@@ -116,6 +127,15 @@ export function analyzeTypes(semantic, projectId) {
       return null
     }
     if (binary && !expect(types[0], types[1], node, 'children.right')) return null
+    // L'adresse ne se prend que sur une valeur stockable ; le déréférencement lit la cible d'un pointeur.
+    if (!binary && operator === '&') {
+      if (!operands[0] || !['Reference', 'ArrayAccess'].includes(operands[0].kind)) {
+        report(codes.illegalPlacement, 'L’adresse ne peut être prise que sur une variable ou un élément de tableau.', node, 'children.operand')
+        return null
+      }
+      return pointerType(types[0])
+    }
+    if (!binary && operator === '*') return pointerPointee(types[0])
     if (binary && ['/', '%'].includes(operator) && constants.has(operands[1].sourceId)) {
       const divisor = constants.get(operands[1].sourceId)
       if (divisor === 0 || divisor === 0n) {

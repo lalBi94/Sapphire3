@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Plus, Save, Trash2 } from 'lucide-react'
-import { getNodeSchema, binaryOperators, unaryOperators, primitiveType, getCallableSymbols, sameType, acceptsOperand, isArrayType } from '../../utils/logic/index.js'
-import { initialNodeForm, nodeConfiguration, emptyExpression, typeFromName, accessedArrayType, arrayIndexType, integerTypeNames } from './nodeConfiguration.js'
+import { getNodeSchema, binaryOperators, unaryOperators, primitiveType, getCallableSymbols, sameType, isArrayType } from '../../utils/logic/index.js'
+import { initialNodeForm, nodeConfiguration, emptyExpression, typeFromName, accessedArrayType, arrayIndexType, integerTypeNames, expressionOperators } from './nodeConfiguration.js'
 import NodeTypeInput from './NodeTypeInput.jsx'
 import NodeValueInput from './NodeValueInput.jsx'
 import ExpressionInput from './ExpressionInput.jsx'
@@ -33,7 +33,9 @@ export default function NodeForm({ kind, initialNode = null, context, onSubmit }
     return symbol.kind !== 'TypeDeclaration' && (!isNew || !context.expectedType || sameType(context.expectedType, symbol.type))
   })
   const unresolved = initialNode?.references?.target && !symbols.some((symbol) => symbol.id === form.symbolId)
-  const operators = Object.entries(kind === 'BinaryExpression' ? binaryOperators : unaryOperators).filter(([, rule]) => !isNew || !context.expectedType || (rule.result === 'same' ? acceptsOperand(rule.operands, context.expectedType) : rule.result === context.expectedType.name))
+  const operators = !isNew || !context.expectedType
+    ? Object.entries(kind === 'BinaryExpression' ? binaryOperators : unaryOperators)
+    : expressionOperators(kind === 'BinaryExpression' ? 'binary' : 'unary', context.expectedType)
 
   // Change une propriété de brouillon sans modifier le programme avant confirmation.
   function change(field, value) {
@@ -57,7 +59,7 @@ export default function NodeForm({ kind, initialNode = null, context, onSubmit }
   return (
     <form className="node-form" onSubmit={handleSubmit}>
       {schema.named && <label>{t('form.name')}<input aria-label={t('form.name')} value={form.name} onChange={(event) => change('name', event.target.value)} required={required} autoComplete="off" /></label>}
-      {(schema.declaresType || isNew && kind === 'PrintStatement') && <NodeTypeInput label={kind === 'FunctionDeclaration' ? t('form.returnType') : t('form.type')} value={form.typeName} onChange={(value) => change('typeName', value)} required={required} allowVoid={kind === 'FunctionDeclaration'} allowArray={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement')} alias={initialNode?.properties.type?.kind === 'named'} />}
+      {(schema.declaresType || isNew && kind === 'PrintStatement') && <NodeTypeInput label={kind === 'FunctionDeclaration' ? t('form.returnType') : t('form.type')} value={form.typeName} onChange={(value) => change('typeName', value)} required={required} allowVoid={kind === 'FunctionDeclaration'} allowArray={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement')} allowPointer={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement')} alias={initialNode?.properties.type?.kind === 'named'} />}
       {['ArrayLiteral', 'ArrayCreation'].includes(kind) && (arrayElementType
         ? <p className="node-form__hint">{t('form.arrayElementsOfType', { type: arrayElementType.name })}</p>
         : <NodeTypeInput label={t('field.elementType')} value={form.elementTypeName} onChange={(value) => change('elementTypeName', value)} required={required} />)}
@@ -85,7 +87,7 @@ export default function NodeForm({ kind, initialNode = null, context, onSubmit }
       {isNew && kind === 'FunctionDeclaration' && <fieldset><legend>{t('form.parameters')}</legend>
         {form.parameters.map((parameter, index) => <div className="node-form__parameter" key={index}>
           <label>{t('form.parameterName', { number: index + 1 })}<input aria-label={t('form.parameterName', { number: index + 1 })} value={parameter.name} required={required} onChange={(event) => change('parameters', form.parameters.map((entry, position) => position === index ? { ...entry, name: event.target.value } : entry))} /></label>
-          <NodeTypeInput label={t('form.parameterType', { number: index + 1 })} value={parameter.typeName} required={required} allowArray onChange={(value) => change('parameters', form.parameters.map((entry, position) => position === index ? { ...entry, typeName: value } : entry))} />
+          <NodeTypeInput label={t('form.parameterType', { number: index + 1 })} value={parameter.typeName} required={required} allowArray allowPointer onChange={(value) => change('parameters', form.parameters.map((entry, position) => position === index ? { ...entry, typeName: value } : entry))} />
           <button type="button" onClick={() => change('parameters', form.parameters.filter((_, position) => position !== index))}><Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.removeInput')}</button>
         </div>)}
         <button type="button" onClick={() => change('parameters', [...form.parameters, { name: '', typeName: '' }])}><Plus size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.addInput')}</button>

@@ -29,6 +29,7 @@ export function typeLabel(type, t) {
   if (type?.kind === 'primitive') return type.name
   if (type?.kind === 'function') return `(${type.parameters.map((parameter) => typeLabel(parameter, t)).join(', ')}) → ${typeLabel(type.returnType, t)}`
   if (type?.kind === 'array') return `${typeLabel(type.elementType, t)}[]`
+  if (type?.kind === 'pointer') return `${typeLabel(type.pointee, t)}*`
   return t('labels.typeUnset')
 }
 

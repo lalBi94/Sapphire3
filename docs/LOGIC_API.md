@@ -38,7 +38,7 @@ Point d'entrée : `src/utils/logic/index.js`. JavaScript pur, sans React, DOM, A
 | `insertBookmark(project, bookmark, {moduleId, ids, moduleName?, existingModule?})` | `{ok, project, analysis, moduleId, rootNodeIds, existingModule}` ou `BOOKMARK_INVALID` ; recopie dans un module neuf ou existant, en remappant identifiants, enfants et références |
 | `describeBookmark(bookmark)` | `{kind, name, parameters, returnType, nodeCount, functionCount}` ; résumé lisible d'un instantané, sans le modifier |
 
-`diagnosticCodes`, `sourceFormatVersion`, `moduleKinds`, `nodeSchema`, `getNodeSchema`, `binaryOperators`, `unaryOperators`, `primitiveDefinitions`, `primitiveType(name)`, `sameType` et `acceptsOperand` sont également exportés. `primitiveType` renvoie uniquement un primitif autorisé, ou `null` comme absence de résultat. Aucun type de secours n'existe. La catégorie Module est définie dans `model.js` et réutilisée par les libellés visuels ; les cartes Module partagent l'identifiant de leur module source, tandis que les annotations Comment restent hors du moteur. Les contrats JSDoc sont dans `model.js`, `ast.js`, `semantics.js`, `diagnostics.js`, `contextResolver.js` et `sourceMutation.js` ; aucun TypeScript ajouté.
+`diagnosticCodes`, `sourceFormatVersion`, `moduleKinds`, `nodeSchema`, `getNodeSchema`, `binaryOperators`, `unaryOperators`, `primitiveDefinitions`, `primitiveType(name)`, `sameType`, `acceptsOperand`, `arrayType`, `isArrayType`, `arrayElementType`, `isValidElementType`, `pointerType`, `isPointerType`, `pointerPointee` et `isValidPointee` sont également exportés. `primitiveType` renvoie uniquement un primitif autorisé, ou `null` comme absence de résultat. Aucun type de secours n'existe. La catégorie Module est définie dans `model.js` et réutilisée par les libellés visuels ; les cartes Module partagent l'identifiant de leur module source, tandis que les annotations Comment restent hors du moteur. Les contrats JSDoc sont dans `model.js`, `ast.js`, `semantics.js`, `diagnostics.js`, `contextResolver.js` et `sourceMutation.js` ; aucun TypeScript ajouté.
 
 Les fonctions ne modifient pas les entrées. Les identifiants sont fournis par l'appelant, stables et jamais régénérés pendant les transformations. Les consommateurs doivent traiter les résultats comme des instantanés en lecture seule ; certains champs JSON sont partagés avec la source, sans copie profonde inutile.
 
@@ -129,6 +129,12 @@ Trois constructions d'expression portent leur propre `properties.elementType` (l
 - `ArrayAccess` : `children.array` (expression dont le type résolu doit être un tableau) et `children.index` (expression entière) ; le résultat porte le type de l'élément.
 
 `AssignmentStatement.target` accepte en outre un `ArrayAccess` : l'écriture vise l'élément, avec le type de l'élément comme type attendu pour la valeur. Les éléments d'une `ConstantDeclaration` ne sont pas modifiables (`PLACEMENT_ILLEGAL`). Une case jamais remplie ne reçoit aucune valeur inventée : sa lecture échoue comme une variable sans initialiseur.
+
+### Types pointeurs
+
+Un pointeur est un type construit `{kind:'pointer', pointee:{kind:'primitive', name}}` annotable **uniquement sur une `VariableDeclaration`, une `ConstantDeclaration` ou un `Parameter`** ; une cible `void` ou non primitive est diagnostiquée `TYPE_INVALID`, comme un pointeur placé ailleurs (retour de fonction, alias, littéral, conversion). `sameType` compare les cibles ; `pointerPointee` extrait la cible d'un pointeur, `isValidPointee` admet un primitif non `void`.
+
+Deux opérateurs unaires portent les pointeurs : **`&`** (`operands:'addressable'`, résultat pointeur vers l'opérande) exige un opérande **stockable** — `Reference` ou `ArrayAccess` — sinon `PLACEMENT_ILLEGAL` ; **`*`** (`operands:'pointer'`, résultat la cible) exige un opérande de type pointeur. Ils ne participent à aucun calcul constant et ne sont ni exécutés par la simulation (`SIMULATION_UNSUPPORTED`) ni émis par les transpileurs (`TRANSPILE_EXPRESSION_UNSUPPORTED`). Le déréférencement `*p` est une simple lecture : il n'est pas admis comme cible d'affectation dans cette version.
 
 ### Littéraux et précision
 

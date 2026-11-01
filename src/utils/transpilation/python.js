@@ -52,7 +52,14 @@ export function generatePython(analysis, { selection = null } = {}) {
       if (['and', 'or'].includes(operator)) return `(${left} ${operator} ${right})`
       return `sapphireBinary(${JSON.stringify(operator)}, ${left}, ${right}, ${JSON.stringify(typeByNode.get(child(node, 'left')?.sourceId)?.name)})`
     }
-    if (node.kind === 'UnaryExpression') return `sapphireUnary(${JSON.stringify(node.properties.operator)}, ${expression(child(node, 'operand'))}, ${JSON.stringify(typeByNode.get(node.sourceId)?.name)})`
+    if (node.kind === 'UnaryExpression') {
+      const operator = node.properties.operator
+      if (operator === '&' || operator === '*') {
+        diagnostics.push(createDiagnostic('TRANSPILE_EXPRESSION_UNSUPPORTED', `Opérateur ${operator} (pointeur) non pris en charge par le backend Python.`, node.location))
+        return 'None'
+      }
+      return `sapphireUnary(${JSON.stringify(operator)}, ${expression(child(node, 'operand'))}, ${JSON.stringify(typeByNode.get(node.sourceId)?.name)})`
+    }
     if (node.kind === 'CallExpression') return `${expression(child(node, 'callee'))}(${(node.children.arguments ?? []).map(expression).join(', ')})`
     if (node.kind === 'CastExpression') {
       const argument = expression(child(node, 'argument'))
