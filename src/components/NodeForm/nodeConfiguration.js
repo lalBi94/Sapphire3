@@ -1,4 +1,4 @@
-import { primitiveType, primitiveDefinitions, arrayType, isArrayType, isValidElementType, pointerType, isPointerType, pointerPointee, isValidPointee, getNodeSchema, binaryOperators, unaryOperators, acceptsOperand, sameType } from '../../utils/logic/index.js'
+import { primitiveType, primitiveDefinitions, arrayType, isArrayType, isValidElementType, pointerType, isPointerType, pointerPointee, isValidPointee, getNodeSchema, binaryOperators, unaryOperators, acceptsOperand, sameType, getSyscall, syscallIds } from '../../utils/logic/index.js'
 
 // Types entiers proposés pour l'index d'un accès à un élément de tableau ; une seule liste partagée par les formulaires.
 export const integerTypeNames = Object.freeze(Object.keys(primitiveDefinitions).filter((name) => acceptsOperand('integer', primitiveType(name))))
@@ -92,6 +92,7 @@ export function initialNodeForm(kind, node, expectedType, symbols) {
     parameters: [], entryPoint: properties.entryPoint === true, allowIncomplete: false,
     elementTypeName: arrayElementTypeName, arraySize: emptyExpression(), arrayFill: emptyExpression(), arrayElements: [],
     accessArray: emptyExpression(), accessIndex: emptyExpression(), indexTypeName: 'int',
+    syscallName: kind === 'SystemCall' ? properties.name ?? '' : '',
   }
 }
 
@@ -180,6 +181,10 @@ export function nodeConfiguration(kind, form, symbols, initialNode = null) {
     const symbol = symbols.find((entry) => entry.id === form.symbolId)
     if (symbol) references.target = symbolTarget(symbol)
     else if (!initialNode || form.symbolId !== '@unresolved') delete references.target
+  }
+  if (kind === 'SystemCall') {
+    if (form.syscallName) properties.name = form.syscallName
+    else delete properties.name
   }
   if (initialNode) return { properties, references }
   const children = {}

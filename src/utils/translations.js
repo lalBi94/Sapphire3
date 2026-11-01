@@ -247,6 +247,7 @@ const messages = {
   'canvas.unusedParamHint': ['This parameter is never used.', 'Ce paramètre n’est jamais utilisé.', '此参数从未使用。', 'Este parámetro nunca se usa.', 'لا تُستخدم هذه المعلمة أبدًا.'],
   'canvas.pure': ['pure', 'pur', '纯', 'puro', 'نقي'],
   'canvas.pureHint': ['No side effect and no external dependency.', 'Aucun effet de bord ni dépendance externe.', '无副作用且无外部依赖。', 'Sin efectos secundarios ni dependencias externas.', 'لا أثر جانبي ولا اعتماد خارجي.'],
+  'kind.SystemCall': ['System call', 'Appel système', '系统调用', 'Llamada al sistema', 'استدعاء النظام'],
   'module.emojiAdd': ['Add an emoji', 'Ajouter un emoji', '添加表情', 'Añadir un emoji', 'إضافة رمز تعبيري'],
   'module.emojiPicker': ['Choose an emoji', 'Choisir un emoji', '选择表情', 'Elegir un emoji', 'اختر رمزًا تعبيريًا'],
   'module.emojiCustom': ['Type an emoji', 'Saisir un emoji', '输入表情', 'Escribe un emoji', 'اكتب رمزًا تعبيريًا'],

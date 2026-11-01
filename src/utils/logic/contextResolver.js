@@ -1,6 +1,7 @@
 import { isId, isRecord } from './model.js'
 import { getNodeSchema, moduleRootSlot, acceptsNodeKind } from './nodeSchema.js'
 import { primitiveType } from './primitives.js'
+import { getSyscall } from './syscalls.js'
 
 // Indexe la source et les résultats déjà calculés, sans reconstruire d'AST à l'ouverture du menu.
 export function createContextIndex(project, analysis = null) {
@@ -116,6 +117,10 @@ function getExpectedType(record, slot, path, index) {
   if (record.kind === 'AssignmentStatement' && slot === 'value') return index.nodeTypes.get(record.children?.target) ?? null
   if (record.kind === 'CallExpression' && slot === 'arguments') {
     const parameters = index.nodeTypes.get(record.children?.callee)?.parameters
+    return parameters?.[Array.isArray(record.children?.arguments) ? record.children.arguments.length : 0] ?? null
+  }
+  if (record.kind === 'SystemCall' && slot === 'arguments') {
+    const parameters = getSyscall(record.properties?.name)?.parameters
     return parameters?.[Array.isArray(record.children?.arguments) ? record.children.arguments.length : 0] ?? null
   }
   if (record.kind === 'BinaryExpression') {

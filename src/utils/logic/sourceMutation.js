@@ -5,6 +5,7 @@ import { diagnosticCodes as codes } from './diagnostics.js'
 import { isId, isRecord } from './model.js'
 import { sameType, primitiveType, acceptsOperand, arrayType } from './primitives.js'
 import { binaryOperators, unaryOperators, getNodeSchema } from './nodeSchema.js'
+import { getSyscall } from './syscalls.js'
 import { normalizeContracts } from './contracts.js'
 
 const hardInsertionCodes = new Set([
@@ -100,7 +101,10 @@ export function insertSourceNodes(project, request, bundle, options = {}) {
   const invalid = analysis.diagnostics.filter((diagnostic) => {
     const call = candidate.nodes.find((node) => node?.id === diagnostic.location.nodeId)
     const signature = call?.kind === 'CallExpression' ? analysis.semantic.nodeTypes.find((entry) => entry.nodeId === call.children?.callee)?.type : null
-    const pendingArguments = diagnostic.code === codes.typeMismatch && diagnostic.location.field === 'children.arguments' && signature?.kind === 'function' && (Array.isArray(call.children?.arguments) ? call.children.arguments.length : 0) < signature.parameters.length
+    const pendingArguments = diagnostic.code === codes.typeMismatch && diagnostic.location.field === 'children.arguments' && (
+      (signature?.kind === 'function' && (Array.isArray(call.children?.arguments) ? call.children.arguments.length : 0) < signature.parameters.length) ||
+      (call?.kind === 'SystemCall' && (Array.isArray(call.children?.arguments) ? call.children.arguments.length : 0) < (getSyscall(call.properties?.name)?.parameters.length ?? 0))
+    )
     const pendingLiteral = diagnostic.code === codes.invalidLiteral && call?.kind === 'Literal' && isRecord(call.properties) && !Object.hasOwn(call.properties, 'value')
     const pendingReturn = diagnostic.code === codes.typeMismatch && call?.kind === 'ReturnStatement' && diagnostic.location.field === 'children.argument' && (call.children?.argument == null || candidate.nodes.find((node) => node?.id === call.children?.argument)?.kind === 'Hole')
     return !pendingArguments && !pendingLiteral && !pendingReturn && hardInsertionCodes.has(diagnostic.code) && !previousKeys.has(diagnosticKey(diagnostic))

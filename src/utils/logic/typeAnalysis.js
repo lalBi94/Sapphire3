@@ -1,6 +1,7 @@
 import { createDiagnostic, diagnosticCodes as codes } from './diagnostics.js'
 import { isRecord } from './model.js'
 import { binaryOperators, unaryOperators, getNodeSchema } from './nodeSchema.js'
+import { getSyscall } from './syscalls.js'
 import { getPrimitive, primitiveType, isNumeric, sameType, acceptsOperand, arrayType, isArrayType, pointerType, pointerPointee } from './primitives.js'
 import { validateLiteral, convertConstant, evaluateBinary, evaluateUnary } from './numericConstants.js'
 
@@ -218,6 +219,25 @@ export function analyzeTypes(semantic, projectId) {
     return valid ? callee.returnType : null
   }
 
+  // Contrôle l'arité et les types d'un appel système simulé, et publie son type de retour.
+  function systemCall(node) {
+    const definition = getSyscall(node.properties?.name)
+    if (!definition) {
+      report(codes.incomplete, 'Appel système absent ou inconnu.', node, 'properties.name')
+      return null
+    }
+    const args = Array.isArray(node.children?.arguments) ? node.children.arguments : []
+    if (args.length !== definition.parameters.length) {
+      report(codes.typeMismatch, 'Nombre d’arguments incompatible avec l’appel système.', node, 'children.arguments')
+      return null
+    }
+    let valid = true
+    args.forEach((argument, index) => {
+      if (!expect(definition.parameters[index], resolve(argument?.sourceId), node, `children.arguments[${index}]`)) valid = false
+    })
+    return valid ? definition.returnType : null
+  }
+
   // Résout le type d'élément annoté d'un tableau ; seuls les primitifs non void sont admis.
   function arrayElementType(node) {
     const source = node.properties.elementType
@@ -305,6 +325,7 @@ export function analyzeTypes(semantic, projectId) {
     else if (['BinaryExpression', 'UnaryExpression'].includes(node.kind)) type = operation(node)
     else if (node.kind === 'CastExpression') type = cast(node)
     else if (node.kind === 'CallExpression') type = call(node)
+    else if (node.kind === 'SystemCall') type = systemCall(node)
     else if (node.kind === 'ArrayLiteral') type = arrayLiteral(node)
     else if (node.kind === 'ArrayCreation') type = arrayCreation(node)
     else if (node.kind === 'ArrayAccess') type = arrayAccess(node)
