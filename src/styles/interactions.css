@@ -1,0 +1,198 @@
+/* Micro-interactions inspirées des bordures lumineuses : dégradé animé au focus
+   des champs, reflet chromatique au survol de certains boutons importants.
+   Le moteur cible les contrôles réels (bordure 1 px déjà présente, largeur
+   inchangée au focus) et s'adapte à chaque thème via les jetons sémantiques ;
+   les intégrations ciblées sont listées avec :is() pour rester un seul moteur. */
+
+@property --glow-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes glow-angle-turn {
+  to { --glow-angle: 360deg; }
+}
+
+:root {
+  --glow-duration: 4s;
+}
+
+/* Champs ciblés : saisie du NodeForm (et ModuleNameForm), renommage de Module,
+   légende d'image. La classe .glow permet d'étendre le moteur sans toucher ce fichier. */
+@supports (background: linear-gradient(#000 0 0) padding-box, conic-gradient(#f00, #00f) border-box) {
+  @media (prefers-contrast: no-preference) and (forced-colors: none) {
+    :is(
+      .glow,
+      .node-form input:not([type='checkbox']),
+      .node-form select,
+      .canvas-module__name-input,
+      .canvas-module__caption textarea
+    ):focus {
+      border-color: transparent;
+      background:
+        linear-gradient(var(--color-input) 0 0) padding-box,
+        conic-gradient(
+          from var(--glow-angle),
+          var(--color-primary),
+          var(--color-node-function) 35%,
+          var(--color-selection) 65%,
+          var(--color-primary)
+        ) border-box;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-selection) 22%, transparent);
+      animation: glow-angle-turn var(--glow-duration) linear infinite;
+    }
+
+    /* Textarea Comment sans bordure : halo discret seul, aucun changement de géométrie. */
+    :is(.glow--halo, .canvas-module__comment):focus {
+      box-shadow:
+        inset 0 0 0 1px color-mix(in srgb, var(--color-selection) 45%, transparent),
+        0 0 0 3px color-mix(in srgb, var(--color-primary) 10%, transparent);
+    }
+  }
+}
+
+/* Reflet chromatique au survol : anneau pseudo-élément masqué qui épouse le
+   contour du bouton, posé sur la bordure existante, sans zone cliquable.
+   .node-menu-button est déjà positionné ; les autres reçoivent position:relative. */
+@supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
+  @media (prefers-contrast: no-preference) and (forced-colors: none) {
+    :is(
+      .glow-button,
+      .node-menu-button,
+      .node-form button[type='submit'],
+      .project-navigation__run,
+      .project-navigation__confirmation .project-navigation__primary,
+      .transpile-panel__actions button,
+      .logic-context-menu__actions button:not(:is(.delete-action, .logic-context-menu__delete))
+    ) {
+      isolation: isolate;
+    }
+
+    :is(
+      .glow-button,
+      .node-form button[type='submit'],
+      .project-navigation__run,
+      .project-navigation__confirmation .project-navigation__primary,
+      .transpile-panel__actions button,
+      .logic-context-menu__actions button:not(:is(.delete-action, .logic-context-menu__delete))
+    ) {
+      position: relative;
+    }
+
+    :is(
+      .glow-button,
+      .node-menu-button,
+      .node-form button[type='submit'],
+      .project-navigation__run,
+      .project-navigation__confirmation .project-navigation__primary,
+      .transpile-panel__actions button,
+      .logic-context-menu__actions button:not(:is(.delete-action, .logic-context-menu__delete))
+    )::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: inherit;
+      padding: var(--glow-ring-width, 1px);
+      background: conic-gradient(
+        from var(--glow-angle),
+        var(--color-primary),
+        var(--color-node-function) 35%,
+        var(--color-selection) 65%,
+        var(--color-primary)
+      );
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      mask-composite: exclude;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity var(--duration-fast) var(--easing-ui);
+    }
+
+    :is(
+      .glow-button,
+      .node-menu-button,
+      .node-form button[type='submit'],
+      .project-navigation__run,
+      .project-navigation__confirmation .project-navigation__primary,
+      .transpile-panel__actions button,
+      .logic-context-menu__actions button:not(:is(.delete-action, .logic-context-menu__delete))
+    ):hover:not(:disabled)::before {
+      opacity: 0.9;
+      animation: glow-angle-turn var(--glow-duration) linear infinite;
+    }
+
+    /* Actions principales : anneau un peu plus épais et plus franc. */
+    :is(
+      .glow-button--strong,
+      .node-form button[type='submit'],
+      .project-navigation__run,
+      .project-navigation__confirmation .project-navigation__primary
+    ) {
+      --glow-ring-width: 2px;
+    }
+
+    :is(
+      .glow-button--strong,
+      .node-form button[type='submit'],
+      .project-navigation__run,
+      .project-navigation__confirmation .project-navigation__primary
+    ):hover:not(:disabled)::before {
+      opacity: 1;
+    }
+  }
+}
+
+/* Légère accentuation de bordure au survol des champs qui n'en ont pas encore. */
+.canvas-module__caption textarea:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border-hover));
+}
+
+/* Mouvement réduit : le dégradé et le halo restent visibles, mais fixes. */
+@media (prefers-reduced-motion: reduce) {
+  :is(
+    .glow,
+    .node-form input:not([type='checkbox']),
+    .node-form select,
+    .canvas-module__name-input,
+    .canvas-module__caption textarea
+  ):focus,
+  :is(
+    .glow-button,
+    .node-menu-button,
+    .node-form button[type='submit'],
+    .project-navigation__run,
+    .project-navigation__confirmation .project-navigation__primary,
+    .transpile-panel__actions button,
+    .logic-context-menu__actions button:not(:is(.delete-action, .logic-context-menu__delete))
+  ):hover:not(:disabled)::before {
+    animation: none;
+  }
+}
+
+/* Transparence réduite : le halo extérieur disparaît, l'anneau et la bordure restent. */
+@media (prefers-reduced-transparency: reduce) {
+  :is(
+    .glow,
+    .node-form input:not([type='checkbox']),
+    .node-form select,
+    .canvas-module__name-input,
+    .canvas-module__caption textarea
+  ):focus {
+    box-shadow: none;
+  }
+
+  :is(.glow--halo, .canvas-module__comment):focus {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-selection) 45%, transparent);
+  }
+}
+
+/* Contraste renforcé ou couleurs forcées : aucun effet chromé, les outlines
+   focus-visible existantes des composants portent seules l'information. */
+@media (prefers-contrast: more), (forced-colors: active) {
+  :is(.glow-button, .node-menu-button, .node-form button[type='submit'], .project-navigation__run, .project-navigation__confirmation .project-navigation__primary, .transpile-panel__actions button, .logic-context-menu__actions button)::before {
+    display: none;
+  }
+}

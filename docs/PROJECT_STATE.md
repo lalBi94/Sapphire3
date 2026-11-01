@@ -43,6 +43,7 @@
 - Direction artistique Squircle + Glass UI : fonds noir/anthracite, actions principales et badge du point d'entrée jaunes, sélections violettes avec repères supplémentaires (anneau/soulignement ou barre latérale). Coins continus CSS `corner-shape: squircle` avec arrondis de repli ; surfaces flottantes translucides et floutées, reflets et ombres discrets. Cartes et nœuds sans flou imbriqué ; couleurs des catégories logiques conservées. Police système locale, aucun service distant à l'exécution.
 - Tokens communs pour palette, courbures, espacements partagés, verre, ombres et transitions de 180 ms. Repli opaque sans `backdrop-filter`, préférences de réduction du mouvement et de la transparence respectées.
 - Les actions de menus, de statut, de propriétés et de formulaires utilisent des icônes Lucide React ciblées, avec tailles, épaisseur et attributs d'accessibilité cohérents.
+- Micro-interactions CSS sans JavaScript dans `src/styles/interactions.css` : au focus des champs ciblés (formulaire de nœud, renommage de module, légende d'image), bordure transparente remplacée par un anneau conique animé de 1 px aux couleurs du thème plus un halo discret ; au survol des actions importantes (bouton `+`, validation de formulaire, Run, confirmation, export/copie du panneau Transpiler, actions du menu logique), anneau chromatique tournant en pseudo-élément `::before`, 1 px ou 2 px pour les actions fortes. Aucun décalage de layout, `outline :focus-visible` conservé, désactivé en contraste renforcé et couleurs forcées, animation coupée en mouvement réduit, halo retiré en transparence réduite. Les classes `.glow`, `.glow--halo`, `.glow-button` et `.glow-button--strong` permettent d'étendre le moteur sans le modifier ; bordures de catégorie des nœuds, sélection, glisser-déposer, erreurs et debug ne sont pas touchés.
 
 ## Cartographie
 
@@ -116,6 +117,7 @@
 | `src/utils/transpilation/python.js`, `pythonRuntime.js` | Backend Python et helpers d'exécution générés, cible active |
 | `src/hooks/useCanvasPan.jsx` | Caméra locale, capture du pointeur, annulation, clavier, zoom logarithmique à la molette et recentrage |
 | `src/styles/tokens.css`, `src/styles/global.css` | Thème Squircle + Glass, tokens partagés, géométrie et transitions communes, verre des surfaces flottantes et replis d'accessibilité/compatibilité |
+| `src/styles/interactions.css` | Moteur unique des micro-interactions : anneau conique animé au focus des champs et reflet chromatique au survol des actions importantes, avec classes `.glow*` d'extension et replis accessibilité |
 | `vite.config.js` | Intégration React et serveur local strict sur le port 5173 |
 | `neutralino.config.json` | Fenêtre native, ressources compilées, démarrage Vite ; globals injectés, auth one-time et permissions natives limitées aux opérations de fichiers autorisées |
 | `README.md` | Prérequis et démarrage |
