@@ -39,6 +39,8 @@ const messages = {
   'transpile.noRuntimeCode': ['This selection has no {language} runtime code.', 'Cette sélection ne produit pas de code {language} à l’exécution.', '此选择没有 {language} 运行时代码。', 'Esta selección no produce código {language} en tiempo de ejecución.', 'لا ينتج هذا التحديد أي كود {language} وقت التشغيل.'],
   'transpile.previewUnavailable': ['Code unavailable: complete or correct this subtree first.', 'Code indisponible : complétez ou corrigez d’abord ce sous-arbre.', '代码不可用：请先补全或修正此子树。', 'Código no disponible: complete o corrija primero este subárbol.', 'الكود غير متوفر: أكمل هذه الشجرة الفرعية أو صحّحها أولاً.'],
   'panel.close': ['Close panel', 'Fermer la fenêtre', '关闭面板', 'Cerrar la ventana', 'إغلاق النافذة'],
+  'panel.collapse': ['Collapse panel', 'Replier la fenêtre', '折叠面板', 'Contraer la ventana', 'طيّ النافذة'],
+  'panel.expand': ['Expand panel', 'Déplier la fenêtre', '展开面板', 'Expandir la ventana', 'توسيع النافذة'],
   'canvas.addNodes': ['Add nodes', 'Ajouter des nœuds', '添加节点', 'Añadir nodos', 'إضافة عُقد'],
   'canvas.nodeActions': ['Node actions', 'Actions sur le nœud', '节点操作', 'Acciones del nodo', 'إجراءات العقدة'],
   'transfer.copy': ['Copy · Ctrl+C', 'Copier · Ctrl+C', '复制 · Ctrl+C', 'Copiar · Ctrl+C', 'نسخ · Ctrl+C'],

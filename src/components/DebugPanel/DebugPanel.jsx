@@ -1,4 +1,4 @@
-import { ArrowRight, CornerUpRight, RotateCcw, SkipBack, X } from 'lucide-react'
+import { ArrowRight, ChevronDown, ChevronUp, CornerUpRight, RotateCcw, SkipBack, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { snapPanelToArea } from '../../utils/panelSnap.js'
@@ -23,6 +23,7 @@ function MemoryTable({ variables, modules, t }) {
 // Affiche uniquement l'instantané courant, dans une fenêtre locale déplaçable et redimensionnable.
 export default function DebugPanel({ session, index, onAction, onClose }) {
   const [geometry, setGeometry] = useState({ x: 16, y: 16, width: 380, height: 500 })
+  const [collapsed, setCollapsed] = useState(false)
   const gesture = useRef(null)
   const { t } = useTranslation()
   const frame = session.frames[session.cursor]
@@ -78,9 +79,11 @@ export default function DebugPanel({ session, index, onAction, onClose }) {
     adjust({ x: rect.left - bounds.left, y: rect.top - bounds.top, width: rect.width, height: rect.height }, mode, ...direction, bounds)
   }
 
-  return <aside className="debug-panel" data-canvas-ui data-canvas-scroll aria-label={t('debug.title')} style={{ left: geometry.x, top: geometry.y, width: geometry.width, height: geometry.height }} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+  return <aside className={`debug-panel${collapsed ? ' debug-panel--collapsed' : ''}`} data-canvas-ui data-canvas-scroll aria-label={t('debug.title')} style={{ left: geometry.x, top: geometry.y, width: geometry.width, ...(collapsed ? {} : { height: geometry.height }) }} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
     <header className="debug-panel__header" tabIndex={0} aria-label={t('debug.move')} title={t('canvas.moveHint')} onPointerDown={(event) => handleStart(event, 'move')} onPointerMove={handleMove} onPointerUp={handleEnd} onPointerCancel={handleEnd} onLostPointerCapture={handleEnd} onKeyDown={(event) => handleKeyDown(event, 'move')}>
-      <h2>{t('debug.title')}</h2><button type="button" onClick={onClose} aria-label={t('debug.close')}><X size={16} aria-hidden="true" /></button>
+      <h2>{t('debug.title')}</h2>
+      <button type="button" className="debug-panel__collapse" aria-expanded={!collapsed} aria-label={t(collapsed ? 'panel.expand' : 'panel.collapse')} title={t(collapsed ? 'panel.expand' : 'panel.collapse')} onClick={() => setCollapsed((current) => !current)}>{collapsed ? <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" /> : <ChevronUp size={16} strokeWidth={1.75} aria-hidden="true" />}</button>
+      <button type="button" onClick={onClose} aria-label={t('debug.close')}><X size={16} aria-hidden="true" /></button>
     </header>
     <div className="debug-panel__controls">
       <button type="button" disabled={session.cursor === 0 && session.history.length === 0} onClick={() => onAction('restart')} title={t('debug.restartHint')}><SkipBack size={14} aria-hidden="true" />{t('debug.restart')}</button>

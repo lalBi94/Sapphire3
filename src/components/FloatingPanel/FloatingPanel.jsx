@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { X } from 'lucide-react'
+import { ChevronDown, ChevronUp, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { snapPanelToArea } from '../../utils/panelSnap.js'
 import './FloatingPanel.css'
@@ -7,7 +7,9 @@ import './FloatingPanel.css'
 // Partage les gestes et le cadre des fenêtres de propriétés et d'analyse.
 export default function FloatingPanel({ title, label, onClose, className = '', children }) {
   const [geometry, setGeometry] = useState(null)
+  const [collapsed, setCollapsed] = useState(false)
   const gestureRef = useRef(null)
+  const panelRef = useRef(null)
   const { t } = useTranslation()
 
   // Mesure le panneau dans son canvas avant un geste souris ou clavier.
@@ -72,10 +74,21 @@ export default function FloatingPanel({ title, label, onClose, className = '', c
     apply(origin, ...direction, resize)
   }
 
-  const style = geometry ? { left: geometry.x, top: geometry.y, right: 'auto', bottom: 'auto', width: geometry.width, height: geometry.height } : undefined
-  return <aside className={`floating-panel ${className}`} style={style} data-floating-panel data-canvas-ui data-canvas-scroll aria-label={label ?? title} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+  // Replie la fenêtre sur son en-tête, ou la rouvre à sa dernière hauteur.
+  function toggleCollapsed() {
+    if (!collapsed && !geometry && panelRef.current) {
+      const origin = measure(panelRef.current)
+      if (origin) setGeometry({ x: origin.x, y: origin.y, width: origin.width, height: origin.height })
+    }
+    setCollapsed((current) => !current)
+  }
+
+  const style = geometry ? { left: geometry.x, top: geometry.y, right: 'auto', bottom: 'auto', width: geometry.width, ...(collapsed ? {} : { height: geometry.height }) } : undefined
+  return <aside ref={panelRef} className={`floating-panel${collapsed ? ' floating-panel--collapsed' : ''} ${className}`} style={style} data-floating-panel data-canvas-ui data-canvas-scroll aria-label={label ?? title} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
     <header className="floating-panel__header" tabIndex={0} aria-label={t('details.move')} title={t('details.moveHint')} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onLostPointerCapture={end} onKeyDown={keyDown}>
-      <h2>{title}</h2><button type="button" aria-label={t('panel.close')} onClick={onClose}><X size={18} strokeWidth={1.75} aria-hidden="true" /></button>
+      <h2>{title}</h2>
+      <button type="button" className="floating-panel__collapse" aria-expanded={!collapsed} aria-label={t(collapsed ? 'panel.expand' : 'panel.collapse')} title={t(collapsed ? 'panel.expand' : 'panel.collapse')} onClick={toggleCollapsed}>{collapsed ? <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" /> : <ChevronUp size={16} strokeWidth={1.75} aria-hidden="true" />}</button>
+      <button type="button" aria-label={t('panel.close')} onClick={onClose}><X size={18} strokeWidth={1.75} aria-hidden="true" /></button>
     </header>
     <div className="floating-panel__content">{children}</div>
     <button className="floating-panel__resize" type="button" aria-label={t('details.resize')} title={t('details.resizeHint')} onPointerDown={(event) => start(event, true)} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onLostPointerCapture={end} onKeyDown={(event) => keyDown(event, true)}>
