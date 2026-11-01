@@ -348,6 +348,8 @@ const messages = {
   'contract.positive': ['must stay positive', 'doit rester positif', '必须保持为正', 'debe seguir siendo positivo', 'يجب أن يبقى موجبًا'],
   'contract.nonNegative': ['must stay non-negative', 'doit rester positif ou nul', '必须保持非负', 'debe seguir siendo no negativo', 'يجب ألا يصبح سالبًا'],
   'contract.nonEmpty': ['must not be empty', 'ne doit pas être vide', '不得为空', 'no debe estar vacío', 'يجب ألا يكون فارغًا'],
+  'heatmap.toggle': ['Execution heatmap', 'Carte de chaleur d’exécution', '执行热图', 'Mapa de calor de ejecución', 'خريطة حرارية للتنفيذ'],
+  'heatmap.count': ['{count} executions', '{count} exécutions', '{count} 次执行', '{count} ejecuciones', '{count} عمليات تنفيذ'],
   'details.noModules': ['No modules yet.', 'Aucun module pour le moment.', '暂无模块。', 'Aún no hay módulos.', 'لا توجد وحدات بعد.'],
   'details.exports': ['Functions shared with other modules', 'Fonctions partagées avec les autres modules', '与其他模块共享的函数', 'Funciones compartidas con otros módulos', 'دوال مشتركة مع الوحدات الأخرى'],
   'details.exportsHint': ['Export a top-level function before importing it into another module.', 'Exportez une fonction de premier niveau avant de l’importer dans un autre module.', '在将顶层函数导入其他模块之前，先导出它。', 'Exporte una función de primer nivel antes de importarla en otro módulo.', 'صدّر دالة من المستوى الأعلى قبل استيرادها في وحدة أخرى.'],

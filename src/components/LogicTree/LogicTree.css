@@ -3,6 +3,13 @@
 .logic-tree__missing { color: var(--color-diagnostic); overflow-wrap: anywhere; }
 .logic-node { position: relative; margin: 12px 0; padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-anthracite); min-width: 0; }
 .logic-node--selected { z-index: 2; box-shadow: var(--shadow-selection); background: var(--color-selection-surface); }
+/* Carte de chaleur : fond teinté par intensité d'exécution ; le niveau 0 reste terne ; la sélection prime. */
+.logic-node--heat-0 { background: color-mix(in srgb, var(--color-anthracite) 75%, var(--color-surface)); }
+.logic-node--heat-0 > .logic-node__header .logic-node__heading { color: var(--color-text-muted); }
+.logic-node--heat-1 { background: color-mix(in srgb, var(--color-primary) 8%, var(--color-anthracite)); }
+.logic-node--heat-2 { background: color-mix(in srgb, var(--color-primary) 18%, var(--color-anthracite)); }
+.logic-node--heat-3 { background: color-mix(in srgb, var(--color-primary) 30%, var(--color-anthracite)); }
+.logic-node--heat-4 { background: color-mix(in srgb, var(--color-primary) 45%, var(--color-anthracite)); }
 .logic-node--drop-valid { outline: 3px dashed var(--color-primary); outline-offset: 2px; }
 .logic-node--drop-invalid { outline: 3px dotted var(--color-diagnostic); outline-offset: 2px; }
 .logic-node__heading[draggable='true'] { cursor: grab; }
@@ -37,6 +44,7 @@
 .logic-node__heading { flex: 1; min-width: 0; display: flex; justify-content: space-between; gap: 8px; padding: 0; border: 0; background: transparent; color: var(--color-text); text-align: left; font: inherit; font-size: 11px; cursor: pointer; overflow-wrap: anywhere; }
 .logic-node__heading:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 3px; }
 .logic-node__issues { flex: 0 0 auto; color: var(--color-diagnostic); }
+.logic-node__heat { flex: 0 0 auto; min-width: 18px; padding: 1px 4px; border-radius: var(--radius-small); color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 18%, transparent); font-size: 10px; font-variant-numeric: tabular-nums; text-align: center; }
 .logic-node__entry-point { flex: 0 0 auto; padding: 1px 4px; border: 1px solid var(--color-primary); border-radius: var(--radius-small); corner-shape: var(--corner-shape); color: var(--color-primary); font-size: 10px; }
 .logic-node__summary { display: flex; flex-wrap: wrap; gap: 6px; color: var(--color-text-muted); font-size: 10px; margin-top: 4px; overflow-wrap: anywhere; }
 .logic-node__summary--collapsed { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

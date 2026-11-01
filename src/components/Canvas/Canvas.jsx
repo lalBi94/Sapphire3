@@ -17,6 +17,7 @@ import { moduleTypes } from '../../utils/moduleTypes.js'
 import { expandableNodeIdsByModule, expandAllNodeIds, isFullyExpanded } from '../../utils/nodeTree.js'
 import { scrollNodeIntoCard } from '../../utils/cardScroll.js'
 import { buildWorkspaceSvg } from '../../utils/workspaceSvg.js'
+import { executionCounts, heatLevels, ancestorCounts } from '../../utils/executionHeat.js'
 import ProjectNavigation from '../ProjectNavigation/ProjectNavigation.jsx'
 import useWorkspaceFiles from '../../hooks/useWorkspaceFiles.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
@@ -39,6 +40,7 @@ export default function Canvas() {
   const [activeCardId, setActiveCardId] = useState(null)
   const [growthRequest, setGrowthRequest] = useState({ moduleId: null, revision: 0 })
   const [distorted, setDistorted] = useState(true)
+  const [heatEnabled, setHeatEnabled] = useState(true)
   const [simulationResult, setSimulationResult] = useState(null)
   const [execution, setExecution] = useState(null)
   const [debugSession, setDebugSession] = useState(null)
@@ -86,6 +88,14 @@ export default function Canvas() {
   const hiddenCards = useMemo(() => document.cards.filter((card) => card.hidden), [document.cards])
   // La mini-carte ne montre que les modules visibles, comme le cadre de recentrage.
   const minimapModules = useMemo(() => visibleCards.filter((card) => card.type === 'module').map(({ id, x, y, width, height }) => ({ id, x, y, width, height })), [visibleCards])
+  // Carte de chaleur : comptes d'exécution de la dernière simulation, connus dès le lancement du Run.
+  const heatCounts = useMemo(() => execution ? executionCounts(execution.trace) : null, [execution])
+  const heat = useMemo(() => {
+    if (!heatCounts) return null
+    const intensities = ancestorCounts(heatCounts, document.index)
+    const levels = heatLevels(intensities)
+    return new Map([...intensities].map(([id, count]) => [id, { count, level: levels.get(id) ?? 0 }]))
+  }, [heatCounts, document.index])
   // Les nœuds qui contiennent autre chose ne dépendent que de la source analysée.
   const expandableIds = useMemo(() => expandableNodeIdsByModule(document.index), [document.index])
 
@@ -458,6 +468,7 @@ export default function Canvas() {
       canUndo={document.canUndo} canRedo={document.canRedo} onUndo={document.undo} onRedo={document.redo}
       onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={() => handleRecenter(getModulesBounds())}
       distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)}
+      heatmapAvailable={Boolean(heat)} heatmap={heatEnabled} onToggleHeatmap={() => setHeatEnabled((current) => !current)}
       hiddenCards={hiddenCards} onShowCard={handleShowCard} onShowAllHidden={handleShowAllHidden}
       hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onOpenSearch={search.show} onRunSimulation={handleRunSimulation} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} />
     <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label={t('canvas.aria')} tabIndex={0}
@@ -478,7 +489,7 @@ export default function Canvas() {
         onRename={document.renameCard} onTextChange={document.updateComment} onImageChange={document.updateImage}
         onToggleLock={handleToggleLock}
         expansionState={document.index.modules.has(card.id) ? getExpansionState(card.id) : null} onToggleExpansion={(id) => handleExpansion(id, getExpansionState(id) !== 'collapse')}>
-        {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} onReorder={(id, offset) => document.reorderNode(id, offset)} dropTarget={transfers.dropTarget} />}
+        {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} onReorder={(id, offset) => document.reorderNode(id, offset)} heat={heat} heatEnabled={heatEnabled && Boolean(heat)} dropTarget={transfers.dropTarget} />}
       </CanvasModule>)}
       <CanvasStatus camera={camera} zoom={zoom} hiddenCount={hiddenCards.length} onShowAllHidden={handleShowAllHidden} onRecenter={() => handleRecenter(getModulesBounds())} />
       <Minimap modules={minimapModules} camera={camera} zoom={zoom} canvasRef={canvasRef} onNavigate={panTo} />
