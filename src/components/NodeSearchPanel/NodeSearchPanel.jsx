@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
+import usePanelFront from '../../hooks/usePanelFront.jsx'
 import { searchNodes } from '../../utils/nodeSearch.js'
 import './NodeSearchPanel.css'
 
@@ -10,6 +11,7 @@ const MAX_RESULTS = 60
 // Recherche de blocs au clavier : champ, liste d'options et saut vers le bloc choisi.
 export default function NodeSearchPanel({ index, cards, selectedId, focusToken, onReveal, onClose }) {
   const { t } = useTranslation()
+  const front = usePanelFront()
   const [term, setTerm] = useState('')
   const [activePosition, setActivePosition] = useState(0)
   const inputRef = useRef(null)
@@ -52,8 +54,8 @@ export default function NodeSearchPanel({ index, cards, selectedId, focusToken, 
     }
   }
 
-  return <div className="node-search" data-node-search data-canvas-ui data-canvas-scroll role="dialog" aria-label={t('search.title')}
-    onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+  return <div className="node-search" data-node-search data-canvas-ui data-canvas-scroll role="dialog" aria-label={t('search.title')} style={front.zIndex ? { zIndex: front.zIndex } : undefined}
+    onPointerDown={(event) => { front.bringToFront(); event.stopPropagation() }} onFocusCapture={front.bringToFront} onKeyDown={(event) => event.stopPropagation()}>
     <div className="node-search__field">
       <Search size={14} aria-hidden="true" />
       <input ref={inputRef} className="glow" type="search" value={term} placeholder={t('search.placeholder')} aria-label={t('search.placeholder')}

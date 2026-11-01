@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Copy, FileOutput, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
+import usePanelFront from '../../hooks/usePanelFront.jsx'
 import { failureLabel } from '../../utils/translations.js'
 import { transpilationLanguages } from '../../utils/transpilation/languages.js'
 import './TranspilePanel.css'
@@ -8,6 +9,7 @@ import './TranspilePanel.css'
 // Affiche le code généré et les diagnostics sans modifier le document source.
 export default function TranspilePanel({ result, exportError, onExport, onClose }) {
   const { t } = useTranslation()
+  const front = usePanelFront()
   const [copyState, setCopyState] = useState(null)
   const target = transpilationLanguages.find((option) => option.id === result?.target)
   const values = { language: target?.name ?? result?.target ?? '', extension: target?.extension ?? '' }
@@ -25,7 +27,7 @@ export default function TranspilePanel({ result, exportError, onExport, onClose 
   }
 
   return (
-    <aside className="transpile-panel" data-canvas-ui data-canvas-scroll aria-label={t('transpile.title', values)} onPointerDown={(event) => event.stopPropagation()}>
+    <aside className="transpile-panel" data-canvas-ui data-canvas-scroll aria-label={t('transpile.title', values)} style={front.zIndex ? { zIndex: front.zIndex } : undefined} onPointerDown={(event) => { front.bringToFront(); event.stopPropagation() }} onFocusCapture={front.bringToFront}>
       <header>
         <h2>{t('transpile.title', values)}</h2>
         <button type="button" aria-label={t('transpile.close', values)} onClick={onClose}><X size={16} aria-hidden="true" /></button>

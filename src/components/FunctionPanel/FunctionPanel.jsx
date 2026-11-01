@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Bug, Play, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
+import usePanelFront from '../../hooks/usePanelFront.jsx'
 import { failureLabel } from '../../utils/translations.js'
 import './FunctionPanel.css'
 
@@ -31,6 +32,7 @@ function parseValue(type, raw) {
 // Saisit les entrées d'une fonction et présente son résultat, sa sortie et ses variables.
 export default function FunctionPanel({ index, functionNode, result, onRun, onDebug, onClose }) {
   const { t } = useTranslation()
+  const front = usePanelFront()
   const parameters = (functionNode.children.parameters ?? []).map((id) => {
     const node = index.nodes.get(id)
     return { id, name: node?.properties?.name ?? id, type: node?.properties?.type ?? null }
@@ -57,7 +59,7 @@ export default function FunctionPanel({ index, functionNode, result, onRun, onDe
     return <input type="text" value={inputs[position]} aria-label={parameter.name} spellCheck={false} inputMode={numericTypes.has(type) ? 'decimal' : 'text'} onChange={(event) => update(position, event.target.value)} />
   }
 
-  return <aside className="function-panel" data-canvas-ui data-canvas-scroll aria-label={t('function.title', { name })} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+  return <aside className="function-panel" data-canvas-ui data-canvas-scroll aria-label={t('function.title', { name })} style={front.zIndex ? { zIndex: front.zIndex } : undefined} onPointerDown={(event) => { front.bringToFront(); event.stopPropagation() }} onFocusCapture={front.bringToFront} onKeyDown={(event) => event.stopPropagation()}>
     <header>
       <h2>{t('function.title', { name })}</h2>
       <button type="button" aria-label={t('function.close')} onClick={onClose}><X size={16} aria-hidden="true" /></button>
