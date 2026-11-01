@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, BookmarkPlus, CircleDot, ChevronsDownUp, ChevronsUpDown, ClipboardPaste, Copy, CopyPlus, EyeOff, GitBranch, Lock, LockOpen, Network, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, BookmarkPlus, ChevronDown, ChevronRight, CircleDot, ChevronsDownUp, ChevronsUpDown, ClipboardPaste, Copy, CopyPlus, EyeOff, GitBranch, Lock, LockOpen, Network, Plus, Trash2 } from 'lucide-react'
 import { getAvailableActions, getNodeSchema } from '../../utils/logic/index.js'
 import { moduleTypes } from '../../utils/moduleTypes.js'
 import { diagnosticLabel, groupLabel, kindLabel, slotLabel } from '../LogicTree/logicLabels.js'
@@ -25,6 +25,7 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
   const { t } = useTranslation()
   const [slotName, setSlotName] = useState(initialSlot ?? '')
   const [kind, setKind] = useState('')
+  const [collapsedGroups, setCollapsedGroups] = useState(() => new Set())
   const [position, setPosition] = useState({ x, y })
   const [bounded, setBounded] = useState(false)
   const menuRef = useRef(null)
@@ -47,7 +48,7 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
   }, [x, y])
 
   useEffect(() => {
-    const first = kind ? menuRef.current.querySelector('input, select, .node-form button') : menuRef.current.querySelector('[role="menuitem"]:not(:disabled)')
+    const first = kind ? menuRef.current.querySelector('input, select, .node-form button') : menuRef.current.querySelector('[role="menuitem"]:not(:disabled):not(.logic-context-menu__group)')
     const focused = first ?? menuRef.current
     focused.focus({ preventScroll: true })
   }, [kind, slotName])
@@ -95,6 +96,16 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
   }
 
+  // Replie ou déplie une catégorie, sans toucher aux autres.
+  function toggleGroup(group) {
+    setCollapsedGroups((current) => {
+      const next = new Set(current)
+      if (next.has(group)) next.delete(group)
+      else next.add(group)
+      return next
+    })
+  }
+
   const menuStyle = {
     left: position.x,
     top: position.y,
@@ -111,10 +122,16 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
         {selectedSlot && available.slots.length > 1 && <button type="button" role="menuitem" onClick={() => { setSlotName(''); setKind('') }}><ArrowLeft className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.back')}</button>}
         {!available.ok && <p>{diagnosticLabel(available.code, t)}</p>}
         {available.ok && !selectedSlot && available.slots.map((slot) => <button type="button" role="menuitem" key={slot.name} disabled={slot.occupied || slot.malformed} onClick={() => { setSlotName(slot.name); setKind('') }}><CircleDot className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{slotLabel(slot.name, t)}{slot.occupied ? t('canvas.alreadyUsed') : slot.many ? t('canvas.several') : ''}</button>)}
-        {available.ok && selectedSlot && groupedActions(available.actions).map(([group, actions]) => <Fragment key={group}>
-          <div className="logic-context-menu__title logic-context-menu__group">{groupLabel(group, t)}</div>
-          {actions.map((action) => <button type="button" role="menuitem" key={action.id} aria-pressed={kind === action.kind} onClick={() => setKind(action.kind)}><Plus className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{kindLabel(action.kind, t)}</button>)}
-        </Fragment>)}
+        {available.ok && selectedSlot && groupedActions(available.actions).map(([group, actions]) => {
+          const collapsed = collapsedGroups.has(group)
+          return <Fragment key={group}>
+            <button type="button" role="menuitem" className="logic-context-menu__group" aria-expanded={!collapsed} title={t(collapsed ? 'menu.groupExpand' : 'menu.groupCollapse')} onClick={() => toggleGroup(group)}>
+              {collapsed ? <ChevronRight size={14} strokeWidth={1.75} aria-hidden="true" /> : <ChevronDown size={14} strokeWidth={1.75} aria-hidden="true" />}
+              {groupLabel(group, t)}
+            </button>
+            {!collapsed && actions.map((action) => <button type="button" role="menuitem" key={action.id} aria-pressed={kind === action.kind} onClick={() => setKind(action.kind)}><Plus className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{kindLabel(action.kind, t)}</button>)}
+          </Fragment>
+        })}
         {available.ok && (available.slots.length === 0 || (selectedSlot && available.actions.length === 0)) && <p>{t('canvas.nothingToAdd')}</p>}
       </div>
       <div className="logic-context-menu__actions logic-context-menu__node-actions" role="menu" aria-label={t('canvas.nodeActions')}>

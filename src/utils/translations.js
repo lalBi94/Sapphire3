@@ -491,6 +491,8 @@ const messages = {
   'group.value': ['Values', 'Valeurs', '值', 'Valores', 'القيم'],
   'group.array': ['Arrays', 'Tableaux', '数组', 'Matrices', 'المصفوفات'],
   'group.incomplete': ['Incomplete', 'Incomplets', '不完整', 'Incompletos', 'غير مكتملة'],
+  'menu.groupExpand': ['Expand section', 'Déplier la section', '展开分区', 'Expandir sección', 'توسيع القسم'],
+  'menu.groupCollapse': ['Collapse section', 'Replier la section', '折叠分区', 'Contraer sección', 'طي القسم'],
   'kind.FunctionDeclaration': ['Function', 'Fonction', '函数', 'Función', 'دالة'],
   'kind.VariableDeclaration': ['Variable', 'Variable', '变量', 'Variable', 'متغير'],
   'kind.ConstantDeclaration': ['Constant', 'Constante', '常量', 'Constante', 'ثابت'],
