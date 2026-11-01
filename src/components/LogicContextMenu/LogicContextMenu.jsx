@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, CircleDot, ChevronsDownUp, ChevronsUpDown, ClipboardPaste, Copy, CopyPlus, EyeOff, GitBranch, Network, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, CircleDot, ChevronsDownUp, ChevronsUpDown, ClipboardPaste, Copy, CopyPlus, EyeOff, GitBranch, Lock, LockOpen, Network, Plus, Trash2 } from 'lucide-react'
 import { getAvailableActions, getNodeSchema } from '../../utils/logic/index.js'
 import { moduleTypes } from '../../utils/moduleTypes.js'
 import { diagnosticLabel, groupLabel, kindLabel, slotLabel } from '../LogicTree/logicLabels.js'
@@ -21,7 +21,7 @@ function groupedActions(actions) {
 }
 
 // Propose le slot, puis la construction compatible et son formulaire latéral.
-export default function LogicContextMenu({ project, index, targetId, initialSlot, x, y, onInsert, onDelete, onDeleteModule, onHideCard, onExpansion, onOpenGraph, onCopy, onPaste, onDuplicate, hasClipboard, canToggleExpansion = false, onClose }) {
+export default function LogicContextMenu({ project, index, targetId, initialSlot, x, y, onInsert, onDelete, onDeleteModule, onHideCard, onLockCard, targetLocked = false, onExpansion, onOpenGraph, onCopy, onPaste, onDuplicate, hasClipboard, canToggleExpansion = false, onClose }) {
   const { t } = useTranslation()
   const [slotName, setSlotName] = useState(initialSlot ?? '')
   const [kind, setKind] = useState('')
@@ -129,6 +129,7 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
           <button type="button" role="menuitem" onClick={() => onExpansion(available.target.id, false)}><ChevronsDownUp className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.collapseAll')}</button>
         </>}
         {available.ok && available.target?.kind === 'node' && <button type="button" role="menuitem" className="logic-context-menu__delete" title={t('canvas.deleteInside')} onClick={() => onDelete(targetId)}><Trash2 className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.deleteBlock')}</button>}
+        {available.target?.kind === 'module' && <button type="button" role="menuitem" onClick={() => onLockCard(available.target.id)}>{targetLocked ? <LockOpen className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" /> : <Lock className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />}{targetLocked ? t('canvas.unlock') : t('canvas.lock')} {t(moduleTypes.module.targetLabelKey)}</button>}
         {available.target?.kind === 'module' && <button type="button" role="menuitem" onClick={() => onHideCard(available.target)}><EyeOff className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.hide')} {t(moduleTypes.module.targetLabelKey)}</button>}
         {available.ok && available.target?.kind === 'module' && <DeleteAction targetId={available.target.id} kind="module" onDelete={onDeleteModule} menu />}
       </div>

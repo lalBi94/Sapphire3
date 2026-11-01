@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Box, EyeOff, Image, MessageSquare } from 'lucide-react'
+import { Box, EyeOff, Image, Lock, LockOpen, MessageSquare } from 'lucide-react'
 import { moduleTypes } from '../../utils/moduleTypes.js'
 import DeleteAction from '../DeleteAction/DeleteAction.jsx'
 import './CanvasContextMenu.css'
@@ -12,7 +12,7 @@ const menuIcons = {
 }
 
 // Propose les créations disponibles et gère la fermeture ainsi que le focus clavier.
-export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId = null, onDeleteComment, onHideCard, anchored = false }) {
+export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId = null, onDeleteComment, onHideCard, onLockCard, commentLocked = false, anchored = false }) {
   const menuRef = useRef(null)
   const { t } = useTranslation()
 
@@ -60,6 +60,7 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId =
       onKeyDown={handleKeyDown}
     >
       {commentId ? <>
+        <button type="button" role="menuitem" onClick={() => onLockCard(commentId.id)}>{commentLocked ? <LockOpen className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" /> : <Lock className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />}{commentLocked ? t('canvas.unlock') : t('canvas.lock')} {t(moduleTypes[commentId.type ?? 'comment'].targetLabelKey)}</button>
         <button type="button" role="menuitem" onClick={() => onHideCard(commentId)}><EyeOff className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.hide')} {t(moduleTypes[commentId.type ?? 'comment'].targetLabelKey)}</button>
         <DeleteAction targetId={commentId} kind={commentId.type ?? 'comment'} onDelete={onDeleteComment} menu />
       </> : Object.keys(moduleTypes).map((type) => {

@@ -173,3 +173,19 @@ test('nouveau document : un workspace vierge remplace le document par un état v
   assert.equal(filled.present.project.modules.length, 0)
   assert.equal(filled.past.length, 0, 'le nouveau document repart sans historique')
 })
+
+test('verrouillage de carte : drapeau de présentation, sans étape d’historique et écrit seulement quand il est vrai', () => {
+  const camera = { x: 0, y: 0, zoomLevel: 0 }
+  const document = reduceDocument(initialDocument(), { type: 'createCard', card: card('module') })
+  const written = (value) => JSON.parse(serializeWorkspace(document.project, value === undefined ? [card('module')] : [{ ...card('module'), locked: value }], camera))
+  assert.doesNotThrow(() => deserializeWorkspace(JSON.stringify(written(true))))
+  assert.equal(written(false).presentation.cards[0].locked, undefined, 'un verrou faux n’est jamais écrit')
+  assert.equal(written(undefined).presentation.cards[0].locked, undefined)
+  assert.equal(written(true).presentation.cards[0].locked, true)
+  const invalid = written(true)
+  invalid.presentation.cards[0].locked = 'yes'
+  assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)), { message: 'Invalid card lock.' })
+  const history = reduceHistory({ past: [], present: document, future: [] }, { type: 'presentation', id: 'module', patch: { locked: true } })
+  assert.equal(history.present.cards[0].locked, true)
+  assert.equal(history.past.length, 0, 'le verrou est une présentation, pas une étape d’historique')
+})

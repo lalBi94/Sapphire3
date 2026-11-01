@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { ChevronsDownUp, ChevronsUpDown } from 'lucide-react'
+import { ChevronsDownUp, ChevronsUpDown, Lock } from 'lucide-react'
 import { minimumModuleSize, moduleTypes } from '../../utils/moduleTypes.js'
 import { isEmbeddedImage } from '../../utils/embeddedImage.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
@@ -7,7 +7,7 @@ import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './CanvasModule.css'
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onRename, onTextChange, onImageChange, children, selected = false, onSelect, onOpenActions, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onRename, onTextChange, onImageChange, children, selected = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -133,7 +133,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
 
   // Capture l'en-tête et mémorise la position ainsi que le zoom au début du geste.
   function handleMoveStart(event) {
-    if (event.button !== 0 || moveRef.current || resizeRef.current) return
+    if (module.locked || event.button !== 0 || moveRef.current || resizeRef.current) return
     event.preventDefault()
     event.currentTarget.focus({ preventScroll: true })
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -168,7 +168,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
     }
     const directions = { ArrowLeft: [-10, 0], ArrowRight: [10, 0], ArrowUp: [0, -10], ArrowDown: [0, 10] }
     const direction = directions[event.key]
-    if (!direction) return
+    if (!direction || module.locked) return
     event.preventDefault()
     const x = module.x + direction[0]
     const y = module.y + direction[1]
@@ -177,7 +177,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
 
   // Mémorise les dimensions initiales et capture le geste sur la poignée.
   function handleResizeStart(event) {
-    if (event.button !== 0 || resizeRef.current || moveRef.current) return
+    if (module.locked || event.button !== 0 || resizeRef.current || moveRef.current) return
     manuallySizedRef.current = fitRequest
     event.preventDefault()
     event.currentTarget.focus({ preventScroll: true })
@@ -220,7 +220,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
       ArrowDown: [0, 10],
     }
     const direction = directions[event.key]
-    if (!direction) return
+    if (!direction || module.locked) return
     manuallySizedRef.current = fitRequest
     event.preventDefault()
     onResize(
@@ -232,7 +232,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
 
   return (
     <section
-      className={`canvas-module canvas-module--${module.type}${isMoving ? ' canvas-module--moving' : ''}${selected ? ' canvas-module--selected' : ''}${dropState ? ` canvas-module--drop-${dropState}` : ''}`}
+      className={`canvas-module canvas-module--${module.type}${module.locked ? ' canvas-module--locked' : ''}${isMoving ? ' canvas-module--moving' : ''}${selected ? ' canvas-module--selected' : ''}${dropState ? ` canvas-module--drop-${dropState}` : ''}`}
       aria-label={name}
       data-source-module={definition.hasText || definition.hasImage ? undefined : module.id}
       data-card-id={module.id}
@@ -268,7 +268,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
               type="button"
               className="canvas-module__move"
               aria-label={t('canvas.move', { name })}
-              title={t(definition.renamable ? 'canvas.renameHint' : 'canvas.moveHint')}
+              title={t(module.locked ? 'canvas.lockedHint' : definition.renamable ? 'canvas.renameHint' : 'canvas.moveHint')}
               onDoubleClick={handleRenameStart}
               onPointerDown={handleMoveStart}
               onPointerMove={handleMove}
@@ -282,6 +282,16 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
             </button>
           )}
         </h2>
+        {module.locked && <button
+          type="button"
+          className="canvas-module__lock"
+          aria-label={`${t('canvas.unlock')} ${name}`}
+          title={t('canvas.unlock')}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => { event.stopPropagation(); onToggleLock(module.id) }}
+        >
+          <Lock size={13} strokeWidth={2} aria-hidden="true" />
+        </button>}
         {expansionState && <button
           type="button"
           className="canvas-module__expansion"
@@ -327,7 +337,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
           <input ref={imageInputRef} className="canvas-module__image-input" type="file" accept="image/*" onChange={handleImageChange} />
         </div>
       ) : <div ref={contentRef} className="canvas-module__content" data-canvas-scroll>{children}</div>}
-      <button
+      {!module.locked && <button
         className="canvas-module__resize"
         type="button"
         aria-label={t('canvas.resize', { name })}
@@ -342,7 +352,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         <svg viewBox="0 0 16 16" aria-hidden="true">
           <path d="M5 12l7-7M9 12l3-3" />
         </svg>
-      </button>
+      </button>}
     </section>
   )
 }

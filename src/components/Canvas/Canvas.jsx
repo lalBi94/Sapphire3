@@ -415,6 +415,17 @@ export default function Canvas() {
     document.setCardHidden(cardId, false)
   }
 
+  // Bascule le verrou d'une carte : déplacement et redimensionnement bloqués, source intacte.
+  function handleToggleLock(cardId) {
+    const card = document.cards.find((entry) => entry.id === cardId)
+    if (card) document.setCardLocked(card.id, !card.locked)
+  }
+
+  // Indique si la carte visée est verrouillée.
+  function isCardLocked(cardId) {
+    return Boolean(cardId && document.cards.find((entry) => entry.id === cardId)?.locked)
+  }
+
   // Rouvre d'un coup toutes les cartes rangées hors du canvas.
   function handleShowAllHidden() {
     for (const card of hiddenCards) document.setCardHidden(card.id, false)
@@ -459,6 +470,7 @@ export default function Canvas() {
         onResize={(id, width, height) => document.updateGeometry(id, { width, height })}
         onMove={(id, x, y) => document.updateGeometry(id, { x, y })}
         onRename={document.renameCard} onTextChange={document.updateComment} onImageChange={document.updateImage}
+        onToggleLock={handleToggleLock}
         expansionState={document.index.modules.has(card.id) ? getExpansionState(card.id) : null} onToggleExpansion={(id) => handleExpansion(id, getExpansionState(id) !== 'collapse')}>
         {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} onReorder={(id, offset) => document.reorderNode(id, offset)} dropTarget={transfers.dropTarget} />}
       </CanvasModule>)}
@@ -473,8 +485,8 @@ export default function Canvas() {
       {search.open && <NodeSearchPanel index={document.index} cards={visibleCards} selectedId={selected?.kind === 'node' ? selected.id : null} focusToken={search.token} onReveal={handleRevealNode} onClose={handleCloseSearch} />}
       {nodeGraph && <NodeGraphPanel project={document.project} index={document.index} target={nodeGraph.target} mode={nodeGraph.mode} onSelect={handleSelect} onClose={() => setNodeGraph(null)} />}
       {selected && <NodeProperties key={document.revision} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={handleSelect} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onExport={document.exportFunction} onImport={document.importFunction} onRemoveImport={document.removeImport} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
-      {contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onHideCard={handleHideCard} onExpansion={(id, expand) => { handleExpansion(id, expand); handleCloseMenu(true) }} canToggleExpansion={contextMenu.targetId?.kind === 'module' && (expandableIds.get(contextMenu.targetId.id)?.length ?? 0) > 0} onOpenGraph={handleOpenNodeGraph} onCopy={handleCopyNode} onPaste={transfers.pasteNode} onDuplicate={transfers.duplicateNode} hasClipboard={transfers.hasClipboard} onClose={handleCloseMenu} />
-        : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} onCreate={handleCreateModule} onClose={handleCloseMenu} anchored={contextMenu.anchored} commentId={contextMenu.targetId ? { id: contextMenu.targetId.id, type: contextMenu.targetId.kind } : null} onDeleteComment={handleDeleteComment} onHideCard={handleHideCard} />)}
+      {contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onHideCard={handleHideCard} onLockCard={handleToggleLock} targetLocked={isCardLocked(contextMenu.targetId?.id)} onExpansion={(id, expand) => { handleExpansion(id, expand); handleCloseMenu(true) }} canToggleExpansion={contextMenu.targetId?.kind === 'module' && (expandableIds.get(contextMenu.targetId.id)?.length ?? 0) > 0} onOpenGraph={handleOpenNodeGraph} onCopy={handleCopyNode} onPaste={transfers.pasteNode} onDuplicate={transfers.duplicateNode} hasClipboard={transfers.hasClipboard} onClose={handleCloseMenu} />
+        : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} onCreate={handleCreateModule} onClose={handleCloseMenu} anchored={contextMenu.anchored} commentId={contextMenu.targetId ? { id: contextMenu.targetId.id, type: contextMenu.targetId.kind } : null} onDeleteComment={handleDeleteComment} onHideCard={handleHideCard} onLockCard={handleToggleLock} commentLocked={isCardLocked(contextMenu.targetId?.id)} />)}
     </main>
     </div>
   )

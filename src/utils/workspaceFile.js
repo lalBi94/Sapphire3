@@ -65,6 +65,7 @@ function validatePresentation(project, presentation) {
       throw workspaceError('Invalid expanded node data.')
     }
     if (card.hidden !== undefined && typeof card.hidden !== 'boolean') throw workspaceError('Invalid card visibility.')
+    if (card.locked !== undefined && typeof card.locked !== 'boolean') throw workspaceError('Invalid card lock.')
     ids.add(card.id)
   }
   if (project.modules.some((module) => !ids.has(module.id))) throw workspaceError('A module is missing its visual card.')
@@ -74,10 +75,10 @@ function validatePresentation(project, presentation) {
   }
 }
 
-// N'écrit le drapeau de carte masquée que lorsqu'il est vrai, pour garder les fichiers habituels inchangés.
+// N'écrit les drapeaux de carte masquée ou verrouillée que lorsqu'ils sont vrais, pour garder les fichiers habituels inchangés.
 function exportableCard(card, nodes) {
-  const { hidden, ...rest } = card
-  return { ...rest, ...(hidden ? { hidden: true } : {}), expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) }
+  const { hidden, locked, ...rest } = card
+  return { ...rest, ...(hidden ? { hidden: true } : {}), ...(locked ? { locked: true } : {}), expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) }
 }
 
 // Produit le même instantané JSON versionné pour les extensions .sp3 et .json.

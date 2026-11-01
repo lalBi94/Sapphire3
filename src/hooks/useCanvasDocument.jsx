@@ -145,6 +145,11 @@ export default function useCanvasDocument() {
     dispatch({ type: 'presentation', id, patch: { hidden } })
   }
 
+  // Verrouille ou déverrouille une carte : empêche son déplacement et son redimensionnement, sans toucher à la source.
+  function setCardLocked(id, locked) {
+    dispatch({ type: 'presentation', id, patch: { locked } })
+  }
+
   // Charge un document validé et force le remontage des interactions locales des cartes.
   function replaceWorkspace(workspace) {
     dispatch({ type: 'replaceWorkspace', workspace })
@@ -160,5 +165,5 @@ export default function useCanvasDocument() {
     dispatch({ type: 'redo' })
   }
 
-  return { ...document, createCard, updateGeometry, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, duplicateNode, deleteNode, deleteModule, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setExpandedNodes, setCardHidden, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
+  return { ...document, createCard, updateGeometry, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, duplicateNode, deleteNode, deleteModule, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setExpandedNodes, setCardHidden, setCardLocked, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
 }
