@@ -39,6 +39,13 @@ body,
   opacity: 0.8;
 }
 
+/* Une couleur posée sur le <select> laisse le panneau natif des options sur fond système :
+   on impose la surface surélevée et le texte du thème à chaque option, sinon sombre = blanc sur blanc. */
+:where(option, optgroup) {
+  background-color: var(--color-surface-raised);
+  color: var(--color-text);
+}
+
 ::selection {
   background: var(--color-selection);
   color: var(--color-on-primary);
