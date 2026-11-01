@@ -486,7 +486,7 @@ const messages = {
   'group.return': ['Return', 'Retour', '返回', 'Retorno', 'الإرجاع'],
   'group.block': ['Blocks', 'Blocs', '块', 'Bloques', 'الكتل'],
   'group.statement': ['Statements', 'Instructions', '语句', 'Instrucciones', 'التعليمات'],
-  'group.syscall': ['System calls', 'Appels système', '系统调用', 'Llamadas al sistema', 'نداءات النظام'],
+  'group.native': ['SP3 native operations', 'Opérations natives SP3', 'SP3 原生操作', 'Operaciones nativas SP3', 'عمليات SP3 الأصلية'],
   'group.operator': ['Operations', 'Opérations', '运算', 'Operaciones', 'العمليات'],
   'group.value': ['Values', 'Valeurs', '值', 'Valores', 'القيم'],
   'group.array': ['Arrays', 'Tableaux', '数组', 'Matrices', 'المصفوفات'],

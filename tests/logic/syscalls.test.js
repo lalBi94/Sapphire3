@@ -24,7 +24,8 @@ test('appels système : le registre est cohérent et reproductible', () => {
     assert.ok(definition.returnType)
   }
   assert.equal(getSyscall('unknown'), null)
-  assert.equal(getNodeSchema('SystemCall').group, 'syscall', 'les appels système ont leur propre catégorie de menu')
+  assert.equal(getNodeSchema('SystemCall').group, 'native', 'les appels système sont des opérations natives')
+  assert.equal(getNodeSchema('PrintStatement').group, 'native', 'print est aussi une opération native SP3')
   assert.equal(getSyscall('tick').run({ args: [], steps: 7 }), getSyscall('tick').run({ args: [], steps: 7 }))
 })
 

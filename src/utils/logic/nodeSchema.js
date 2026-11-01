@@ -19,7 +19,7 @@ export const nodeSchema = Object.freeze({
   TypeDeclaration: { category: 'declaration', group: 'type', named: true, declaresType: true, slots: {} },
   Block: { category: 'statement', group: 'block', slots: { statements: { categories: ['statement', 'declaration'], many: true, required: true } } },
   ReturnStatement: { category: 'statement', group: 'return', slots: { argument: { ...expression, required: false } } },
-  PrintStatement: { category: 'statement', group: 'statement', slots: { value: expression } },
+  PrintStatement: { category: 'statement', group: 'native', slots: { value: expression } },
   IfStatement: { category: 'statement', group: 'condition', slots: { test: expression, consequent: block, alternate: { ...block, required: false } } },
   WhileStatement: { category: 'statement', group: 'loop', slots: { test: expression, body: block } },
   ForStatement: { category: 'statement', group: 'loop', slots: { initializer: { kinds: ['VariableDeclaration', 'ConstantDeclaration', 'AssignmentStatement', 'ExpressionStatement'], required: false }, test: { ...expression, required: false }, update: { categories: ['expression'], kinds: ['AssignmentStatement'], required: false }, body: block } },
@@ -32,7 +32,7 @@ export const nodeSchema = Object.freeze({
   Literal: { category: 'expression', group: 'value', declaresType: true, slots: {} },
   Reference: { category: 'expression', group: 'value', slots: {} },
   CallExpression: { category: 'expression', group: 'function', slots: { callee: expression, arguments: { categories: ['expression'], many: true, required: true } } },
-  SystemCall: { category: 'expression', group: 'syscall', slots: { arguments: { categories: ['expression'], many: true, required: true } } },
+  SystemCall: { category: 'expression', group: 'native', slots: { arguments: { categories: ['expression'], many: true, required: true } } },
   CastExpression: { category: 'expression', group: 'operator', declaresType: true, slots: { argument: expression } },
   Hole: { category: 'hole', group: 'incomplete', slots: {} },
   // Tableaux : littéral, création bornée par une taille, puis accès par index.
