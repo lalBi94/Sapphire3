@@ -2,6 +2,9 @@
 const expression = { categories: ['expression'], required: true }
 const block = { kinds: ['Block'], required: true }
 
+// Slots pour les tableaux : éléments de même type, accès par index.
+const arrayExpression = { categories: ['expression'], required: true }
+
 export const moduleRootSlot = Object.freeze({ categories: ['declaration', 'statement'], many: true, required: true })
 
 // Vérifie uniquement la compatibilité syntaxique, indépendamment de la portée et des types.
@@ -34,6 +37,10 @@ export const nodeSchema = Object.freeze({
   CallExpression: { category: 'expression', group: 'function', slots: { callee: expression, arguments: { categories: ['expression'], many: true, required: true } } },
   CastExpression: { category: 'expression', group: 'operator', declaresType: true, slots: { argument: expression } },
   Hole: { category: 'hole', group: 'incomplete', slots: {} },
+  // Tableaux : littéral, création avec taille, accès par index
+  ArrayLiteral: { category: 'expression', group: 'value', declaresType: true, slots: { elements: { categories: ['expression'], many: true, required: true } } },
+  ArrayCreation: { category: 'expression', group: 'value', declaresType: true, slots: { size: expression, initializer: { categories: ['expression'], required: false } } },
+  ArrayAccess: { category: 'expression', group: 'value', slots: { array: arrayExpression, index: expression } },
 })
 
 export const binaryOperators = Object.freeze({

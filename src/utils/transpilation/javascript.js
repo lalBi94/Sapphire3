@@ -55,6 +55,21 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
       const argument = expression(child(node, 'argument'))
       return target === typeByNode.get(child(node, 'argument')?.sourceId)?.name ? argument : `sapphireChecked(sapphireNumeric.convertConstant(${argument}, ${JSON.stringify(target)}))`
     }
+    if (node.kind === 'ArrayLiteral') {
+      const elements = node.children.elements ?? []
+      return `[${elements.map(expression).join(', ')}]`
+    }
+    if (node.kind === 'ArrayCreation') {
+      const size = expression(child(node, 'size'))
+      const init = child(node, 'initializer')
+      if (init) return `Array.from({length:${size}}, () => ${expression(init)})`
+      return `new Array(${size})`
+    }
+    if (node.kind === 'ArrayAccess') {
+      const arr = expression(child(node, 'array'))
+      const idx = expression(child(node, 'index'))
+      return `${arr}[${idx}]`
+    }
     diagnostics.push(createDiagnostic('TRANSPILE_EXPRESSION_UNSUPPORTED', `Expression ${node.kind} non prise en charge.`, node.location))
     return 'undefined'
   }

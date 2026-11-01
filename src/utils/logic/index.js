@@ -1,7 +1,7 @@
 import { walkAst } from './ast.js'
 
 export { createProject, createModule, createNode, moduleKinds, sourceFormatVersion } from './model.js'
-export { primitiveDefinitions, primitiveType, sameType, acceptsOperand } from './primitives.js'
+export { primitiveDefinitions, primitiveType, sameType, acceptsOperand, arrayType, isArrayType, arrayElementType, isValidElementType } from './primitives.js'
 export { buildLogicalAst, walkAst } from './ast.js'
 export { buildSemanticModel } from './semantics.js'
 export { diagnosticCodes, hasBlockingDiagnostics } from './diagnostics.js'

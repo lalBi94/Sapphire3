@@ -1,4 +1,5 @@
 // Seul catalogue des types logiques : les bornes ne dépendent pas d'un langage cible.
+// Les tableaux sont des types construits dont l'élément est un primitif ou un type nommé.
 const definitions = {
   'short int': { category: 'integer', bits: 16, signed: true, min: -32768, max: 32767 },
   'short uint': { category: 'integer', bits: 16, signed: false, min: 0, max: 65535 },
@@ -52,5 +53,29 @@ export function sameType(left, right) {
       left.parameters.every((type, index) => sameType(type, right.parameters[index])) &&
       sameType(left.returnType, right.returnType)
   }
+  if (left.kind === 'array') {
+    return sameType(left.elementType, right.elementType)
+  }
   return false
+}
+
+// Crée un type tableau avec le type d'élément donné.
+export function arrayType(elementType) {
+  if (!elementType) return null
+  return Object.freeze({ kind: 'array', elementType })
+}
+
+// Vérifie si un type est un type tableau.
+export function isArrayType(type) {
+  return type?.kind === 'array'
+}
+
+// Extrait le type d'élément d'un type tableau, ou null si ce n'est pas un tableau.
+export function arrayElementType(type) {
+  return isArrayType(type) ? type.elementType : null
+}
+
+// Vérifie si un type peut servir de type d'élément (primitif uniquement pour cette version).
+export function isValidElementType(type) {
+  return type?.kind === 'primitive' && type.name !== 'void'
 }

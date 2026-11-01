@@ -1,7 +1,7 @@
 import { createDiagnostic, diagnosticCodes as codes } from './diagnostics.js'
 import { isRecord } from './model.js'
 import { binaryOperators, unaryOperators, getNodeSchema } from './nodeSchema.js'
-import { getPrimitive, primitiveType, isNumeric, sameType, acceptsOperand } from './primitives.js'
+import { getPrimitive, primitiveType, isNumeric, sameType, acceptsOperand, arrayType, isArrayType } from './primitives.js'
 import { validateLiteral, convertConstant, evaluateBinary, evaluateUnary } from './numericConstants.js'
 
 // Extrait un enfant simple sans interpréter un trou ou une liste malformée comme une expression.
@@ -187,6 +187,100 @@ export function analyzeTypes(semantic, projectId) {
     return valid ? callee.returnType : null
   }
 
+  // Type un littéral de tableau à partir du type d'élément annoté.
+  function arrayLiteral(node) {
+    const elementTypeRef = node.properties.elementType
+    if (!isRecord(elementTypeRef) || (elementTypeRef.kind !== 'primitive' && elementTypeRef.kind !== 'named')) {
+      report(codes.typeRequired, 'Un type d\'élément explicite est requis pour un tableau.', node, 'properties.elementType')
+      return null
+    }
+    let elementType = null
+    if (elementTypeRef.kind === 'primitive') {
+      elementType = primitiveType(elementTypeRef.name)
+    } else if (elementTypeRef.kind === 'named') {
+      const symbol = typeSymbols.get(node.sourceId)
+      if (symbol && nodes.has(symbol.nodeId)) elementType = annotation(nodes.get(symbol.nodeId))
+    }
+    if (!elementType) {
+      report(codes.typeInvalid, 'Le type d\'élément n\'est pas valide.', node, 'properties.elementType')
+      return null
+    }
+    if (elementType.kind === 'void') {
+      report(codes.voidNotAllowed, 'void ne peut pas être le type d\'élément d\'un tableau.', node, 'properties.elementType')
+      return null
+    }
+    // Vérifie que tous les éléments sont du même type.
+    const elements = node.children.elements ?? []
+    for (const elementId of elements) {
+      const elementTypeResolved = resolve(elementId)
+      if (!elementTypeResolved || !sameType(elementType, elementTypeResolved)) {
+        report(codes.typeMismatch, 'Les éléments du tableau doivent tous avoir le même type.', node, 'children.elements')
+        return null
+      }
+    }
+    return arrayType(elementType)
+  }
+
+  // Type la création d'un tableau avec taille et initialisation optionnelle.
+  function arrayCreation(node) {
+    const elementTypeRef = node.properties.elementType
+    if (!isRecord(elementTypeRef) || (elementTypeRef.kind !== 'primitive' && elementTypeRef.kind !== 'named')) {
+      report(codes.typeRequired, 'Un type d\'élément explicite est requis pour un tableau.', node, 'properties.elementType')
+      return null
+    }
+    let elementType = null
+    if (elementTypeRef.kind === 'primitive') {
+      elementType = primitiveType(elementTypeRef.name)
+    } else if (elementTypeRef.kind === 'named') {
+      const symbol = typeSymbols.get(node.sourceId)
+      if (symbol && nodes.has(symbol.nodeId)) elementType = annotation(nodes.get(symbol.nodeId))
+    }
+    if (!elementType) {
+      report(codes.typeInvalid, 'Le type d\'élément n\'est pas valide.', node, 'properties.elementType')
+      return null
+    }
+    if (elementType.kind === 'void') {
+      report(codes.voidNotAllowed, 'void ne peut pas être le type d\'élément d\'un tableau.', node, 'properties.elementType')
+      return null
+    }
+    // Vérifie le type de l'index (doit être un entier).
+    const sizeNode = child(node, 'size')
+    if (sizeNode) {
+      const sizeType = resolve(sizeNode.sourceId)
+      if (sizeType?.kind !== 'primitive' || !['short int', 'short uint', 'int', 'uint'].includes(sizeType.name)) {
+        report(codes.typeMismatch, 'La taille d\'un tableau doit être un type entier.', node, 'children.size')
+        return null
+      }
+    }
+    // Vérifie le type de l'initialiseur si présent.
+    const initNode = child(node, 'initializer')
+    if (initNode) {
+      const initType = resolve(initNode.sourceId)
+      if (!initType || !sameType(elementType, initType)) {
+        report(codes.typeMismatch, 'L\'initialiseur doit être du type de l\'élément du tableau.', node, 'children.initializer')
+        return null
+      }
+    }
+    return arrayType(elementType)
+  }
+
+  // Type l'accès à un élément de tableau : renvoie le type de l'élément.
+  function arrayAccess(node) {
+    const arrayNode = child(node, 'array')
+    const indexNode = child(node, 'index')
+    const arrayTypeResolved = resolve(arrayNode?.sourceId)
+    if (!arrayTypeResolved || !isArrayType(arrayTypeResolved)) {
+      report(codes.typeMismatch, 'L\'accès par index nécessite un tableau.', node, 'children.array')
+      return null
+    }
+    const indexType = resolve(indexNode?.sourceId)
+    if (indexType?.kind !== 'primitive' || !['short int', 'short uint', 'int', 'uint'].includes(indexType.name)) {
+      report(codes.typeMismatch, 'L\'index d\'un tableau doit être un type entier.', node, 'children.index')
+      return null
+    }
+    return arrayTypeResolved.elementType
+  }
+
   // Résout les expressions avec mémoïsation ; null indique uniquement une absence de résultat.
   function resolve(nodeId) {
     if (!nodeId || !nodes.has(nodeId)) return null
@@ -212,6 +306,9 @@ export function analyzeTypes(semantic, projectId) {
     else if (['BinaryExpression', 'UnaryExpression'].includes(node.kind)) type = operation(node)
     else if (node.kind === 'CastExpression') type = cast(node)
     else if (node.kind === 'CallExpression') type = call(node)
+    else if (node.kind === 'ArrayLiteral') type = arrayLiteral(node)
+    else if (node.kind === 'ArrayCreation') type = arrayCreation(node)
+    else if (node.kind === 'ArrayAccess') type = arrayAccess(node)
     active.delete(nodeId)
     if (!resolved.has(nodeId)) resolved.set(nodeId, type)
     return resolved.get(nodeId)

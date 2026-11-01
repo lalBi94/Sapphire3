@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Plus, Save, Trash2 } from 'lucide-react'
-import { getNodeSchema, binaryOperators, unaryOperators, primitiveType, getCallableSymbols, sameType, acceptsOperand } from '../../utils/logic/index.js'
-import { initialNodeForm, nodeConfiguration } from './nodeConfiguration.js'
+import { getNodeSchema, binaryOperators, unaryOperators, primitiveType, getCallableSymbols, sameType, acceptsOperand, arrayType } from '../../utils/logic/index.js'
+import { initialNodeForm, nodeConfiguration, emptyExpression } from './nodeConfiguration.js'
 import NodeTypeInput from './NodeTypeInput.jsx'
 import NodeValueInput from './NodeValueInput.jsx'
 import ExpressionInput from './ExpressionInput.jsx'
@@ -82,6 +82,20 @@ export default function NodeForm({ kind, initialNode = null, context, onSubmit }
         </div>)}
         <button type="button" onClick={() => change('parameters', [...form.parameters, { name: '', typeName: '' }])}><Plus size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.addInput')}</button>
       </fieldset>}
+      {isNew && ['ArrayLiteral', 'ArrayCreation'].includes(kind) && <>
+        <NodeTypeInput label={t('field.elementType')} value={form.elementTypeName} onChange={(value) => change('elementTypeName', value)} required={true} allowVoid={false} />
+      </>}
+      {isNew && kind === 'ArrayLiteral' && <fieldset><legend>{t('slot.elements')}</legend>
+        {form.elements.map((element, index) => <div className="node-form__parameter" key={index}>
+          <ExpressionInput label={t('expression.element', { number: index + 1 })} value={element} onChange={(value) => change('elements', form.elements.map((entry, position) => position === index ? value : entry))} type={primitiveType(form.elementTypeName)} symbols={symbols} required={false} allowIncomplete={form.allowIncomplete} />
+          <button type="button" onClick={() => change('elements', form.elements.filter((_, position) => position !== index))}><Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.removeInput')}</button>
+        </div>)}
+        <button type="button" onClick={() => change('elements', [...form.elements, emptyExpression()])}><Plus size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.addInput')}</button>
+      </fieldset>}
+      {isNew && kind === 'ArrayCreation' && <>
+        <ExpressionInput label={t('slot.size')} value={form.arraySize} onChange={(value) => change('arraySize', value)} type={primitiveType('int')} symbols={symbols} required={true} allowIncomplete={form.allowIncomplete} />
+        <ExpressionInput label={t('slot.initializer')} value={form.arrayInitializer} onChange={(value) => change('arrayInitializer', value)} type={primitiveType(form.elementTypeName)} symbols={symbols} required={false} allowIncomplete={form.allowIncomplete} />
+      </>}
       {isNew && kind === 'ForStatement' && <p className="node-form__hint">{t('form.loopHint')}</p>}
       {isNew && <p className="node-form__hint">{t('form.incompleteHint')}</p>}
       <label className="node-form__check"><input type="checkbox" checked={form.allowIncomplete} onChange={(event) => change('allowIncomplete', event.target.checked)} />{t('form.leaveEmpty')}</label>

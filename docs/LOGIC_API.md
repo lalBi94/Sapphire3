@@ -76,6 +76,9 @@ La catégorie de module `main` est retirée : une ancienne source v1 l'utilisant
 | `CallExpression` | `callee` expression, `arguments[]` |
 | `CastExpression` | `type` cible obligatoire, `argument` expression ; conversion explicitement demandée |
 | `Hole` | Incomplétude explicite, diagnostic bloquant mais représentation conservée |
+| `ArrayLiteral` | `elementType` obligatoire, `elements[]` expressions du même type |
+| `ArrayCreation` | `elementType` obligatoire, `size` expression entière, `initializer?` expression du type d'élément |
+| `ArrayAccess` | `array` expression tableau, `index` expression entière ; résultat : type de l'élément |
 
 `nodeSchema.js` centralise catégories, slots et opérateurs. Le champ `declaresType` identifie les constructions portant une annotation ; une annotation sur un opérateur ou une référence est une erreur structurelle et ne peut pas forcer son type. Chaque schéma porte aussi un `group` stable (`variable`, `type`, `function`, `parameter`, `condition`, `loop`, `return`, `block`, `statement`, `operator`, `value`, `incomplete`) utilisé uniquement par l'interface pour la couleur de bordure ; il ne participe ni à la validation ni au typage. Les règles détaillées des opérateurs et conversions sont ci-dessous.
 
@@ -109,6 +112,16 @@ Le catalogue unique est `primitives.js`. Les seuls primitifs sont :
 | `void` | Absence de valeur : annotation de retour de fonction uniquement |
 
 `number`, `any` et `unknown` sont rejetés comme types logiques ; aucun export, marqueur interne ou compatibilité implicite ne les remplace. Le mot `number` dans `typeof` JavaScript désigne uniquement le stockage de l'hôte, jamais un type logique du programme.
+
+### Types tableaux
+
+Les tableaux sont des types construits `{kind:'array', elementType:...}` où `elementType` est un primitif (sauf `void`). Trois constructions :
+
+- `ArrayLiteral` : `{kind:'ArrayLiteral', properties:{elementType:{kind:'primitive',name:'int'}}, children:{elements:[...]}}` — littéral avec liste d'expressions du même type.
+- `ArrayCreation` : `{kind:'ArrayCreation', properties:{elementType:...}, children:{size:expression, initializer?:expression}}` — création avec taille entière et initialiseur optionnel.
+- `ArrayAccess` : `{kind:'ArrayAccess', children:{array:expression, index:expression}}` — accès par index, résultat = type de l'élément.
+
+La simulation exécute les tableaux : littéraux en tant que listes, création avec valeur par défaut selon le type, accès vérifie les bornes. La transpilation JavaScript génère `[...]`, `new Array(size)` ou `Array.from(...)` et la syntaxe d'index `[]`.
 
 ### Littéraux et précision
 
@@ -218,7 +231,7 @@ Le budget accepte un entier de 1 à 100 000 ; même un `for` sans condition ni c
 
 `transpileProgram(project, {target: 'javascript'})` réutilise `analyzeProgram()` puis délègue la génération à un backend enregistré. La première cible est JavaScript, produite dans un fichier unique sans `import` ni `export`. Les déclarations de modules et de fonctions sont écrites avant `main()`, l'initialisation globale est exécutée dans `main()`, puis le point d'entrée Sapphire marqué `properties.entryPoint: true` est appelé. Le backend exige exactement un point d'entrée et renvoie des diagnostics stables sans modifier la source.
 
-Le backend JavaScript couvre le sous-ensemble des constructions du schéma logique déjà prises en charge par la simulation : déclarations, fonctions, paramètres, blocs, retours, affichage via `console.log`, conditions, boucles, affectations, appels, opérateurs, littéraux, références et conversions numériques explicites. Les noms générés, paramètres compris, sont déterministes et désambiguïsés dans le fichier unique. Les tableaux ne font pas partie de cette première version et produisent un diagnostic lorsqu'ils seront ajoutés au modèle.
+Le backend JavaScript couvre le sous-ensemble des constructions du schéma logique : déclarations, fonctions, paramètres, blocs, retours, affichage via `console.log`, conditions, boucles, affectations, appels, opérateurs, littéraux, références, conversions numériques et **tableaux** (littéraux, création, accès par index).
 
 Les diagnostics bloquants empêchent toute génération ; un point d'entrée paramétré est refusé plutôt qu'appelé sans arguments. Les opérations numériques autonomes embarquées proviennent de `createNumericOperations` dans `numericConstants.js`, sans seconde implémentation : BigInt pour les entiers, arrondi binaire32, conversions, dépassements, sous-flux et division par zéro identiques au simulateur. Les littéraux sont validés et normalisés avant émission (zéros initiaux, signes, arrondi décimal direct et zéro flottant signé). Les sorties utilisent `String` pour ne pas afficher le suffixe BigInt. Une sentinelle interdit la lecture d'une variable non initialisée. Les constantes globales utilisent une liaison JavaScript différée, leur immutabilité restant contrôlée par l'analyse Sapphire. Le fichier produit n'embarque pas les budgets de pas ou d'appels du simulateur et n'est jamais exécuté automatiquement par l'application.
 

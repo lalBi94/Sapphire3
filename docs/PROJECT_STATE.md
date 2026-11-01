@@ -88,9 +88,9 @@
 | `src/utils/logic/model.js`, `nodeSchema.js` | Contrats source JSDoc, catégorie stable Module partagée avec l'UI, fabriques et schémas de slots/opérateurs |
 | `src/utils/logic/ast.js` | Reconstruction hiérarchique, diagnostics structurels, trous/fragments invalides et parcours |
 | `src/utils/logic/semantics.js`, `typeAnalysis.js` | Portées, déclarations, visibilité intermodule et typage statique strict sans secours |
-| `src/utils/logic/primitives.js`, `numericConstants.js` | Dix primitifs, tailles/bornes et contrôles numériques purs, partagés par analyse, simulation et JavaScript généré |
+| `src/utils/logic/primitives.js`, `numericConstants.js` | Dix primitifs + types tableaux, tailles/bornes et contrôles numériques purs, partagés par analyse, simulation et JavaScript généré |
 | `src/utils/logic/diagnostics.js`, `serialization.js`, `index.js` | Diagnostics structurés, JSON versionné et API publique `analyzeProgram` |
-| `src/utils/transpilation/index.js`, `javascript.js` | API de transpilation extensible et backend JavaScript sans tableaux |
+| `src/utils/transpilation/index.js`, `javascript.js` | API de transpilation extensible et backend JavaScript avec support des tableaux |
 | `src/utils/logic/simulation.js` | Interpréteur local borné pour le sous-ensemble validé, `PrintStatement` et trace d'exécution |
 | `src/utils/logic/debugTrace.js`, `debugging.js` | Captures de mémoire scalaires bornées et navigation pure dans les arrêts de debug, redémarrage compris |
 | `src/utils/logic/moduleInterface.js` | Exports/imports purs des fonctions de module, candidats et validations sans React |

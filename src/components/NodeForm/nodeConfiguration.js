@@ -1,4 +1,4 @@
-import { primitiveType, getNodeSchema, binaryOperators, unaryOperators, acceptsOperand, sameType } from '../../utils/logic/index.js'
+import { primitiveType, getNodeSchema, binaryOperators, unaryOperators, acceptsOperand, sameType, arrayType } from '../../utils/logic/index.js'
 
 // Fournit un brouillon vide sans inventer d'opérateur, de type ou de valeur.
 export function emptyExpression() {
@@ -30,6 +30,10 @@ export function initialNodeForm(kind, node, expectedType, symbols) {
     empty: properties.type?.name === 'string' && properties.value === '', symbolId: symbol?.id ?? (target ? '@unresolved' : ''),
     initializer: emptyExpression(), condition: emptyExpression(), expression: emptyExpression(),
     parameters: [], entryPoint: properties.entryPoint === true, allowIncomplete: false,
+    // Tableaux : type d'élément, éléments du littéral, taille et initialiseur pour création
+    elementTypeName: properties.elementType?.kind === 'primitive' ? properties.elementType.name : (properties.elementType?.kind === 'named' ? '@alias' : ''),
+    elements: properties.elements ?? [],
+    arraySize: emptyExpression(), arrayInitializer: emptyExpression(),
   }
 }
 
@@ -114,6 +118,23 @@ export function nodeConfiguration(kind, form, symbols, initialNode = null) {
   if (kind === 'CallExpression') {
     const symbol = symbols.find((entry) => entry.id === form.symbolId)
     if (symbol) children.callee = { kind: 'Reference', references: { target: symbolTarget(symbol) } }
+  }
+  // Tableaux : ArrayLiteral, ArrayCreation, ArrayAccess
+  if (['ArrayLiteral', 'ArrayCreation'].includes(kind)) {
+    const elementType = form.elementTypeName === '@alias' ? initialNode?.properties.elementType : primitiveType(form.elementTypeName)
+    if (elementType) properties.elementType = elementType
+    else delete properties.elementType
+  }
+  if (kind === 'ArrayLiteral') {
+    children.elements = form.elements.map((elem) => expressionDraft(elem, primitiveType(form.elementTypeName), symbols))
+  }
+  if (kind === 'ArrayCreation') {
+    children.size = expressionDraft(form.arraySize, primitiveType('int'), symbols)
+    if (form.arrayInitializer) children.initializer = expressionDraft(form.arrayInitializer, primitiveType(form.elementTypeName), symbols)
+  }
+  if (kind === 'ArrayAccess') {
+    // L'accès au tableau nécessite l'expression du tableau et l'index
+    // Le parent fournit ces informations via le slot
   }
   return { kind, properties, references, children }
 }
