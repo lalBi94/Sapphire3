@@ -5,6 +5,7 @@ export const pythonRuntimeNames = [
   '_sapphireMath', '_sapphireStruct', '_sapphireTypes', '_sapphireCodes',
   'sapphireUninitialized', 'sapphireRead', 'sapphireCheck', 'sapphireBinary',
   'sapphireUnary', 'sapphireCast', 'sapphireFormat', 'sapphireQuotient',
+  'sapphireArray', 'sapphireElement', 'sapphireWrite',
   'print', 'object', 'isinstance', 'bool', 'int', 'float', 'str', 'repr', 'abs', 'len', 'RuntimeError', 'OverflowError',
 ]
 
@@ -75,9 +76,31 @@ def sapphireCast(value, type_name):
     converted = int(value) if _sapphireTypes[type_name]["category"] == "integer" else float(value)
     return sapphireCheck(converted, type_name)
 
-# Conserve les sorties scalaires Sapphire : booléens minuscules, zéros et notation décimale.
+# Contrôle la taille demandée d'un tableau avant toute allocation.
+def sapphireArray(length):
+    if not isinstance(length, int) or isinstance(length, bool) or length < 0:
+        raise RuntimeError("SIMULATION_ARRAY_BOUNDS")
+    return length
+
+# Lit un élément en refusant les cases jamais remplies et les index hors des bornes.
+def sapphireElement(array, index):
+    if index < 0 or index >= len(array):
+        raise RuntimeError("SIMULATION_ARRAY_BOUNDS")
+    value = array[index]
+    if value is sapphireUninitialized:
+        raise RuntimeError("SIMULATION_UNINITIALIZED")
+    return value
+
+# Écrit un élément en refusant les index hors des bornes, sans jamais étendre la liste.
+def sapphireWrite(array, index, value):
+    if index < 0 or index >= len(array):
+        raise RuntimeError("SIMULATION_ARRAY_BOUNDS")
+    array[index] = value
+
+# Conserve les sorties scalaires Sapphire : booléens minuscules, zéros, tableaux et notation décimale.
 def sapphireFormat(value):
     if isinstance(value, bool): return "true" if value else "false"
+    if isinstance(value, list): return "[" + ", ".join(sapphireFormat(element) for element in value) + "]"
     if not isinstance(value, float): return str(value)
     if value == 0: return "0"
     text = repr(value)

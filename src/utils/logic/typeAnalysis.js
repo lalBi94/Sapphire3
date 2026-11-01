@@ -61,6 +61,13 @@ export function analyzeTypes(semantic, projectId) {
       report(codes.typeRequired, 'Un type explicitement déclaré est obligatoire.', node, 'properties.type')
     } else if (isRecord(sourceType) && sourceType.kind === 'primitive' && getPrimitive(sourceType.name)) {
       type = primitiveType(sourceType.name)
+    } else if (isRecord(sourceType) && sourceType.kind === 'array') {
+      const element = isRecord(sourceType.elementType) && sourceType.elementType.kind === 'primitive' ? primitiveType(sourceType.elementType.name) : null
+      if (!element || element.name === 'void') {
+        report(codes.invalidType, 'Un tableau doit être formé d’éléments d’un primitif non void.', node, 'properties.type')
+      } else {
+        type = arrayType(element)
+      }
     } else if (isRecord(sourceType) && sourceType.kind === 'named') {
       const symbol = typeSymbols.get(node.sourceId)
       if (symbol && nodes.has(symbol.nodeId)) type = annotation(nodes.get(symbol.nodeId))
@@ -69,6 +76,10 @@ export function analyzeTypes(semantic, projectId) {
     }
     if (type?.name === 'void' && node.kind !== 'FunctionDeclaration') {
       report(codes.voidNotAllowed, 'void est réservé au retour d’une fonction.', node, 'properties.type')
+      type = null
+    }
+    if (type?.kind === 'array' && !['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(node.kind)) {
+      report(codes.invalidType, 'Un type tableau n’est autorisé que pour une variable, une constante ou un paramètre.', node, 'properties.type')
       type = null
     }
     annotationActive.delete(node.sourceId)
@@ -187,98 +198,66 @@ export function analyzeTypes(semantic, projectId) {
     return valid ? callee.returnType : null
   }
 
-  // Type un littéral de tableau à partir du type d'élément annoté.
+  // Résout le type d'élément annoté d'un tableau ; seuls les primitifs non void sont admis.
+  function arrayElementType(node) {
+    const source = node.properties.elementType
+    if (source === undefined || source === null) {
+      report(codes.typeRequired, 'Un type d’élément explicite est obligatoire pour ce tableau.', node, 'properties.elementType')
+      return null
+    }
+    const type = isRecord(source) && source.kind === 'primitive' ? primitiveType(source.name) : null
+    if (!type || type.name === 'void') {
+      report(codes.invalidType, 'Le type d’élément d’un tableau doit être un primitif non void.', node, 'properties.elementType')
+      return null
+    }
+    return type
+  }
+
+  // Un littéral de tableau publie le type tableau si chaque élément a exactement le type annoncé.
   function arrayLiteral(node) {
-    const elementTypeRef = node.properties.elementType
-    if (!isRecord(elementTypeRef) || (elementTypeRef.kind !== 'primitive' && elementTypeRef.kind !== 'named')) {
-      report(codes.typeRequired, 'Un type d\'élément explicite est requis pour un tableau.', node, 'properties.elementType')
-      return null
-    }
-    let elementType = null
-    if (elementTypeRef.kind === 'primitive') {
-      elementType = primitiveType(elementTypeRef.name)
-    } else if (elementTypeRef.kind === 'named') {
-      const symbol = typeSymbols.get(node.sourceId)
-      if (symbol && nodes.has(symbol.nodeId)) elementType = annotation(nodes.get(symbol.nodeId))
-    }
-    if (!elementType) {
-      report(codes.typeInvalid, 'Le type d\'élément n\'est pas valide.', node, 'properties.elementType')
-      return null
-    }
-    if (elementType.kind === 'void') {
-      report(codes.voidNotAllowed, 'void ne peut pas être le type d\'élément d\'un tableau.', node, 'properties.elementType')
-      return null
-    }
-    // Vérifie que tous les éléments sont du même type.
-    const elements = node.children.elements ?? []
-    for (const elementId of elements) {
-      const elementTypeResolved = resolve(elementId)
-      if (!elementTypeResolved || !sameType(elementType, elementTypeResolved)) {
-        report(codes.typeMismatch, 'Les éléments du tableau doivent tous avoir le même type.', node, 'children.elements')
-        return null
-      }
-    }
-    return arrayType(elementType)
+    const element = arrayElementType(node)
+    if (!element) return null
+    const elements = node.children.elements
+    if (!Array.isArray(elements)) return null
+    let valid = true
+    elements.forEach((entry, index) => {
+      if (!expect(element, resolve(entry?.sourceId), node, `children.elements[${index}]`)) valid = false
+    })
+    return valid ? arrayType(element) : null
   }
 
-  // Type la création d'un tableau avec taille et initialisation optionnelle.
+  // Une création de tableau publie le type tableau après contrôle de la taille et de la valeur de remplissage.
   function arrayCreation(node) {
-    const elementTypeRef = node.properties.elementType
-    if (!isRecord(elementTypeRef) || (elementTypeRef.kind !== 'primitive' && elementTypeRef.kind !== 'named')) {
-      report(codes.typeRequired, 'Un type d\'élément explicite est requis pour un tableau.', node, 'properties.elementType')
+    const element = arrayElementType(node)
+    if (!element) return null
+    const size = child(node, 'size')
+    if (!size) return null
+    const sizeType = resolve(size.sourceId)
+    if (sizeType?.kind !== 'primitive' || getPrimitive(sizeType.name)?.category !== 'integer') {
+      report(codes.typeMismatch, 'La taille d’un tableau doit être une expression entière.', node, 'children.size')
       return null
     }
-    let elementType = null
-    if (elementTypeRef.kind === 'primitive') {
-      elementType = primitiveType(elementTypeRef.name)
-    } else if (elementTypeRef.kind === 'named') {
-      const symbol = typeSymbols.get(node.sourceId)
-      if (symbol && nodes.has(symbol.nodeId)) elementType = annotation(nodes.get(symbol.nodeId))
-    }
-    if (!elementType) {
-      report(codes.typeInvalid, 'Le type d\'élément n\'est pas valide.', node, 'properties.elementType')
-      return null
-    }
-    if (elementType.kind === 'void') {
-      report(codes.voidNotAllowed, 'void ne peut pas être le type d\'élément d\'un tableau.', node, 'properties.elementType')
-      return null
-    }
-    // Vérifie le type de l'index (doit être un entier).
-    const sizeNode = child(node, 'size')
-    if (sizeNode) {
-      const sizeType = resolve(sizeNode.sourceId)
-      if (sizeType?.kind !== 'primitive' || !['short int', 'short uint', 'int', 'uint'].includes(sizeType.name)) {
-        report(codes.typeMismatch, 'La taille d\'un tableau doit être un type entier.', node, 'children.size')
-        return null
-      }
-    }
-    // Vérifie le type de l'initialiseur si présent.
-    const initNode = child(node, 'initializer')
-    if (initNode) {
-      const initType = resolve(initNode.sourceId)
-      if (!initType || !sameType(elementType, initType)) {
-        report(codes.typeMismatch, 'L\'initialiseur doit être du type de l\'élément du tableau.', node, 'children.initializer')
-        return null
-      }
-    }
-    return arrayType(elementType)
+    const initializer = child(node, 'initializer')
+    if (initializer && !expect(element, resolve(initializer.sourceId), node, 'children.initializer')) return null
+    return arrayType(element)
   }
 
-  // Type l'accès à un élément de tableau : renvoie le type de l'élément.
+  // Un accès par index publie le type de l'élément du tableau visé.
   function arrayAccess(node) {
-    const arrayNode = child(node, 'array')
-    const indexNode = child(node, 'index')
-    const arrayTypeResolved = resolve(arrayNode?.sourceId)
-    if (!arrayTypeResolved || !isArrayType(arrayTypeResolved)) {
-      report(codes.typeMismatch, 'L\'accès par index nécessite un tableau.', node, 'children.array')
+    const array = child(node, 'array')
+    const index = child(node, 'index')
+    if (!array || !index) return null
+    const targetType = resolve(array.sourceId)
+    if (!isArrayType(targetType)) {
+      report(codes.typeMismatch, 'L’accès par index vise une valeur qui n’est pas un tableau.', node, 'children.array')
       return null
     }
-    const indexType = resolve(indexNode?.sourceId)
-    if (indexType?.kind !== 'primitive' || !['short int', 'short uint', 'int', 'uint'].includes(indexType.name)) {
-      report(codes.typeMismatch, 'L\'index d\'un tableau doit être un type entier.', node, 'children.index')
+    const indexType = resolve(index.sourceId)
+    if (indexType?.kind !== 'primitive' || getPrimitive(indexType.name)?.category !== 'integer') {
+      report(codes.typeMismatch, 'L’index d’un tableau doit être une expression entière.', node, 'children.index')
       return null
     }
-    return arrayTypeResolved.elementType
+    return targetType.elementType
   }
 
   // Résout les expressions avec mémoïsation ; null indique uniquement une absence de résultat.
@@ -343,7 +322,13 @@ export function analyzeTypes(semantic, projectId) {
     }
     if (node.kind === 'AssignmentStatement') {
       const target = child(node, 'target')
-      const symbol = target ? referenceSymbols.get(target.sourceId) : null
+      if (target && !['Reference', 'ArrayAccess'].includes(target.kind)) report(codes.illegalPlacement, 'La cible d’affectation doit être une variable ou un élément de tableau.', node, 'children.target')
+      if (target?.kind === 'ArrayAccess') {
+        const arrayTarget = child(target, 'array')
+        const arraySymbol = arrayTarget?.kind === 'Reference' ? referenceSymbols.get(arrayTarget.sourceId) : null
+        if (arraySymbol?.kind === 'ConstantDeclaration') report(codes.illegalPlacement, 'Les éléments d’une constante ne sont pas modifiables.', node, 'children.target')
+      }
+      const symbol = target?.kind === 'Reference' ? referenceSymbols.get(target.sourceId) : null
       if (symbol && !['VariableDeclaration', 'Parameter'].includes(symbol.kind)) report(codes.illegalPlacement, 'La cible d’affectation n’est pas une variable modifiable.', node, 'children.target')
       expect(resolve(target?.sourceId), resolve(child(node, 'value')?.sourceId), node, 'children.value')
     }

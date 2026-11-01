@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Plus, Save, Trash2 } from 'lucide-react'
-import { getNodeSchema, binaryOperators, unaryOperators, primitiveType, getCallableSymbols, sameType, acceptsOperand, arrayType } from '../../utils/logic/index.js'
-import { initialNodeForm, nodeConfiguration, emptyExpression } from './nodeConfiguration.js'
+import { getNodeSchema, binaryOperators, unaryOperators, primitiveType, getCallableSymbols, sameType, acceptsOperand, isArrayType } from '../../utils/logic/index.js'
+import { initialNodeForm, nodeConfiguration, emptyExpression, typeFromName } from './nodeConfiguration.js'
 import NodeTypeInput from './NodeTypeInput.jsx'
 import NodeValueInput from './NodeValueInput.jsx'
 import ExpressionInput from './ExpressionInput.jsx'
@@ -17,11 +17,13 @@ export default function NodeForm({ kind, initialNode = null, context, onSubmit }
 
   const schema = getNodeSchema(kind)
   const symbols = getCallableSymbols(context)
-  const type = form.typeName === '@alias' ? initialNode?.properties.type : primitiveType(form.typeName)
+  const type = form.typeName === '@alias' ? initialNode?.properties.type : typeFromName(form.typeName)
   const resolvedName = form.typeName === '@alias' ? context.index.nodeTypes.get(initialNode?.id)?.name : form.typeName
   const isNew = !initialNode
   const required = !form.allowIncomplete
   const entryPointTaken = [...context.index.nodes.values()].some((node) => node.id !== initialNode?.id && node.kind === 'FunctionDeclaration' && node.properties?.entryPoint === true)
+  // Le type d'élément d'un tableau est connu dès que le slot attend un tableau.
+  const arrayElementType = isNew && isArrayType(context.expectedType) ? context.expectedType.elementType : null
   const references = symbols.filter((symbol) => {
     if (kind === 'CallExpression') return symbol.type?.kind === 'function' && (!isNew || !context.expectedType || sameType(context.expectedType, symbol.type.returnType))
     if (context.record.kind === 'CallExpression' && context.slot?.name === 'callee') return symbol.type?.kind === 'function'
@@ -53,7 +55,10 @@ export default function NodeForm({ kind, initialNode = null, context, onSubmit }
   return (
     <form className="node-form" onSubmit={handleSubmit}>
       {schema.named && <label>{t('form.name')}<input aria-label={t('form.name')} value={form.name} onChange={(event) => change('name', event.target.value)} required={required} autoComplete="off" /></label>}
-      {(schema.declaresType || isNew && kind === 'PrintStatement') && <NodeTypeInput label={kind === 'FunctionDeclaration' ? t('form.returnType') : t('form.type')} value={form.typeName} onChange={(value) => change('typeName', value)} required={required} allowVoid={kind === 'FunctionDeclaration'} alias={initialNode?.properties.type?.kind === 'named'} />}
+      {(schema.declaresType || isNew && kind === 'PrintStatement') && <NodeTypeInput label={kind === 'FunctionDeclaration' ? t('form.returnType') : t('form.type')} value={form.typeName} onChange={(value) => change('typeName', value)} required={required} allowVoid={kind === 'FunctionDeclaration'} allowArray={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement')} alias={initialNode?.properties.type?.kind === 'named'} />}
+      {['ArrayLiteral', 'ArrayCreation'].includes(kind) && (arrayElementType
+        ? <p className="node-form__hint">{t('form.arrayElementsOfType', { type: arrayElementType.name })}</p>
+        : <NodeTypeInput label={t('field.elementType')} value={form.elementTypeName} onChange={(value) => change('elementTypeName', value)} required={required} />)}
       {kind === 'FunctionDeclaration' && <>
         <label className="node-form__check"><input type="checkbox" checked={form.entryPoint} disabled={entryPointTaken && !form.entryPoint} onChange={(event) => change('entryPoint', event.target.checked)} />{t('form.startProgram')}</label>
         {entryPointTaken && !form.entryPoint && <p className="node-form__hint">{t('form.startProgramHint')}</p>}
@@ -71,52 +76,27 @@ export default function NodeForm({ kind, initialNode = null, context, onSubmit }
           {references.map((symbol) => <option key={symbol.id} value={symbol.id}>{symbolLabel(symbol)}</option>)}
         </select>
       </label>}
-      {isNew && ['VariableDeclaration', 'ConstantDeclaration'].includes(kind) && <>
-        <ExpressionInput label={t('form.startingValue')} value={form.initializer} onChange={(value) => change('initializer', value)} type={type} symbols={symbols} required={kind === 'ConstantDeclaration' && required} allowIncomplete={form.allowIncomplete} />
-        {/* Option pour créer un tableau */}
-        {!form.initializer.mode && <div className="node-form__array-options">
-          <label className="node-form__check"><input type="checkbox" checked={form.initializer.arrayCreation} onChange={(event) => change('initializer', { ...form.initializer, arrayCreation: event.target.checked, arrayLiteral: false, mode: event.target.checked ? 'arrayCreation' : '' })} />{t('form.createArray')}</label>
-          <label className="node-form__check"><input type="checkbox" checked={form.initializer.arrayLiteral} onChange={(event) => change('initializer', { ...form.initializer, arrayLiteral: event.target.checked, arrayCreation: false, mode: event.target.checked ? 'arrayLiteral' : '' })} />{t('form.createArrayLiteral')}</label>
-        </div>}
-        {/* Configuration du tableau */}
-        {(form.initializer.arrayCreation || form.initializer.arrayLiteral) && type && <>
-          <p className="node-form__hint">{t('form.arrayType', { type: type.name + '[]' })}</p>
-          {form.initializer.arrayCreation && <>
-            <ExpressionInput label={t('slot.size')} value={form.initializer.arraySize} onChange={(value) => change('initializer', { ...form.initializer, arraySize: value })} type={primitiveType('int')} symbols={symbols} required={true} allowIncomplete={form.allowIncomplete} />
-            <ExpressionInput label={t('slot.initializer')} value={form.initializer.arrayInitializer} onChange={(value) => change('initializer', { ...form.initializer, arrayInitializer: value })} type={type} symbols={symbols} required={false} allowIncomplete={form.allowIncomplete} />
-          </>}
-          {form.initializer.arrayLiteral && <fieldset><legend>{t('slot.elements')}</legend>
-            {form.initializer.arrayElements.map((elem, index) => <div className="node-form__parameter" key={index}>
-              <ExpressionInput label={t('expression.element', { number: index + 1 })} value={elem} onChange={(value) => change('initializer', { ...form.initializer, arrayElements: form.initializer.arrayElements.map((e, i) => i === index ? value : e) })} type={type} symbols={symbols} required={false} allowIncomplete={form.allowIncomplete} />
-              <button type="button" onClick={() => change('initializer', { ...form.initializer, arrayElements: form.initializer.arrayElements.filter((_, i) => i !== index) })}><Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.removeInput')}</button>
-            </div>)}
-            <button type="button" onClick={() => change('initializer', { ...form.initializer, arrayElements: [...form.initializer.arrayElements, emptyExpression()] })}><Plus size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.addInput')}</button>
-          </fieldset>}
-        </>}
-      </>}
+      {isNew && ['VariableDeclaration', 'ConstantDeclaration'].includes(kind) && <ExpressionInput label={t('form.startingValue')} value={form.initializer} onChange={(value) => change('initializer', value)} type={type} symbols={symbols} required={kind === 'ConstantDeclaration' && required} allowIncomplete={form.allowIncomplete} />}
       {isNew && ['IfStatement', 'WhileStatement', 'ForStatement'].includes(kind) && <ExpressionInput label={t('form.condition')} value={form.condition} onChange={(value) => change('condition', value)} type={primitiveType('boolean')} symbols={symbols} required={kind !== 'ForStatement' && required} allowIncomplete={form.allowIncomplete} />}
       {isNew && kind === 'PrintStatement' && <ExpressionInput label={t('form.value')} value={form.expression} onChange={(value) => change('expression', value)} type={type} symbols={symbols} required={required} allowIncomplete={form.allowIncomplete} />}
       {isNew && kind === 'FunctionDeclaration' && <fieldset><legend>{t('form.parameters')}</legend>
         {form.parameters.map((parameter, index) => <div className="node-form__parameter" key={index}>
           <label>{t('form.parameterName', { number: index + 1 })}<input aria-label={t('form.parameterName', { number: index + 1 })} value={parameter.name} required={required} onChange={(event) => change('parameters', form.parameters.map((entry, position) => position === index ? { ...entry, name: event.target.value } : entry))} /></label>
-          <NodeTypeInput label={t('form.parameterType', { number: index + 1 })} value={parameter.typeName} required={required} onChange={(value) => change('parameters', form.parameters.map((entry, position) => position === index ? { ...entry, typeName: value } : entry))} />
+          <NodeTypeInput label={t('form.parameterType', { number: index + 1 })} value={parameter.typeName} required={required} allowArray onChange={(value) => change('parameters', form.parameters.map((entry, position) => position === index ? { ...entry, typeName: value } : entry))} />
           <button type="button" onClick={() => change('parameters', form.parameters.filter((_, position) => position !== index))}><Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.removeInput')}</button>
         </div>)}
         <button type="button" onClick={() => change('parameters', [...form.parameters, { name: '', typeName: '' }])}><Plus size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.addInput')}</button>
       </fieldset>}
-      {isNew && ['ArrayLiteral', 'ArrayCreation'].includes(kind) && <>
-        <NodeTypeInput label={t('field.elementType')} value={form.elementTypeName} onChange={(value) => change('elementTypeName', value)} required={true} allowVoid={false} />
-      </>}
-      {isNew && kind === 'ArrayLiteral' && <fieldset><legend>{t('slot.elements')}</legend>
-        {form.elements.map((element, index) => <div className="node-form__parameter" key={index}>
-          <ExpressionInput label={t('expression.element', { number: index + 1 })} value={element} onChange={(value) => change('elements', form.elements.map((entry, position) => position === index ? value : entry))} type={primitiveType(form.elementTypeName)} symbols={symbols} required={false} allowIncomplete={form.allowIncomplete} />
-          <button type="button" onClick={() => change('elements', form.elements.filter((_, position) => position !== index))}><Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.removeInput')}</button>
+      {kind === 'ArrayLiteral' && (isNew ? <fieldset><legend>{t('slot.elements')}</legend>
+        {form.arrayElements.map((element, index) => <div className="node-form__parameter" key={index}>
+          <ExpressionInput label={t('expression.element', { number: index + 1 })} value={element} onChange={(value) => change('arrayElements', form.arrayElements.map((entry, position) => position === index ? value : entry))} type={primitiveType(form.elementTypeName)} symbols={symbols} required={false} allowIncomplete={form.allowIncomplete} />
+          <button type="button" onClick={() => change('arrayElements', form.arrayElements.filter((_, position) => position !== index))}><Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.removeElement')}</button>
         </div>)}
-        <button type="button" onClick={() => change('elements', [...form.elements, emptyExpression()])}><Plus size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.addInput')}</button>
-      </fieldset>}
+        <button type="button" onClick={() => change('arrayElements', [...form.arrayElements, emptyExpression()])}><Plus size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.addElement')}</button>
+      </fieldset> : <p className="node-form__hint">{t('form.incompleteHint')}</p>)}
       {isNew && kind === 'ArrayCreation' && <>
-        <ExpressionInput label={t('slot.size')} value={form.arraySize} onChange={(value) => change('arraySize', value)} type={primitiveType('int')} symbols={symbols} required={true} allowIncomplete={form.allowIncomplete} />
-        <ExpressionInput label={t('slot.initializer')} value={form.arrayInitializer} onChange={(value) => change('arrayInitializer', value)} type={primitiveType(form.elementTypeName)} symbols={symbols} required={false} allowIncomplete={form.allowIncomplete} />
+        <ExpressionInput label={t('slot.size')} value={form.arraySize} onChange={(value) => change('arraySize', value)} type={primitiveType('int')} symbols={symbols} required={required} allowIncomplete={form.allowIncomplete} />
+        <ExpressionInput label={t('slot.initializer')} value={form.arrayFill} onChange={(value) => change('arrayFill', value)} type={primitiveType(form.elementTypeName)} symbols={symbols} required={false} allowIncomplete={form.allowIncomplete} />
       </>}
       {isNew && kind === 'ForStatement' && <p className="node-form__hint">{t('form.loopHint')}</p>}
       {isNew && <p className="node-form__hint">{t('form.incompleteHint')}</p>}

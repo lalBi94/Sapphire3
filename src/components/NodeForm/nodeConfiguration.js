@@ -1,8 +1,18 @@
-import { primitiveType, getNodeSchema, binaryOperators, unaryOperators, acceptsOperand, sameType, arrayType } from '../../utils/logic/index.js'
+import { primitiveType, arrayType, isArrayType, getNodeSchema, binaryOperators, unaryOperators, acceptsOperand, sameType } from '../../utils/logic/index.js'
 
 // Fournit un brouillon vide sans inventer d'opérateur, de type ou de valeur.
 export function emptyExpression() {
-  return { mode: '', value: '', empty: false, symbolId: '', operator: '', operandTypeName: '', arrayCreation: false, arrayLiteral: false, arraySize: '', arrayElements: [], arrayElementTypeName: '' }
+  return { mode: '', value: '', empty: false, symbolId: '', operator: '', operandTypeName: '' }
+}
+
+// Convertit un nom de type choisi ('int' ou 'int[]') en type logique, sans inventer de synonyme.
+export function typeFromName(name) {
+  if (typeof name !== 'string' || name === '') return null
+  if (name.endsWith('[]')) {
+    const element = primitiveType(name.slice(0, -2))
+    return element && element.name !== 'void' ? arrayType(element) : null
+  }
+  return primitiveType(name)
 }
 
 // Filtre les opérations par leur résultat attendu, depuis les règles du moteur.
@@ -24,23 +34,21 @@ export function initialNodeForm(kind, node, expectedType, symbols) {
   const properties = node?.properties ?? {}
   const target = node?.references?.target
   const symbol = symbols.find((entry) => target?.kind === 'import' ? entry.importId === target.importId : target?.kind === 'name' ? entry.name === target.name : entry.nodeId === target?.nodeId)
-  
-  // Pour les variables avec initialiseur tableau, le typeName vient du type d'élément
-  let typeName = properties.type?.kind === 'named' ? '@alias' : properties.type?.name ?? ''
-  if (properties.type?.kind === 'array') {
-    typeName = properties.type.elementType?.name ?? ''
-  }
-  
+  const declared = properties.type
+  const typeName = declared?.kind === 'named' ? '@alias'
+    : declared?.kind === 'array' && declared.elementType?.kind === 'primitive' ? `${declared.elementType.name}[]`
+    : declared?.kind === 'primitive' ? declared.name
+    : (kind === 'Literal' || kind === 'CastExpression') && expectedType?.kind === 'primitive' ? expectedType.name : ''
+  // Le type d'élément d'un tableau est imposé par le slot attendu à la création, sinon librement choisi.
+  const arrayElementTypeName = isArrayType(expectedType) && ['ArrayLiteral', 'ArrayCreation'].includes(kind) ? expectedType.elementType.name
+    : properties.elementType?.kind === 'primitive' ? properties.elementType.name : ''
   return {
     name: properties.name ?? '', typeName,
     operator: properties.operator ?? '', value: properties.value === undefined ? '' : Object.is(properties.value, -0) ? '-0' : String(properties.value),
     empty: properties.type?.name === 'string' && properties.value === '', symbolId: symbol?.id ?? (target ? '@unresolved' : ''),
     initializer: emptyExpression(), condition: emptyExpression(), expression: emptyExpression(),
     parameters: [], entryPoint: properties.entryPoint === true, allowIncomplete: false,
-    // Tableaux : type d'élément, éléments du littéral, taille et initialiseur pour création
-    elementTypeName: properties.elementType?.kind === 'primitive' ? properties.elementType.name : (properties.elementType?.kind === 'named' ? '@alias' : ''),
-    elements: properties.elements ?? [],
-    arraySize: emptyExpression(), arrayInitializer: emptyExpression(),
+    elementTypeName: arrayElementTypeName, arraySize: emptyExpression(), arrayFill: emptyExpression(), arrayElements: [],
   }
 }
 
@@ -75,16 +83,15 @@ export function expressionDraft(value, type, symbols, depth = 0) {
   if (value.mode === 'cast') {
     return { kind: 'CastExpression', properties: { ...(type ? { type } : {}) }, children: { argument: expressionDraft(value.argument, primitiveType(value.operandTypeName), symbols, depth + 1) } }
   }
-  // Tableaux : ArrayCreation avec taille et initialiseur optionnel
-  if (value.arrayCreation && type?.kind === 'array' && type.elementType) {
-    const sizeExpr = expressionDraft(value.arraySize, primitiveType('int'), symbols, depth + 1)
-    const initExpr = value.arrayInitializer?.mode ? expressionDraft(value.arrayInitializer, type.elementType, symbols, depth + 1) : null
-    return { kind: 'ArrayCreation', properties: { elementType: type.elementType }, children: { size: sizeExpr, initializer: initExpr } }
-  }
-  // Tableaux : ArrayLiteral avec liste d'éléments
-  if (value.arrayLiteral && type?.kind === 'array' && type.elementType) {
-    const elements = value.arrayElements.map((elem) => expressionDraft(elem, type.elementType, symbols, depth + 1) ?? { kind: 'Hole' })
+  // Un tableau annoncé n'accepte que des éléments du type exact de son annotation.
+  if (value.mode === 'arrayLiteral' && isArrayType(type)) {
+    const elements = (value.arrayElements ?? []).map((element) => expressionDraft(element, type.elementType, symbols, depth + 1) ?? { kind: 'Hole' })
     return { kind: 'ArrayLiteral', properties: { elementType: type.elementType }, children: { elements } }
+  }
+  if (value.mode === 'arrayCreation' && isArrayType(type)) {
+    const size = expressionDraft(value.arraySize, primitiveType('int'), symbols, depth + 1) ?? { kind: 'Hole' }
+    const fill = value.arrayFill?.mode ? expressionDraft(value.arrayFill, type.elementType, symbols, depth + 1) : null
+    return { kind: 'ArrayCreation', properties: { elementType: type.elementType }, children: { size, initializer: fill } }
   }
   return null
 }
@@ -94,21 +101,7 @@ export function nodeConfiguration(kind, form, symbols, initialNode = null) {
   const schema = getNodeSchema(kind)
   const properties = { ...initialNode?.properties }
   const references = { ...initialNode?.references }
-  
-  // Détermine le type de base (primitif) depuis le formulaire
-  const baseType = form.typeName === '@alias' ? initialNode?.properties.type : primitiveType(form.typeName)
-  
-  // Détermine le type effectif pour les variables avec initialiseur tableau.
-  // Si l'initializer est un ArrayCreation/ArrayLiteral, la variable est de type tableau.
-  let type = baseType
-  if (['VariableDeclaration', 'ConstantDeclaration'].includes(kind) && !initialNode) {
-    const initializerConfig = form.initializer
-    if ((initializerConfig?.arrayCreation || initializerConfig?.arrayLiteral) && baseType) {
-      // La variable est de type tableau de l'élément choisi
-      type = arrayType(baseType)
-    }
-  }
-  
+  const type = form.typeName === '@alias' ? initialNode?.properties.type : typeFromName(form.typeName)
   if (schema.named) properties.name = initialNode && form.name === initialNode.properties.name ? form.name : form.name.trim()
   if (kind === 'FunctionDeclaration') {
     if (form.entryPoint) properties.entryPoint = true
@@ -117,6 +110,11 @@ export function nodeConfiguration(kind, form, symbols, initialNode = null) {
   if (schema.declaresType) {
     if (type) properties.type = type
     else delete properties.type
+  }
+  if (['ArrayLiteral', 'ArrayCreation'].includes(kind)) {
+    const elementType = primitiveType(form.elementTypeName)
+    if (elementType && elementType.name !== 'void') properties.elementType = elementType
+    else delete properties.elementType
   }
   if (['BinaryExpression', 'UnaryExpression'].includes(kind)) properties.operator = form.operator
   if (kind === 'Literal') {
@@ -144,29 +142,21 @@ export function nodeConfiguration(kind, form, symbols, initialNode = null) {
   }
   if (kind === 'PrintStatement') children.value = expressionDraft(form.expression, type, symbols)
   if (kind === 'FunctionDeclaration') {
-    children.parameters = form.parameters.map((parameter) => ({ kind: 'Parameter', properties: { name: parameter.name.trim(), ...(primitiveType(parameter.typeName) ? { type: primitiveType(parameter.typeName) } : {}) } }))
+    children.parameters = form.parameters.map((parameter) => ({ kind: 'Parameter', properties: { name: parameter.name.trim(), ...(typeFromName(parameter.typeName) ? { type: typeFromName(parameter.typeName) } : {}) } }))
     children.body = emptyBlock()
   }
   if (kind === 'CallExpression') {
     const symbol = symbols.find((entry) => entry.id === form.symbolId)
     if (symbol) children.callee = { kind: 'Reference', references: { target: symbolTarget(symbol) } }
   }
-  // Tableaux : ArrayLiteral, ArrayCreation, ArrayAccess
-  if (['ArrayLiteral', 'ArrayCreation'].includes(kind)) {
-    const elementType = form.elementTypeName === '@alias' ? initialNode?.properties.elementType : primitiveType(form.elementTypeName)
-    if (elementType) properties.elementType = elementType
-    else delete properties.elementType
-  }
   if (kind === 'ArrayLiteral') {
-    children.elements = form.elements.map((elem) => expressionDraft(elem, primitiveType(form.elementTypeName), symbols))
+    const elementType = primitiveType(form.elementTypeName)
+    children.elements = (form.arrayElements ?? []).map((element) => expressionDraft(element, elementType, symbols) ?? { kind: 'Hole' })
   }
   if (kind === 'ArrayCreation') {
-    children.size = expressionDraft(form.arraySize, primitiveType('int'), symbols)
-    if (form.arrayInitializer) children.initializer = expressionDraft(form.arrayInitializer, primitiveType(form.elementTypeName), symbols)
-  }
-  if (kind === 'ArrayAccess') {
-    // L'accès au tableau nécessite l'expression du tableau et l'index
-    // Le parent fournit ces informations via le slot
+    const elementType = primitiveType(form.elementTypeName)
+    children.size = expressionDraft(form.arraySize, primitiveType('int'), symbols) ?? { kind: 'Hole' }
+    children.initializer = form.arrayFill?.mode ? expressionDraft(form.arrayFill, elementType, symbols) : null
   }
   return { kind, properties, references, children }
 }

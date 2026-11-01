@@ -18,7 +18,16 @@ export default function ExpressionInput({ label, value = emptyExpression(), onCh
 
   // Remplace uniquement le brouillon visé, sans conserver de champs incompatibles d'un autre mode.
   function handleModeChange(event) {
-    onChange({ ...emptyExpression(), mode: event.target.value })
+    const mode = event.target.value
+    const next = { ...emptyExpression(), mode }
+    if (mode === 'arrayLiteral') next.arrayElements = []
+    if (mode === 'arrayCreation') next.arraySize = emptyExpression()
+    onChange(next)
+  }
+
+  // Ajoute un élément de littéral ou une valeur de remplissage selon le mode courant.
+  function arrayChange(field, next) {
+    onChange({ ...value, [field]: next })
   }
 
   // Met à jour un opérande indépendamment des autres éléments de l'expression.
@@ -26,17 +35,21 @@ export default function ExpressionInput({ label, value = emptyExpression(), onCh
     onChange({ ...value, [field]: next })
   }
 
+  const isList = type?.kind === 'array'
+
   return (
     <fieldset className="expression-input">
       <legend>{label}</legend>
       <label>{t('form.value')}
         <select aria-label={t('expression.expression', { label })} value={value.mode} onChange={handleModeChange} required={required} disabled={!type}>
           <option value="">{required ? t('form.chooseName') : t('form.leaveEmpty')}</option>
-          <option value="literal">{t('expression.literal')}</option><option value="reference">{t('expression.reference')}</option>
-          {nested && expressionOperators('binary', type).length > 0 && <option value="binary">{t('expression.binary')}</option>}
-          {nested && expressionOperators('unary', type).length > 0 && <option value="unary">{t('expression.unary')}</option>}
+          {!isList && <option value="literal">{t('expression.literal')}</option>}<option value="reference">{t('expression.reference')}</option>
+          {nested && !isList && expressionOperators('binary', type).length > 0 && <option value="binary">{t('expression.binary')}</option>}
+          {nested && !isList && expressionOperators('unary', type).length > 0 && <option value="unary">{t('expression.unary')}</option>}
+          {nested && isList && <option value="arrayLiteral">{t('expression.arrayLiteral')}</option>}
+          {nested && isList && <option value="arrayCreation">{t('expression.arrayCreation')}</option>}
           {nested && <option value="call" disabled={functions.length === 0}>{t('expression.call')}</option>}
-          {nested && acceptsOperand('numeric', type) && <option value="cast">{t('expression.cast')}</option>}
+          {nested && !isList && acceptsOperand('numeric', type) && <option value="cast">{t('expression.cast')}</option>}
         </select>
       </label>
       {value.mode === 'literal' && <NodeValueInput label={t('expression.value', { label })} typeName={type?.name} value={value.value} empty={value.empty} onEmptyChange={(empty) => onChange({ ...value, empty })} required={!allowIncomplete} onChange={(next) => onChange({ ...value, value: next })} />}
@@ -70,6 +83,17 @@ export default function ExpressionInput({ label, value = emptyExpression(), onCh
           {Object.keys(primitiveDefinitions).filter((name) => acceptsOperand('numeric', primitiveType(name))).map((name) => <option key={name} value={name}>{name}</option>)}
         </select></label>
         <ExpressionInput label={t('expression.part', { label, part: t('slot.argument') })} value={value.argument} onChange={(next) => changeOperand('argument', next)} type={primitiveType(value.operandTypeName)} symbols={symbols} required={!allowIncomplete} allowIncomplete={allowIncomplete} depth={depth + 1} />
+      </>}
+      {value.mode === 'arrayLiteral' && isList && <>
+        {(value.arrayElements ?? []).map((element, index) => <div className="node-form__parameter" key={index}>
+          <ExpressionInput label={t('expression.element', { number: index + 1 })} value={element} onChange={(next) => onChange({ ...value, arrayElements: value.arrayElements.map((entry, position) => position === index ? next : entry) })} type={type.elementType} symbols={symbols} required={false} allowIncomplete={allowIncomplete} depth={depth + 1} />
+          <button type="button" onClick={() => onChange({ ...value, arrayElements: value.arrayElements.filter((_, position) => position !== index) })}>{t('form.removeElement')}</button>
+        </div>)}
+        <button type="button" onClick={() => onChange({ ...value, arrayElements: [...(value.arrayElements ?? []), emptyExpression()] })}>{t('form.addElement')}</button>
+      </>}
+      {value.mode === 'arrayCreation' && isList && <>
+        <ExpressionInput label={t('slot.size')} value={value.arraySize ?? emptyExpression()} onChange={(next) => arrayChange('arraySize', next)} type={primitiveType('int')} symbols={symbols} required={!allowIncomplete} allowIncomplete={allowIncomplete} depth={depth + 1} />
+        <ExpressionInput label={t('slot.initializer')} value={value.arrayFill ?? emptyExpression()} onChange={(next) => arrayChange('arrayFill', next)} type={type.elementType} symbols={symbols} required={false} allowIncomplete={true} depth={depth + 1} />
       </>}
       {!nested && <p className="node-form__hint">{t('expression.depthHint')}</p>}
     </fieldset>

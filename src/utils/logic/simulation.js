@@ -1,7 +1,6 @@
 import { analyzeProgram } from './analysis.js'
 import { validateLiteral, convertConstant, evaluateBinary, evaluateUnary } from './numericConstants.js'
 import { createDebugRecorder } from './debugTrace.js'
-import { isArrayType, arrayElementType } from './primitives.js'
 
 // Ajoute un code stable sans introduire de traduction ni de dépendance UI dans le moteur.
 function simulationError(code, message) {
@@ -85,6 +84,22 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     return result.value
   }
 
+  // Convertit une valeur entière source en index JavaScript et contrôle les bornes du tableau.
+  function arrayIndex(value, array) {
+    const index = typeof value === 'bigint' ? Number(value) : value
+    if (typeof index !== 'number' || !Number.isInteger(index) || index < 0 || index >= array.length) {
+      throw simulationError('SIMULATION_ARRAY_BOUNDS', 'An array index is outside its bounds.')
+    }
+    return index
+  }
+
+  // Lit un élément en refusant les cases jamais remplies, comme une variable sans initialiseur.
+  function readElement(array, index) {
+    const value = array[index]
+    if (value === uninitialized) throw simulationError('SIMULATION_UNINITIALIZED', 'An array element was read before it was initialized.')
+    return value
+  }
+
   // Évalue une expression typée, avec court-circuit pour les opérateurs booléens.
   function valueOf(node, environment) {
     step(node)
@@ -116,26 +131,26 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       return executeFunction(target, (node.children.arguments ?? []).map((id) => valueOf(nodes.get(id), environment)))
     }
     if (node.kind === 'ArrayLiteral') {
-      const elements = node.children.elements ?? []
-      return elements.map((id) => valueOf(nodes.get(id), environment))
+      return (node.children.elements ?? []).map((id) => valueOf(nodes.get(id), environment))
     }
     if (node.kind === 'ArrayCreation') {
       const sizeValue = valueOf(nodes.get(node.children.size), environment)
-      if (typeof sizeValue !== 'bigint' && (typeof sizeValue !== 'number' || !Number.isInteger(sizeValue) || sizeValue < 0)) {
-        throw simulationError('SIMULATION_FAILED', 'Array size must be a non-negative integer.')
-      }
       const size = typeof sizeValue === 'bigint' ? Number(sizeValue) : sizeValue
-      const elementType = types.get(node.id)
-      const defaultValue = getDefaultValue(elementType)
-      return Array.from({ length: size }, () => defaultValue)
+      if (typeof size !== 'number' || !Number.isSafeInteger(size) || size < 0) {
+        throw simulationError('SIMULATION_ARRAY_BOUNDS', 'An array size must be a non-negative integer.')
+      }
+      const fill = node.children.initializer ? valueOf(nodes.get(node.children.initializer), environment) : uninitialized
+      const values = []
+      for (let position = 0; position < size; position += 1) {
+        step(node)
+        values.push(fill)
+      }
+      return values
     }
     if (node.kind === 'ArrayAccess') {
-      const arr = valueOf(nodes.get(node.children.array), environment)
-      const index = valueOf(nodes.get(node.children.index), environment)
-      if (!Array.isArray(arr)) throw simulationError('SIMULATION_FAILED', 'Cannot index a non-array value.')
-      const idx = typeof index === 'bigint' ? Number(index) : index
-      if (idx < 0 || idx >= arr.length) throw simulationError('SIMULATION_FAILED', 'Array index out of bounds.')
-      return arr[idx]
+      const array = valueOf(nodes.get(node.children.array), environment)
+      if (!Array.isArray(array)) throw simulationError('SIMULATION_REFERENCE', 'The indexed value is not an array.')
+      return readElement(array, arrayIndex(valueOf(nodes.get(node.children.index), environment), array))
     }
     throw simulationError('SIMULATION_UNSUPPORTED', `Unsupported expression: ${node.kind}.`)
   }
@@ -159,6 +174,13 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     }
     if (node.kind === 'AssignmentStatement') {
       const target = nodes.get(node.children.target)
+      if (target?.kind === 'ArrayAccess') {
+        const array = valueOf(nodes.get(target.children.array), environment)
+        if (!Array.isArray(array)) throw simulationError('SIMULATION_REFERENCE', 'The indexed value is not an array.')
+        const index = arrayIndex(valueOf(nodes.get(target.children.index), environment), array)
+        array[index] = valueOf(nodes.get(node.children.value), environment)
+        return
+      }
       const symbol = symbols.get(references.get(target?.id)?.symbolId)
       if (!symbol) throw simulationError('SIMULATION_REFERENCE', 'The assignment target cannot be resolved.')
       writeBinding(symbol.nodeId, valueOf(nodes.get(node.children.value), environment), environment)
@@ -276,22 +298,11 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   }
 }
 
-// Valeur par défaut pour les éléments de tableau non initialisés.
-function getDefaultValue(elementType) {
-  if (!elementType) return 0
-  if (elementType.kind === 'primitive') {
-    if (elementType.name === 'string') return ''
-    if (elementType.name === 'boolean') return false
-    if (elementType.name === 'char') return '\0'
-    return 0
-  }
-  return 0
-}
-
 // Rend une valeur de simulation lisible sans perdre la distinction booléenne.
 function formatValue(value) {
   if (value === undefined) return 'undefined'
   if (typeof value === 'boolean') return value ? 'true' : 'false'
+  if (typeof value === 'symbol') return 'uninitialized'
   if (Array.isArray(value)) return `[${value.map(formatValue).join(', ')}]`
   return String(value)
 }

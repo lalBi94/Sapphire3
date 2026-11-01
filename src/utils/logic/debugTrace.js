@@ -6,10 +6,19 @@ export function createDebugRecorder(analysis, global, output, uninitialized) {
   let entries = 0
 
   // Distingue une valeur non initialisée d'une vraie chaîne ou d'un booléen.
+  function displayValue(value) {
+    if (typeof value === 'symbol') return 'uninitialized'
+    if (Array.isArray(value)) {
+      const shown = value.slice(0, 8).map((element) => displayValue(element)).join(', ')
+      return value.length > 8 ? `[${shown}, …] · ${value.length}` : `[${shown}]`
+    }
+    return typeof value === 'bigint' ? Number(value) : value
+  }
+
   function binding(symbol, environment) {
     const initialized = environment.values.has(symbol.nodeId) && environment.values.get(symbol.nodeId) !== uninitialized
     const value = initialized ? environment.values.get(symbol.nodeId) : undefined
-    return { nodeId: symbol.nodeId, moduleId: symbol.moduleId, name: symbol.name, type: symbol.type, initialized, ...(initialized ? { value: typeof value === 'bigint' ? Number(value) : value } : {}) }
+    return { nodeId: symbol.nodeId, moduleId: symbol.moduleId, name: symbol.name, type: symbol.type, initialized, ...(initialized ? { value: displayValue(value) } : {}) }
   }
 
   // Borne la rétention de l'historique ; l'unique état terminal reste toujours disponible.

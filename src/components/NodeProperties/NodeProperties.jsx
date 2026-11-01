@@ -53,7 +53,7 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
   const record = context.record
   const schema = selected.kind === 'node' && record ? getNodeSchema(record.kind) : null
   const diagnostics = index.analysis.diagnostics.filter((entry) => selected.kind === 'module' ? entry.location.moduleId === selected.id : entry.location.nodeId === selected.id)
-  const configurable = schema && (schema.named || schema.declaresType || ['BinaryExpression', 'UnaryExpression', 'Reference'].includes(record.kind))
+  const configurable = schema && (schema.named || schema.declaresType || schema.declaresElementType || ['BinaryExpression', 'UnaryExpression', 'Reference'].includes(record.kind))
   const title = selected.kind === 'module' ? t('details.module') : record ? kindLabel(record.kind, t) : t('details.block')
 
   return <FloatingPanel className="node-properties" title={title} label={t('details.title')} onClose={onClose}>

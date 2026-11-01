@@ -68,7 +68,7 @@ La catégorie de module `main` est retirée : une ancienne source v1 l'utilisant
 | `ForStatement` | `initializer?` variable/constante/affectation/instruction-expression ; `test?`, `update?` expression ou affectation ; `body` Block |
 | `BreakStatement`, `ContinueStatement` | Aucun slot ; boucle obligatoire, sans traverser une frontière de fonction |
 | `ExpressionStatement` | `expression` |
-| `AssignmentStatement` | `target` Reference, `value` expression ; variable ou paramètre modifiable |
+| `AssignmentStatement` | `target` Reference ou ArrayAccess, `value` expression ; variable, paramètre ou élément de tableau modifiable |
 | `BinaryExpression` | `operator`, `left`, `right` |
 | `UnaryExpression` | `operator`, `operand` |
 | `Literal` | `type` obligatoire et `value` strictement compatible ; aucune inférence depuis la valeur |
@@ -80,7 +80,7 @@ La catégorie de module `main` est retirée : une ancienne source v1 l'utilisant
 | `ArrayCreation` | `elementType` obligatoire, `size` expression entière, `initializer?` expression du type d'élément |
 | `ArrayAccess` | `array` expression tableau, `index` expression entière ; résultat : type de l'élément |
 
-`nodeSchema.js` centralise catégories, slots et opérateurs. Le champ `declaresType` identifie les constructions portant une annotation ; une annotation sur un opérateur ou une référence est une erreur structurelle et ne peut pas forcer son type. Chaque schéma porte aussi un `group` stable (`variable`, `type`, `function`, `parameter`, `condition`, `loop`, `return`, `block`, `statement`, `operator`, `value`, `incomplete`) utilisé uniquement par l'interface pour la couleur de bordure ; il ne participe ni à la validation ni au typage. Les règles détaillées des opérateurs et conversions sont ci-dessous.
+`nodeSchema.js` centralise catégories, slots et opérateurs. Le champ `declaresType` identifie les constructions portant une annotation ; `declaresElementType` identifie celles portant un type d'élément de tableau. Une annotation sur un opérateur ou une référence est une erreur structurelle et ne peut pas forcer son type. Chaque schéma porte aussi un `group` stable (`variable`, `type`, `function`, `parameter`, `condition`, `loop`, `return`, `block`, `statement`, `operator`, `value`, `incomplete`) utilisé uniquement par l'interface pour la couleur de bordure ; il ne participe ni à la validation ni au typage. Les règles détaillées des opérateurs et conversions sont ci-dessous.
 
 ## Portées, imports et types
 
@@ -115,13 +115,15 @@ Le catalogue unique est `primitives.js`. Les seuls primitifs sont :
 
 ### Types tableaux
 
-Les tableaux sont des types construits `{kind:'array', elementType:...}` où `elementType` est un primitif (sauf `void`). Trois constructions :
+Un tableau est un type construit `{kind:'array', elementType:{kind:'primitive', name}}` annotable **uniquement sur une `VariableDeclaration`, une `ConstantDeclaration` ou un `Parameter`** ; un type tableau sur un retour de fonction, un alias, un littéral scalaire ou une conversion est diagnostiqué `TYPE_INVALID` et ne produit aucun type de secours. L'élément doit être un primitif non `void` ; les tableaux imbriqués et les alias nommés comme type d'élément sont refusés dans cette version. `sameType` compare les éléments, et le type dérivé d'un paramètre ou d'une variable tableau est bien `{kind:'array', …}`.
 
-- `ArrayLiteral` : `{kind:'ArrayLiteral', properties:{elementType:{kind:'primitive',name:'int'}}, children:{elements:[...]}}` — littéral avec liste d'expressions du même type.
-- `ArrayCreation` : `{kind:'ArrayCreation', properties:{elementType:...}, children:{size:expression, initializer?:expression}}` — création avec taille entière et initialiseur optionnel.
-- `ArrayAccess` : `{kind:'ArrayAccess', children:{array:expression, index:expression}}` — accès par index, résultat = type de l'élément.
+Trois constructions d'expression portent leur propre `properties.elementType` (le type de leurs éléments, jamais `properties.type`) :
 
-La simulation exécute les tableaux : littéraux en tant que listes, création avec valeur par défaut selon le type, accès vérifie les bornes. La transpilation JavaScript génère `[...]`, `new Array(size)` ou `Array.from(...)` et la syntaxe d'index `[]`.
+- `ArrayLiteral` : `children.elements[]`, chaque expression doit avoir exactement le type d'élément annoncé (`TYPE_MISMATCH` localisé par index).
+- `ArrayCreation` : `children.size` (expression entière obligatoire) et `children.initializer` (valeur de remplissage optionnelle du type de l'élément).
+- `ArrayAccess` : `children.array` (expression dont le type résolu doit être un tableau) et `children.index` (expression entière) ; le résultat porte le type de l'élément.
+
+`AssignmentStatement.target` accepte en outre un `ArrayAccess` : l'écriture vise l'élément, avec le type de l'élément comme type attendu pour la valeur. Les éléments d'une `ConstantDeclaration` ne sont pas modifiables (`PLACEMENT_ILLEGAL`). Une case jamais remplie ne reçoit aucune valeur inventée : sa lecture échoue comme une variable sans initialiseur.
 
 ### Littéraux et précision
 
@@ -223,6 +225,8 @@ La simulation locale consomme l'analyse validée et les identifiants source. Sug
 
 `simulateProgram(project, {maxSteps = 10000})` retourne `ok`, `output` (lignes de texte) et `trace` (identifiants source dans l'ordre d'exécution), puis `result`/`steps` en cas de succès ou `error` et `errorCode` en cas d'échec. `error` reste un message technique compatible avec les consommateurs existants ; l'UI traduit `errorCode`, sans analyser ce texte ni introduire de langue dans le moteur. Les diagnostics bloquants, l'absence de point d'entrée ou un point d'entrée paramétré empêchent le lancement. Le résultat scalaire entier public est un nombre JavaScript exact dans les bornes des types autorisés ; les calculs entiers internes utilisent BigInt.
 
+Les tableaux s'exécutent localement : un littéral devient une liste de valeurs, une création consomme un pas de budget par élément créé (le budget borne donc la taille), la valeur de remplissage est évaluée une seule fois et sans remplissage les cases restent non initialisées. Un index hors bornes ou une taille négative produit `SIMULATION_ARRAY_BOUNDS` ; la lecture d'une case jamais remplie produit `SIMULATION_UNINITIALIZED`. Le panneau mémoire du debug n'expose jamais la liste mutable : il affiche un résumé textuel borné.
+
 Les littéraux, calculs et conversions réutilisent les contrôles de `numericConstants.js` : division entière tronquée, division flottante préservée, arrondi binaire32 à chaque opération, dépassement/sous-flux et division par zéro refusés. `and`/`or` court-circuitent. Une variable sans initialiseur ne reçoit aucune valeur implicite et sa lecture échoue. Les alias de types ne sont pas exécutés. Les appels ont leur environnement propre relié aux variables globales, jamais à celui de l'appelant ; blocs et boucles recréent leurs variables locales.
 
 Le budget accepte un entier de 1 à 100 000 ; même un `for` sans condition ni corps consomme ce budget. La profondeur d'appel est bornée à 200 avant débordement de pile. L'initialisation globale suit l'ordre source des modules et racines ; pas de tri automatique des dépendances. Sorties et trace restent en mémoire ; aucun input, fichier, réseau, génération de code ou effet natif depuis le moteur. L'animation UI est une relecture de cette trace calculée, pas une exécution asynchrone ni un débogueur.
@@ -231,7 +235,7 @@ Le budget accepte un entier de 1 à 100 000 ; même un `for` sans condition ni c
 
 `transpileProgram(project, {target: 'javascript'})` réutilise `analyzeProgram()` puis délègue la génération à un backend enregistré. La première cible est JavaScript, produite dans un fichier unique sans `import` ni `export`. Les déclarations de modules et de fonctions sont écrites avant `main()`, l'initialisation globale est exécutée dans `main()`, puis le point d'entrée Sapphire marqué `properties.entryPoint: true` est appelé. Le backend exige exactement un point d'entrée et renvoie des diagnostics stables sans modifier la source.
 
-Le backend JavaScript couvre le sous-ensemble des constructions du schéma logique : déclarations, fonctions, paramètres, blocs, retours, affichage via `console.log`, conditions, boucles, affectations, appels, opérateurs, littéraux, références, conversions numériques et **tableaux** (littéraux, création, accès par index).
+Le backend JavaScript couvre le sous-ensemble des constructions du schéma logique : déclarations, fonctions, paramètres, blocs, retours, affichage via `console.log`, conditions, boucles, affectations, appels, opérateurs, littéraux, références, conversions numériques et **tableaux** (littéral, création bornée, lecture et écriture d'élément). Les lectures d'éléments passent par `sapphireElement` (bornes et case jamais remplie), les écritures par `sapphireWrite` et les tailles par `sapphireArray` ; le runtime embarque ces helpers. Le backend Python émet les mêmes constructions avec `sapphireArray`/`sapphireElement`/`sapphireWrite`.
 
 Les diagnostics bloquants empêchent toute génération ; un point d'entrée paramétré est refusé plutôt qu'appelé sans arguments. Les opérations numériques autonomes embarquées proviennent de `createNumericOperations` dans `numericConstants.js`, sans seconde implémentation : BigInt pour les entiers, arrondi binaire32, conversions, dépassements, sous-flux et division par zéro identiques au simulateur. Les littéraux sont validés et normalisés avant émission (zéros initiaux, signes, arrondi décimal direct et zéro flottant signé). Les sorties utilisent `String` pour ne pas afficher le suffixe BigInt. Une sentinelle interdit la lecture d'une variable non initialisée. Les constantes globales utilisent une liaison JavaScript différée, leur immutabilité restant contrôlée par l'analyse Sapphire. Le fichier produit n'embarque pas les budgets de pas ou d'appels du simulateur et n'est jamais exécuté automatiquement par l'application.
 

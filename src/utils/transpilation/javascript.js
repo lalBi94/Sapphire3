@@ -19,7 +19,7 @@ const reservedWords = new Set([
 
 // Produit le code JavaScript d'un programme Sapphire déjà analysé.
 export function generateJavaScript(analysis, { selection = null } = {}) {
-  const context = createGenerationContext(analysis, { selection, reservedWords, allowDollar: true, runtimeNames: ['sapphireNumeric', 'sapphireChecked', 'sapphireRead', 'sapphireUninitialized', 'console', 'Math', 'Number', 'BigInt', 'Object', 'Error'] })
+  const context = createGenerationContext(analysis, { selection, reservedWords, allowDollar: true, runtimeNames: ['sapphireNumeric', 'sapphireChecked', 'sapphireRead', 'sapphireUninitialized', 'sapphireArray', 'sapphireElement', 'sapphireWrite', 'console', 'Math', 'Number', 'BigInt', 'Object', 'Error'] })
   const { ast, diagnostics, typeByNode, generatedNames, reserveDeclaration, referenceName, entryName } = context
 
   // Génère une expression en conservant la structure et les opérateurs de l'AST.
@@ -55,20 +55,15 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
       const argument = expression(child(node, 'argument'))
       return target === typeByNode.get(child(node, 'argument')?.sourceId)?.name ? argument : `sapphireChecked(sapphireNumeric.convertConstant(${argument}, ${JSON.stringify(target)}))`
     }
-    if (node.kind === 'ArrayLiteral') {
-      const elements = node.children.elements ?? []
-      return `[${elements.map(expression).join(', ')}]`
-    }
+    if (node.kind === 'ArrayLiteral') return `[${(node.children.elements ?? []).map((element) => expression(element)).join(', ')}]`
     if (node.kind === 'ArrayCreation') {
       const size = expression(child(node, 'size'))
-      const init = child(node, 'initializer')
-      if (init) return `Array.from({length:${size}}, () => ${expression(init)})`
-      return `new Array(${size})`
+      const initializer = child(node, 'initializer')
+      if (initializer) return `((sapphireValue) => Array.from({ length: sapphireArray(${size}) }, () => sapphireValue))(${expression(initializer)})`
+      return `Array.from({ length: sapphireArray(${size}) }, () => sapphireUninitialized)`
     }
     if (node.kind === 'ArrayAccess') {
-      const arr = expression(child(node, 'array'))
-      const idx = expression(child(node, 'index'))
-      return `${arr}[${idx}]`
+      return `sapphireElement(${expression(child(node, 'array'))}, ${expression(child(node, 'index'))})`
     }
     diagnostics.push(createDiagnostic('TRANSPILE_EXPRESSION_UNSUPPORTED', `Expression ${node.kind} non prise en charge.`, node.location))
     return 'undefined'
@@ -99,7 +94,12 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
     const indent = '  '.repeat(level)
     if (node.kind === 'VariableDeclaration' || node.kind === 'ConstantDeclaration') return declaration(node, indent)
     if (node.kind === 'ExpressionStatement') return `${indent}${expression(child(node, 'expression'))};`
-    if (node.kind === 'AssignmentStatement') return `${indent}${referenceName(child(node, 'target'))} = ${expression(child(node, 'value'))};`
+    if (node.kind === 'AssignmentStatement') {
+      const target = child(node, 'target')
+      const value = expression(child(node, 'value'))
+      if (target?.kind === 'ArrayAccess') return `${indent}sapphireWrite(${expression(child(target, 'array'))}, ${expression(child(target, 'index'))}, ${value});`
+      return `${indent}${referenceName(target)} = ${value};`
+    }
     if (node.kind === 'PrintStatement') return `${indent}console.log(String(${expression(child(node, 'value'))}));`
     if (node.kind === 'ReturnStatement') {
       const argument = child(node, 'argument')
@@ -160,6 +160,9 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
     'const sapphireUninitialized = Symbol("uninitialized");',
     'function sapphireRead(value) { if (value === sapphireUninitialized) throw new Error("SIMULATION_UNINITIALIZED"); return value; }',
     'function sapphireChecked(result) { if (result.code) throw new Error(result.code); return result.value; }',
+    'function sapphireArray(length) { if (typeof length !== "number" && typeof length !== "bigint" || !Number.isInteger(Number(length)) || Number(length) < 0) throw new Error("SIMULATION_ARRAY_BOUNDS"); return Number(length); }',
+    'function sapphireElement(array, index) { if (!Array.isArray(array)) throw new Error("SIMULATION_REFERENCE"); if (index < 0 || index >= array.length) throw new Error("SIMULATION_ARRAY_BOUNDS"); const value = array[index]; if (value === sapphireUninitialized) throw new Error("SIMULATION_UNINITIALIZED"); return value; }',
+    'function sapphireWrite(array, index, value) { if (!Array.isArray(array)) throw new Error("SIMULATION_REFERENCE"); if (index < 0 || index >= array.length) throw new Error("SIMULATION_ARRAY_BOUNDS"); array[index] = value; }',
     ...globalDeclarations,
     ...functions,
     '',

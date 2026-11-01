@@ -57,21 +57,10 @@ export function nodeSummary(node, index, schema, t) {
     const count = Array.isArray(node.children?.parameters) ? node.children.parameters.length : 0
     parts.push(t(count === 1 ? 'labels.input' : 'labels.inputs', { count }))
   }
-  // Tableaux : affichent le nombre d'éléments ou la taille.
   if (node.kind === 'ArrayLiteral') {
     const count = Array.isArray(node.children?.elements) ? node.children.elements.length : 0
     parts.push(t(count === 1 ? 'labels.element' : 'labels.elements', { count }))
   }
-  if (node.kind === 'ArrayCreation') {
-    const sizeNode = node.children?.size
-    if (sizeNode && index.nodeTypes.has(sizeNode)) {
-      const sizeType = index.nodeTypes.get(sizeNode)
-      parts.push(`size: ${typeLabel(sizeType, t)}`)
-    } else {
-      parts.push('size: ?')
-    }
-  }
-  if (node.kind === 'ArrayAccess') parts.push(t('labels.element'))
 
   // Les nœuds nommés et les expressions affichent leur type, même absent, pour révéler un problème.
   if (type || schema?.category === 'expression' || schema?.named) parts.push(typeLabel(type, t))

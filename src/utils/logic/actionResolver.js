@@ -1,4 +1,5 @@
 import { nodeSchema, acceptsNodeKind } from './nodeSchema.js'
+import { isArrayType } from './primitives.js'
 import { getPlacementIssue } from './placement.js'
 import { resolveContext } from './contextResolver.js'
 
@@ -19,6 +20,8 @@ export function getAvailableActions(project, targetId, slotName, options = {}) {
     for (const kind of Object.keys(nodeSchema)) {
       if (kind === 'Hole' || !acceptsNodeKind(slot, kind) || getPlacementIssue(kind, insertionContext)) continue
       if (context.record.kind === 'CallExpression' && slot.name === 'callee' && kind !== 'Reference') continue
+      // Un tableau ne peut remplir qu'un emplacement qui attend un tableau ; le choix reste libre sinon.
+      if (['ArrayLiteral', 'ArrayCreation'].includes(kind) && context.expectedType && !isArrayType(context.expectedType)) continue
       actions.push({ id: `${slot.name}:${kind}`, kind, slot: slot.name, category: nodeSchema[kind].category })
     }
   }

@@ -59,6 +59,13 @@ export function generatePython(analysis, { selection = null } = {}) {
       const target = typeByNode.get(node.sourceId)?.name
       return target === typeByNode.get(child(node, 'argument')?.sourceId)?.name ? argument : `sapphireCast(${argument}, ${JSON.stringify(target)})`
     }
+    if (node.kind === 'ArrayLiteral') return `[${(node.children.elements ?? []).map((element) => expression(element)).join(', ')}]`
+    if (node.kind === 'ArrayCreation') {
+      const size = `sapphireArray(${expression(child(node, 'size'))})`
+      const initializer = child(node, 'initializer')
+      return `([${initializer ? expression(initializer) : 'sapphireUninitialized'}] * ${size})`
+    }
+    if (node.kind === 'ArrayAccess') return `sapphireElement(${expression(child(node, 'array'))}, ${expression(child(node, 'index'))})`
     diagnostics.push(createDiagnostic('TRANSPILE_EXPRESSION_UNSUPPORTED', 'Expression non prise en charge.', node.location))
     return 'None'
   }
@@ -91,7 +98,12 @@ export function generatePython(analysis, { selection = null } = {}) {
     const indent = '    '.repeat(level)
     if (['VariableDeclaration', 'ConstantDeclaration'].includes(node.kind)) return declaration(node, level)
     if (node.kind === 'ExpressionStatement') return `${indent}${expression(child(node, 'expression'))}`
-    if (node.kind === 'AssignmentStatement') return `${indent}${referenceName(child(node, 'target'))} = ${expression(child(node, 'value'))}`
+    if (node.kind === 'AssignmentStatement') {
+      const target = child(node, 'target')
+      const value = expression(child(node, 'value'))
+      if (target?.kind === 'ArrayAccess') return `${indent}sapphireWrite(${expression(child(target, 'array'))}, ${expression(child(target, 'index'))}, ${value})`
+      return `${indent}${referenceName(target)} = ${value}`
+    }
     if (node.kind === 'PrintStatement') return `${indent}print(sapphireFormat(${expression(child(node, 'value'))}))`
     if (node.kind === 'ReturnStatement') return `${indent}return${child(node, 'argument') ? ` ${expression(child(node, 'argument'))}` : ''}`
     if (node.kind === 'BreakStatement') return `${indent}break`

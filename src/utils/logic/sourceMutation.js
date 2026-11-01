@@ -3,7 +3,7 @@ import { getAvailableActions } from './actionResolver.js'
 import { createContextIndex, resolveContext } from './contextResolver.js'
 import { diagnosticCodes as codes } from './diagnostics.js'
 import { isId, isRecord } from './model.js'
-import { sameType, primitiveType, acceptsOperand } from './primitives.js'
+import { sameType, primitiveType, acceptsOperand, arrayType } from './primitives.js'
 import { binaryOperators, unaryOperators, getNodeSchema } from './nodeSchema.js'
 
 const hardInsertionCodes = new Set([
@@ -39,6 +39,11 @@ function resultConstraint(root, analysis, expectedType) {
   const resolved = analysis.semantic.nodeTypes.find((entry) => entry.nodeId === root.id)?.type
   if (resolved) return { type: resolved }
   if (['Literal', 'CastExpression'].includes(root.kind) && root.properties.type?.kind === 'primitive') return { type: primitiveType(root.properties.type.name) }
+  if (['ArrayLiteral', 'ArrayCreation'].includes(root.kind) && root.properties.elementType?.kind === 'primitive') {
+    const element = primitiveType(root.properties.elementType.name)
+    if (!element || element.name === 'void') return { incompatible: true }
+    return { type: arrayType(element) }
+  }
   if (['BinaryExpression', 'UnaryExpression'].includes(root.kind)) {
     const operators = root.kind === 'BinaryExpression' ? binaryOperators : unaryOperators
     const operator = root.properties.operator
