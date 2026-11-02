@@ -27,7 +27,7 @@ export const nodeSchema = Object.freeze({
   BreakStatement: { category: 'statement', group: 'loop', slots: {} },
   ContinueStatement: { category: 'statement', group: 'loop', slots: {} },
   ExpressionStatement: { category: 'statement', group: 'statement', slots: { expression } },
-  AssignmentStatement: { category: 'statement', group: 'statement', slots: { target: { kinds: ['Reference', 'ArrayAccess'], required: true }, value: expression } },
+  AssignmentStatement: { category: 'statement', group: 'statement', slots: { target: { kinds: ['Reference', 'ArrayAccess', 'UnaryExpression'], required: true }, value: expression } },
   BinaryExpression: { category: 'expression', group: 'operator', slots: { left: expression, right: expression } },
   UnaryExpression: { category: 'expression', group: 'operator', slots: { operand: expression } },
   Literal: { category: 'expression', group: 'value', declaresType: true, slots: {} },

@@ -11,10 +11,11 @@ const expectedOutput = {
   recursion: ['120'],
   imports: ['25'],
   foreach: ['3', '1', '4', '1', '5'],
+  pointers: ['1', '5', '5'],
 }
 
 test('bibliothèque d’exemples : chaque projet est valide, analysable et s’exécute', () => {
-  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'sorting', 'arrays', 'recursion', 'imports', 'foreach'])
+  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'sorting', 'arrays', 'recursion', 'imports', 'foreach', 'pointers'])
   for (const example of examples) {
     const workspace = deserializeWorkspace(JSON.stringify(example.build()))
     assert.ok(workspace.presentation.cards.length >= 1, example.id)

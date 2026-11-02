@@ -170,13 +170,15 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
           const array = valueOf(nodes.get(operand.children.array), environment)
           if (!Array.isArray(array)) throw simulationError('SIMULATION_REFERENCE', 'The addressed value is not an array element.')
           const index = arrayIndex(valueOf(nodes.get(operand.children.index), environment), array)
+          const arrayReference = nodes.get(operand.children.array)
+          const arraySymbol = arrayReference?.kind === 'Reference' ? symbols.get(references.get(arrayReference.id)?.symbolId) : null
           step(operand)
-          return { pointer: true, kind: 'element', array, index, label: `&[${index}]` }
+          return { pointer: true, kind: 'element', array, index, constant: arraySymbol?.kind === 'ConstantDeclaration', label: `&[${index}]` }
         }
         const symbol = symbols.get(references.get(operand?.id)?.symbolId)
         if (!symbol) throw simulationError('SIMULATION_REFERENCE', 'The address target cannot be resolved.')
         step(operand)
-        return { pointer: true, kind: 'reference', nodeId: symbol.nodeId, environment, label: `&${nodes.get(symbol.nodeId)?.properties?.name ?? symbol.nodeId}` }
+        return { pointer: true, kind: 'reference', nodeId: symbol.nodeId, environment, constant: symbol.kind === 'ConstantDeclaration', label: `&${nodes.get(symbol.nodeId)?.properties?.name ?? symbol.nodeId}` }
       }
       // Lecture de la valeur pointée à travers l'adresse.
       if (operator === '*') {
@@ -329,6 +331,19 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
         if (!Array.isArray(array)) throw simulationError('SIMULATION_REFERENCE', 'The indexed value is not an array.')
         const index = arrayIndex(valueOf(nodes.get(target.children.index), environment), array)
         array[index] = valueOf(nodes.get(node.children.value), environment)
+        return
+      }
+      // Écriture à travers un pointeur : modifie la valeur réelle de l'emplacement visé.
+      if (target?.kind === 'UnaryExpression' && target.properties.operator === '*') {
+        const address = valueOf(nodes.get(target.children.operand), environment)
+        if (address?.pointer !== true) throw simulationError('SIMULATION_REFERENCE', 'The dereferenced value is not an address.')
+        if (address.constant) throw simulationError('SIMULATION_CONST_IMMUTABLE', 'A constant cannot be modified through a pointer.')
+        const value = valueOf(nodes.get(node.children.value), environment)
+        if (address.kind === 'element') {
+          address.array[address.index] = value
+          return
+        }
+        writeBinding(address.nodeId, value, address.environment)
         return
       }
       const symbol = symbols.get(references.get(target?.id)?.symbolId)

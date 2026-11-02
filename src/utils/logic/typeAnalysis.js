@@ -370,7 +370,20 @@ export function analyzeTypes(semantic, projectId) {
     }
     if (node.kind === 'AssignmentStatement') {
       const target = child(node, 'target')
-      if (target && !['Reference', 'ArrayAccess'].includes(target.kind)) report(codes.illegalPlacement, 'La cible d’affectation doit être une variable ou un élément de tableau.', node, 'children.target')
+      const dereference = target?.kind === 'UnaryExpression'
+      if (target && !dereference && !['Reference', 'ArrayAccess'].includes(target.kind)) report(codes.illegalPlacement, 'La cible d’affectation doit être une variable, un élément de tableau ou un déréférencement.', node, 'children.target')
+      // Un déréférencement d'écriture vise la valeur stockée ; l'adresse d'une constante reste intouchable.
+      if (dereference) {
+        if (target.properties.operator !== '*') report(codes.illegalPlacement, 'Seul le déréférencement peut être une cible d’affectation.', node, 'children.target')
+        const address = child(target, 'operand')
+        if (address?.kind === 'UnaryExpression' && address.properties.operator === '&') {
+          const addressed = child(address, 'operand')
+          const addressedArray = addressed?.kind === 'ArrayAccess' ? child(addressed, 'array') : null
+          const addressedSymbol = addressed?.kind === 'Reference' ? referenceSymbols.get(addressed.sourceId)
+            : addressedArray?.kind === 'Reference' ? referenceSymbols.get(addressedArray.sourceId) : null
+          if (addressedSymbol?.kind === 'ConstantDeclaration') report(codes.illegalPlacement, 'Une constante ne se modifie pas à travers un pointeur.', node, 'children.target')
+        }
+      }
       if (target?.kind === 'ArrayAccess') {
         const arrayTarget = child(target, 'array')
         const arraySymbol = arrayTarget?.kind === 'Reference' ? referenceSymbols.get(arrayTarget.sourceId) : null

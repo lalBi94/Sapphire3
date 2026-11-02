@@ -195,6 +195,28 @@ function forEach() {
   return workspace(b.project)
 }
 
+// Pointeurs : adresse d'une variable, déréférencement en lecture, puis écriture qui modifie l'original.
+function pointers() {
+  const b = builder()
+  b.useModule('pointers', 'Pointers')
+  b.root('x', 'VariableDeclaration', { name: 'x', type: intType }, { initializer: 'one' })
+  b.intValue('one', 1)
+  b.root('p', 'VariableDeclaration', { name: 'p', type: { kind: 'pointer', pointee: intType } }, { initializer: 'addressOfX' })
+  b.make('addressOfX', 'UnaryExpression', { operator: '&' }, { operand: 'xRef' })
+  b.ref('xRef', 'x')
+  b.root('pointersMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'pointersBody' })
+  b.block('pointersBody', ['printInitial', 'writeThrough', 'printAfter', 'printDeref'])
+  b.print('printInitial', 'initialRead'); b.ref('initialRead', 'x')
+  // `*p = 5` écrit dans `x` : la valeur réelle de l'emplacement, pas une copie locale.
+  b.make('writeThrough', 'AssignmentStatement', {}, { target: 'derefWrite', value: 'five' })
+  b.make('derefWrite', 'UnaryExpression', { operator: '*' }, { operand: 'pRefWrite' }); b.ref('pRefWrite', 'p')
+  b.intValue('five', 5)
+  b.print('printAfter', 'afterRead'); b.ref('afterRead', 'x')
+  b.print('printDeref', 'derefRead')
+  b.make('derefRead', 'UnaryExpression', { operator: '*' }, { operand: 'pRefRead' }); b.ref('pRefRead', 'p')
+  return workspace(b.project)
+}
+
 // Catalogue local, ouvrable sans réseau ni fichier externe.
 export const examples = [
   { id: 'fibonacci', labelKey: 'examples.fibonacci', build: fibonacci },
@@ -203,4 +225,5 @@ export const examples = [
   { id: 'recursion', labelKey: 'examples.recursion', build: recursion },
   { id: 'imports', labelKey: 'examples.imports', build: imports },
   { id: 'foreach', labelKey: 'examples.forEach', build: forEach },
+  { id: 'pointers', labelKey: 'examples.pointers', build: pointers },
 ]
