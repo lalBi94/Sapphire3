@@ -1,5 +1,6 @@
 import { acceptsOperand, primitiveDefinitions, primitiveType, isValidElementType, isPointerType } from '../../utils/logic/index.js'
 import NodeValueInput from './NodeValueInput.jsx'
+import InfoHint from '../InfoHint/InfoHint.jsx'
 import { emptyExpression, expressionOperators, expressionOperandType, expressionSymbols, integerTypeNames, accessedArrayType, arrayIndexType } from './nodeConfiguration.js'
 import { symbolLabel } from '../LogicTree/logicLabels.js'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
@@ -50,7 +51,7 @@ export default function ExpressionInput({ label, value = emptyExpression(), onCh
 
   return (
     <fieldset className="expression-input">
-      <legend>{label}</legend>
+      <legend>{label}{!nested && <InfoHint text={t('expression.depthHint')} />}</legend>
       <label>{t('form.value')}
         <select aria-label={t('expression.expression', { label })} value={value.mode} onChange={handleModeChange} required={required} disabled={!concrete && !allowAnyType}>
           <option value="">{required ? t('form.chooseName') : t('form.leaveEmpty')}</option>
@@ -115,7 +116,6 @@ export default function ExpressionInput({ label, value = emptyExpression(), onCh
         </select></label>
         <ExpressionInput label={t('expression.part', { label, part: t('slot.index') })} value={value.accessIndex ?? emptyExpression()} onChange={(next) => arrayChange('accessIndex', next)} type={arrayIndexType(value.indexTypeName)} symbols={symbols} required={!allowIncomplete} allowIncomplete={allowIncomplete} depth={depth + 1} />
       </>}
-      {!nested && <p className="node-form__hint">{t('expression.depthHint')}</p>}
     </fieldset>
   )
 }

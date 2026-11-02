@@ -150,8 +150,7 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
     <div ref={menuRef} className="logic-context-menu" data-canvas-ui data-canvas-scroll tabIndex={-1} aria-label={t('canvas.blockMenu')} style={menuStyle} onPointerDown={(event) => { event.stopPropagation(); handleMoveStart(event) }} onPointerMove={handleMove} onPointerUp={handleMoveEnd} onPointerCancel={handleMoveEnd} onLostPointerCapture={handleMoveEnd} onKeyDown={handleKeyDown}>
       <div className="logic-context-menu__columns">
       <div className="logic-context-menu__actions" role="menu" aria-label={selectedSlot ? t('canvas.addTo', { slot: slotLabel(selectedSlot, t) }) : t('canvas.addWhere')}>
-        <div className="logic-context-menu__title">{t('canvas.addNodes')}</div>
-        <div className="logic-context-menu__title">{selectedSlot ? slotLabel(selectedSlot, t) : t('canvas.addWhere')}</div>
+        <div className="logic-context-menu__title">{selectedSlot ? slotLabel(selectedSlot, t) : t('canvas.addNodes')}</div>
         {selectedSlot && available.slots.length > 1 && <button type="button" role="menuitem" onClick={() => { setSlotName(''); setKind(''); setPreset(null) }}><ArrowLeft className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.back')}</button>}
         {!available.ok && <p>{diagnosticLabel(available.code, t)}</p>}
         {available.ok && !selectedSlot && available.slots.map((slot) => <button type="button" role="menuitem" key={slot.name} disabled={slot.occupied || slot.malformed} onClick={() => { setSlotName(slot.name); setKind(''); setPreset(null) }}><CircleDot className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{slotLabel(slot.name, t)}{slot.occupied ? t('canvas.alreadyUsed') : slot.many ? t('canvas.several') : ''}</button>)}

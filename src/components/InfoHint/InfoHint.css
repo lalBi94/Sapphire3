@@ -1,0 +1,4 @@
+/* Icône d'aide discrète, sans texte permanent. */
+.info-hint { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 16px; height: 16px; color: var(--color-text-muted); opacity: 0.75; cursor: help; }
+.info-hint:hover, .info-hint:focus-visible { color: var(--color-primary); opacity: 1; }
+.info-hint:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 1px; border-radius: var(--radius-small); }

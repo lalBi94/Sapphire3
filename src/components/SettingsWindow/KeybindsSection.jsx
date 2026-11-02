@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Keyboard, RotateCcw, Trash2 } from 'lucide-react'
+import InfoHint from '../InfoHint/InfoHint.jsx'
 import { useKeybindsContext } from '../../contexts/KeybindsContext.jsx'
 import { formatShortcut, keybindActions, keybindCategories, shortcutFromEvent } from '../../utils/keybinds.js'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
@@ -67,8 +68,8 @@ export default function KeybindsSection() {
         <input type="search" value={query} placeholder={t('keybind.search')} aria-label={t('keybind.search')} onChange={(event) => setQuery(event.target.value)} />
       </label>
       <button type="button" className="keybinds-section__reset-all" onClick={() => { setError(null); resetAll() }}><RotateCcw size={14} aria-hidden="true" />{t('keybind.resetAll')}</button>
+      <InfoHint text={t('keybind.hint')} />
     </div>
-    <p className="settings-section__hint">{t('keybind.hint')}</p>
     {keybindCategories.map((category) => {
       const visible = category.actions.filter(matches)
       if (visible.length === 0) return null

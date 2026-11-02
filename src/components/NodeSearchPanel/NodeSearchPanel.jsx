@@ -3,6 +3,7 @@ import { Search, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import usePanelFront from '../../hooks/usePanelFront.jsx'
 import { searchNodes } from '../../utils/nodeSearch.js'
+import InfoHint from '../InfoHint/InfoHint.jsx'
 import './NodeSearchPanel.css'
 
 // Le panneau n'affiche qu'un début de liste : le reste se dégage en affinant le terme.
@@ -63,6 +64,7 @@ export default function NodeSearchPanel({ index, cards, selectedId, focusToken, 
         aria-activedescendant={active >= 0 ? `node-search-${results[active].nodeId}` : undefined}
         onChange={(event) => { setTerm(event.target.value); setActivePosition(0) }} onKeyDown={handleKeyDown} />
       <button type="button" className="node-search__close" aria-label={t('search.close')} onClick={onClose}><X size={14} aria-hidden="true" /></button>
+      <InfoHint text={t('search.hint')} />
     </div>
     <p className="node-search__count" role="status">{term.trim()
       ? t(results.length === 1 ? 'search.resultsOne' : 'search.results', { count: results.length })
@@ -77,6 +79,5 @@ export default function NodeSearchPanel({ index, cards, selectedId, focusToken, 
           <span className="node-search__trail">{entry.trail}{entry.summary ? ` · ${entry.summary}` : ''}</span>
         </li>)}
       </ul>}
-    <p className="node-search__hint">{t('search.hint')}</p>
   </div>
 }

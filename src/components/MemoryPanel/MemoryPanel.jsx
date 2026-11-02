@@ -21,8 +21,7 @@ export default function MemoryPanel({ index, frame, reachability, onClose }) {
     </li>
   }
 
-  return <FloatingPanel title={t('memory.title')} label={t('memory.title')} onClose={onClose} className="memory-panel">
-    <p className="memory-panel__hint">{t('memory.hint')}</p>
+  return <FloatingPanel title={t('memory.title')} label={t('memory.title')} info={t('memory.hint')} onClose={onClose} className="memory-panel">
     <section className="memory-panel__segment">
       <h3><Code2 size={14} aria-hidden="true" />{t('memory.code')}<span>{space.functions.length}</span></h3>
       {space.functions.length === 0 ? <p className="memory-panel__empty">{t('memory.empty')}</p> : <ul className="memory-panel__list">

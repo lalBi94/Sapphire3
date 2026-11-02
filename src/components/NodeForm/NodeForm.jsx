@@ -5,6 +5,7 @@ import { initialNodeForm, nodeConfiguration, emptyExpression, typeFromName, type
 import NodeTypeInput from './NodeTypeInput.jsx'
 import NodeValueInput from './NodeValueInput.jsx'
 import ExpressionInput from './ExpressionInput.jsx'
+import InfoHint from '../InfoHint/InfoHint.jsx'
 import { diagnosticLabel, symbolLabel, typeLabel } from '../LogicTree/logicLabels.js'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './NodeForm.css'
@@ -108,10 +109,14 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
         ? <p className="node-form__hint">{t('form.arrayElementsOfType', { type: arrayElementType.name })}</p>
         : <NodeTypeInput label={t('field.elementType')} value={form.elementTypeName} onChange={(value) => change('elementTypeName', value)} required={required} />)}
       {kind === 'FunctionDeclaration' && <>
-        <label className="node-form__check"><input type="checkbox" checked={form.entryPoint} disabled={entryPointTaken && !form.entryPoint} onChange={(event) => change('entryPoint', event.target.checked)} />{t('form.startProgram')}</label>
-        <label className="node-form__check"><input type="checkbox" checked={form.generic === true} onChange={(event) => change('generic', event.target.checked)} />{t('form.generic')}</label>
-        {form.generic && <p className="node-form__hint">{t('form.genericHint')}</p>}
-        {entryPointTaken && !form.entryPoint && <p className="node-form__hint">{t('form.startProgramHint')}</p>}
+        <div className="node-form__check-row">
+          <label className="node-form__check"><input type="checkbox" checked={form.entryPoint} disabled={entryPointTaken && !form.entryPoint} onChange={(event) => change('entryPoint', event.target.checked)} />{t('form.startProgram')}</label>
+          {entryPointTaken && !form.entryPoint && <InfoHint text={t('form.startProgramHint')} />}
+        </div>
+        <div className="node-form__check-row">
+          <label className="node-form__check"><input type="checkbox" checked={form.generic === true} onChange={(event) => change('generic', event.target.checked)} />{t('form.generic')}</label>
+          {form.generic && <InfoHint text={t('form.genericHint')} />}
+        </div>
       </>}
       {['BinaryExpression', 'UnaryExpression'].includes(kind) && <label>{t('form.operator')}
         <select aria-label={t('form.operator')} value={form.operator} onChange={(event) => change('operator', event.target.value)} required={required}>
@@ -150,7 +155,7 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
           <button type="button" onClick={() => change('arrayElements', form.arrayElements.filter((_, position) => position !== index))}><Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.removeElement')}</button>
         </div>)}
         <button type="button" onClick={() => change('arrayElements', [...form.arrayElements, emptyExpression()])}><Plus size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.addElement')}</button>
-      </fieldset> : <p className="node-form__hint">{t('form.incompleteHint')}</p>)}
+      </fieldset> : null)}
       {isNew && kind === 'ArrayCreation' && <>
         <ExpressionInput label={t('slot.size')} value={form.arraySize} onChange={(value) => change('arraySize', value)} type={primitiveType('int')} symbols={symbols} required={required} allowIncomplete={form.allowIncomplete} />
         <ExpressionInput label={t('slot.initializer')} value={form.arrayFill} onChange={(value) => change('arrayFill', value)} type={primitiveType(form.elementTypeName)} symbols={symbols} required={false} allowIncomplete={form.allowIncomplete} />
@@ -172,17 +177,16 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
             {forEachArrays.map((symbol) => <option key={symbol.id} value={symbol.id}>{symbolLabel(symbol)}</option>)}
           </select>
         </label>
-        {forEachArrays.length === 0 && <p className="node-form__hint">{t('form.forEachArrayHint')}</p>}
+        {forEachArrays.length === 0 && <InfoHint text={t('form.forEachArrayHint')} />}
         <label>{t('form.forEachCallback')}
           <select aria-label={t('form.forEachCallback')} value={form.forEachCallbackId} onChange={(event) => change('forEachCallbackId', event.target.value)} required={required}>
             <option value="">{t('form.chooseName')}</option>
             {forEachCallbacks.map((symbol) => <option key={symbol.id} value={symbol.id}>{symbolLabel(symbol)}</option>)}
           </select>
         </label>
-        {forEachArray && forEachCallbacks.length === 0 && <p className="node-form__hint">{t('form.forEachCallbackHint')}</p>}
+        {forEachArray && forEachCallbacks.length === 0 && <InfoHint text={t('form.forEachCallbackHint')} />}
       </>}
-      {isNew && kind === 'ForStatement' && <p className="node-form__hint">{t('form.loopHint')}</p>}
-      {isNew && <p className="node-form__hint">{t('form.incompleteHint')}</p>}
+      {isNew && kind === 'ForStatement' && <InfoHint text={t('form.loopHint')} />}
       <label className="node-form__check"><input type="checkbox" checked={form.allowIncomplete} onChange={(event) => change('allowIncomplete', event.target.checked)} />{t('form.leaveEmpty')}</label>
       {error && <p className="node-form__error" role="alert">{error.key ? t(error.key) : error.codes.map((code) => diagnosticLabel(code, t)).join(' ')}</p>}
       <button type="submit" className="node-form__submit">{initialNode ? <Save size={16} strokeWidth={1.75} aria-hidden="true" /> : <Plus size={16} strokeWidth={1.75} aria-hidden="true" />}{initialNode ? t('form.save') : t('form.create')}</button>

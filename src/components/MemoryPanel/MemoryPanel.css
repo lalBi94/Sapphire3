@@ -1,5 +1,4 @@
 /* Vue abstraite de la mémoire : segments lisibles et adresses illustratives. */
-.memory-panel__hint { margin: 0 0 var(--space-control); color: var(--color-text-muted); line-height: 1.5; }
 .memory-panel__segment { margin-bottom: var(--space-panel); }
 .memory-panel__segment h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-muted); }
 .memory-panel__segment h3 span { margin-inline-start: auto; font-weight: 500; letter-spacing: 0; }

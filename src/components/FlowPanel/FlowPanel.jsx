@@ -34,7 +34,7 @@ export default function FlowPanel({ session, contextIndex, step, running, paused
     </li>
   }
 
-  return <FloatingPanel title={t('flow.title')} label={t('flow.title')} onClose={onClose} className="flow-panel">
+  return <FloatingPanel title={t('flow.title')} label={t('flow.title')} info={t('flow.hint')} onClose={onClose} className="flow-panel">
     <div className="flow-panel__status" role="status">
       <span className={`flow-panel__state${running ? ' flow-panel__state--running' : ''}`}>{state}</span>
       <span>{t('flow.step', { current: session.frames.length ? step + 1 : 0, total: session.frames.length })}</span>
@@ -46,7 +46,6 @@ export default function FlowPanel({ session, contextIndex, step, running, paused
       <button type="button" disabled={!running && !paused} onClick={onStop} title={t('simulation.stop')}><Square size={12} aria-hidden="true" />{t('simulation.stop')}</button>
     </div>
     {errorCode && <p className="flow-panel__error" role="alert">{failureLabel({ code: errorCode }, t)}</p>}
-    <p className="flow-panel__hint">{t('flow.hint')}</p>
     <div className="flow-panel__viewport">
       {graph.nodes.length === 0 ? <p className="flow-panel__empty">{t('flow.empty')}</p> : <div className="flow-panel__graph" style={{ width: graph.width, height: graph.height }}>
         <svg width={graph.width} height={graph.height} aria-hidden="true" className="flow-panel__edges">

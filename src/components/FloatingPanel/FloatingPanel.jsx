@@ -1,12 +1,13 @@
 import { useRef, useState } from 'react'
 import { ChevronDown, ChevronUp, X } from 'lucide-react'
+import InfoHint from '../InfoHint/InfoHint.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import usePanelFront from '../../hooks/usePanelFront.jsx'
 import { snapPanelToArea } from '../../utils/panelSnap.js'
 import './FloatingPanel.css'
 
 // Partage les gestes et le cadre des fenêtres de propriétés et d'analyse.
-export default function FloatingPanel({ title, label, onClose, className = '', children }) {
+export default function FloatingPanel({ title, label, onClose, className = '', info = '', children }) {
   const [geometry, setGeometry] = useState(null)
   const [collapsed, setCollapsed] = useState(false)
   const gestureRef = useRef(null)
@@ -89,6 +90,7 @@ export default function FloatingPanel({ title, label, onClose, className = '', c
   return <aside ref={panelRef} className={`floating-panel${collapsed ? ' floating-panel--collapsed' : ''} ${className}`} style={style} data-floating-panel data-canvas-ui data-canvas-scroll aria-label={label ?? title} onPointerDown={(event) => { front.bringToFront(); event.stopPropagation() }} onFocusCapture={front.bringToFront} onKeyDown={(event) => event.stopPropagation()}>
     <header className="floating-panel__header" tabIndex={0} aria-label={t('details.move')} title={t('details.moveHint')} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onLostPointerCapture={end} onKeyDown={keyDown}>
       <h2>{title}</h2>
+      {info && <InfoHint text={info} />}
       <button type="button" className="floating-panel__collapse" aria-expanded={!collapsed} aria-label={t(collapsed ? 'panel.expand' : 'panel.collapse')} title={t(collapsed ? 'panel.expand' : 'panel.collapse')} onClick={toggleCollapsed}>{collapsed ? <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" /> : <ChevronUp size={16} strokeWidth={1.75} aria-hidden="true" />}</button>
       <button type="button" aria-label={t('panel.close')} onClick={onClose}><X size={18} strokeWidth={1.75} aria-hidden="true" /></button>
     </header>

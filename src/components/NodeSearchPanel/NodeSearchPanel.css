@@ -8,7 +8,7 @@
 .node-search__close { display: grid; place-items: center; flex: 0 0 auto; width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--radius-small); color: var(--color-text-muted); background: transparent; cursor: pointer; }
 .node-search__close:hover { color: var(--color-text); background: var(--color-hover); }
 .node-search__close:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
-.node-search__count, .node-search__empty, .node-search__hint { margin: 0; color: var(--color-text-muted); }
+.node-search__count, .node-search__empty { margin: 0; color: var(--color-text-muted); }
 .node-search__empty { padding: var(--space-small) 2px; }
 .node-search__results { display: grid; gap: 2px; max-height: min(320px, 45vh); margin: 0; padding: 0; overflow: auto; list-style: none; scrollbar-width: thin; }
 .node-search__results li { display: grid; gap: 1px; padding: var(--space-control); border-radius: var(--radius-small); cursor: pointer; }

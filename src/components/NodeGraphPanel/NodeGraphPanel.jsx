@@ -32,9 +32,8 @@ export default function NodeGraphPanel({ project, index, target, mode, onSelect,
     if (node.sourceId) onSelect({ kind: 'node', id: node.sourceId })
   }
 
-  return <FloatingPanel className="node-graph-panel" title={title} onClose={onClose}>
+  return <FloatingPanel className="node-graph-panel" title={title} info={t(mode === 'cfg' ? 'graph.cfgHint' : 'graph.dependenciesHint')} onClose={onClose}>
     <p className="node-graph-panel__scope">{root?.properties?.name ?? root?.name ?? target.id}</p>
-    <p>{t(mode === 'cfg' ? 'graph.cfgHint' : 'graph.dependenciesHint')}</p>
     {!graph.ok ? <p role="status">{diagnosticLabel(graph.code, t)}</p> : <>
       {(graph.incomplete || graph.unresolvedNodeIds?.length > 0) && <p role="status">{t('graph.incomplete')}</p>}
       {graph.nodes.length === 0 ? <p>{t('graph.empty')}</p> : <div className="node-graph-panel__viewport" tabIndex={0} role="region" aria-label={title}>

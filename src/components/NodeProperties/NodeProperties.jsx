@@ -11,6 +11,7 @@ import ModuleInterface from './ModuleInterface.jsx'
 import NodeCodePreview from './NodeCodePreview.jsx'
 import FloatingPanel from '../FloatingPanel/FloatingPanel.jsx'
 import DeleteAction from '../DeleteAction/DeleteAction.jsx'
+import InfoHint from '../InfoHint/InfoHint.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './NodeProperties.css'
 
@@ -133,8 +134,7 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
       {selected.kind === 'module' ? <ModuleNameForm key={`${record.id}:${record.name}`} module={record} onRename={onRename} /> : configurable ? <NodeForm key={`${record.id}:${JSON.stringify([record.properties, record.references])}`} kind={record.kind} initialNode={record} context={context} onSubmit={(patch) => onConfigure(record.id, patch)} /> : <p>{t('details.addParts')}</p>}
       {selected.kind === 'module' && <ModuleInterface key={record.id} module={record} project={project} analysis={index.analysis} index={index} onExport={onExport} onImport={onImport} onRemoveImport={onRemoveImport} />}
       {contractable && <section className="node-properties__contracts" aria-label={t('contracts.title')}>
-        <h3>{t('contracts.title')}</h3>
-        <p className="node-properties__contracts-hint">{t('contracts.hint')}</p>
+        <h3>{t('contracts.title')} <InfoHint text={t('contracts.hint')} /></h3>
         {(record.contracts ?? []).length === 0
           ? <p>{t('contracts.none')}</p>
           : <ul>{record.contracts.map((contract, position) => <li key={`${contract.kind}:${position}`}>

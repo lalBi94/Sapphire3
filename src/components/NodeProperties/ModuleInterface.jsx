@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { getImportCandidates, getModuleFunctions, getUnusedImportIds } from '../../utils/logic/index.js'
 import { typeLabel } from '../LogicTree/logicLabels.js'
+import InfoHint from '../InfoHint/InfoHint.jsx'
 import { failureLabel } from '../../utils/translations.js'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 
@@ -56,8 +57,7 @@ export default function ModuleInterface({ module, project, analysis, index, onEx
 
   return <>
     <section className="node-properties__interface" aria-label={t('details.exports')}>
-      <h3>{t('details.exports')}</h3>
-      <p>{t('details.exportsHint')}</p>
+      <h3>{t('details.exports')} <InfoHint text={t('details.exportsHint')} /></h3>
       {functions.length === 0 ? <p>{t('details.noExports')}</p> : <ul className="node-properties__interface-list">
         {functions.map((symbol) => {
           const exported = exports.some((entry) => entry?.nodeId === symbol.nodeId)
@@ -69,8 +69,7 @@ export default function ModuleInterface({ module, project, analysis, index, onEx
       </ul>}
     </section>
     <section className="node-properties__interface" aria-label={t('details.imports')}>
-      <h3>{t('details.imports')}</h3>
-      <p>{t('details.importsHint')}</p>
+      <h3>{t('details.imports')} <InfoHint text={t('details.importsHint')} /></h3>
       {imports.length === 0 ? <p>{t('details.noImports')}</p> : <ul className="node-properties__interface-list">
         {imports.map((entry) => {
           const unused = unusedImports.has(entry.id)
