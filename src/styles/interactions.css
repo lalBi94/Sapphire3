@@ -255,6 +255,7 @@
 /* Le menu de nœuds n'utilise plus l'anneau lumineux : le pseudo-élément est retiré
    pour éviter tout décalage visuel, le survol passe par un fond dégradé animé. */
 .node-menu-button::before,
-.logic-context-menu__actions button::before {
+.logic-context-menu__actions button::before,
+.project-navigation__run::before {
   display: none !important;
 }

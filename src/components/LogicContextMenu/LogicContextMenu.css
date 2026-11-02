@@ -10,10 +10,11 @@
 .logic-context-menu__actions button.logic-context-menu__group svg { flex: 0 0 auto; color: var(--color-text-muted); }
 /* Sous-catégorie : décalée et plus discrète que sa catégorie parente. */
 .logic-context-menu__actions button.logic-context-menu__group[data-depth]:not([data-depth='0']) { padding-inline-start: calc(23px + var(--space-control)); color: var(--color-text-muted); font-size: 11px; font-weight: 500; }
-.logic-context-menu__actions button { display: flex; align-items: center; gap: var(--space-control); width: 100%; min-height: 32px; padding: 7px 9px; border: 0; border-radius: var(--radius-control); text-align: left; color: var(--color-text); background: transparent; font: inherit; font-size: 12px; cursor: pointer; }
+.logic-context-menu__actions button { box-sizing: border-box; display: flex; align-items: center; gap: var(--space-control); width: 100%; min-height: 32px; padding: 7px 9px; border: 1px solid transparent; border-radius: var(--radius-control); text-align: left; color: var(--color-text); background: transparent; font: inherit; font-size: 12px; cursor: pointer; }
 .logic-context-menu__actions button:hover:not(:disabled) { z-index: 2; background: var(--color-hover); }
-/* Survol des options du menu : dégradé plein animé, sans halo ni déplacement. */
+/* Survol des options du menu : dégradé plein animé et bordure visible, sans halo ni déplacement. */
 .logic-context-menu__actions button:hover:not(:disabled):not(.delete-action):not(.logic-context-menu__delete) {
+  border-color: color-mix(in srgb, var(--color-selection) 55%, var(--color-primary));
   background: linear-gradient(110deg, color-mix(in srgb, var(--color-primary) 38%, var(--color-surface-raised)), color-mix(in srgb, var(--color-selection) 42%, var(--color-surface-raised)), color-mix(in srgb, var(--color-primary) 32%, var(--color-surface-raised)), color-mix(in srgb, var(--color-selection) 38%, var(--color-surface-raised)));
   background-size: 240% 100%;
   animation: sapphire-gradient-flow 2.8s linear infinite;
