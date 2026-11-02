@@ -29,6 +29,11 @@
 .project-navigation__destinations p { margin: 4px; }
 .project-navigation button:hover:not(:disabled) { background: var(--color-hover); }
 .project-navigation__run { color: var(--color-primary) !important; }
+/* Simulation en cours : le fond reprend le dégradé de la bordure, texte sombre lisible par-dessus. */
+.project-navigation button.project-navigation__run--running,
+.project-navigation button.project-navigation__run--running:hover:not(:disabled) { border-color: transparent; background-color: var(--color-primary); background-image: var(--glow-comet); color: var(--color-on-primary) !important; animation: glow-angle-turn var(--glow-duration) linear infinite; }
+@media (prefers-reduced-motion: reduce) { .project-navigation button.project-navigation__run--running { animation: none; } }
+@media (prefers-contrast: more), (forced-colors: active) { .project-navigation button.project-navigation__run--running { background-image: none; border-color: currentColor; color: var(--color-text) !important; } }
 .project-navigation__run-controls { display: flex; align-items: center; flex-shrink: 0; }
 .project-navigation__run-toggle { min-width: 24px; min-height: 26px; justify-content: center; }
 .project-navigation__run-menu { left: auto; right: 0; width: 260px; max-height: calc(100dvh - 50px); overflow: auto; }

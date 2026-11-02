@@ -27,7 +27,7 @@ function ReplaceConfirmation({ titleKey, bodyKey, detail, confirmKey, onConfirm,
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile, selectedFunction = null, onOpenFunction, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark, onOpenBookmarks }) {
+export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile, selectedFunction = null, onOpenFunction, simulationRunning = false, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark, onOpenBookmarks }) {
   const navigationRef = useRef(null)
   const [insertingId, setInsertingId] = useState(null)
   const { language, setLanguage, t } = useTranslation()
@@ -214,7 +214,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
             {transpilationLanguages.map((option) => <button type="button" key={option.id} disabled={!option.available} onClick={() => { closeMenus(); onTranspile(option.id) }}>{option.name}{!option.available && ` · ${t('transpile.unavailable')}`}</button>)}
           </div>
         </details>
-        <button type="button" className="project-navigation__run" title={t('run.simulateSp3')} onClick={() => handleRun()}><Play size={13} fill="currentColor" aria-hidden="true" />{t('nav.run')}</button>
+        <button type="button" className={`project-navigation__run${simulationRunning ? ' project-navigation__run--running' : ''}`} title={t('run.simulateSp3')} onClick={() => handleRun()}><Play size={13} fill="currentColor" aria-hidden="true" />{t('nav.run')}</button>
         <details name="workspace-menu" onToggle={handleToggle}>
           <summary className="project-navigation__run-toggle" aria-label={t('run.actions')} title={t('run.actions')}><ChevronDown size={14} aria-hidden="true" /></summary>
           <div className="project-navigation__menu project-navigation__run-menu">
