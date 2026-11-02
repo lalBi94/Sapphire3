@@ -3,7 +3,7 @@ import { transpilationLanguages } from '../utils/transpilation/languages.js'
 
 let clientPromise
 const maximumFileSize = 20 * 1024 * 1024
-const exportFormats = Object.freeze({ sp3: 'files.sp3Filter', json: 'files.jsonFilter', svg: 'files.svgFilter', ...Object.fromEntries(transpilationLanguages.filter((option) => option.available).map((option) => [option.extension, option.filterKey])) })
+const exportFormats = Object.freeze({ sp3: 'files.sp3Filter', json: 'files.jsonFilter', svg: 'files.svgFilter', png: 'files.pngFilter', ...Object.fromEntries(transpilationLanguages.filter((option) => option.available).map((option) => [option.extension, option.filterKey])) })
 
 // Transporte un code et ses paramètres sans lier les accès natifs à React ou à une langue globale.
 function fileError(code, values = {}) {
@@ -85,9 +85,35 @@ export async function exportWorkspaceFile(extension, text, language = 'en') {
   return writeResult.path
 }
 
+// Enregistre un contenu binaire (image) au chemin choisi, avec confirmation d'écrasement.
+export async function exportBinaryFile(extension, bytes, language = 'en') {
+  if (!Object.hasOwn(exportFormats, extension)) throw fileError('EXPORT_FORMAT_INVALID')
+  if (!(bytes instanceof ArrayBuffer)) throw fileError('EXPORT_FORMAT_INVALID')
+  if (bytes.byteLength > maximumFileSize) throw fileError('FILE_TOO_LARGE')
+  const { os, filesystem } = await getClient()
+  const filterKey = exportFormats[extension]
+  let path = await os.showSaveDialog(translate(language, 'files.exportTitle'), { defaultPath: `node.${extension}`, filters: [{ name: translate(language, filterKey), extensions: [extension] }] })
+  if (!path) return null
+  if (!path.toLowerCase().endsWith(`.${extension}`)) path += `.${extension}`
+  let exists = false
+  try {
+    const info = await filesystem.getStats(path)
+    if (info.isDirectory) throw fileError('FILE_REQUIRED')
+    exists = true
+  } catch (error) {
+    if (error.code !== 'NE_FS_NOPATHE') throw error
+  }
+  if (exists && await os.showMessageBox(translate(language, 'files.replaceTitle'), translate(language, 'files.replaceBody'), 'YES_NO', 'WARNING') !== 'YES') return null
+  try {
+    await filesystem.writeBinaryFile(path, bytes)
+  } catch {
+    throw fileError('WRITE_FAILED')
+  }
+  return path
+}
+
 // Ecrit directement un workspace déjà associé à un chemin connu.
-export async function writeWorkspaceFile(path, text, client = null) {
-  const extension = client?.extension || 'sp3'
+export async function writeWorkspaceFile(path, text, client = null) {  const extension = client?.extension || 'sp3'
   if (typeof path !== 'string' || !path.toLowerCase().endsWith(`.${extension}`)) throw fileError('FILE_EXTENSION_INVALID', { extension })
   if (new TextEncoder().encode(text).length > maximumFileSize) throw fileError('FILE_TOO_LARGE')
   const { filesystem } = client || await getClient()

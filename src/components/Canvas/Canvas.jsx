@@ -22,12 +22,13 @@ import ProjectNavigation from '../ProjectNavigation/ProjectNavigation.jsx'
 import useWorkspaceFiles from '../../hooks/useWorkspaceFiles.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { diagnosticLabel, nodeLine } from '../LogicTree/logicLabels.js'
-import { createDebugSession, moveDebugSession, simulateProgram, getModuleLinks, getUnusedDeclarationIds, getPureIds, captureBookmark } from '../../utils/logic/index.js'
+import { createDebugSession, moveDebugSession, simulateProgram, getModuleLinks, getUnusedDeclarationIds, getPureIds, captureBookmark, captureSourceNode } from '../../utils/logic/index.js'
 import { transpileProgram } from '../../utils/transpilation/index.js'
 import { transpilationLanguages } from '../../utils/transpilation/languages.js'
 import { exportWorkspaceFile } from '../../services/workspaceFiles.js'
 import { openExternal } from '../../services/externalLinks.js'
 import { quitApplication, toggleFullScreen } from '../../services/appControl.js'
+import { rasterizeSvg } from '../../services/nodeImage.js'
 import { repositoryUrl } from '../../utils/appInfo.js'
 import { loadBookmarks, saveBookmarks } from '../../services/bookmarks.js'
 import SimulationPanel from '../SimulationPanel/SimulationPanel.jsx'
@@ -396,6 +397,23 @@ export default function Canvas() {
     await files.exportText('svg', svg)
   }
 
+  // Exporte le sous-arbre du nœud sélectionné en JSON, sans exigence de pureté.
+  async function handleExportNodeJson(nodeId) {
+    const captured = captureSourceNode(document.project, nodeId, { index: document.index })
+    if (!captured.ok) return
+    await files.exportText('json', JSON.stringify({ application: 'Sapphire 3', node: captured.clipboard }, null, 2))
+  }
+
+  // Rasterise l'image focalisée du nœud et l'enregistre en PNG.
+  async function handleExportNodeImage(image) {
+    try {
+      const bytes = await rasterizeSvg(image.svg, image.width, image.height)
+      await files.exportBinary('png', bytes)
+    } catch {
+      // L'échec de rasterisation laisse le document intact ; une erreur de fichier est signalée par le service.
+    }
+  }
+
   // Relit les couleurs du thème actif pour peindre la vue d'ensemble SVG.
   function svgPalette() {
     const styles = window.getComputedStyle(window.document.documentElement)
@@ -658,7 +676,7 @@ export default function Canvas() {
         bookmarks={bookmarks} canBookmark={bookmarkStatus(selected).can} onSaveBookmark={handleSaveBookmark} onOpenBookmarks={() => setBookmarksOpen(true)} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark}
         onOpenRepository={() => openExternal(repositoryUrl)} update={appUpdate.update} onCheckUpdate={() => appUpdate.check()} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })} onQuit={() => quitApplication()} />}
       {nodeGraph && <NodeGraphPanel project={document.project} index={document.index} target={nodeGraph.target} mode={nodeGraph.mode} onSelect={handleSelect} onClose={() => setNodeGraph(null)} />}
-      {selected && <NodeProperties key={document.revision} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={handleSelect} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onExport={document.exportFunction} onImport={document.importFunction} onRemoveImport={document.removeImport} onContracts={document.setNodeContracts} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
+      {selected && <NodeProperties key={document.revision} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={handleSelect} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onExport={document.exportFunction} onImport={document.importFunction} onRemoveImport={document.removeImport} onContracts={document.setNodeContracts} onClose={() => setSelected(null)} onExportImage={handleExportNodeImage} onExportNodeJson={handleExportNodeJson} mutationError={document.mutationError} />}
       {contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onHideCard={handleHideCard} onLockCard={handleToggleLock} targetLocked={isCardLocked(contextMenu.targetId?.id)} onExpansion={(id, expand) => { handleExpansion(id, expand); handleCloseMenu(true) }} canToggleExpansion={contextMenu.targetId?.kind === 'module' && (expandableIds.get(contextMenu.targetId.id)?.length ?? 0) > 0} onOpenGraph={handleOpenNodeGraph} onCopy={handleCopyNode} onPaste={transfers.pasteNode} onDuplicate={transfers.duplicateNode} hasClipboard={transfers.hasClipboard} showBookmark={bookmarkStatus(contextMenu.targetId).show} canBookmark={bookmarkStatus(contextMenu.targetId).can} onBookmark={handleBookmarkTarget} onClose={handleCloseMenu} />
         : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} onCreate={handleCreateModule} onClose={handleCloseMenu} anchored={contextMenu.anchored} commentId={contextMenu.targetId ? { id: contextMenu.targetId.id, type: contextMenu.targetId.kind } : null} onDeleteComment={handleDeleteComment} onHideCard={handleHideCard} onLockCard={handleToggleLock} commentLocked={isCardLocked(contextMenu.targetId?.id)} />)}
     </main>

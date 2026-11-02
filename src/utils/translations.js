@@ -464,6 +464,8 @@ const messages = {
   'details.hierarchy': ['Project hierarchy', 'Hiérarchie du projet', '项目层级', 'Jerarquía del proyecto', 'تسلسل المشروع', 'プロジェクト階層', 'प्रोजेक्ट पदानुक्रम', 'Иерархия проекта'],
   'details.breadcrumb': ['Location', 'Emplacement', '位置', 'Ubicación', 'الموقع', '場所', 'स्थान', 'Расположение'],
   'details.report': ['Copy bug report', 'Copier le rapport de bug', '复制错误报告', 'Copiar informe de error', 'نسخ تقرير الخطأ', 'バグレポートをコピー', 'बग रिपोर्ट कॉपी करें', 'Скопировать отчёт об ошибке'],
+  'details.exportImage': ['Export as image', 'Exporter en image', '导出为图片', 'Exportar como imagen', 'تصدير كصورة', '画像としてエクスポート', 'छवि के रूप में निर्यात करें', 'Экспортировать как изображение'],
+  'details.exportJson': ['Export node as JSON', 'Exporter le nœud en JSON', '将节点导出为 JSON', 'Exportar nodo como JSON', 'تصدير العقدة كـ JSON', 'ノードを JSON としてエクスポート', 'नोड को JSON के रूप में निर्यात करें', 'Экспортировать узел как JSON'],
   'details.reportCopied': ['Bug report copied.', 'Rapport de bug copié.', '错误报告已复制。', 'Informe de error copiado.', 'تم نسخ تقرير الخطأ.', 'バグレポートをコピーしました。', 'बग रिपोर्ट कॉपी की गई।', 'Отчёт об ошибке скопирован.'],
   'details.reportCopyFailed': ['Copy failed.', 'Échec de la copie.', '复制失败。', 'Error al copiar.', 'فشل النسخ.', 'コピーに失敗しました。', 'कॉपी विफल।', 'Не удалось скопировать.'],
   'contracts.title': ['Contracts', 'Contrats', '约定', 'Contratos', 'العقود', 'コントラクト', 'अनुबंध', 'Контракты'],
@@ -519,6 +521,7 @@ const messages = {
   'files.sp3Filter': ['Sapphire 3 workspace', 'Espace de travail Sapphire 3', 'Sapphire 3 工作区', 'Espacio de trabajo Sapphire 3', 'مساحة عمل Sapphire 3', 'Sapphire 3 ワークスペース', 'Sapphire 3 वर्कस्पेस', 'Рабочее пространство Sapphire 3'],
   'files.jsonFilter': ['JSON workspace', 'Espace de travail JSON', 'JSON 工作区', 'Espacio de trabajo JSON', 'مساحة عمل JSON', 'JSON ワークスペース', 'JSON वर्कस्पेस', 'Рабочее пространство JSON'],
   'files.svgFilter': ['SVG image', 'Image SVG', 'SVG 图像', 'Imagen SVG', 'صورة SVG', 'SVG 画像', 'SVG छवि', 'Изображение SVG'],
+  'files.pngFilter': ['PNG image', 'Image PNG', 'PNG 图片', 'Imagen PNG', 'صورة PNG', 'PNG 画像', 'PNG छवि', 'Изображение PNG'],
   'files.jsFilter': ['JavaScript source', 'Source JavaScript', 'JavaScript 源码', 'Código fuente JavaScript', 'كود JavaScript', 'JavaScript ソース', 'JavaScript स्रोत', 'Исходный код JavaScript'],
   'files.pyFilter': ['Python source', 'Source Python', 'Python 源码', 'Código fuente Python', 'كود Python', 'Python ソース', 'Python स्रोत', 'Исходный код Python'],
   'files.combinedFilter': ['Sapphire 3 / JSON', 'Sapphire 3 / JSON', 'Sapphire 3 / JSON', 'Sapphire 3 / JSON', 'Sapphire 3 / JSON', 'Sapphire 3 / JSON', 'Sapphire 3 / JSON', 'Sapphire 3 / JSON'],
@@ -722,6 +725,7 @@ const messages = {
   'error.BOOKMARK_INVALID': ['This bookmark could not be inserted.', 'Ce favori n’a pas pu être inséré.', '无法插入此收藏。', 'No se pudo insertar este favorito.', 'تعذّر إدراج هذه المفضلة.', 'このブックマークを挿入できませんでした。', 'यह बुकमार्क डाला नहीं जा सका।', 'Не удалось вставить эту закладку.'],
   'error.BOOKMARK_IMPURE': ['Only a pure function or module can be saved.', 'Seule une fonction ou un module pur peut être enregistré.', '只能保存纯函数或纯模块。', 'Solo se puede guardar una función o módulo puro.', 'لا يمكن حفظ إلا دالة أو وحدة نقية.', '保存できるのは純粋な関数またはモジュールだけです。', 'केवल एक शुद्ध फ़ंक्शन या मॉड्यूल ही सहेजा जा सकता है।', 'Сохранить можно только чистую функцию или модуль.'],
   'error.BOOKMARK_TARGET_INVALID': ['This selection cannot be saved as a bookmark.', 'Cette sélection ne peut pas être enregistrée comme favori.', '无法将此选择保存为收藏。', 'Esta selección no se puede guardar como favorito.', 'لا يمكن حفظ هذا التحديد كمفضلة.', 'この選択はブックマークとして保存できません。', 'यह चयन बुकमार्क के रूप में सहेजा नहीं जा सकता।', 'Это выделение нельзя сохранить как закладку.'],
+  'error.NODE_IMAGE_FAILED': ['The node image could not be generated.', 'L’image du nœud n’a pas pu être générée.', '无法生成节点图片。', 'No se pudo generar la imagen del nodo.', 'تعذّر إنشاء صورة العقدة.', 'ノード画像を生成できませんでした。', 'नोड छवि उत्पन्न नहीं हो सकी।', 'Не удалось создать изображение узла.'],
   'error.PURITY_TARGET_INVALID': ['This element cannot be checked for purity.', 'Cet élément ne peut pas être analysé en pureté.', '无法检查此元素的纯度。', 'No se puede analizar la pureza de este elemento.', 'تعذّر فحص نقاء هذا العنصر.', 'この要素は純粋性をチェックできません。', 'इस तत्व की शुद्धता की जाँच नहीं की जा सकती।', 'Этот элемент нельзя проверить на чистоту.'],
 }
 

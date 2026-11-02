@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { serializeWorkspace, deserializeWorkspace, emptyWorkspace } from '../utils/workspaceFile.js'
-import { exportWorkspaceFile, importWorkspaceFile, readWorkspaceFile, writeWorkspaceFile } from '../services/workspaceFiles.js'
+import { exportWorkspaceFile, exportBinaryFile, importWorkspaceFile, readWorkspaceFile, writeWorkspaceFile } from '../services/workspaceFiles.js'
 import { useTranslation } from '../contexts/LanguageContext.jsx'
 import { readPreference, writePreference, hydratePreferences } from '../services/preferences.js'
 import { examples } from '../utils/examples.js'
@@ -102,6 +102,24 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     setMessage('')
     try {
       const path = await exportWorkspaceFile(extension, text, language)
+      if (path) setMessage('files.exported')
+    } catch (failure) {
+      setError({ prefix: 'errors.couldNotSave', failure })
+    } finally {
+      operation.current = false
+      setBusy(false)
+    }
+  }
+
+  // Exporte un contenu binaire (image PNG) au chemin choisi, sans changer le fichier de workspace courant.
+  async function exportBinary(extension, bytes) {
+    if (operation.current || pendingImport) return
+    operation.current = true
+    setBusy(true)
+    setError(null)
+    setMessage('')
+    try {
+      const path = await exportBinaryFile(extension, bytes, language)
       if (path) setMessage('files.exported')
     } catch (failure) {
       setError({ prefix: 'errors.couldNotSave', failure })
@@ -332,5 +350,5 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     return () => window.clearTimeout(timer)
   }, [project, cards, currentPath])
 
-  return { busy, message: message ? t(message) : '', error: error ? `${t(error.prefix)} ${failureLabel(error.failure, t)}` : '', pendingImport, pendingNew, recentFiles, currentPath, handleSave, saveAs, exportText, handleOpenSp3, handleOpenRecent, handleImport, handleOpenExample, handleConfirmImport, handleCancelImport, handleNew, handleConfirmNew, handleCancelNew, handleDismiss }
+  return { busy, message: message ? t(message) : '', error: error ? `${t(error.prefix)} ${failureLabel(error.failure, t)}` : '', pendingImport, pendingNew, recentFiles, currentPath, handleSave, saveAs, exportText, exportBinary, handleOpenSp3, handleOpenRecent, handleImport, handleOpenExample, handleConfirmImport, handleCancelImport, handleNew, handleConfirmNew, handleCancelNew, handleDismiss }
 }

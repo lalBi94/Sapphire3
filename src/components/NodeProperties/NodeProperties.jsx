@@ -1,9 +1,10 @@
 import { Fragment, useState } from 'react'
-import { ChevronRight, Copy, X } from 'lucide-react'
+import { ChevronRight, Copy, FileJson, Image as ImageIcon, X } from 'lucide-react'
 import { resolveContext, getNodeSchema, contractKinds, deletionImpact } from '../../utils/logic/index.js'
-import { diagnosticLabel, kindLabel, nodeSummary, slotLabel } from '../LogicTree/logicLabels.js'
+import { diagnosticLabel, kindLabel, nodeSummary, slotLabel, typeLabel } from '../LogicTree/logicLabels.js'
 import { ancestorNodeIds } from '../../utils/nodeTree.js'
 import { buildBugReport } from '../../utils/bugReport.js'
+import { buildNodeImage } from '../../utils/nodeImage.js'
 import NodeForm from '../NodeForm/NodeForm.jsx'
 import ModuleNameForm from './ModuleNameForm.jsx'
 import ModuleInterface from './ModuleInterface.jsx'
@@ -64,7 +65,7 @@ function ProjectHierarchy({ project, index, selected, onSelect, t }) {
 }
 
 // Affiche les propriétés et l'extrait de code dans le cadre flottant commun aux analyses.
-export default function NodeProperties({ selected, project, index, onConfigure, onRename, onSelect, onDelete, onDeleteModule, onExport, onImport, onRemoveImport, onContracts, onClose, mutationError }) {
+export default function NodeProperties({ selected, project, index, onConfigure, onRename, onSelect, onDelete, onDeleteModule, onExport, onImport, onRemoveImport, onContracts, onClose, onExportImage, onExportNodeJson, mutationError }) {
   const { t, language } = useTranslation()
   const [reportState, setReportState] = useState('')
   const [contractKind, setContractKind] = useState('')
@@ -87,6 +88,36 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
     }
   }
 
+  // Construit une image focalisée du nœud sélectionné, dans les couleurs de son groupe.
+  function handleExportImage() {
+    if (!record || selected.kind !== 'node') return
+    const group = getNodeSchema(record.kind)?.group ?? 'incomplete'
+    const styles = window.getComputedStyle(window.document.documentElement)
+    const accent = styles.getPropertyValue(`--color-node-${group}`).trim() || styles.getPropertyValue('--color-primary').trim() || '#f5d547'
+    const background = styles.getPropertyValue('--color-module-surface').trim() || '#19191f'
+    const parts = Object.entries(record.children ?? {}).slice(0, 12).map(([slot, value]) => ({
+      label: slotLabel(slot, t),
+      value: (Array.isArray(value) ? value : value ? [value] : []).map((id) => index.nodes.get(id)?.properties?.name || (index.nodes.get(id) ? kindLabel(index.nodes.get(id).kind, t) : '?')).join(', ') || t('details.nothingAdded'),
+    }))
+    const moduleName = index.modules.get(record.moduleId)?.name ?? ''
+    const footer = [moduleName, `${diagnostics.length} ${t('details.issues')}`].filter(Boolean).join(' · ')
+    onExportImage(buildNodeImage({
+      kind: kindLabel(record.kind, t),
+      name: record.properties?.name ?? '',
+      type: record.properties?.type ? typeLabel(record.properties.type, t) : '',
+      summary: nodeSummary(record, index, getNodeSchema(record.kind), t),
+      footer,
+      parts,
+      accent,
+      background,
+    }))
+  }
+
+  // Exporte le sous-arbre du nœud en JSON, sans exigence de pureté.
+  function handleExportJson() {
+    if (record && selected.kind === 'node') onExportNodeJson(record.id)
+  }
+
   return <FloatingPanel className="node-properties" title={title} label={t('details.title')} onClose={onClose}>
     {trail.length > 1 && <nav className="node-properties__breadcrumb" aria-label={t('details.breadcrumb')}>
       {trail.map((label, position) => <Fragment key={position}>
@@ -95,6 +126,10 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
       </Fragment>)}
     </nav>}
     {!context.ok ? <p>{t('details.missingBlock')}</p> : <>
+      {selected.kind === 'node' && <div className="node-properties__tools">
+        <button type="button" className="node-properties__tool" title={t('details.exportImage')} aria-label={t('details.exportImage')} onClick={handleExportImage}><ImageIcon size={14} aria-hidden="true" /></button>
+        <button type="button" className="node-properties__tool" title={t('details.exportJson')} aria-label={t('details.exportJson')} onClick={handleExportJson}><FileJson size={14} aria-hidden="true" /></button>
+      </div>}
       {selected.kind === 'module' ? <ModuleNameForm key={`${record.id}:${record.name}`} module={record} onRename={onRename} /> : configurable ? <NodeForm key={`${record.id}:${JSON.stringify([record.properties, record.references])}`} kind={record.kind} initialNode={record} context={context} onSubmit={(patch) => onConfigure(record.id, patch)} /> : <p>{t('details.addParts')}</p>}
       {selected.kind === 'module' && <ModuleInterface key={record.id} module={record} project={project} analysis={index.analysis} index={index} onExport={onExport} onImport={onImport} onRemoveImport={onRemoveImport} />}
       {contractable && <section className="node-properties__contracts" aria-label={t('contracts.title')}>

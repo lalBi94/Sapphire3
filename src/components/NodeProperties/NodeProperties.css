@@ -65,3 +65,7 @@
 .node-properties__code label { display: grid; gap: var(--space-small); }
 .node-properties__code select { padding: var(--space-control); background: var(--color-input); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-control); font: inherit; }
 .node-properties__code pre { max-height: 320px; overflow: auto; padding: var(--space-control); border: 1px solid var(--color-border); border-radius: var(--radius-small); background: var(--color-input); white-space: pre; user-select: text; }
+/* Outils discrets du nœud : export d'image et de JSON. */
+.node-properties__tools { display: flex; justify-content: flex-end; gap: 4px; margin-bottom: var(--space-control); }
+.node-properties__tool { display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid transparent; border-radius: var(--radius-small); background: transparent; color: var(--color-text-muted); cursor: pointer; }
+.node-properties__tool:hover { background: var(--color-hover); border-color: var(--color-border); color: var(--color-text); }
