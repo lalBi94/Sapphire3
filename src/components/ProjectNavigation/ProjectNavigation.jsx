@@ -121,6 +121,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
       <details name="workspace-menu" onToggle={handleToggle}>
         <summary>{t('nav.settings')}<ChevronDown size={12} aria-hidden="true" /></summary>
         <div className="project-navigation__menu">
+          <p className="project-navigation__section">{t('menu.workspace')}</p>
           <button type="button" disabled={busy || !!pendingImport} onClick={onNew}><FilePlus size={14} aria-hidden="true" />{t('nav.new')}</button>
           <button type="button" disabled={busy || !!pendingImport} onClick={handleOpenSp3}><FolderOpen size={14} aria-hidden="true" />{t('nav.openSp3')}</button>
           <p>{t('nav.recentFiles')}</p>
@@ -130,6 +131,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
           <button type="button" disabled={busy || !!pendingImport} onClick={handleSave}><Save size={14} aria-hidden="true" />{t('nav.saveSp3')}</button>
           <button type="button" disabled={busy || !!pendingImport} onClick={() => handleSaveAs('sp3')}><SaveAll size={14} aria-hidden="true" />{t('nav.saveAsSp3')}</button>
           <button type="button" disabled={busy || !!pendingImport} onClick={handleImport}><FileInput size={14} aria-hidden="true" />{t('nav.import')}</button>
+          <p className="project-navigation__section">{t('menu.exports')}</p>
           <button type="button" disabled={busy || !!pendingImport} onClick={() => handleSaveAs('json')}><FileOutput size={14} aria-hidden="true" />{t('nav.exportJson')}</button>
           <button type="button" disabled={busy || !!pendingImport} onClick={() => { closeMenus(); onExportSvg() }}><VectorSquare size={14} aria-hidden="true" />{t('nav.exportSvg')}</button>
         </div>
@@ -137,8 +139,10 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
       <details name="workspace-menu" onToggle={handleToggle}>
         <summary>{t('nav.edit')}<ChevronDown size={12} aria-hidden="true" /></summary>
         <div className="project-navigation__menu">
+          <p className="project-navigation__section">{t('menu.history')}</p>
           <button type="button" disabled={!canUndo} onClick={onUndo}>{t('nav.undo')}</button>
           <button type="button" disabled={!canRedo} onClick={onRedo}>{t('nav.redo')}</button>
+          <p className="project-navigation__section">{t('menu.selection')}</p>
           <button type="button" onClick={handleOpenSearch}><Search size={14} aria-hidden="true" />{t('nav.search')}</button>
           {hasSelection && <button type="button" onClick={onOpenSelectionMenu}>{t('nav.addToSelection')}</button>}
         </div>
@@ -146,14 +150,15 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
       <details name="workspace-menu" onToggle={handleToggle}>
         <summary>{t('nav.view')}<ChevronDown size={12} aria-hidden="true" /></summary>
         <div className="project-navigation__menu">
-          <p>{t('nav.zoom')}</p>
+          <p className="project-navigation__section">{t('nav.zoom')}</p>
           <button type="button" onClick={onZoomIn}>{t('nav.zoomIn')}</button>
           <button type="button" onClick={onZoomOut}>{t('nav.zoomOut')}</button>
           <button type="button" onClick={onZoom100}>{t('nav.zoom100')}</button>
           <button type="button" onClick={onCenter}>{t('nav.center')}</button>
+          <p className="project-navigation__section">{t('menu.display')}</p>
           <label className="project-navigation__check"><input type="checkbox" checked={distorted} onChange={onToggleDistortion} />{t('nav.distortion')}</label>
           {hiddenCards.length > 0 && <>
-            <p>{t('nav.hiddenCards')}</p>
+            <p className="project-navigation__section">{t('nav.hiddenCards')}</p>
             <div className="project-navigation__hidden-list">{hiddenCards.map((card) => <button type="button" className="project-navigation__hidden-card" key={card.id} aria-label={`${t('canvas.show')} ${card.name}`} title={card.name} onClick={() => onShowCard(card.id)}>
               <Eye size={14} aria-hidden="true" /><span>{card.name}</span>
             </button>)}</div>
@@ -170,16 +175,18 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
       <details name="workspace-menu" onToggle={handleToggle}>
         <summary><Library size={13} aria-hidden="true" />{t('nav.examples')}<ChevronDown size={12} aria-hidden="true" /></summary>
         <div className="project-navigation__menu">
-          <p>{t('examples.choose')}</p>
+          <p className="project-navigation__section">{t('examples.choose')}</p>
           {examples.map((example) => <button type="button" key={example.id} onClick={() => { closeMenus(); onOpenExample(example.id) }}>{t(example.labelKey)}</button>)}
         </div>
       </details>
       <details name="workspace-menu" onToggle={handleToggle}>
         <summary><Bookmark size={13} aria-hidden="true" />{t('nav.bookmarks')}<ChevronDown size={12} aria-hidden="true" /></summary>
         <div className="project-navigation__menu">
+          <p className="project-navigation__section">{t('menu.actions')}</p>
           <button type="button" disabled={!canBookmark} onClick={onSaveBookmark}><BookmarkPlus size={14} aria-hidden="true" />{t('bookmark.save')}</button>
-          <button type="button" onClick={() => { closeMenus(); onOpenBookmarks() }}><Maximize2 size={14} aria-hidden="true" />{t('bookmark.openWindow')}</button>
           {!canBookmark && <p className="project-navigation__hint">{t('bookmark.onlyPure')}</p>}
+          <button type="button" onClick={() => { closeMenus(); onOpenBookmarks() }}><Maximize2 size={14} aria-hidden="true" />{t('bookmark.openWindow')}</button>
+          <p className="project-navigation__section">{t('menu.saved')}</p>
           {bookmarks.length === 0
             ? <p>{t('bookmark.empty')}</p>
             : <div className="project-navigation__bookmarks">{bookmarks.map((entry) => {
@@ -211,7 +218,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
         <details name="workspace-menu" onToggle={handleToggle}>
           <summary><Code2 size={13} aria-hidden="true" />{t('transpile.button')}<ChevronDown size={12} aria-hidden="true" /></summary>
           <div className="project-navigation__menu">
-            <p>{t('transpile.chooseLanguage')}</p>
+            <p className="project-navigation__section">{t('transpile.chooseLanguage')}</p>
             {transpilationLanguages.map((option) => <button type="button" key={option.id} disabled={!option.available} onClick={() => { closeMenus(); onTranspile(option.id) }}>{option.name}{!option.available && ` · ${t('transpile.unavailable')}`}</button>)}
           </div>
         </details>
@@ -220,15 +227,15 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
         <details name="workspace-menu" onToggle={handleToggle}>
           <summary className="project-navigation__run-toggle" aria-label={t('run.actions')} title={t('run.actions')}><ChevronDown size={14} aria-hidden="true" /></summary>
           <div className="project-navigation__menu project-navigation__run-menu">
-            <p>{t('run.workspace')}</p>
+            <p className="project-navigation__section">{t('run.workspace')}</p>
             <button type="button" onClick={() => handleRun()}><Play size={14} aria-hidden="true" />{t('run.simulateSp3')}</button>
             <button type="button" onClick={() => handleRun(true)}><Bug size={14} aria-hidden="true" />{t('run.debugSp3')}</button>
             {selectedFunction && <>
-              <p>{t('run.selectedFunction')}</p>
+              <p className="project-navigation__section">{t('run.selectedFunction')}</p>
               <button type="button" onClick={() => { closeMenus(); onOpenFunction(selectedFunction.id) }}><Play size={14} aria-hidden="true" />{t('run.thisFunction')}</button>
               <button type="button" onClick={() => { closeMenus(); onOpenFunction(selectedFunction.id) }}><Bug size={14} aria-hidden="true" />{t('run.debugThisFunction')}</button>
             </>}
-            <p>{t('run.graphical')}</p>
+            <p className="project-navigation__section">{t('run.graphical')}</p>
             <button type="button" disabled title={t('run.later')}>{t('run.simulateGraphical')}</button>
             <button type="button" disabled title={t('run.later')}>{t('run.debugGraphical')}</button>
             <p className="project-navigation__future-note">{t('run.later')}</p>
