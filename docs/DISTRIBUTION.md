@@ -20,7 +20,7 @@ Le dépôt de développement et de distribution est **`lalBi94/Sapphire3`** (pub
 
 | Élément | Convention |
 | --- | --- |
-| Version applicative | `package.json` → `version`, par exemple `0.1.0-alpha.1` |
+| Version applicative | `package.json` → `version`, par exemple `0.1.0-beta.1` |
 | Version Neutralinojs | partie stable avant le tiret, par exemple `0.1.0` |
 | Tag de release | `v` + version complète, par exemple `v0.1.0-alpha.1` |
 | Dossier préparé | `Sapphire3-<version>-windows/` |
@@ -91,12 +91,12 @@ Procédure :
 
 1. Commiter et pousser les sources, scripts et notes sur `master`.
 2. Créer une release en **brouillon** avec le tag `v<version>` ciblant `master` :
-   - titre lisible, par exemple « Sapphire 3 Alpha 0.1.0 » ;
-   - `--prerelease` pour une alpha ;
+   - titre lisible, par exemple « Sapphire 3 Beta 0.1.0 » ;
+   - `--prerelease` pour une alpha ou une bêta ;
    - asset unique `Sapphire3-<version>-windows.zip` ;
    - notes issues de `docs/releases/v<version>.md`.
 3. Vérifier la release distante : tag, statut brouillon, asset présent, taille et SHA-256.
-4. Ne publier qu'après validation explicite de l'utilisateur.
+4. Publier après validation explicite de l'utilisateur ; une bêta est publiée en **pré-release**, avec son tag créé par GitHub Releases.
 
 Le brouillon n'est pas une publication. Ne jamais présenter une release comme publiée avant vérification de son statut et de ses assets sur GitHub.
 

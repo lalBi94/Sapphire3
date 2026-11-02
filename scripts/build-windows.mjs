@@ -9,6 +9,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const packageJson = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'))
 const releaseVersion = packageJson.version
 const appVersion = releaseVersion.split('-')[0]
+const releaseChannel = releaseVersion.includes('-beta.') ? 'Beta' : releaseVersion.includes('-alpha.') ? 'Alpha' : ''
+const releaseTitle = releaseChannel ? `Sapphire 3 ${releaseChannel} ${releaseVersion}` : `Sapphire 3 ${releaseVersion}`
 const productName = 'Sapphire3'
 const releaseFolder = `${productName}-${releaseVersion}-windows`
 const archiveName = `${releaseFolder}.zip`
@@ -98,11 +100,11 @@ async function stagePackage(binaryName) {
   await copyLicense(path.join(root, 'scripts', 'licenses', 'neutralinojs.txt'), path.join(licensesDirectory, 'neutralinojs-MIT.txt'))
   await copyLicense(path.join(root, 'scripts', 'licenses', 'libtrashcan.txt'), path.join(licensesDirectory, 'libtrashcan-MIT.txt'))
 
-  await writeFile(path.join(stagingDirectory, 'CREDITS.md'), `# Crédits — Sapphire 3 ${releaseVersion}\n\nSapphire 3 est construit avec React, Vite, Neutralinojs, Lucide et KaTeX.\n\n## Composants distribués\n\n- React et React DOM — MIT — Copyright (c) Meta Platforms, Inc. and affiliates.\n- Lucide React — ISC — Copyright (c) 2026 Lucide Icons and Contributors.\n- KaTeX — MIT — Copyright (c) 2013-2020 Khan Academy and other contributors.\n- Neutralinojs client — MIT — Copyright (c) 2021 Neutralinojs.\n- Neutralinojs core — MIT — Copyright (c) 2021-2025 Neutralinojs and contributors.\n- libtrashcan — MIT — Copyright (c) 2019 Robert Gützkow.\n\nLes textes complets figurent dans le dossier \`licenses/\`.\n`)
+  await writeFile(path.join(stagingDirectory, 'CREDITS.md'), `# Crédits — ${releaseTitle}\n\nSapphire 3 est construit avec React, Vite, Neutralinojs, Lucide et KaTeX.\n\n## Composants distribués\n\n- React et React DOM — MIT — Copyright (c) Meta Platforms, Inc. and affiliates.\n- Lucide React — ISC — Copyright (c) 2026 Lucide Icons and Contributors.\n- KaTeX — MIT — Copyright (c) 2013-2020 Khan Academy and other contributors.\n- Neutralinojs client — MIT — Copyright (c) 2021 Neutralinojs.\n- Neutralinojs core — MIT — Copyright (c) 2021-2025 Neutralinojs and contributors.\n- libtrashcan — MIT — Copyright (c) 2019 Robert Gützkow.\n\nLes textes complets figurent dans le dossier \`licenses/\`.\n`)
 
-  await writeFile(path.join(stagingDirectory, 'LIRE-MOI.txt'), `Sapphire 3 Alpha ${releaseVersion} — Windows\n\nDécompressez cette archive dans un dossier accessible en écriture, puis lancez Sapphire3.exe.\nAucune installation de Node.js n'est nécessaire. Windows 10/11 avec WebView2 est requis.\nLes fichiers .sp3 s'ouvrent et s'enregistrent via les dialogues de l'application.\nAucun système de mise à jour automatique n'est inclus.\n`)
+  await writeFile(path.join(stagingDirectory, 'LIRE-MOI.txt'), `${releaseTitle} — Windows\n\nDécompressez cette archive dans un dossier accessible en écriture, puis lancez Sapphire3.exe.\nAucune installation de Node.js n'est nécessaire. Windows 10/11 avec WebView2 est requis.\nLes fichiers .sp3 s'ouvrent et s'enregistrent via les dialogues de l'application.\nLes mises à jour sont recherchées dans les releases publiées du dépôt GitHub ; l'installation demande une confirmation.\n`)
 
-  await writeFile(path.join(stagingDirectory, 'README.txt'), `Sapphire 3 Alpha ${releaseVersion} — Windows\n\nExtract this archive to a writable folder, then run Sapphire3.exe.\nNode.js is not required. Windows 10/11 with WebView2 is required.\n.sp3 files are opened and saved through the application dialogs.\nNo automatic update system is included.\n`)
+  await writeFile(path.join(stagingDirectory, 'README.txt'), `${releaseTitle} — Windows\n\nExtract this archive to a writable folder, then run Sapphire3.exe.\nNode.js is not required. Windows 10/11 with WebView2 is required.\n.sp3 files are opened and saved through the application dialogs.\nUpdates are checked from the published GitHub releases; installation requires confirmation.\n`)
 }
 
 // Construit le paquet Windows, calcule son empreinte et affiche les chemins de distribution.
