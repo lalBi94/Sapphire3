@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Plus, Save, Trash2 } from 'lucide-react'
-import { getNodeSchema, binaryOperators, unaryOperators, primitiveType, getCallableSymbols, sameType, isArrayType, mathNativeIds } from '../../utils/logic/index.js'
+import { getNodeSchema, binaryOperators, unaryOperators, primitiveType, getCallableSymbols, sameType, isArrayType, mathNatives } from '../../utils/logic/index.js'
 import { initialNodeForm, nodeConfiguration, emptyExpression, typeFromName, typeNameFromType, accessedArrayType, arrayIndexType, integerTypeNames, expressionOperators } from './nodeConfiguration.js'
 import NodeTypeInput from './NodeTypeInput.jsx'
 import NodeValueInput from './NodeValueInput.jsx'
@@ -10,6 +10,17 @@ import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './NodeForm.css'
 
 // Configure les propriétés du langage sans éditer ni remplacer implicitement les liens syntaxiques.
+// Regroupe les opérations natives par sous-catégorie, dans l'ordre du registre.
+function nativeGroups() {
+  const groups = []
+  for (const native of Object.values(mathNatives)) {
+    const group = groups.find((entry) => entry.id === native.group)
+    if (group) group.ids.push(native.id)
+    else groups.push({ id: native.group, ids: [native.id] })
+  }
+  return groups
+}
+
 export default function NodeForm({ kind, initialNode = null, preset = null, context, onSubmit }) {
   const { t } = useTranslation()
   const [form, setForm] = useState(() => initialNodeForm(kind, initialNode, context.expectedType, getCallableSymbols(context), preset))
@@ -94,7 +105,7 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
       {kind === 'MathCall' && <label>{t('kind.MathCall')}
         <select aria-label={t('kind.MathCall')} value={form.mathName ?? ''} onChange={(event) => change('mathName', event.target.value)} required={required}>
           <option value="">{t('form.chooseName')}</option>
-          {mathNativeIds.map((id) => <option key={id} value={id}>{id}</option>)}
+          {nativeGroups().map((group) => <optgroup key={group.id} label={t(`group.${group.id}`)}>{group.ids.map((id) => <option key={id} value={id}>{id}</option>)}</optgroup>)}
         </select>
       </label>}
       {(kind === 'Reference' || (isNew && kind === 'CallExpression')) && <label>{t(kind === 'Reference' ? 'form.symbol' : 'form.function')}

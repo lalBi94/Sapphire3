@@ -121,7 +121,9 @@ function getExpectedType(record, slot, path, index) {
   }
   if (record.kind === 'MathCall' && slot === 'arguments') {
     const parameters = getMathNative(record.properties?.name)?.parameters
-    return parameters?.[Array.isArray(record.children?.arguments) ? record.children.arguments.length : 0] ?? null
+    const expected = parameters?.[Array.isArray(record.children?.arguments) ? record.children.arguments.length : 0] ?? null
+    // Un tableau générique ne fixe pas le type des éléments dans le formulaire d'insertion.
+    return expected?.kind === 'array' && !expected.elementType ? null : expected
   }
   if (record.kind === 'ForEachStatement' && slot === 'callback') {
     const arrayValueType = index.nodeTypes.get(record.children?.array)

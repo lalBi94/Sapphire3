@@ -152,18 +152,30 @@ Aucune lambda, closure ou fonction anonyme n'est introduite dans cette version :
 
 Le type fonction est **transpilable sans helper** : JavaScript et Python représentent nativement une fonction nommée comme une valeur de première classe ; une référence vers une fonction émet son nom (normalisé), et l'appel via une variable produit un appel ordinaire.
 
-### Opérations mathématiques natives
+### Opérations natives SP3
 
-Les opérations mathématiques SP3 sont un nœud `MathCall` dont `properties.name` désigne une entrée du registre pur `mathNatives` (`src/utils/logic/mathNatives.js`). Le registre est le seul point d'extension de cette famille ; chaque entrée fixe les types des paramètres et le type de retour, sans conversion implicite ni surcharge.
+Les opérations natives SP3 sont un nœud `MathCall` (nom historique) dont `properties.name` désigne une entrée du registre pur `mathNatives` (`src/utils/logic/mathNatives.js`). Le registre est le seul point d'extension de cette famille ; chaque entrée fixe sa **sous-catégorie de menu** (`native.math`, `native.text`, `native.arrays`), les types de ses paramètres et son type de retour, sans conversion implicite ni surcharge.
 
 | Opération | Paramètres | Retour |
 | --- | --- | --- |
+| `clamp` | `int`, `int`, `int` | `int` |
+| `sign` | `int` | `int` |
+| `gcd` | `int`, `int` | `int` |
 | `abs` | `int` | `int` |
 | `min`, `max` | `int`, `int` | `int` |
+| `lerp` | `double`, `double`, `double` | `double` |
+| `log` | `double` | `double` |
 | `pow` | `double`, `double` | `double` |
 | `sqrt`, `sin`, `cos`, `tan`, `floor`, `ceil`, `round` | `double` | `double` |
+| `length` | `string` | `int` |
+| `charAt` | `string`, `int` | `char` |
+| `substring` | `string`, `int`, `int` | `string` |
+| `contains` | `string`, `string` | `boolean` |
+| `arrayLength` | tout tableau `T[]` | `int` |
 
-Un nom inconnu est diagnostiqué `NODE_INCOMPLETE` ; une arité ou un type d'argument incompatible produit `TYPE_MISMATCH`. La simulation locale exécute ces opérations de façon déterministe ; un résultat non fini (NaN ou infini, par exemple `sqrt(-1)`) arrête l'exécution avec `SIMULATION_MATH_DOMAIN`, le modèle numérique n'admettant aucune valeur non finie. Les **transpileurs** refusent `MathCall` (`TRANSPILE_EXPRESSION_UNSUPPORTED`) tant qu'aucun équivalent portable n'est défini.
+`length`, `charAt` et `substring` comptent des **scalaires Unicode**, pas des unités UTF-16 ; l'indice de `substring` est inclusif au début et **exclusif à la fin**. Un indice ou une portion hors bornes arrête l'exécution avec `SIMULATION_STRING_BOUNDS`. `gcd` renvoie toujours une valeur positive, `sign` renvoie `-1`, `0` ou `1`, et `log` est le logarithme népérien. `arrayLength` accepte n'importe quel type d'élément sans l'imposer.
+
+Un nom inconnu est diagnostiqué `NODE_INCOMPLETE` ; une arité ou un type d'argument incompatible produit `TYPE_MISMATCH`. La simulation locale exécute ces opérations de façon déterministe ; un résultat non fini (NaN ou infini, par exemple `sqrt(-1)` ou `log(0)`) arrête l'exécution avec `SIMULATION_MATH_DOMAIN`, le modèle numérique n'admettant aucune valeur non finie. Les **transpileurs** refusent `MathCall` (`TRANSPILE_EXPRESSION_UNSUPPORTED`) tant qu'aucun équivalent portable n'est défini.
 
 ### Littéraux et précision
 

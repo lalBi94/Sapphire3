@@ -240,7 +240,17 @@ export function analyzeTypes(semantic, projectId) {
     }
     let valid = true
     args.forEach((argument, index) => {
-      if (!expect(definition.parameters[index], resolve(argument?.sourceId), node, `children.arguments[${index}]`)) valid = false
+      const expected = definition.parameters[index]
+      const actual = resolve(argument?.sourceId)
+      // Un paramètre tableau générique accepte n'importe quel tableau sans imposer son élément.
+      if (expected?.kind === 'array' && !expected.elementType) {
+        if (!isArrayType(actual)) {
+          report(codes.typeMismatch, 'Un tableau est attendu.', node, `children.arguments[${index}]`)
+          valid = false
+        }
+        return
+      }
+      if (!expect(expected, actual, node, `children.arguments[${index}]`)) valid = false
     })
     return valid ? definition.returnType : null
   }
