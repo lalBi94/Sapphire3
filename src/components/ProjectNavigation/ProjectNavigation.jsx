@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bug, Bookmark, BookmarkPlus, ChevronDown, Clock3, Code2, Download, ExternalLink, Eye, FileInput, FileOutput, FilePlus, FolderOpen, Library, Maximize2, Palette, Play, Save, SaveAll, Search, Square, Trash2, VectorSquare, X } from 'lucide-react'
+import { Bug, Bookmark, BookmarkPlus, ChevronDown, Clock3, Code2, Download, ExternalLink, Eye, FileInput, FileOutput, FilePlus, FolderOpen, Library, Maximize2, Palette, Play, Save, SaveAll, Search, Settings2, Square, Trash2, VectorSquare, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
 import { supportedLanguages } from '../../utils/translations.js'
@@ -28,7 +28,7 @@ function ReplaceConfirmation({ titleKey, bodyKey, detail, confirmKey, onConfirm,
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile, selectedFunction = null, onOpenFunction, simulationRunning = false, onStopSimulation, onOpenRepository, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark, onOpenBookmarks }) {
+export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile, selectedFunction = null, onOpenFunction, simulationRunning = false, onStopSimulation, onOpenRepository, onOpenSettings, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark, onOpenBookmarks }) {
   const navigationRef = useRef(null)
   const [insertingId, setInsertingId] = useState(null)
   const { language, setLanguage, t } = useTranslation()
@@ -121,6 +121,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
       <details name="workspace-menu" onToggle={handleToggle}>
         <summary>{t('nav.settings')}<ChevronDown size={12} aria-hidden="true" /></summary>
         <div className="project-navigation__menu">
+          <button type="button" onClick={() => { closeMenus(); onOpenSettings() }}><Settings2 size={14} aria-hidden="true" />{t('settings.open')}</button>
           <p className="project-navigation__section">{t('menu.workspace')}</p>
           <button type="button" disabled={busy || !!pendingImport} onClick={onNew}><FilePlus size={14} aria-hidden="true" />{t('nav.new')}</button>
           <button type="button" disabled={busy || !!pendingImport} onClick={handleOpenSp3}><FolderOpen size={14} aria-hidden="true" />{t('nav.openSp3')}</button>
