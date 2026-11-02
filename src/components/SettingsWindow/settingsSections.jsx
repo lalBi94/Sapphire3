@@ -1,5 +1,6 @@
 import { BookmarkPlus, Check, Download, ExternalLink, FileInput, FileOutput, FilePlus, FolderOpen, Maximize2, RefreshCw, Save, SaveAll, Trash2, VectorSquare } from 'lucide-react'
 import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
+import KeybindsSection from './KeybindsSection.jsx'
 import { describeBookmark, getNodeSchema } from '../../utils/logic/index.js'
 import { supportedLanguages } from '../../utils/translations.js'
 import { appVersion } from '../../utils/appInfo.js'
@@ -182,6 +183,9 @@ export const settingsCategories = [
   { id: 'appearance', labelKey: 'settings.category.appearance', sections: [
     { id: 'theme', labelKey: 'nav.theme', Component: ThemeSection },
     { id: 'language', labelKey: 'nav.language', Component: LanguageSection },
+  ] },
+  { id: 'keybinds', labelKey: 'settings.category.keybinds', sections: [
+    { id: 'shortcuts', labelKey: 'settings.section.keybinds', Component: KeybindsSection },
   ] },
   { id: 'bookmarks', labelKey: 'nav.bookmarks', sections: [
     { id: 'library', labelKey: 'settings.section.library', Component: BookmarksSection },

@@ -5,6 +5,7 @@ import useCanvasPan from '../../hooks/useCanvasPan.jsx'
 import useCanvasDocument from '../../hooks/useCanvasDocument.jsx'
 import useNodeTransfers from '../../hooks/useNodeTransfers.jsx'
 import useNodeSearch from '../../hooks/useNodeSearch.jsx'
+import useGlobalKeybinds from '../../hooks/useGlobalKeybinds.jsx'
 import useAppUpdate from '../../hooks/useAppUpdate.jsx'
 import CanvasStatus from '../CanvasStatus/CanvasStatus.jsx'
 import Minimap from '../Minimap/Minimap.jsx'
@@ -692,6 +693,24 @@ export default function Canvas() {
     if (!card || expandable.length === 0) return
     document.setExpandedNodes(card.id, expand ? expandAllNodeIds(card.expandedNodeIds, expandable) : [])
   }
+
+  // Branche le registre central sur les handlers existants, sans dupliquer leur logique métier.
+  useGlobalKeybinds({
+    'workspace.new': { available: () => !files.busy && !files.pendingImport && !files.pendingNew, run: files.handleNew },
+    'workspace.open': { available: () => !files.busy && !files.pendingImport, run: files.handleOpenSp3 },
+    'workspace.save': { available: () => !files.busy && !files.pendingImport, run: files.handleSave },
+    'edit.undo': { available: () => document.canUndo, run: document.undo },
+    'edit.redo': { available: () => document.canRedo, run: document.redo },
+    'edit.copyNode': { available: () => selected?.kind === 'node' && !window.getSelection()?.toString(), run: () => transfers.copyNode(selected) },
+    'edit.pasteNode': { available: () => Boolean(selected && transfers.hasClipboard), run: () => transfers.pasteNode(selected) },
+    'edit.search': { available: () => true, run: search.show },
+    'navigation.center': { available: () => true, run: () => handleRecenter(getModulesBounds()) },
+    'navigation.zoom100': { available: () => true, run: resetZoom },
+    'navigation.toggleMinimap': { available: () => true, run: () => setMinimapVisible((current) => !current) },
+    'execution.run': { available: () => true, run: handleRunSimulation },
+    'execution.stop': { available: () => true, run: handleStopExecution },
+    'execution.debug': { available: () => true, run: handleDebugSp3 },
+  })
 
   return (
     <div ref={workspaceRef} className={`canvas-workspace${navCollapsed ? ' canvas-workspace--nav-collapsed' : ''}`}>

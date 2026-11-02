@@ -1,12 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { captureSourceNode, moveSourceNode } from '../utils/logic/index.js'
 
 const dragType = 'application/x-sapphire-node'
-
-// Préserve les raccourcis natifs des éditeurs de texte et des contrôles de formulaires.
-function isEditing(element) {
-  return element instanceof Element && (element.isContentEditable || Boolean(element.closest('input, textarea, select, [contenteditable="true"], dialog')))
-}
 
 // Vise uniquement le nœud réellement survolé, sans remonter vers un parent compatible de secours.
 function dropReceiver(element) {
@@ -23,25 +18,6 @@ export default function useNodeTransfers({ project, index, selected, workspaceRe
   const [notice, setNotice] = useState(null)
   const [dropTarget, setDropTarget] = useState(null)
   const dragRef = useRef(null)
-
-  useEffect(() => {
-    // Écoute en capture pour fonctionner aussi depuis les panneaux qui arrêtent la propagation.
-    function handleClipboard(event) {
-      if ((!event.ctrlKey && !event.metaKey) || event.altKey || event.shiftKey || event.repeat || isEditing(event.target)) return
-      if (!workspaceRef.current?.contains(event.target)) return
-      const key = event.key.toLowerCase()
-      if (key === 'c' && selected?.kind === 'node') {
-        if (window.getSelection()?.toString()) return
-        event.preventDefault()
-        copyNode(selected)
-      } else if (key === 'v' && selected && clipboard) {
-        event.preventDefault()
-        pasteNode(selected)
-      }
-    }
-    window.addEventListener('keydown', handleClipboard, true)
-    return () => window.removeEventListener('keydown', handleClipboard, true)
-  }, [project, index, selected, clipboard, workspaceRef, onPaste, onTransferred])
 
   // Évite de réannoncer et de rerendre le même résultat à chaque événement de survol.
   function showNotice(next) {

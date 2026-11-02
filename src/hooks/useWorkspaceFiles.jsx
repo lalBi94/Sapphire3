@@ -326,17 +326,6 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
   }
 
   useEffect(() => {
-    // Intercepte la sauvegarde native sans déclencher celle du navigateur.
-    function handleShortcut(event) {
-      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 's') return
-      event.preventDefault()
-      handleSave()
-    }
-    document.addEventListener('keydown', handleShortcut)
-    return () => document.removeEventListener('keydown', handleShortcut)
-  })
-
-  useEffect(() => {
     // Ne rouvre qu'une seule fois le dernier fichier, même sous StrictMode.
     if (booted.current) return
     booted.current = true
