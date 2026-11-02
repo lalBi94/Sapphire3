@@ -30,7 +30,7 @@ test('vue SVG : les cartes ne se chevauchent plus même superposées dans le can
   const workspace = examples.find((example) => example.id === 'imports').build()
   const index = createContextIndex(workspace.project, analyzeProgram(workspace.project))
   // Deux modules placés au même endroit sur le canvas, comme le reproche initial.
-  const cards = workspace.presentation.cards.map((card) => ({ ...card, x: 0, y: 0 }))
+  const cards = workspace.presentation.cards.filter((card) => card.type === 'module').map((card) => ({ ...card, x: 0, y: 0 }))
   const svg = buildWorkspaceSvg({ cards, index, links: getModuleLinks(index), describe: (node) => node.kind })
   const rects = [...svg.matchAll(/<rect x="([-\d.]+)" y="([-\d.]+)" width="([\d.]+)" height="([\d.]+)" rx="14"/g)]
     .map((match) => ({ x: Number(match[1]), y: Number(match[2]), width: Number(match[3]), height: Number(match[4]) }))

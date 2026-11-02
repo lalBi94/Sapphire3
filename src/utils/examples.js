@@ -4,6 +4,7 @@ import { moduleTypes } from './moduleTypes.js'
 const intType = { kind: 'primitive', name: 'int' }
 const voidType = { kind: 'primitive', name: 'void' }
 const intArrayType = { kind: 'array', elementType: intType }
+const intPointerType = { kind: 'pointer', pointee: intType }
 
 // Construit une source logique par petits appels, avec un module courant pour limiter le bruit.
 function builder() {
@@ -20,11 +21,19 @@ function builder() {
   const returnValue = (id, argument) => make(id, 'ReturnStatement', {}, { argument })
   const call = (id, callee, args) => make(id, 'CallExpression', {}, { callee, arguments: args })
   const block = (id, statements) => make(id, 'Block', {}, { statements })
-  return { project, useModule, make, root, ref, intValue, binary, access, print, returnValue, call, block }
+  // Déréférencement `*p` (lecture ou cible d'écriture) et prise d'adresse `&x`.
+  const deref = (id, operand) => make(id, 'UnaryExpression', { operator: '*' }, { operand })
+  const address = (id, operand) => make(id, 'UnaryExpression', { operator: '&' }, { operand })
+  return { project, useModule, make, root, ref, intValue, binary, access, print, returnValue, call, block, deref, address }
 }
 
-// Ajoute une carte lisible par module, sans dépendre de React ni du canvas.
-function workspace(project) {
+// Décrit une annotation Comment de présentation, hors du modèle logique.
+function note(id, name, text, x, y, width = 400, height = 240) {
+  return { id, type: 'comment', name, x, y, width, height, expandedNodeIds: [], text }
+}
+
+// Ajoute une carte lisible par module et les annotations Comment, sans dépendre de React ni du canvas.
+function workspace(project, notes = []) {
   const definition = moduleTypes.module
   const cards = project.modules.map((module, position) => ({
     id: module.id, type: 'module', name: module.name,
@@ -32,6 +41,7 @@ function workspace(project) {
     width: Math.max(definition.width, 520), height: Math.max(definition.height, 420),
     expandedNodeIds: [],
   }))
+  cards.push(...notes)
   return { application: 'Sapphire 3', workspaceVersion: 1, project, presentation: { cards, camera: { x: 0, y: 0, zoomLevel: 0 }, selected: null } }
 }
 
@@ -56,7 +66,7 @@ function fibonacci() {
   b.block('fibMainBody', ['fibPrint'])
   b.print('fibPrint', 'fibCallTen')
   b.call('fibCallTen', 'fibRefMain', ['ten']); b.ref('fibRefMain', 'fib'); b.intValue('ten', 10)
-  return workspace(b.project)
+  return workspace(b.project, [note('fibonacciNote', 'Fibonacci', 'fib(n) = fib(n-1) + fib(n-2) avec le cas de base n < 2 ; main affiche fib(10) = 55.', 600, 0)])
 }
 
 // Récursion : la factorielle, cas de base puis appel à soi-même.
@@ -79,7 +89,7 @@ function recursion() {
   b.block('factMainBody', ['factPrint'])
   b.print('factPrint', 'factCallFive')
   b.call('factCallFive', 'factRefMain', ['five']); b.ref('factRefMain', 'factorial'); b.intValue('five', 5)
-  return workspace(b.project)
+  return workspace(b.project, [note('recursionNote', 'Recursion', 'factorielle(n) = n × factorielle(n-1), cas de base n == 0 → 1 ; main affiche 5! = 120.', 600, 0)])
 }
 
 // Tableaux : littéral, création de taille fixe, écriture d'un élément puis lecture.
@@ -101,7 +111,7 @@ function arrays() {
   b.access('readFirst', 'valuesRefRead', 'zeroRead'); b.ref('valuesRefRead', 'values'); b.intValue('zeroRead', 0)
   b.print('printSecond', 'readSecond')
   b.access('readSecond', 'valuesRefSecond', 'oneRead'); b.ref('valuesRefSecond', 'values'); b.intValue('oneRead', 1)
-  return workspace(b.project)
+  return workspace(b.project, [note('arraysNote', 'Arrays', 'values démarre à [2, 4, 6], buffer est une création de 3 cases à 0 ; main écrit values[0] = 7 puis affiche values[0] (7) et values[1] (4).', 600, 0)])
 }
 
 // Tri à bulles sur un petit tableau, puis affichage dans l'ordre croissant.
@@ -149,7 +159,7 @@ function sorting() {
   b.make('kStep', 'AssignmentStatement', {}, { target: 'kTarget', value: 'kNext' })
   b.ref('kTarget', 'k'); b.binary('kNext', '+', 'kStepRead', 'oneStepK'); b.ref('kStepRead', 'k'); b.intValue('oneStepK', 1)
   b.returnValue('sortReturn', null)
-  return workspace(b.project)
+  return workspace(b.project, [note('sortingNote', 'Sorting', 'Tri à bulles : deux boucles while imbriquées échangent les voisins hors ordre, puis une boucle affiche le tableau trié (1 3 5 8).', 600, 0)])
 }
 
 // Imports : une fonction carrée exportée par une bibliothèque, importée et appelée ailleurs.
@@ -171,7 +181,7 @@ function imports() {
   b.intValue('five', 5)
   b.project.modules.find((module) => module.id === 'library').exports.push({ nodeId: 'square', name: 'square' })
   b.project.modules.find((module) => module.id === 'app').imports.push({ id: 'squareImport', moduleId: 'library', nodeId: 'square', localName: 'square' })
-  return workspace(b.project)
+  return workspace(b.project, [note('importsNote', 'Imports', 'Library exporte square ; App l\'importe et affiche square(5) = 25.', 0, 520)])
 }
 
 // ForEach : parcourt un tableau en appelant une fonction via une variable de type fonction.
@@ -192,29 +202,43 @@ function forEach() {
   b.block('forEachBody', ['each'])
   b.make('each', 'ForEachStatement', {}, { array: 'valuesRef', callback: 'printerUse' })
   b.ref('valuesRef', 'values'); b.ref('printerUse', 'printer')
-  return workspace(b.project)
+  return workspace(b.project, [note('foreachNote', 'For each', 'show est rangée dans la variable printer, de type fonction ; ForEach parcourt values et appelle printer pour chaque élément (3 1 4 1 5).', 600, 0)])
 }
 
-// Pointeurs : adresse d'une variable, déréférencement en lecture, puis écriture qui modifie l'original.
+// Pointeurs dans un algorithme : `swap` échange deux entiers à travers leurs adresses.
 function pointers() {
   const b = builder()
   b.useModule('pointers', 'Pointers')
-  b.root('x', 'VariableDeclaration', { name: 'x', type: intType }, { initializer: 'one' })
-  b.intValue('one', 1)
-  b.root('p', 'VariableDeclaration', { name: 'p', type: { kind: 'pointer', pointee: intType } }, { initializer: 'addressOfX' })
-  b.make('addressOfX', 'UnaryExpression', { operator: '&' }, { operand: 'xRef' })
-  b.ref('xRef', 'x')
+  b.root('a', 'VariableDeclaration', { name: 'a', type: intType }, { initializer: 'three' })
+  b.intValue('three', 3)
+  b.root('b', 'VariableDeclaration', { name: 'b', type: intType }, { initializer: 'eight' })
+  b.intValue('eight', 8)
+  // swap(left: int*, right: int*) -> void : copie *left, écrit *left = *right, puis *right = la copie.
+  b.root('swap', 'FunctionDeclaration', { name: 'swap', type: voidType }, { parameters: ['left', 'right'], body: 'swapBody' })
+  b.make('left', 'Parameter', { name: 'left', type: intPointerType })
+  b.make('right', 'Parameter', { name: 'right', type: intPointerType })
+  b.block('swapBody', ['saveLeft', 'writeLeft', 'writeRight'])
+  b.make('saveLeft', 'VariableDeclaration', { name: 'saved', type: intType }, { initializer: 'leftValue' })
+  b.deref('leftValue', 'leftRefFirst'); b.ref('leftRefFirst', 'left')
+  b.make('writeLeft', 'AssignmentStatement', {}, { target: 'leftTarget', value: 'rightValue' })
+  b.deref('leftTarget', 'leftRefWrite'); b.ref('leftRefWrite', 'left')
+  b.deref('rightValue', 'rightRefRead'); b.ref('rightRefRead', 'right')
+  b.make('writeRight', 'AssignmentStatement', {}, { target: 'rightTarget', value: 'savedRef' })
+  b.deref('rightTarget', 'rightRefWrite'); b.ref('rightRefWrite', 'right')
+  b.ref('savedRef', 'saved')
   b.root('pointersMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'pointersBody' })
-  b.block('pointersBody', ['printInitial', 'writeThrough', 'printAfter', 'printDeref'])
-  b.print('printInitial', 'initialRead'); b.ref('initialRead', 'x')
-  // `*p = 5` écrit dans `x` : la valeur réelle de l'emplacement, pas une copie locale.
-  b.make('writeThrough', 'AssignmentStatement', {}, { target: 'derefWrite', value: 'five' })
-  b.make('derefWrite', 'UnaryExpression', { operator: '*' }, { operand: 'pRefWrite' }); b.ref('pRefWrite', 'p')
-  b.intValue('five', 5)
-  b.print('printAfter', 'afterRead'); b.ref('afterRead', 'x')
-  b.print('printDeref', 'derefRead')
-  b.make('derefRead', 'UnaryExpression', { operator: '*' }, { operand: 'pRefRead' }); b.ref('pRefRead', 'p')
-  return workspace(b.project)
+  b.block('pointersBody', ['printA', 'printB', 'callSwap', 'printA2', 'printB2'])
+  b.print('printA', 'aRead1'); b.ref('aRead1', 'a')
+  b.print('printB', 'bRead1'); b.ref('bRead1', 'b')
+  // swap(&a, &b) : les adresses sont des arguments de type int*.
+  b.make('callSwap', 'ExpressionStatement', {}, { expression: 'swapCall' })
+  b.make('swapCall', 'CallExpression', {}, { callee: 'swapRef', arguments: ['addressA', 'addressB'] })
+  b.ref('swapRef', 'swap')
+  b.address('addressA', 'aRefArg'); b.ref('aRefArg', 'a')
+  b.address('addressB', 'bRefArg'); b.ref('bRefArg', 'b')
+  b.print('printA2', 'aRead2'); b.ref('aRead2', 'a')
+  b.print('printB2', 'bRead2'); b.ref('bRead2', 'b')
+  return workspace(b.project, [note('pointersNote', 'Pointers', 'swap(&a, &b) reçoit deux adresses int* et échange *left et *right : les écritures à travers les pointeurs modifient directement a et b (3 8 puis 8 3).', 600, 0)])
 }
 
 // Catalogue local, ouvrable sans réseau ni fichier externe.

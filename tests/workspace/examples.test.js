@@ -11,7 +11,7 @@ const expectedOutput = {
   recursion: ['120'],
   imports: ['25'],
   foreach: ['3', '1', '4', '1', '5'],
-  pointers: ['1', '5', '5'],
+  pointers: ['3', '8', '8', '3'],
 }
 
 test('bibliothèque d’exemples : chaque projet est valide, analysable et s’exécute', () => {
@@ -19,6 +19,7 @@ test('bibliothèque d’exemples : chaque projet est valide, analysable et s’e
   for (const example of examples) {
     const workspace = deserializeWorkspace(JSON.stringify(example.build()))
     assert.ok(workspace.presentation.cards.length >= 1, example.id)
+    assert.ok(workspace.presentation.cards.some((card) => card.type === 'comment' && card.text.length > 0), `${example.id}: annotation Comment`)
     const analysis = analyzeProgram(workspace.project)
     assert.deepEqual(analysis.diagnostics, [], example.id)
     const result = simulateProgram(workspace.project)
