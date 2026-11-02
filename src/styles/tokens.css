@@ -1,5 +1,6 @@
 :root {
   --font-family: system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;
   --color-black: #0e0e12;
   --color-anthracite: #19191f;
   --color-anthracite-raised: #24242c;

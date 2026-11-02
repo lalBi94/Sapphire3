@@ -1,17 +1,12 @@
-import { ArrowRight, ChevronDown, ChevronUp, CornerUpRight, Play, RotateCcw, SkipBack, X } from 'lucide-react'
+import { ArrowRight, ChevronDown, ChevronUp, CornerUpRight, MemoryStick, Play, RotateCcw, SkipBack, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import usePanelFront from '../../hooks/usePanelFront.jsx'
 import { snapPanelToArea } from '../../utils/panelSnap.js'
 import { failureLabel } from '../../utils/translations.js'
+import { memoryValue } from '../../utils/memorySpace.js'
 import { kindLabel, typeLabel } from '../LogicTree/logicLabels.js'
 import './DebugPanel.css'
-
-// Garde les chaînes distinctes des nombres et préserve le zéro signé des flottants.
-function memoryValue(value) {
-  if (typeof value === 'string') return JSON.stringify(value)
-  return Object.is(value, -0) ? '-0' : String(value)
-}
 
 // Présente les valeurs scalaires sans perdre les chaînes vides ou les booléens du programme.
 function MemoryTable({ variables, modules, t }) {
@@ -22,7 +17,7 @@ function MemoryTable({ variables, modules, t }) {
 }
 
 // Affiche uniquement l'instantané courant, dans une fenêtre locale déplaçable et redimensionnable.
-export default function DebugPanel({ session, index, onAction, onClose }) {
+export default function DebugPanel({ session, index, onAction, onClose, memoryOpen = false, onToggleMemory }) {
   const [geometry, setGeometry] = useState({ x: 16, y: 16, width: 380, height: 500 })
   const [collapsed, setCollapsed] = useState(false)
   const gesture = useRef(null)
@@ -84,6 +79,7 @@ export default function DebugPanel({ session, index, onAction, onClose }) {
   return <aside className={`debug-panel${collapsed ? ' debug-panel--collapsed' : ''}`} data-canvas-ui data-canvas-scroll aria-label={t('debug.title')} style={{ left: geometry.x, top: geometry.y, width: geometry.width, ...(collapsed ? {} : { height: geometry.height }), ...(front.zIndex ? { zIndex: front.zIndex } : {}) }} onPointerDown={(event) => { front.bringToFront(); event.stopPropagation() }} onFocusCapture={front.bringToFront} onKeyDown={(event) => event.stopPropagation()}>
     <header className="debug-panel__header" tabIndex={0} aria-label={t('debug.move')} title={t('canvas.moveHint')} onPointerDown={(event) => handleStart(event, 'move')} onPointerMove={handleMove} onPointerUp={handleEnd} onPointerCancel={handleEnd} onLostPointerCapture={handleEnd} onKeyDown={(event) => handleKeyDown(event, 'move')}>
       <h2>{t('debug.title')}</h2>
+      <button type="button" className={`debug-panel__memory${memoryOpen ? ' debug-panel__memory--open' : ''}`} aria-pressed={memoryOpen} aria-label={t('memory.open')} title={t('memory.open')} onClick={onToggleMemory}><MemoryStick size={16} strokeWidth={1.75} aria-hidden="true" /></button>
       <button type="button" className="debug-panel__collapse" aria-expanded={!collapsed} aria-label={t(collapsed ? 'panel.expand' : 'panel.collapse')} title={t(collapsed ? 'panel.expand' : 'panel.collapse')} onClick={() => setCollapsed((current) => !current)}>{collapsed ? <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" /> : <ChevronUp size={16} strokeWidth={1.75} aria-hidden="true" />}</button>
       <button type="button" onClick={onClose} aria-label={t('debug.close')}><X size={16} aria-hidden="true" /></button>
     </header>

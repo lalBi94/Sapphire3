@@ -1,0 +1,17 @@
+/* Vue abstraite de la mémoire : segments lisibles et adresses illustratives. */
+.memory-panel__hint { margin: 0 0 var(--space-control); color: var(--color-text-muted); line-height: 1.5; }
+.memory-panel__segment { margin-bottom: var(--space-panel); }
+.memory-panel__segment h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-muted); }
+.memory-panel__segment h3 span { margin-inline-start: auto; font-weight: 500; letter-spacing: 0; }
+.memory-panel__list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.memory-panel__cell { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: baseline; gap: 2px 8px; padding: 5px 6px; border: 1px solid var(--color-border); border-radius: var(--radius-small); background: var(--color-input); }
+.memory-panel__cell strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.memory-panel__cell small { color: var(--color-text-muted); }
+.memory-panel__address { color: var(--color-primary); font-family: var(--font-mono, ui-monospace, monospace); font-size: 10px; letter-spacing: 0.02em; }
+.memory-panel__value { grid-column: 2 / -1; color: var(--color-text); font-family: var(--font-mono, ui-monospace, monospace); overflow-wrap: anywhere; }
+.memory-panel__tags { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 4px; }
+.memory-panel__tags em { padding: 1px 5px; border: 1px solid color-mix(in srgb, var(--color-primary) 45%, transparent); border-radius: 999px; color: var(--color-primary); font-size: 10px; font-style: normal; }
+.memory-panel__tags .memory-panel__muted { border-color: var(--color-border); color: var(--color-text-muted); }
+.memory-panel__scope { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--color-border); }
+.memory-panel__scope h4 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 5px; font-size: 12px; font-weight: 500; }
+.memory-panel__empty { margin: 0; color: var(--color-text-muted); }

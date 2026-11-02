@@ -35,6 +35,7 @@ import { loadBookmarks, saveBookmarks } from '../../services/bookmarks.js'
 import SimulationPanel from '../SimulationPanel/SimulationPanel.jsx'
 import FunctionPanel from '../FunctionPanel/FunctionPanel.jsx'
 import DebugPanel from '../DebugPanel/DebugPanel.jsx'
+import MemoryPanel from '../MemoryPanel/MemoryPanel.jsx'
 import TranspilePanel from '../TranspilePanel/TranspilePanel.jsx'
 import NodeGraphPanel from '../NodeGraphPanel/NodeGraphPanel.jsx'
 import NodeSearchPanel from '../NodeSearchPanel/NodeSearchPanel.jsx'
@@ -55,6 +56,7 @@ export default function Canvas() {
   const [simulationResult, setSimulationResult] = useState(null)
   const [execution, setExecution] = useState(null)
   const [debugSession, setDebugSession] = useState(null)
+  const [memoryOpen, setMemoryOpen] = useState(false)
   const [transpilationResult, setTranspilationResult] = useState(null)
   const [transpileExportError, setTranspileExportError] = useState(null)
   const [nodeGraph, setNodeGraph] = useState(null)
@@ -684,7 +686,8 @@ export default function Canvas() {
       </div>}
       <SimulationPanel result={simulationResult} running={Boolean(execution?.running)} paused={Boolean(execution?.paused)} stopped={Boolean(execution?.stopped)} currentStep={execution ? execution.index + 1 : 0} onPause={handlePauseExecution} onResume={handleResumeExecution} onStop={handleStopExecution} onClose={() => { setSimulationResult(null); setExecution(null) }} />
       {functionNode && <FunctionPanel key={`${functionTarget}:${functionSignature}`} index={document.index} functionNode={functionNode} result={functionResult?.functionId === functionTarget ? functionResult.result : null} onRun={handleRunFunction} onDebug={handleDebugFunction} onClose={handleCloseFunction} />}
-      {debugSession?.project === document.project && <DebugPanel session={debugSession} index={document.index} onAction={handleDebugAction} onClose={() => setDebugSession(null)} />}
+      {debugSession?.project === document.project && <DebugPanel session={debugSession} index={document.index} onAction={handleDebugAction} onClose={() => setDebugSession(null)} memoryOpen={memoryOpen} onToggleMemory={() => setMemoryOpen((current) => !current)} />}
+      {debugSession?.project === document.project && memoryOpen && <MemoryPanel index={document.index} frame={debugFrame} reachability={debugSession.reachability} onClose={() => setMemoryOpen(false)} />}
       <TranspilePanel result={transpilationResult} exportError={transpileExportError} onExport={handleExportTranspilation} onClose={() => { setTranspilationResult(null); setTranspileExportError(null) }} />
       {search.open && <NodeSearchPanel index={document.index} cards={visibleCards} selectedId={selected?.kind === 'node' ? selected.id : null} focusToken={search.token} onReveal={handleRevealNode} onClose={handleCloseSearch} />}
       {bookmarksOpen && <BookmarkPanel bookmarks={bookmarks} modules={moduleChoices} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark} onClose={() => setBookmarksOpen(false)} />}
