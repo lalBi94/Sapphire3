@@ -44,6 +44,8 @@ const messages = {
   'settings.category.about': ['About', 'À propos', '关于', 'Acerca de', 'حول', 'このアプリについて', 'परिचय', 'О программе'],
   'settings.section.info': ['Project info', 'Informations du projet', '项目信息', 'Información del proyecto', 'معلومات المشروع', 'プロジェクト情報', 'प्रोजेक्ट जानकारी', 'Сведения о проекте'],
   'settings.section.library': ['Library', 'Bibliothèque', '库', 'Biblioteca', 'المكتبة', 'ライブラリ', 'लाइब्रेरी', 'Библиотека'],
+  'settings.layout': ['Layout', 'Disposition', '布局', 'Disposición', 'التخطيط', 'レイアウト', 'लेआउट', 'Макет'],
+  'settings.navBar': ['Navigation bar', 'Barre de navigation', '导航栏', 'Barra de navegación', 'شريط التنقل', 'ナビゲーションバー', 'नेविगेशन बार', 'Панель навигации'],
   'settings.section.application': ['Application', 'Application', '应用', 'Aplicación', 'التطبيق', 'アプリケーション', 'एप्लिकेशन', 'Приложение'],
   'settings.info.modules': ['Modules', 'Modules', '模块', 'Módulos', 'الوحدات', 'モジュール', 'मॉड्यूल', 'Модули'],
   'settings.info.nodes': ['Nodes', 'Nœuds', '节点', 'Nodos', 'العقد', 'ノード', 'नोड', 'Узлы'],

@@ -6,8 +6,8 @@ import { appVersion } from '../../utils/appInfo.js'
 import { typeLabel } from '../LogicTree/logicLabels.js'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 
-// Espace de travail : actions de fichier, exports et chemins récents.
-export function WorkspaceSection({ busy, pendingImport, onNew, onOpenSp3, onSave, onSaveAs, onImport, onExportSvg, recentFiles, onOpenRecent }) {
+// Espace de travail : actions de fichier, disposition du canvas, vue et chemins récents.
+export function WorkspaceSection({ busy, pendingImport, onNew, onOpenSp3, onSave, onSaveAs, onImport, onExportSvg, recentFiles, onOpenRecent, distorted = false, onToggleDistortion, minimapVisible = true, onToggleMinimap, navVisible = true, onToggleNav, hiddenCards = [], onShowAllHidden, onZoomIn, onZoomOut, onZoom100, onCenter }) {
   const { t } = useTranslation()
   const disabled = busy || Boolean(pendingImport)
   return <div className="settings-section">
@@ -20,6 +20,21 @@ export function WorkspaceSection({ busy, pendingImport, onNew, onOpenSp3, onSave
       <button type="button" disabled={disabled} onClick={() => onSaveAs('json')}><FileOutput size={14} aria-hidden="true" />{t('nav.exportJson')}</button>
       <button type="button" disabled={disabled} onClick={onExportSvg}><VectorSquare size={14} aria-hidden="true" />{t('nav.exportSvg')}</button>
     </div>
+
+    <p className="settings-section__subtitle">{t('settings.layout')}</p>
+    <label className="settings-check"><input type="checkbox" checked={distorted} onChange={onToggleDistortion} />{t('nav.distortion')}</label>
+    <label className="settings-check"><input type="checkbox" checked={minimapVisible} onChange={onToggleMinimap} />{t('nav.minimap')}</label>
+    <label className="settings-check"><input type="checkbox" checked={navVisible} onChange={onToggleNav} />{t('settings.navBar')}</label>
+    {hiddenCards.length > 0 && <div className="settings-section__actions"><button type="button" onClick={onShowAllHidden}>{t('canvas.showAll')} · {hiddenCards.length}</button></div>}
+
+    <p className="settings-section__subtitle">{t('nav.view')}</p>
+    <div className="settings-section__actions settings-section__grid">
+      <button type="button" onClick={onZoomIn}>{t('nav.zoomIn')}</button>
+      <button type="button" onClick={onZoomOut}>{t('nav.zoomOut')}</button>
+      <button type="button" onClick={onZoom100}>{t('nav.zoom100')}</button>
+      <button type="button" onClick={onCenter}>{t('nav.center')}</button>
+    </div>
+
     <p className="settings-section__subtitle">{t('nav.recentFiles')}</p>
     {recentFiles.length === 0
       ? <p className="settings-section__empty">{t('nav.noRecentFiles')}</p>

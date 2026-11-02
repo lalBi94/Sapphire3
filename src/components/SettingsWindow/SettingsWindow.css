@@ -24,6 +24,8 @@
 .settings-section__subtitle { margin: var(--space-control) 0 0; color: var(--color-text-muted); font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; }
 .settings-section__empty, .settings-section__hint { margin: 0; color: var(--color-text-muted); font-size: 11px; }
 .settings-section__row { display: flex; justify-content: space-between; gap: var(--space-panel); margin: 0; }
+.settings-check { display: flex; align-items: center; gap: 8px; }
+.settings-section__actions.settings-section__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
 
 .settings-section__recent { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
 .settings-section__recent button { display: block; width: 100%; padding: 6px 8px; border: 1px solid transparent; border-radius: var(--radius-small); background: transparent; color: var(--color-text-muted); font: inherit; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
