@@ -30,6 +30,8 @@ Clic droit sur le canvas vide pour ouvrir « Create module » / « Create commen
 
 La barre supérieure propose **Settings** (nouveau document, ouverture `.sp3`, cinq chemins récents, sauvegarde directe, import, export JSON/SVG et une **fenêtre de paramètres** de l'application), **Edit** (undo/redo, recherche), **View** (zoom, cadrage, grille courbée, mini-carte) et **Theme** (six palettes). Chaque menu regroupe ses entrées par sous-catégories. **Ctrl+S** écrit le fichier `.sp3` courant ou ouvre « Enregistrer sous » s'il n'a pas encore de chemin. Les fichiers conservent source logique, cartes/commentaires/images, géométrie, pliage, vue et sélection. L'import validé demande confirmation avant remplacement ; annulations et erreurs conservent le travail courant. Une source logique JSON v1 seule est aussi importable. Aucun autosave ni stockage distant. Limite : 20 Mio, images intégrées comprises. Voir `docs/WORKSPACE_FILES.md`.
 
+L'application vérifie au lancement les **releases publiées** du dépôt configuré. Si une version plus récente existe, un bouton **Update** apparaît dans la barre ; la fenêtre de paramètres (**About → Application**) permet aussi de vérifier et d'installer. L'installation demande confirmation, vérifie la taille et l'empreinte **SHA‑256** de l'archive, puis un helper embarqué `updater.ps1` remplace les fichiers distribués après fermeture et relance l'application, sans toucher aux données ni aux préférences.
+
 Les dialogues de fichiers nécessitent la fenêtre **Neutralinojs**, pas `pnpm dev:web`. Redémarrez une ancienne fenêtre desktop après cette évolution des permissions natives.
 
 ### Simulation et debug SP3

@@ -85,6 +85,7 @@ async function stagePackage(binaryName) {
   await mkdir(stagingDirectory, { recursive: true })
   await cp(windowsBinary, path.join(stagingDirectory, `${productName}.exe`))
   await cp(resourcesFile, path.join(stagingDirectory, 'resources.neu'))
+  await cp(path.join(root, 'scripts', 'updater.ps1'), path.join(stagingDirectory, 'updater.ps1'))
   await writeFile(path.join(stagingDirectory, 'VERSION.txt'), `${releaseVersion}\n`)
 
   const licensesDirectory = path.join(stagingDirectory, 'licenses')

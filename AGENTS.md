@@ -138,7 +138,7 @@ Un fichier = une responsabilité principale. Ne pas multiplier les fichiers ou l
 
 ## Distribution et confidentialité
 
-- Distribution configurée sur le dépôt public unique `lalBi94/Sapphire3` : sources sur `master`, paquets portables en assets de GitHub Releases. Aucun second dépôt, sous-module, remote supplémentaire, manifeste `update.json` ni updater.
+- Distribution configurée sur le dépôt public unique `lalBi94/Sapphire3` : sources sur `master`, paquets portables en assets de GitHub Releases. Aucun second dépôt, sous-module, remote supplémentaire ni manifeste `update.json` ; l'updater s'appuie sur les releases publiées du dépôt configuré et sur le helper `updater.ps1` livré dans le ZIP.
 - Le dépôt Git ne contient que les sources, la documentation et les scripts. Les exécutables, `resources.neu`, ZIP et dossiers compilés restent ignorés par Git et ne sont jamais ajoutés à l'historique.
 - Pour le desktop Windows, appliquer `docs/DISTRIBUTION.md` : reconfiguration de production, compilation Vite, conteneur Neutralinojs, licences, ZIP portable, SHA‑256, audit et publication GitHub Releases en préversion avec tag de version.
 - Une demande de publication autorise la publication concernée dans le dépôt de distribution configuré, pas un push des sources privées, un changement de visibilité ou l'exposition de données.

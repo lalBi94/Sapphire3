@@ -13,7 +13,7 @@ Le dépôt de développement et de distribution est **`lalBi94/Sapphire3`** (pub
 - Le dépôt Git ne contient que les sources, la documentation et les scripts. Les exécutables, `resources.neu`, ZIP et dossiers compilés restent ignorés par Git.
 - Les paquets complets sont publiés comme **assets de GitHub Releases**, jamais dans l'historique Git.
 - La configuration de développement (`neutralino.config.json`) n'est pas modifiée par la construction. Une configuration de production distincte est générée dans `build/production/`.
-- Aucun autosave, aucune vérification de version distante, aucun manifeste `update.json`, aucun updater intégré. Une nouvelle version se télécharge et se remplace manuellement.
+- L'application vérifie les releases **publiées** du dépôt configuré et propose l'installation d'une version plus récente. L'installation est confirmée par l'utilisateur, l'archive est vérifiée (taille et SHA‑256 de l'asset GitHub) puis remplacée par un **helper `updater.ps1` embarqué dans le ZIP**, après fermeture, sans toucher aux données ni aux préférences. Aucun manifeste `update.json`, aucun service tiers.
 - Aucune donnée utilisateur, préférence ou fichier local n'est ajouté au paquet.
 
 ## 3. Versions et nommage
@@ -58,6 +58,7 @@ Contenu distribué de référence :
 ```text
 Sapphire3.exe
 resources.neu
+updater.ps1
 VERSION.txt
 CREDITS.md
 LIRE-MOI.txt
@@ -101,4 +102,12 @@ Le brouillon n'est pas une publication. Ne jamais présenter une release comme p
 
 ## 7. Mise à jour
 
-Aucun updater n'est inclus et aucune version distante n'est consultée à l'exécution. L'utilisateur remplace manuellement l'ancien dossier par le contenu du nouveau ZIP. Cette absence est volontaire pour cette alpha ; l'ajouter exigerait une demande explicite et un contrat dédié.
+L'application intègre un updater simple, sans service tiers :
+
+1. Au lancement et sur demande, elle consulte `https://api.github.com/repos/lalBi94/Sapphire3/releases` (API GitHub, HTTPS) et retient la release **publiée** la plus récente dont l'asset `Sapphire3-<version>-windows.zip` fournit une taille et un `digest` `sha256:…`.
+2. Si cette version est plus récente que `package.json`, un bouton **Update** apparaît dans la barre et la fenêtre de paramètres propose la vérification et l'installation.
+3. Après confirmation native, l'application lance `updater.ps1` (livré dans le ZIP, à la racine du dossier installé) avec l'URL de l'asset, la taille, l'empreinte et le PID courant, puis se ferme.
+4. Le helper attend la fermeture, télécharge l'archive, **vérifie taille et SHA‑256**, extrait, remplace uniquement les fichiers distribués (jamais les données/préférences, stockées hors du dossier d'installation), puis relance `Sapphire3.exe`.
+5. Un échec de vérification interrompt l'installation et est consigné dans `%TEMP%\sapphire3-update.log`.
+
+Le helper est exécuté localement (PowerShell fourni par Windows) et n'exécute aucun code distant : seule l'archive signée par son empreinte est installée. Les erreurs réseau ne bloquent jamais les fonctionnalités hors ligne. Le ZIP doit toujours contenir `updater.ps1` pour que la mise à jour suivante puisse être appliquée.

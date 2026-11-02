@@ -5,6 +5,7 @@ import useCanvasPan from '../../hooks/useCanvasPan.jsx'
 import useCanvasDocument from '../../hooks/useCanvasDocument.jsx'
 import useNodeTransfers from '../../hooks/useNodeTransfers.jsx'
 import useNodeSearch from '../../hooks/useNodeSearch.jsx'
+import useAppUpdate from '../../hooks/useAppUpdate.jsx'
 import CanvasStatus from '../CanvasStatus/CanvasStatus.jsx'
 import Minimap from '../Minimap/Minimap.jsx'
 import CanvasContextMenu from '../CanvasContextMenu/CanvasContextMenu.jsx'
@@ -64,6 +65,7 @@ export default function Canvas() {
   const { language, t } = useTranslation()
   const document = useCanvasDocument()
   const search = useNodeSearch()
+  const appUpdate = useAppUpdate()
   const selected = selection && (selection.kind === 'module' ? document.index.modules.has(selection.id) : document.index.nodes.has(selection.id)) ? selection : null
   const { camera, zoom, canvasRef, isPanning, handlePointerDown, handlePointerMove, handlePointerEnd, handleKeyDown, handleRecenter, panTo, zoomBy, resetZoom, restoreCamera } = useCanvasPan()
   const files = useWorkspaceFiles({ project: document.project, cards: document.cards, camera, selected, onReplace: handleReplaceWorkspace })
@@ -591,7 +593,7 @@ export default function Canvas() {
       distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)}
       minimapVisible={minimapVisible} onToggleMinimap={() => setMinimapVisible((current) => !current)}
       hiddenCards={hiddenCards} onShowCard={handleShowCard} onShowAllHidden={handleShowAllHidden}
-      hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onOpenSearch={search.show} onRunSimulation={handleRunSimulation} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} selectedFunction={selectedFunction} onOpenFunction={handleOpenFunction} simulationRunning={Boolean(execution?.running)} simulationPaused={Boolean(execution?.paused)} onPauseSimulation={handlePauseExecution} onResumeSimulation={handleResumeExecution} onStopSimulation={handleStopExecution} onOpenRepository={() => openExternal(repositoryUrl)} onOpenSettings={() => setSettingsOpen(true)}
+      hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onOpenSearch={search.show} onRunSimulation={handleRunSimulation} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} selectedFunction={selectedFunction} onOpenFunction={handleOpenFunction} simulationRunning={Boolean(execution?.running)} simulationPaused={Boolean(execution?.paused)} onPauseSimulation={handlePauseExecution} onResumeSimulation={handleResumeExecution} onStopSimulation={handleStopExecution} onOpenRepository={() => openExternal(repositoryUrl)} onOpenSettings={() => setSettingsOpen(true)} updateAvailable={appUpdate.update.status === 'available'} updateVersion={appUpdate.update.release?.version ?? ''} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })}
       bookmarks={bookmarks} modules={moduleChoices} canBookmark={bookmarkStatus(selected).can} onSaveBookmark={handleSaveBookmark} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark} onOpenBookmarks={() => setBookmarksOpen(true)} />
     <button type="button" className="canvas-nav-toggle" aria-expanded={!navCollapsed} aria-label={t(navCollapsed ? 'nav.show' : 'nav.hide')} title={t(navCollapsed ? 'nav.show' : 'nav.hide')} onClick={() => setNavCollapsed((current) => !current)}>{navCollapsed ? <ChevronDown size={15} aria-hidden="true" /> : <ChevronUp size={15} aria-hidden="true" />}</button>
     <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label={t('canvas.aria')} tabIndex={0}
@@ -635,7 +637,7 @@ export default function Canvas() {
         recentFiles={files.recentFiles} onOpenRecent={files.handleOpenRecent}
         project={document.project} currentPath={files.currentPath}
         bookmarks={bookmarks} canBookmark={bookmarkStatus(selected).can} onSaveBookmark={handleSaveBookmark} onOpenBookmarks={() => setBookmarksOpen(true)} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark}
-        onOpenRepository={() => openExternal(repositoryUrl)} />}
+        onOpenRepository={() => openExternal(repositoryUrl)} update={appUpdate.update} onCheckUpdate={() => appUpdate.check()} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })} />}
       {nodeGraph && <NodeGraphPanel project={document.project} index={document.index} target={nodeGraph.target} mode={nodeGraph.mode} onSelect={handleSelect} onClose={() => setNodeGraph(null)} />}
       {selected && <NodeProperties key={document.revision} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onSelect={handleSelect} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onExport={document.exportFunction} onImport={document.importFunction} onRemoveImport={document.removeImport} onContracts={document.setNodeContracts} onClose={() => setSelected(null)} mutationError={document.mutationError} />}
       {contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onHideCard={handleHideCard} onLockCard={handleToggleLock} targetLocked={isCardLocked(contextMenu.targetId?.id)} onExpansion={(id, expand) => { handleExpansion(id, expand); handleCloseMenu(true) }} canToggleExpansion={contextMenu.targetId?.kind === 'module' && (expandableIds.get(contextMenu.targetId.id)?.length ?? 0) > 0} onOpenGraph={handleOpenNodeGraph} onCopy={handleCopyNode} onPaste={transfers.pasteNode} onDuplicate={transfers.duplicateNode} hasClipboard={transfers.hasClipboard} showBookmark={bookmarkStatus(contextMenu.targetId).show} canBookmark={bookmarkStatus(contextMenu.targetId).can} onBookmark={handleBookmarkTarget} onClose={handleCloseMenu} />

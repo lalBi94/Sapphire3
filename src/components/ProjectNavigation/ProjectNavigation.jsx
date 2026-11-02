@@ -28,7 +28,7 @@ function ReplaceConfirmation({ titleKey, bodyKey, detail, confirmKey, onConfirm,
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, minimapVisible = true, onToggleMinimap, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile, selectedFunction = null, onOpenFunction, simulationRunning = false, simulationPaused = false, onPauseSimulation, onResumeSimulation, onStopSimulation, onOpenRepository, onOpenSettings, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark, onOpenBookmarks }) {
+export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, minimapVisible = true, onToggleMinimap, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile, selectedFunction = null, onOpenFunction, simulationRunning = false, simulationPaused = false, onPauseSimulation, onResumeSimulation, onStopSimulation, onOpenRepository, onOpenSettings, updateAvailable = false, updateVersion = '', onInstallUpdate, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark, onOpenBookmarks }) {
   const navigationRef = useRef(null)
   const [insertingId, setInsertingId] = useState(null)
   const { language, setLanguage, t } = useTranslation()
@@ -251,6 +251,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
         <select value={language} onChange={(event) => setLanguage(event.target.value)} aria-label={t('nav.language')}>
           {supportedLanguages.map((option) => <option value={option.id} key={option.id}>{option.label}</option>)}
         </select>      </label>
+      {updateAvailable && <button type="button" className="project-navigation__update" onClick={onInstallUpdate} title={t('update.available', { version: updateVersion })}><Download size={13} aria-hidden="true" />{t('update.now')}</button>}
       <span className="project-navigation__version" title={`${t('nav.version')} ${appVersion}`}>v{appVersion}</span>
       <button type="button" className="project-navigation__github" onClick={onOpenRepository} aria-label={t('nav.github')} title={t('nav.github')}><ExternalLink size={13} aria-hidden="true" /></button>
       {error && <div className="project-navigation__error" role="alert"><span>{error}</span><button type="button" aria-label={t('nav.dismiss')} onClick={onDismiss}><X size={14} aria-hidden="true" /></button></div>}

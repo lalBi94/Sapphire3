@@ -1,4 +1,4 @@
-import { BookmarkPlus, Download, ExternalLink, FileInput, FileOutput, FilePlus, FolderOpen, Maximize2, Save, SaveAll, Trash2, VectorSquare } from 'lucide-react'
+import { BookmarkPlus, Download, ExternalLink, FileInput, FileOutput, FilePlus, FolderOpen, Maximize2, RefreshCw, Save, SaveAll, Trash2, VectorSquare } from 'lucide-react'
 import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
 import { describeBookmark } from '../../utils/logic/index.js'
 import { supportedLanguages } from '../../utils/translations.js'
@@ -80,11 +80,24 @@ export function BookmarksSection({ bookmarks = [], canBookmark, onSaveBookmark, 
   </div>
 }
 
-// Application : version courante et lien vers le dépôt.
-export function ApplicationSection({ onOpenRepository }) {
+// Application : version courante, état de mise à jour et lien vers le dépôt.
+export function ApplicationSection({ onOpenRepository, update, onCheckUpdate, onInstallUpdate }) {
   const { t } = useTranslation()
+  const status = update?.status ?? 'idle'
+  const release = update?.release ?? null
+  const statusText = status === 'available' ? t('update.available', { version: release.version })
+    : status === 'checking' ? t('update.checking')
+      : status === 'none' ? t('update.upToDate')
+        : status === 'unavailable' ? t('update.desktop')
+          : status === 'error' ? t('update.error')
+            : t('update.idle')
   return <div className="settings-section">
     <p className="settings-section__row"><span>{t('nav.version')}</span><strong>{appVersion}</strong></p>
+    <p className="settings-section__row"><span>{t('update.status')}</span><strong>{statusText}</strong></p>
+    <div className="settings-section__actions">
+      <button type="button" disabled={status === 'checking' || status === 'unavailable'} onClick={onCheckUpdate}><RefreshCw size={14} aria-hidden="true" />{status === 'checking' ? t('update.checking') : t('update.check')}</button>
+      {release && <button type="button" className="settings-section__primary" onClick={onInstallUpdate}><Download size={14} aria-hidden="true" />{t('update.now')}</button>}
+    </div>
     <div className="settings-section__actions"><button type="button" onClick={onOpenRepository}><ExternalLink size={14} aria-hidden="true" />{t('nav.github')}</button></div>
   </div>
 }
