@@ -28,9 +28,10 @@ function ReplaceConfirmation({ titleKey, bodyKey, detail, confirmKey, onConfirm,
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, minimapVisible = true, onToggleMinimap, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile, selectedFunction = null, onOpenFunction, simulationRunning = false, simulationPaused = false, onPauseSimulation, onResumeSimulation, onStopSimulation, onOpenRepository, onOpenSettings, updateAvailable = false, updateVersion = '', onInstallUpdate, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark, onOpenBookmarks }) {
+export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, minimapVisible = true, onToggleMinimap, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile, onCheckTranspile, selectedFunction = null, onOpenFunction, simulationRunning = false, simulationPaused = false, onPauseSimulation, onResumeSimulation, onStopSimulation, onOpenRepository, onOpenSettings, updateAvailable = false, updateVersion = '', onInstallUpdate, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark, onOpenBookmarks }) {
   const navigationRef = useRef(null)
   const [insertingId, setInsertingId] = useState(null)
+  const [transpileChecks, setTranspileChecks] = useState({})
   const { language, setLanguage, t } = useTranslation()
 
   useEffect(() => {
@@ -48,6 +49,12 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
     for (const menu of navigationRef.current.querySelectorAll('details')) {
       if (menu !== event.currentTarget) menu.open = false
     }
+  }
+
+  // Recalcule, à l'ouverture du menu Transpile, si le code courant est transpilable vers chaque cible installée.
+  function handleTranspileToggle(event) {
+    handleToggle(event)
+    if (event.currentTarget.open && typeof onCheckTranspile === 'function') setTranspileChecks(onCheckTranspile())
   }
 
   // Referme les menus sans modifier la sélection ou la vue du document.
@@ -223,11 +230,16 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
         </div>
       </details>
       <div className="project-navigation__run-controls">
-        <details name="workspace-menu" onToggle={handleToggle}>
+        <details name="workspace-menu" onToggle={handleTranspileToggle}>
           <summary><Code2 size={13} aria-hidden="true" />{t('transpile.button')}<ChevronDown size={12} aria-hidden="true" /></summary>
           <div className="project-navigation__menu">
             <p className="project-navigation__section">{t('transpile.chooseLanguage')}</p>
-            {transpilationLanguages.map((option) => <button type="button" key={option.id} disabled={!option.available} onClick={() => { closeMenus(); onTranspile(option.id) }}><span>{option.name}</span><span className={`project-navigation__chip${option.available ? ' project-navigation__chip--available' : ' project-navigation__chip--unavailable'}`}>{t(option.available ? 'transpile.available' : 'transpile.unavailable')}</span></button>)}
+            {transpilationLanguages.map((option) => {
+              const status = option.available ? transpileChecks[option.id] : 'unavailable'
+              const chipClass = status === 'ok' ? ' project-navigation__chip--available' : status === 'blocked' ? ' project-navigation__chip--blocked' : ' project-navigation__chip--unavailable'
+              const chipLabel = status === 'ok' ? t('transpile.ready') : status === 'blocked' ? t('transpile.blocked') : t('transpile.unavailable')
+              return <button type="button" key={option.id} disabled={!option.available} onClick={() => { closeMenus(); onTranspile(option.id) }}><span>{option.name}</span><span className={`project-navigation__chip${chipClass}`}>{chipLabel}</span></button>
+            })}
           </div>
         </details>
         <button type="button" className={`project-navigation__run${simulationRunning ? ' project-navigation__run--running' : ''}`} title={t('run.simulateSp3')} onClick={() => handleRun()}><Play size={13} fill="currentColor" aria-hidden="true" />{t('nav.run')}</button>

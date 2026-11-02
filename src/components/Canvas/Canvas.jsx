@@ -350,6 +350,15 @@ export default function Canvas() {
     setTranspilationResult(transpileProgram(document.project, { target }))
   }
 
+  // Indique, pour chaque cible installée, si le projet courant est réellement transpilable.
+  function getTranspileChecks() {
+    const checks = {}
+    for (const option of transpilationLanguages.filter((entry) => entry.available)) {
+      checks[option.id] = transpileProgram(document.project, { target: option.id }).ok ? 'ok' : 'blocked'
+    }
+    return checks
+  }
+
   // Ouvre une analyse liée à la cible du menu sans changer la source ni lancer le programme.
   function handleOpenNodeGraph(target, mode) {
     setNodeGraph({ target, mode })
@@ -594,7 +603,7 @@ export default function Canvas() {
       distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)}
       minimapVisible={minimapVisible} onToggleMinimap={() => setMinimapVisible((current) => !current)}
       hiddenCards={hiddenCards} onShowCard={handleShowCard} onShowAllHidden={handleShowAllHidden}
-      hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onOpenSearch={search.show} onRunSimulation={handleRunSimulation} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} selectedFunction={selectedFunction} onOpenFunction={handleOpenFunction} simulationRunning={Boolean(execution?.running)} simulationPaused={Boolean(execution?.paused)} onPauseSimulation={handlePauseExecution} onResumeSimulation={handleResumeExecution} onStopSimulation={handleStopExecution} onOpenRepository={() => openExternal(repositoryUrl)} onOpenSettings={() => setSettingsOpen(true)} updateAvailable={appUpdate.update.status === 'available'} updateVersion={appUpdate.update.release?.version ?? ''} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })}
+      hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onOpenSearch={search.show} onRunSimulation={handleRunSimulation} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} selectedFunction={selectedFunction} onOpenFunction={handleOpenFunction} simulationRunning={Boolean(execution?.running)} simulationPaused={Boolean(execution?.paused)} onPauseSimulation={handlePauseExecution} onResumeSimulation={handleResumeExecution} onStopSimulation={handleStopExecution} onOpenRepository={() => openExternal(repositoryUrl)} onOpenSettings={() => setSettingsOpen(true)} updateAvailable={appUpdate.update.status === 'available'} updateVersion={appUpdate.update.release?.version ?? ''} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })} onCheckTranspile={getTranspileChecks}
       bookmarks={bookmarks} modules={moduleChoices} canBookmark={bookmarkStatus(selected).can} onSaveBookmark={handleSaveBookmark} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark} onOpenBookmarks={() => setBookmarksOpen(true)} />
     <button type="button" className="canvas-nav-toggle" aria-expanded={!navCollapsed} aria-label={t(navCollapsed ? 'nav.show' : 'nav.hide')} title={t(navCollapsed ? 'nav.show' : 'nav.hide')} onClick={() => setNavCollapsed((current) => !current)}>{navCollapsed ? <ChevronDown size={15} aria-hidden="true" /> : <ChevronUp size={15} aria-hidden="true" />}</button>
     <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label={t('canvas.aria')} tabIndex={0}
