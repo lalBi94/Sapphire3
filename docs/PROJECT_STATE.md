@@ -121,7 +121,7 @@
 | `src/utils/theme.js` | Outils purs des thèmes personnalisés : couleurs éditables groupées, conversion opaque/transparence et validation de la préférence |
 | `src/utils/minimap.js` | Cadrage pur de la mini-carte : échelle, contenu englobant modules et vue, projection monde <-> pixels |
 | `src/utils/panelSnap.js` | Aimantation pure d'une fenêtre volante aux bords de son espace (marge 8 px, seuil paramétrable) |
-| `src/utils/appInfo.js` | Version applicative injectée par Vite, avec repli `dev` hors build |
+| `src/utils/appInfo.js` | Version applicative injectée par Vite (repli `dev` hors build) et URL du dépôt public (`repositoryUrl`) |
 | `src/utils/bugReport.js` | Rapport de bug texte pur : version, langue, date, cible et chemin, diagnostics détaillés et agrégés, résumé du projet |
 | `src/utils/canvasDocument.js` | Reducers purs du document et de son historique, testables sans React |
 | `src/utils/embeddedImage.js` | Contrôle partagé des Data URL d'images intégrées ; aucune URL distante à l'import |
@@ -134,7 +134,7 @@
 | `src/utils/logic/placement.js` | Restrictions lexicales partagées entre validateur et suggestions |
 | `src/utils/moduleTypes.js` | Cartes Module/Comment/Image, clés de libellés, capacités (dont `hasEmoji` du Module) et dimensions ; annotations hors logique |
 | `src/utils/mathText.js`, `src/components/CommentText/CommentText.jsx`, `CommentText.css` | Découpage pur d'un commentaire en texte et blocs `$$ … $$` et rendu KaTeX hors ligne du texte de présentation |
-| `src/services/externalLinks.js`, `src/utils/appInfo.js` | Ouverture sûre d'une URL web (`https` uniquement) via `os.open` natif avec repli navigateur, et version applicative + URL du dépôt (`repositoryUrl`) |
+| `src/services/externalLinks.js` | Ouverture sûre d'une URL web (`https` uniquement) via `os.open` natif avec repli navigateur |
 | `src/utils/examples.js` | Bibliothèque locale d'exemples préconstruits (basiques : Fibonacci, tri, tableaux, récursion, imports ; nouveautés : Pour chaque avec référence de fonction, pointeurs avec `swap`, fonction d'ordre supérieur, maths natives avec formule KaTeX), chacun accompagné d'une annotation Comment de présentation, construite par le moteur sans réseau ni fichier |
 | `src/utils/logic/model.js`, `nodeSchema.js` | Contrats source JSDoc, catégorie stable Module partagée avec l'UI, fabriques et schémas de slots/opérateurs |
 | `src/utils/logic/ast.js` | Reconstruction hiérarchique, diagnostics structurels, trous/fragments invalides et parcours |

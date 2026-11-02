@@ -66,7 +66,7 @@
           <h3>Le moteur est pur</h3>
           <p><code>src/utils/logic/</code> n'importe ni React, ni DOM, ni Neutralinojs. Les fonctions ne modifient
           pas leurs entrées&nbsp;; elles renvoient de nouvelles sources et des résultats dérivés. Il est testé seul,
-          par 223 tests Node sans dépendance de test.</p>
+          par 326 tests Node sans dépendance de test.</p>
         </div>
         <div class="card">
           <h3>Périmètre volontairement borné</h3>
@@ -224,7 +224,7 @@
     <section id="constructions">
       <h2>4 · Constructions et slots</h2>
       <p>
-        Vingt-six sortes de nœuds, toutes décrites dans un seul objet figé, <code>nodeSchema</code>. Ce schéma
+        Vingt-sept sortes de nœuds, toutes décrites dans un seul objet figé, <code>nodeSchema</code>. Ce schéma
         pilote la validation, le typage et les propositions du menu d'ajout&nbsp;: il n'existe aucune liste
         d'actions codée en dur ailleurs.
       </p>
@@ -241,17 +241,19 @@
           <tr><td><code>Block</code></td><td>statement</td><td><code>statements[]</code>&nbsp;: déclarations ou instructions</td></tr>
           <tr><td><code>ReturnStatement</code></td><td>statement</td><td><code>argument?</code> expression&nbsp;; uniquement dans une fonction</td></tr>
           <tr><td><code>PrintStatement</code></td><td>statement</td><td><code>value</code> expression non <code>void</code></td></tr>
+          <tr><td><code>ForEachStatement</code></td><td>statement</td><td><code>array</code> tableau, <code>callback</code> fonction <code>(E) -&gt; void</code>&nbsp;; parcourt une copie du tableau</td></tr>
           <tr><td><code>IfStatement</code></td><td>statement</td><td><code>test</code> booléen, <code>consequent</code> Block, <code>alternate?</code> Block</td></tr>
           <tr><td><code>WhileStatement</code></td><td>statement</td><td><code>test</code> booléen, <code>body</code> Block</td></tr>
           <tr><td><code>ForStatement</code></td><td>statement</td><td><code>initializer?</code>, <code>test?</code>, <code>update?</code>, <code>body</code> Block</td></tr>
           <tr><td><code>BreakStatement</code>, <code>ContinueStatement</code></td><td>statement</td><td>aucun slot&nbsp;; boucle obligatoire, sans traverser une frontière de fonction</td></tr>
           <tr><td><code>ExpressionStatement</code></td><td>statement</td><td><code>expression</code>&nbsp;: la forme retenue pour un appel dont on ignore le résultat</td></tr>
-          <tr><td><code>AssignmentStatement</code></td><td>statement</td><td><code>target</code> Reference ou ArrayAccess, <code>value</code> expression</td></tr>
+          <tr><td><code>AssignmentStatement</code></td><td>statement</td><td><code>target</code> Reference, ArrayAccess ou déréférencement <code>*p</code>, <code>value</code> expression</td></tr>
           <tr><td><code>BinaryExpression</code></td><td>expression</td><td><code>operator</code>, <code>left</code>, <code>right</code></td></tr>
           <tr><td><code>UnaryExpression</code></td><td>expression</td><td><code>operator</code>, <code>operand</code></td></tr>
           <tr><td><code>Literal</code></td><td>expression</td><td><code>type</code> obligatoire et <code>value</code> strictement compatible</td></tr>
           <tr><td><code>Reference</code></td><td>expression</td><td><code>references.target</code></td></tr>
           <tr><td><code>CallExpression</code></td><td>expression</td><td><code>callee</code> expression, <code>arguments[]</code></td></tr>
+          <tr><td><code>MathCall</code></td><td>expression</td><td><code>name</code> (opération native), <code>arguments[]</code> typés selon l'opération</td></tr>
           <tr><td><code>CastExpression</code></td><td>expression</td><td><code>type</code> cible, <code>argument</code> expression</td></tr>
           <tr><td><code>Hole</code></td><td>hole</td><td>incomplétude explicite&nbsp;; diagnostic bloquant, représentation conservée</td></tr>
           <tr><td><code>ArrayLiteral</code></td><td>expression</td><td><code>elementType</code>, <code>elements[]</code> du même type</td></tr>
@@ -377,6 +379,8 @@
           <tr><td><code>and or</code>, <code>not</code></td><td>booléens uniquement</td><td><code>boolean</code></td></tr>
           <tr><td><code>+</code> unaire</td><td>numérique</td><td>type conservé, bornes comprises</td></tr>
           <tr><td><code>-</code> unaire</td><td>numérique signé uniquement</td><td>interdit pour <code>short uint</code> et <code>uint</code></td></tr>
+          <tr><td><code>&amp;</code> unaire</td><td>valeur stockable (référence ou élément de tableau)</td><td>pointeur vers l'opérande&nbsp;; simulation uniquement</td></tr>
+          <tr><td><code>*</code> unaire</td><td>pointeur</td><td>valeur pointée&nbsp;; cible d'affectation possible (écriture à travers le pointeur)</td></tr>
         </tbody>
       </table>
       <p>
