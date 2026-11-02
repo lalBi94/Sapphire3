@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { Bug, Bookmark, BookmarkPlus, ChevronDown, Clock3, Code2, Download, ExternalLink, Eye, FileInput, FileOutput, FilePlus, FolderOpen, Library, Maximize2, Palette, Pause, Play, Save, SaveAll, Search, Settings2, Square, Trash2, VectorSquare, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
 import { supportedLanguages } from '../../utils/translations.js'
-import { examples } from '../../utils/examples.js'
+import { exampleCategories, examples } from '../../utils/examples.js'
 import { transpilationLanguages } from '../../utils/transpilation/index.js'
 import { describeBookmark } from '../../utils/logic/index.js'
 import { appVersion } from '../../utils/appInfo.js'
@@ -177,8 +177,14 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
       <details name="workspace-menu" onToggle={handleToggle}>
         <summary><Library size={13} aria-hidden="true" />{t('nav.examples')}<ChevronDown size={12} aria-hidden="true" /></summary>
         <div className="project-navigation__menu">
-          <p className="project-navigation__section">{t('examples.choose')}</p>
-          {examples.map((example) => <button type="button" key={example.id} onClick={() => { closeMenus(); onOpenExample(example.id) }}>{t(example.labelKey)}</button>)}
+          {exampleCategories.map((category) => {
+            const entries = examples.filter((example) => example.category === category.id)
+            if (entries.length === 0) return null
+            return <Fragment key={category.id}>
+              <p className="project-navigation__section">{t(category.labelKey)}</p>
+              {entries.map((example) => <button type="button" key={example.id} onClick={() => { closeMenus(); onOpenExample(example.id) }}>{t(example.labelKey)}</button>)}
+            </Fragment>
+          })}
         </div>
       </details>
       <details name="workspace-menu" onToggle={handleToggle}>

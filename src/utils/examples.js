@@ -295,15 +295,25 @@ function maths() {
   return workspace(b.project, [note('mathNote', 'Native maths', 'Opérations SP3 natives : abs(-7) = 7, max(-7, 3) = 3, sqrt(81) = 9, pow(3, 2) = 9. Une note peut aussi afficher une formule : $$ \\sqrt{81} = 9 $$.', 600, 0)])
 }
 
+// Domaines touchés par les exemples : ils pilotent uniquement le regroupement du menu.
+export const exampleCategories = [
+  { id: 'algorithms', labelKey: 'examples.category.algorithms' },
+  { id: 'arrays', labelKey: 'examples.category.arrays' },
+  { id: 'functions', labelKey: 'examples.category.functions' },
+  { id: 'pointers', labelKey: 'examples.category.pointers' },
+  { id: 'operations', labelKey: 'examples.category.operations' },
+  { id: 'modules', labelKey: 'examples.category.modules' },
+]
+
 // Catalogue local, ouvrable sans réseau ni fichier externe.
 export const examples = [
-  { id: 'fibonacci', labelKey: 'examples.fibonacci', build: fibonacci },
-  { id: 'sorting', labelKey: 'examples.sorting', build: sorting },
-  { id: 'arrays', labelKey: 'examples.arrays', build: arrays },
-  { id: 'recursion', labelKey: 'examples.recursion', build: recursion },
-  { id: 'imports', labelKey: 'examples.imports', build: imports },
-  { id: 'foreach', labelKey: 'examples.forEach', build: forEach },
-  { id: 'pointers', labelKey: 'examples.pointers', build: pointers },
-  { id: 'higherOrder', labelKey: 'examples.higherOrder', build: higherOrder },
-  { id: 'maths', labelKey: 'examples.maths', build: maths },
+  { id: 'fibonacci', labelKey: 'examples.fibonacci', category: 'algorithms', build: fibonacci },
+  { id: 'sorting', labelKey: 'examples.sorting', category: 'algorithms', build: sorting },
+  { id: 'arrays', labelKey: 'examples.arrays', category: 'arrays', build: arrays },
+  { id: 'recursion', labelKey: 'examples.recursion', category: 'algorithms', build: recursion },
+  { id: 'imports', labelKey: 'examples.imports', category: 'modules', build: imports },
+  { id: 'foreach', labelKey: 'examples.forEach', category: 'arrays', build: forEach },
+  { id: 'pointers', labelKey: 'examples.pointers', category: 'pointers', build: pointers },
+  { id: 'higherOrder', labelKey: 'examples.higherOrder', category: 'functions', build: higherOrder },
+  { id: 'maths', labelKey: 'examples.maths', category: 'operations', build: maths },
 ]

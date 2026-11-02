@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { examples } from '../../src/utils/examples.js'
+import { examples, exampleCategories } from '../../src/utils/examples.js'
 import { deserializeWorkspace } from '../../src/utils/workspaceFile.js'
 import { analyzeProgram, simulateProgram } from '../../src/utils/logic/index.js'
 
@@ -19,6 +19,7 @@ const expectedOutput = {
 test('bibliothèque d’exemples : chaque projet est valide, analysable et s’exécute', () => {
   assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'sorting', 'arrays', 'recursion', 'imports', 'foreach', 'pointers', 'higherOrder', 'maths'])
   for (const example of examples) {
+    assert.ok(exampleCategories.some((category) => category.id === example.category), `${example.id}: catégorie connue`)
     const workspace = deserializeWorkspace(JSON.stringify(example.build()))
     assert.ok(workspace.presentation.cards.length >= 1, example.id)
     assert.ok(workspace.presentation.cards.some((card) => card.type === 'comment' && card.text.length > 0), `${example.id}: annotation Comment`)
