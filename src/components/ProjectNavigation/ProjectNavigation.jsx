@@ -253,7 +253,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
         </details>
       </div>
       <span className="project-navigation__status" role="status">{busy ? t('nav.working') : message}</span>
-      <label className="project-navigation__language">{t('nav.language')}
+      <label className="project-navigation__language">
         <select value={language} onChange={(event) => setLanguage(event.target.value)} aria-label={t('nav.language')}>
           {supportedLanguages.map((option) => <option value={option.id} key={option.id}>{option.label}</option>)}
         </select>      </label>
