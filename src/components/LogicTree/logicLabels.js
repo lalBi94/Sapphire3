@@ -27,6 +27,7 @@ export function diagnosticLabel(code, t) {
 // Affiche seulement une information de type déjà résolue, jamais un type de remplacement.
 export function typeLabel(type, t) {
   if (type?.kind === 'primitive') return type.name
+  if (type?.kind === 'generic') return type.name
   if (type?.kind === 'function') return `(${type.parameters.map((parameter) => typeLabel(parameter, t)).join(', ')}) → ${typeLabel(type.returnType, t)}`
   if (type?.kind === 'array') return `${typeLabel(type.elementType, t)}[]`
   if (type?.kind === 'pointer') return `${typeLabel(type.pointee, t)}*`

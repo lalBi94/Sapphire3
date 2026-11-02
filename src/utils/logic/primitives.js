@@ -50,7 +50,7 @@ export function acceptsOperand(rule, type) {
 // Compare exactement des primitifs, des signatures ou des pointeurs déjà entièrement résolus.
 export function sameType(left, right) {
   if (!left || !right || left.kind !== right.kind) return false
-  if (left.kind === 'primitive') return left.name === right.name
+  if (left.kind === 'primitive' || left.kind === 'generic') return left.name === right.name
   if (left.kind === 'function') {
     return left.parameters.length === right.parameters.length &&
       left.parameters.every((type, index) => sameType(type, right.parameters[index])) &&
@@ -84,6 +84,26 @@ export function arrayElementType(type) {
 // Vérifie si un type peut servir de type d'élément (primitif uniquement pour cette version).
 export function isValidElementType(type) {
   return type?.kind === 'primitive' && type.name !== 'void'
+}
+
+// Type générique unique T, utilisable seulement dans la signature de sa fonction.
+export function genericType(name = 'T') {
+  return Object.freeze({ kind: 'generic', name })
+}
+
+// Reconnaît un type générique sans le confondre avec un primitif.
+export function isGenericType(type) {
+  return type?.kind === 'generic'
+}
+
+// Détecte T dans une signature ou un type construit, sans accepter de générique imbriqué.
+export function containsGeneric(type, depth = 0) {
+  if (!type || depth > 20) return false
+  if (isGenericType(type)) return true
+  if (type.kind === 'array') return containsGeneric(type.elementType, depth + 1)
+  if (type.kind === 'pointer') return containsGeneric(type.pointee, depth + 1)
+  if (type.kind === 'function') return type.parameters.some((parameter) => containsGeneric(parameter, depth + 1)) || containsGeneric(type.returnType, depth + 1)
+  return false
 }
 
 // Crée un type pointeur vers un primitif non void, ou null si la cible n'est pas valide.

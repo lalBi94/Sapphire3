@@ -152,6 +152,14 @@ Aucune lambda, closure ou fonction anonyme n'est introduite dans cette version :
 
 Le type fonction est **transpilable sans helper** : JavaScript et Python représentent nativement une fonction nommée comme une valeur de première classe ; une référence vers une fonction émet son nom (normalisé), et l'appel via une variable produit un appel ordinaire.
 
+### Généricité V1
+
+Une seule fonction générique `T` est admise par `FunctionDeclaration`, via la propriété optionnelle `properties.generic: true`. Le type `T` a une représentation stable et explicite `{kind:'generic', name:'T'}` ; il n'est valable que sur le **retour** de cette fonction et sur les **paramètres** de sa signature. Aucun autre emplacement ne l'accepte : une variable locale, une constante, un alias, `T[]`, `T*`, un générique imbriqué ou une signature de fonction contenant `T` produit `TYPE_INVALID`. Une opération arithmétique, une comparaison, un accès par index ou une prise d'adresse sur `T` produit `TYPE_MISMATCH`.
+
+L'inférence se fait uniquement sur un **`CallExpression` direct** dont le callee est une `Reference` vers la fonction générique, importée comprise. Chaque argument correspondant à un paramètre `T` doit être d'un **primitif non `void`** ; toutes les occurrences de `T` doivent recevoir exactement le même type. Le retour `T` est remplacé par ce type. Un appel ambigu, incompatible, ou sans argument permettant d'inférer `T` est diagnostiqué `TYPE_MISMATCH`. Les types concrets sont publiés dans `semantic.genericCalls` sous la forme `{nodeId, type}` ; ils ne modifient ni la source ni l'AST. Une fonction générique ne peut pas être utilisée comme valeur de première classe : une référence hors position de callee direct est refusée.
+
+Aucune duplication de fonction ou de spécialisation n'est créée : la simulation exécute la fonction existante, et les transpileurs JavaScript/Python émettent **une seule fonction ordinaire** et des appels ordinaires, sans nouveau runtime ni changement de sémantique. L'interface ajoute une case **Generic T**, propose `T` dans les sélecteurs du retour et des paramètres de cette fonction, affiche `<T>` sur la fonction et `T = type` sur chaque appel inféré. Le fichier workspace reste en version 1 : `properties.generic` est optionnel et le type `T` est conservé tel quel ; les anciens fichiers restent valides.
+
 ### Opérations natives SP3
 
 Les opérations natives SP3 sont un nœud `MathCall` (nom historique) dont `properties.name` désigne une entrée du registre pur `mathNatives` (`src/utils/logic/mathNatives.js`). Le registre est le seul point d'extension de cette famille ; chaque entrée fixe sa **sous-catégorie de menu** (`native.math`, `native.text`, `native.arrays`), les types de ses paramètres et son type de retour, sans conversion implicite ni surcharge.

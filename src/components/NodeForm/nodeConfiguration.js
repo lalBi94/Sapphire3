@@ -1,4 +1,4 @@
-import { primitiveType, primitiveDefinitions, arrayType, isArrayType, isValidElementType, pointerType, isPointerType, pointerPointee, isValidPointee, typeFromRecord, getNodeSchema, binaryOperators, unaryOperators, acceptsOperand, sameType } from '../../utils/logic/index.js'
+import { primitiveType, primitiveDefinitions, arrayType, isArrayType, isValidElementType, pointerType, isPointerType, pointerPointee, isValidPointee, typeFromRecord, getNodeSchema, binaryOperators, unaryOperators, acceptsOperand, sameType, genericType, containsGeneric } from '../../utils/logic/index.js'
 
 // Types entiers proposés pour l'index d'un accès à un élément de tableau ; une seule liste partagée par les formulaires.
 export const integerTypeNames = Object.freeze(Object.keys(primitiveDefinitions).filter((name) => acceptsOperand('integer', primitiveType(name))))
@@ -11,6 +11,7 @@ export function emptyExpression() {
 // Convertit un nom de type choisi ('int', 'int[]', 'int*' ou une signature sérialisée) en type logique.
 export function typeFromName(name) {
   if (typeof name !== 'string' || name === '') return null
+  if (name === 'T') return genericType('T')
   if (name.startsWith('@function:')) {
     try {
       return typeFromRecord(JSON.parse(name.slice('@function:'.length)))
@@ -32,7 +33,7 @@ export function typeFromName(name) {
 // Sérialise un type canonique pour un sélecteur, y compris une signature de fonction.
 export function typeNameFromType(type) {
   if (!type) return ''
-  if (type.kind === 'primitive') return type.name
+  if (type.kind === 'primitive' || type.kind === 'generic') return type.name
   if (type.kind === 'array') {
     const element = typeNameFromType(type.elementType)
     return element ? `${element}[]` : ''
@@ -87,7 +88,7 @@ export function expressionOperandType(value, type) {
 export function expressionSymbols(symbols, type, allowAnyType = false) {
   return {
     references: symbols.filter((symbol) => allowAnyType ? symbol.type?.kind !== 'function' : sameType(type, symbol.type)),
-    functions: symbols.filter((symbol) => symbol.type?.kind === 'function' && (allowAnyType || sameType(type, symbol.type.returnType))),
+    functions: symbols.filter((symbol) => symbol.type?.kind === 'function' && !containsGeneric(symbol.type) && (allowAnyType || sameType(type, symbol.type.returnType))),
   }
 }
 
@@ -111,6 +112,7 @@ export function initialNodeForm(kind, node, expectedType, symbols, preset = null
     empty: properties.type?.name === 'string' && properties.value === '', symbolId: symbol?.id ?? (target ? '@unresolved' : ''),
     initializer: emptyExpression(), condition: emptyExpression(), expression: emptyExpression(),
     parameters: [], entryPoint: properties.entryPoint === true, allowIncomplete: false,
+    generic: kind === 'FunctionDeclaration' && properties.generic === true,
     elementTypeName: arrayElementTypeName, arraySize: emptyExpression(), arrayFill: emptyExpression(), arrayElements: [],
     accessArray: emptyExpression(), accessIndex: emptyExpression(), indexTypeName: 'int',
     mathName: kind === 'MathCall' ? properties.name ?? preset?.name ?? '' : '',
@@ -178,6 +180,8 @@ export function nodeConfiguration(kind, form, symbols, initialNode = null) {
   if (kind === 'FunctionDeclaration') {
     if (form.entryPoint) properties.entryPoint = true
     else delete properties.entryPoint
+    if (form.generic) properties.generic = true
+    else delete properties.generic
   }
   if (schema.declaresType) {
     if (type) properties.type = type

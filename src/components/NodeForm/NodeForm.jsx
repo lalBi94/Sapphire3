@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Plus, Save, Trash2 } from 'lucide-react'
-import { getNodeSchema, binaryOperators, unaryOperators, primitiveType, getCallableSymbols, sameType, isArrayType, mathNatives } from '../../utils/logic/index.js'
+import { getNodeSchema, binaryOperators, unaryOperators, primitiveType, getCallableSymbols, sameType, isArrayType, mathNatives, containsGeneric } from '../../utils/logic/index.js'
 import { initialNodeForm, nodeConfiguration, emptyExpression, typeFromName, typeNameFromType, accessedArrayType, arrayIndexType, integerTypeNames, expressionOperators } from './nodeConfiguration.js'
 import NodeTypeInput from './NodeTypeInput.jsx'
 import NodeValueInput from './NodeValueInput.jsx'
@@ -33,6 +33,15 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
   const isNew = !initialNode
   const required = !form.allowIncomplete
   const entryPointTaken = [...context.index.nodes.values()].some((node) => node.id !== initialNode?.id && node.kind === 'FunctionDeclaration' && node.properties?.entryPoint === true)
+  // T n'est proposé que dans la signature de la fonction générique propriétaire.
+  const ownerFunction = context.context?.functionId ? context.index.nodes.get(context.context.functionId) : null
+  const genericScope = kind === 'Parameter' && ownerFunction?.kind === 'FunctionDeclaration' && ownerFunction.properties?.generic === true
+  const allowGenericType = kind === 'FunctionDeclaration' ? form.generic : genericScope
+  // Une fonction générique n'est pas une valeur de première classe, mais reste une cible d'appel directe.
+  const genericFunction = (symbol) => {
+    const target = context.index.nodes.get(symbol.nodeId)
+    return target?.kind === 'FunctionDeclaration' && target.properties?.generic === true
+  }
   // Le type d'élément d'un tableau est connu dès que le slot attend un tableau.
   const arrayElementType = isNew && isArrayType(context.expectedType) ? context.expectedType.elementType : null
   // Un accès par index vise un tableau du type attendu par le slot ; sans type attendu précis, la lecture reste libre.
@@ -43,7 +52,7 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
   if (['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind)) {
     const seen = new Set()
     for (const candidate of [declaredFunctionType, ...symbols.map((symbol) => symbol.type)]) {
-      if (candidate?.kind !== 'function') continue
+      if (candidate?.kind !== 'function' || containsGeneric(candidate)) continue
       const value = typeNameFromType(candidate)
       if (!value || seen.has(value)) continue
       seen.add(value)
@@ -56,8 +65,14 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
   const forEachArrays = symbols.filter((symbol) => isArrayType(symbol.type))
   const forEachCallbacks = symbols.filter((symbol) => symbol.type?.kind === 'function' && symbol.type.parameters.length === 1 && symbol.type.returnType?.name === 'void' && (!forEachElementType || sameType(symbol.type.parameters[0], forEachElementType)))
   const references = symbols.filter((symbol) => {
-    if (kind === 'CallExpression') return symbol.type?.kind === 'function' && (!isNew || !context.expectedType || sameType(context.expectedType, symbol.type.returnType))
-    if (context.record.kind === 'CallExpression' && context.slot?.name === 'callee') return symbol.type?.kind === 'function'
+    if (kind === 'CallExpression') {
+      if (symbol.type?.kind !== 'function') return false
+      if (!genericFunction(symbol)) return !isNew || !context.expectedType || sameType(context.expectedType, symbol.type.returnType)
+      const returnType = symbol.type.returnType
+      if (containsGeneric(returnType)) return !context.expectedType || (context.expectedType.kind === 'primitive' && context.expectedType.name !== 'void')
+      return !context.expectedType || sameType(context.expectedType, returnType)
+    }
+    if (context.record.kind === 'CallExpression' && context.slot?.name === 'callee') return symbol.type?.kind === 'function' && !containsGeneric(symbol.type)
     if (context.record.kind === 'AssignmentStatement' && context.slot?.name === 'target') return ['VariableDeclaration', 'Parameter'].includes(symbol.kind)
     return symbol.kind !== 'TypeDeclaration' && (!isNew || !context.expectedType || sameType(context.expectedType, symbol.type))
   })
@@ -88,12 +103,14 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
   return (
     <form className="node-form" onSubmit={handleSubmit}>
       {schema.named && <label>{t('form.name')}<input aria-label={t('form.name')} value={form.name} onChange={(event) => change('name', event.target.value)} required={required} autoComplete="off" /></label>}
-      {(schema.declaresType || isNew && kind === 'PrintStatement') && <NodeTypeInput label={kind === 'FunctionDeclaration' ? t('form.returnType') : t('form.type')} value={form.typeName} onChange={(value) => change('typeName', value)} required={required} allowVoid={kind === 'FunctionDeclaration'} allowArray={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement')} allowPointer={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement')} allowFunction={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind)} functionTypes={functionTypes} alias={initialNode?.properties.type?.kind === 'named'} />}
+      {(schema.declaresType || isNew && kind === 'PrintStatement') && <NodeTypeInput label={kind === 'FunctionDeclaration' ? t('form.returnType') : t('form.type')} value={form.typeName} onChange={(value) => change('typeName', value)} required={required} allowVoid={kind === 'FunctionDeclaration'} allowArray={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement')} allowPointer={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement')} allowFunction={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind)} allowGeneric={allowGenericType} functionTypes={functionTypes} alias={initialNode?.properties.type?.kind === 'named'} />}
       {['ArrayLiteral', 'ArrayCreation'].includes(kind) && (arrayElementType
         ? <p className="node-form__hint">{t('form.arrayElementsOfType', { type: arrayElementType.name })}</p>
         : <NodeTypeInput label={t('field.elementType')} value={form.elementTypeName} onChange={(value) => change('elementTypeName', value)} required={required} />)}
       {kind === 'FunctionDeclaration' && <>
         <label className="node-form__check"><input type="checkbox" checked={form.entryPoint} disabled={entryPointTaken && !form.entryPoint} onChange={(event) => change('entryPoint', event.target.checked)} />{t('form.startProgram')}</label>
+        <label className="node-form__check"><input type="checkbox" checked={form.generic === true} onChange={(event) => change('generic', event.target.checked)} />{t('form.generic')}</label>
+        {form.generic && <p className="node-form__hint">{t('form.genericHint')}</p>}
         {entryPointTaken && !form.entryPoint && <p className="node-form__hint">{t('form.startProgramHint')}</p>}
       </>}
       {['BinaryExpression', 'UnaryExpression'].includes(kind) && <label>{t('form.operator')}
@@ -122,7 +139,7 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
       {isNew && kind === 'FunctionDeclaration' && <fieldset><legend>{t('form.parameters')}</legend>
         {form.parameters.map((parameter, index) => <div className="node-form__parameter" key={index}>
           <label>{t('form.parameterName', { number: index + 1 })}<input aria-label={t('form.parameterName', { number: index + 1 })} value={parameter.name} required={required} onChange={(event) => change('parameters', form.parameters.map((entry, position) => position === index ? { ...entry, name: event.target.value } : entry))} /></label>
-          <NodeTypeInput label={t('form.parameterType', { number: index + 1 })} value={parameter.typeName} required={required} allowArray allowPointer allowFunction functionTypes={functionTypes} onChange={(value) => change('parameters', form.parameters.map((entry, position) => position === index ? { ...entry, typeName: value } : entry))} />
+          <NodeTypeInput label={t('form.parameterType', { number: index + 1 })} value={parameter.typeName} required={required} allowArray allowPointer allowFunction allowGeneric={form.generic === true} functionTypes={functionTypes} onChange={(value) => change('parameters', form.parameters.map((entry, position) => position === index ? { ...entry, typeName: value } : entry))} />
           <button type="button" onClick={() => change('parameters', form.parameters.filter((_, position) => position !== index))}><Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.removeInput')}</button>
         </div>)}
         <button type="button" onClick={() => change('parameters', [...form.parameters, { name: '', typeName: '' }])}><Plus size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.addInput')}</button>

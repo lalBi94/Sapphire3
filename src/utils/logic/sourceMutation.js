@@ -3,7 +3,7 @@ import { getAvailableActions } from './actionResolver.js'
 import { createContextIndex, resolveContext } from './contextResolver.js'
 import { diagnosticCodes as codes } from './diagnostics.js'
 import { isId, isRecord } from './model.js'
-import { sameType, primitiveType, acceptsOperand, arrayType } from './primitives.js'
+import { sameType, primitiveType, acceptsOperand, arrayType, containsGeneric } from './primitives.js'
 import { binaryOperators, unaryOperators, getNodeSchema } from './nodeSchema.js'
 import { getMathNative } from './mathNatives.js'
 import { normalizeContracts } from './contracts.js'
@@ -50,10 +50,14 @@ function resultConstraint(root, analysis, expectedType) {
     const operators = root.kind === 'BinaryExpression' ? binaryOperators : unaryOperators
     const operator = root.properties.operator
     const rule = typeof operator === 'string' && Object.hasOwn(operators, operator) ? operators[operator] : null
-    if (rule?.result === 'same' && expectedType && !acceptsOperand(rule.operands, expectedType)) return { incompatible: true }
+    if (rule?.result === 'same' && expectedType && expectedType.kind !== 'generic' && !acceptsOperand(rule.operands, expectedType)) return { incompatible: true }
     if (rule && rule.result !== 'same') return { type: primitiveType(rule.result) }
   }
-  if (root.kind === 'CallExpression') return { type: analysis.semantic.nodeTypes.find((entry) => entry.nodeId === root.children.callee)?.type?.returnType ?? null }
+  if (root.kind === 'CallExpression') {
+    const returnType = analysis.semantic.nodeTypes.find((entry) => entry.nodeId === root.children.callee)?.type?.returnType ?? null
+    // Le retour générique ne devient vérifiable qu'après l'inférence des arguments.
+    return { type: returnType && !containsGeneric(returnType) ? returnType : null }
+  }
   return { type: null }
 }
 
@@ -95,7 +99,7 @@ export function insertSourceNodes(project, request, bundle, options = {}) {
   const candidate = { ...project, modules, nodes: [...nodes, ...bundle.nodes] }
   const analysis = analyzeProgram(candidate)
   const constraint = resultConstraint(root, analysis, context.expectedType)
-  if (constraint.incompatible || (context.expectedType && constraint.type && !sameType(context.expectedType, constraint.type))) return failure('TYPE_MISMATCH')
+  if (constraint.incompatible || (context.expectedType && context.expectedType.kind !== 'generic' && constraint.type && !sameType(context.expectedType, constraint.type))) return failure('TYPE_MISMATCH')
   const previous = context.index.analysis ?? analyzeProgram(project)
   const previousKeys = new Set(previous.diagnostics.map(diagnosticKey))
   const invalid = analysis.diagnostics.filter((diagnostic) => {

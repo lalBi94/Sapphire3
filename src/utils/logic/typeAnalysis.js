@@ -2,7 +2,7 @@ import { createDiagnostic, diagnosticCodes as codes } from './diagnostics.js'
 import { isRecord } from './model.js'
 import { binaryOperators, unaryOperators, getNodeSchema } from './nodeSchema.js'
 import { getMathNative } from './mathNatives.js'
-import { getPrimitive, primitiveType, isNumeric, sameType, acceptsOperand, arrayType, isArrayType, pointerType, pointerPointee, functionType, typeFromRecord } from './primitives.js'
+import { getPrimitive, primitiveType, isNumeric, sameType, acceptsOperand, arrayType, isArrayType, pointerType, pointerPointee, functionType, typeFromRecord, genericType, isGenericType } from './primitives.js'
 import { validateLiteral, convertConstant, evaluateBinary, evaluateUnary } from './numericConstants.js'
 
 // Extrait un enfant simple sans interpréter un trou ou une liste malformée comme une expression.
@@ -29,6 +29,13 @@ export function analyzeTypes(semantic, projectId) {
   const resolved = new Map()
   const active = new Set()
   const constants = new Map()
+  const parents = new Map()
+  const genericCalls = []
+  for (const node of nodes.values()) {
+    for (const value of Object.values(node.children ?? {})) {
+      for (const childNode of Array.isArray(value) ? value : [value]) if (childNode?.sourceId) parents.set(childNode.sourceId, node)
+    }
+  }
 
   // Localise chaque erreur sur le nœud qui viole une contrainte statique.
   function report(code, message, node, field = null) {
@@ -41,6 +48,14 @@ export function analyzeTypes(semantic, projectId) {
     if (sameType(expected, actual)) return true
     report(codes.typeMismatch, 'Les types doivent être strictement identiques ; une conversion explicite est nécessaire.', node, field)
     return false
+  }
+
+  // Un T explicite n'est admis que sur le retour ou un paramètre de sa fonction générique.
+  function genericAllowed(node) {
+    if (node.kind === 'FunctionDeclaration') return node.properties?.generic === true
+    if (node.kind !== 'Parameter') return false
+    const ownerId = contexts.get(node.sourceId)?.functionId
+    return Boolean(ownerId && nodes.get(ownerId)?.properties?.generic === true)
   }
 
   // Résout seulement une annotation écrite par l'utilisateur ; les alias restent transparents.
@@ -62,6 +77,8 @@ export function analyzeTypes(semantic, projectId) {
       report(codes.typeRequired, 'Un type explicitement déclaré est obligatoire.', node, 'properties.type')
     } else if (isRecord(sourceType) && sourceType.kind === 'primitive' && getPrimitive(sourceType.name)) {
       type = primitiveType(sourceType.name)
+    } else if (isRecord(sourceType) && sourceType.kind === 'generic' && sourceType.name === 'T' && genericAllowed(node)) {
+      type = genericType('T')
     } else if (isRecord(sourceType) && sourceType.kind === 'array') {
       const element = isRecord(sourceType.elementType) && sourceType.elementType.kind === 'primitive' ? primitiveType(sourceType.elementType.name) : null
       if (!element || element.name === 'void') {
@@ -196,6 +213,16 @@ export function analyzeTypes(semantic, projectId) {
       return null
     }
     const target = nodes.get(symbol.nodeId)
+    // Une fonction générique n'est utilisable que comme cible directe d'un appel.
+    if (target?.kind === 'FunctionDeclaration' && target.properties?.generic === true) {
+      const parent = parents.get(node.sourceId)
+      const callee = parent?.kind === 'CallExpression' ? parent.children?.callee : null
+      const directCallee = callee === node || callee?.sourceId === node.sourceId
+      if (!directCallee) {
+        report(codes.typeMismatch, 'Une fonction générique ne peut pas être utilisée comme valeur de première classe.', node, 'references.target')
+        return null
+      }
+    }
     const type = target ? declaration(target) : null
     if (target?.kind === 'ConstantDeclaration') {
       const initializer = child(target, 'initializer')
@@ -205,9 +232,58 @@ export function analyzeTypes(semantic, projectId) {
     return type
   }
 
+  // Retrouve la cible directe d'un appel générique, y compris via un import.
+  function genericTarget(calleeNode) {
+    if (calleeNode?.kind !== 'Reference') return null
+    const symbol = referenceSymbols.get(calleeNode.sourceId)
+    const target = symbol?.nodeId ? nodes.get(symbol.nodeId) : null
+    return target?.kind === 'FunctionDeclaration' && target.properties?.generic === true ? target : null
+  }
+
+  // Infère T depuis les arguments, exige un seul primitif non void et substitue le retour.
+  function genericCall(node, target) {
+    const signature = declaration(target)
+    if (!signature) return null
+    const args = Array.isArray(node.children.arguments) ? node.children.arguments : []
+    if (signature.parameters.length !== args.length) {
+      report(codes.typeMismatch, 'Nombre d’arguments incompatible avec la signature.', node, 'children.arguments')
+      return null
+    }
+    let inferred = null
+    let valid = true
+    signature.parameters.forEach((parameter, index) => {
+      const actual = resolve(args[index]?.sourceId)
+      if (isGenericType(parameter)) {
+        if (actual?.kind !== 'primitive' || actual.name === 'void') {
+          report(codes.typeMismatch, 'L’argument ne peut pas instancier T avec un primitif non void.', node, `children.arguments[${index}]`)
+          valid = false
+          return
+        }
+        if (inferred && !sameType(inferred, actual)) {
+          report(codes.typeMismatch, 'Les occurrences de T doivent recevoir exactement le même type.', node, `children.arguments[${index}]`)
+          valid = false
+          return
+        }
+        inferred = actual
+        return
+      }
+      if (!expect(parameter, actual, node, `children.arguments[${index}]`)) valid = false
+    })
+    if (!valid) return null
+    if (!inferred) {
+      report(codes.typeMismatch, 'Impossible d’inférer T depuis les arguments de l’appel.', node, 'children.arguments')
+      return null
+    }
+    genericCalls.push({ nodeId: node.sourceId, type: inferred })
+    return isGenericType(signature.returnType) ? inferred : signature.returnType
+  }
+
   // Contrôle intégralement une signature d'appel avant de publier son type de retour.
   function call(node) {
-    const callee = resolve(child(node, 'callee')?.sourceId)
+    const calleeNode = child(node, 'callee')
+    const generic = genericTarget(calleeNode)
+    if (generic) return genericCall(node, generic)
+    const callee = resolve(calleeNode?.sourceId)
     const args = node.children.arguments
     const argumentsTypes = args.map((argument) => resolve(argument.sourceId))
     if (!callee) return null
@@ -440,6 +516,7 @@ export function analyzeTypes(semantic, projectId) {
     diagnostics,
     nodeTypes: [...resolved].filter(([, type]) => type !== null).map(([nodeId, type]) => ({ nodeId, type })),
     untypedNodeIds,
+    genericCalls,
     symbols: semantic.model.symbols.map((symbol) => {
       const type = resolve(symbol.nodeId)
       return type ? { ...symbol, type } : { ...symbol }

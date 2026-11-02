@@ -110,6 +110,7 @@ export function buildLogicalAst(source) {
     const properties = isRecord(node.properties) ? node.properties : {}
     if (schema?.named && !isId(properties.name)) report(codes.incomplete, 'Nom de déclaration manquant.', { ...ownLocation, field: 'properties.name' })
     if (properties.type !== undefined && !schema?.declaresType) report(codes.invalidStructure, 'Cette construction ne porte pas d’annotation de type ; son type est déterminé par ses opérandes ou sa référence.', { ...ownLocation, field: 'properties.type' })
+    if (properties.generic !== undefined && (typeof properties.generic !== 'boolean' || node.kind !== 'FunctionDeclaration')) report(codes.invalidStructure, 'Le marqueur générique doit être un booléen réservé à une déclaration de fonction.', { ...ownLocation, field: 'properties.generic' })
     const children = Object.create(null)
     const slots = isRecord(node.children) ? node.children : {}
     const definitions = schema?.slots ?? {}

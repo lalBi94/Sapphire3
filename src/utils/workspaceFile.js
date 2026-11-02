@@ -38,6 +38,7 @@ function validateProject(project) {
     if (node.properties.name !== undefined && typeof node.properties.name !== 'string') throw workspaceError('Invalid declaration name.')
     if (node.properties.operator !== undefined && typeof node.properties.operator !== 'string') throw workspaceError('Invalid operator data.')
     if (node.properties.type?.name !== undefined && typeof node.properties.type.name !== 'string') throw workspaceError('Invalid type name.')
+    if (node.properties.generic !== undefined && typeof node.properties.generic !== 'boolean') throw workspaceError('Invalid generic declaration flag.')
     if (node.properties.value !== null && typeof node.properties.value === 'object') throw workspaceError('Invalid literal value.')
     if (!Object.values(node.children).every((value) => Array.isArray(value) ? value.every(validNodeLink) : validNodeLink(value))) throw workspaceError('Invalid child identifiers.')
     if (node.contracts !== undefined && (!Array.isArray(node.contracts) || node.contracts.some((contract) => !isRecord(contract) || !isContractKind(contract.kind)))) throw workspaceError('Invalid node contracts.')
