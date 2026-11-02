@@ -8,25 +8,14 @@ import DeleteAction from '../DeleteAction/DeleteAction.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './LogicContextMenu.css'
 
-// Regroupe les constructions proposées en arborescence de catégories, dans l'ordre du schéma.
-// Un identifiant de groupe peut porter une sous-catégorie : `native.math`.
+// Regroupe les constructions proposées par catégorie visuelle du schéma, dans l'ordre du schéma.
 function groupedActions(actions) {
   const groups = []
   for (const action of actions) {
-    const path = String(action.group ?? getNodeSchema(action.kind)?.group ?? 'incomplete').split('.')
-    let entry = null
-    let id = ''
-    for (const segment of path) {
-      id = id ? `${id}.${segment}` : segment
-      const siblings = entry ? entry.children : groups
-      let child = siblings.find((item) => item.id === id)
-      if (!child) {
-        child = { id, actions: [], children: [] }
-        siblings.push(child)
-      }
-      entry = child
-    }
-    entry.actions.push(action)
+    const group = getNodeSchema(action.kind)?.group ?? 'incomplete'
+    const bucket = groups.find((entry) => entry[0] === group)
+    if (bucket) bucket[1].push(action)
+    else groups.push([group, [action]])
   }
   return groups
 }
@@ -36,7 +25,6 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
   const { t } = useTranslation()
   const [slotName, setSlotName] = useState(initialSlot ?? '')
   const [kind, setKind] = useState('')
-  const [preset, setPreset] = useState(null)
   const [expandedGroups, setExpandedGroups] = useState(() => new Set())
   const [position, setPosition] = useState({ x, y })
   const [bounded, setBounded] = useState(false)
@@ -118,27 +106,6 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
     })
   }
 
-  // Choisit une construction et, pour un appel système, le nom prédéfini par son entrée de menu.
-  function selectAction(action) {
-    setKind(action.kind)
-    setPreset(action.preset ?? null)
-  }
-
-  // Affiche une catégorie et, une fois dépliée, ses actions puis ses sous-catégories.
-  function renderGroup(entry, depth = 0) {
-    const collapsed = !expandedGroups.has(entry.id)
-    return <Fragment key={entry.id}>
-      <button type="button" role="menuitem" className="logic-context-menu__group" data-depth={depth} aria-expanded={!collapsed} title={t(collapsed ? 'menu.groupExpand' : 'menu.groupCollapse')} onClick={() => toggleGroup(entry.id)}>
-        {collapsed ? <ChevronRight size={14} strokeWidth={1.75} aria-hidden="true" /> : <ChevronDown size={14} strokeWidth={1.75} aria-hidden="true" />}
-        {groupLabel(entry.id, t)}
-      </button>
-      {!collapsed && <>
-        {entry.actions.map((action) => <button type="button" role="menuitem" key={action.id} aria-pressed={kind === action.kind && (action.preset?.name ?? '') === (preset?.name ?? '')} onClick={() => selectAction(action)}><Plus className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{action.preset?.name ?? kindLabel(action.kind, t)}</button>)}
-        {entry.children.map((child) => renderGroup(child, depth + 1))}
-      </>}
-    </Fragment>
-  }
-
   const menuStyle = {
     left: position.x,
     top: position.y,
@@ -152,10 +119,19 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
       <div className="logic-context-menu__actions" role="menu" aria-label={selectedSlot ? t('canvas.addTo', { slot: slotLabel(selectedSlot, t) }) : t('canvas.addWhere')}>
         <div className="logic-context-menu__title">{t('canvas.addNodes')}</div>
         <div className="logic-context-menu__title">{selectedSlot ? slotLabel(selectedSlot, t) : t('canvas.addWhere')}</div>
-        {selectedSlot && available.slots.length > 1 && <button type="button" role="menuitem" onClick={() => { setSlotName(''); setKind(''); setPreset(null) }}><ArrowLeft className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.back')}</button>}
+        {selectedSlot && available.slots.length > 1 && <button type="button" role="menuitem" onClick={() => { setSlotName(''); setKind('') }}><ArrowLeft className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.back')}</button>}
         {!available.ok && <p>{diagnosticLabel(available.code, t)}</p>}
-        {available.ok && !selectedSlot && available.slots.map((slot) => <button type="button" role="menuitem" key={slot.name} disabled={slot.occupied || slot.malformed} onClick={() => { setSlotName(slot.name); setKind(''); setPreset(null) }}><CircleDot className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{slotLabel(slot.name, t)}{slot.occupied ? t('canvas.alreadyUsed') : slot.many ? t('canvas.several') : ''}</button>)}
-        {available.ok && selectedSlot && groupedActions(available.actions).map((entry) => renderGroup(entry))}
+        {available.ok && !selectedSlot && available.slots.map((slot) => <button type="button" role="menuitem" key={slot.name} disabled={slot.occupied || slot.malformed} onClick={() => { setSlotName(slot.name); setKind('') }}><CircleDot className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{slotLabel(slot.name, t)}{slot.occupied ? t('canvas.alreadyUsed') : slot.many ? t('canvas.several') : ''}</button>)}
+        {available.ok && selectedSlot && groupedActions(available.actions).map(([group, actions]) => {
+          const collapsed = !expandedGroups.has(group)
+          return <Fragment key={group}>
+            <button type="button" role="menuitem" className="logic-context-menu__group" aria-expanded={!collapsed} title={t(collapsed ? 'menu.groupExpand' : 'menu.groupCollapse')} onClick={() => toggleGroup(group)}>
+              {collapsed ? <ChevronRight size={14} strokeWidth={1.75} aria-hidden="true" /> : <ChevronDown size={14} strokeWidth={1.75} aria-hidden="true" />}
+              {groupLabel(group, t)}
+            </button>
+            {!collapsed && actions.map((action) => <button type="button" role="menuitem" key={action.id} aria-pressed={kind === action.kind} onClick={() => setKind(action.kind)}><Plus className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{kindLabel(action.kind, t)}</button>)}
+          </Fragment>
+        })}
         {available.ok && (available.slots.length === 0 || (selectedSlot && available.actions.length === 0)) && <p>{t('canvas.nothingToAdd')}</p>}
       </div>
       <div className="logic-context-menu__actions logic-context-menu__node-actions" role="menu" aria-label={t('canvas.nodeActions')}>
@@ -176,7 +152,7 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
         {available.ok && available.target?.kind === 'module' && <DeleteAction targetId={available.target.id} kind="module" onDelete={onDeleteModule} menu />}
       </div>
       </div>
-      {kind && <div className="logic-context-menu__form"><h3>{kindLabel(kind, t)}</h3><NodeForm key={`${selectedSlot}:${kind}:${preset?.name ?? ''}`} kind={kind} preset={preset} context={available} onSubmit={(draft) => onInsert(targetId, selectedSlot, draft)} /></div>}
+      {kind && <div className="logic-context-menu__form"><h3>{kindLabel(kind, t)}</h3><NodeForm key={`${selectedSlot}:${kind}`} kind={kind} context={available} onSubmit={(draft) => onInsert(targetId, selectedSlot, draft)} /></div>}
     </div>
   )
 }

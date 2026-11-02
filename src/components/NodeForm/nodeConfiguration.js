@@ -69,7 +69,7 @@ export function expressionSymbols(symbols, type, allowAnyType = false) {
 }
 
 // Prépare un brouillon UI à partir des seules propriétés existantes, sans valeur logique inventée.
-export function initialNodeForm(kind, node, expectedType, symbols, preset = null) {
+export function initialNodeForm(kind, node, expectedType, symbols) {
   const properties = node?.properties ?? {}
   const target = node?.references?.target
   const symbol = symbols.find((entry) => target?.kind === 'import' ? entry.importId === target.importId : target?.kind === 'name' ? entry.name === target.name : entry.nodeId === target?.nodeId)
@@ -92,7 +92,7 @@ export function initialNodeForm(kind, node, expectedType, symbols, preset = null
     parameters: [], entryPoint: properties.entryPoint === true, allowIncomplete: false,
     elementTypeName: arrayElementTypeName, arraySize: emptyExpression(), arrayFill: emptyExpression(), arrayElements: [],
     accessArray: emptyExpression(), accessIndex: emptyExpression(), indexTypeName: 'int',
-    syscallName: kind === 'SystemCall' ? properties.name ?? preset?.name ?? '' : '',
+    syscallName: kind === 'SystemCall' ? properties.name ?? '' : '',
   }
 }
 
