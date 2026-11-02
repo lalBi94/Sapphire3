@@ -1,0 +1,18 @@
+/* Rendu en lecture d'un commentaire : texte littéral et math KaTeX, sans déborder de la carte. */
+.comment-text__text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.comment-text__math {
+  display: block;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: 0.35em 0;
+  font-size: 1.05em;
+}
+
+/* KaTeX réserve de la place en dessous : on la réduit dans les petites cartes. */
+.comment-text__math .katex-display {
+  margin: 0;
+}

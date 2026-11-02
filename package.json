@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@neutralinojs/lib": "6.10.0",
+    "katex": "^0.19.1",
     "lucide-react": "^1.64.0",
     "react": "19.3.1",
     "react-dom": "19.3.1"

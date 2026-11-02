@@ -209,6 +209,16 @@
   color: var(--color-text-muted);
 }
 
+/* Mode lecture : le texte (et le math rendu) défile dans la carte et se rouvre au clic. */
+.canvas-module__comment--view {
+  overflow-y: auto;
+  cursor: text;
+}
+
+.canvas-module__comment-placeholder {
+  color: var(--color-text-muted);
+}
+
 .canvas-module__comment:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: -3px;

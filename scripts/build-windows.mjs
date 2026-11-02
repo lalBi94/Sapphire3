@@ -92,11 +92,12 @@ async function stagePackage(binaryName) {
   await copyLicense(path.join(root, 'node_modules', 'react', 'LICENSE'), path.join(licensesDirectory, 'react-MIT.txt'))
   await copyLicense(path.join(root, 'node_modules', 'react-dom', 'LICENSE'), path.join(licensesDirectory, 'react-dom-MIT.txt'))
   await copyLicense(path.join(root, 'node_modules', 'lucide-react', 'LICENSE'), path.join(licensesDirectory, 'lucide-react-ISC.txt'))
+  await copyLicense(path.join(root, 'node_modules', 'katex', 'LICENSE'), path.join(licensesDirectory, 'katex-MIT.txt'))
   await copyLicense(path.join(root, 'node_modules', '@neutralinojs', 'lib', 'LICENSE'), path.join(licensesDirectory, 'neutralinojs-lib-MIT.txt'))
   await copyLicense(path.join(root, 'scripts', 'licenses', 'neutralinojs.txt'), path.join(licensesDirectory, 'neutralinojs-MIT.txt'))
   await copyLicense(path.join(root, 'scripts', 'licenses', 'libtrashcan.txt'), path.join(licensesDirectory, 'libtrashcan-MIT.txt'))
 
-  await writeFile(path.join(stagingDirectory, 'CREDITS.md'), `# Crédits — Sapphire 3 ${releaseVersion}\n\nSapphire 3 est construit avec React, Vite, Neutralinojs et Lucide.\n\n## Composants distribués\n\n- React et React DOM — MIT — Copyright (c) Meta Platforms, Inc. and affiliates.\n- Lucide React — ISC — Copyright (c) 2026 Lucide Icons and Contributors.\n- Neutralinojs client — MIT — Copyright (c) 2021 Neutralinojs.\n- Neutralinojs core — MIT — Copyright (c) 2021-2025 Neutralinojs and contributors.\n- libtrashcan — MIT — Copyright (c) 2019 Robert Gützkow.\n\nLes textes complets figurent dans le dossier \`licenses/\`.\n`)
+  await writeFile(path.join(stagingDirectory, 'CREDITS.md'), `# Crédits — Sapphire 3 ${releaseVersion}\n\nSapphire 3 est construit avec React, Vite, Neutralinojs, Lucide et KaTeX.\n\n## Composants distribués\n\n- React et React DOM — MIT — Copyright (c) Meta Platforms, Inc. and affiliates.\n- Lucide React — ISC — Copyright (c) 2026 Lucide Icons and Contributors.\n- KaTeX — MIT — Copyright (c) 2013-2020 Khan Academy and other contributors.\n- Neutralinojs client — MIT — Copyright (c) 2021 Neutralinojs.\n- Neutralinojs core — MIT — Copyright (c) 2021-2025 Neutralinojs and contributors.\n- libtrashcan — MIT — Copyright (c) 2019 Robert Gützkow.\n\nLes textes complets figurent dans le dossier \`licenses/\`.\n`)
 
   await writeFile(path.join(stagingDirectory, 'LIRE-MOI.txt'), `Sapphire 3 Alpha ${releaseVersion} — Windows\n\nDécompressez cette archive dans un dossier accessible en écriture, puis lancez Sapphire3.exe.\nAucune installation de Node.js n'est nécessaire. Windows 10/11 avec WebView2 est requis.\nLes fichiers .sp3 s'ouvrent et s'enregistrent via les dialogues de l'application.\nAucun système de mise à jour automatique n'est inclus.\n`)
 

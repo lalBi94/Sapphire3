@@ -4,6 +4,7 @@ import { ChevronsDownUp, ChevronsUpDown, Lock, Smile } from 'lucide-react'
 import { minimumModuleSize, moduleTypes } from '../../utils/moduleTypes.js'
 import { isEmbeddedImage } from '../../utils/embeddedImage.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
+import CommentText from '../CommentText/CommentText.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './CanvasModule.css'
 
@@ -67,6 +68,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
+  const [editingComment, setEditingComment] = useState(false)
   const [draftName, setDraftName] = useState('')
   const [isImageDragOver, setIsImageDragOver] = useState(false)
   const resizeRef = useRef(null)
@@ -363,14 +365,30 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         </button>}
       </header>
       {definition.hasText ? (
-        <textarea
-          className="canvas-module__comment"
-          aria-label={t('canvas.text', { name })}
-          placeholder={t('canvas.notePlaceholder')}
-          value={module.text ?? ''}
-          onChange={(event) => onTextChange(module.id, event.target.value)}
-          spellCheck={false}
-        />
+        editingComment ? (
+          <textarea
+            className="canvas-module__comment"
+            aria-label={t('canvas.text', { name })}
+            placeholder={t('canvas.notePlaceholder')}
+            value={module.text ?? ''}
+            onChange={(event) => onTextChange(module.id, event.target.value)}
+            onBlur={() => setEditingComment(false)}
+            spellCheck={false}
+            autoFocus
+          />
+        ) : (
+          <div
+            className="canvas-module__comment canvas-module__comment--view"
+            role="button"
+            tabIndex={0}
+            aria-label={t('canvas.text', { name })}
+            title={t('canvas.mathHint')}
+            onClick={() => setEditingComment(true)}
+            onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setEditingComment(true) } }}
+          >
+            {module.text ? <CommentText text={module.text} /> : <span className="canvas-module__comment-placeholder">{t('canvas.notePlaceholder')}</span>}
+          </div>
+        )
       ) : definition.hasImage ? (
         <div
           ref={contentRef}
