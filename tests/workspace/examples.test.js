@@ -12,10 +12,12 @@ const expectedOutput = {
   imports: ['25'],
   foreach: ['3', '1', '4', '1', '5'],
   pointers: ['3', '8', '8', '3'],
+  higherOrder: ['42'],
+  maths: ['7', '3', '9', '9'],
 }
 
 test('bibliothèque d’exemples : chaque projet est valide, analysable et s’exécute', () => {
-  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'sorting', 'arrays', 'recursion', 'imports', 'foreach', 'pointers'])
+  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'sorting', 'arrays', 'recursion', 'imports', 'foreach', 'pointers', 'higherOrder', 'maths'])
   for (const example of examples) {
     const workspace = deserializeWorkspace(JSON.stringify(example.build()))
     assert.ok(workspace.presentation.cards.length >= 1, example.id)

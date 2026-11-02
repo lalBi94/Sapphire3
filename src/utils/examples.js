@@ -2,6 +2,7 @@ import { createProject, createModule, createNode } from './logic/index.js'
 import { moduleTypes } from './moduleTypes.js'
 
 const intType = { kind: 'primitive', name: 'int' }
+const doubleType = { kind: 'primitive', name: 'double' }
 const voidType = { kind: 'primitive', name: 'void' }
 const intArrayType = { kind: 'array', elementType: intType }
 const intPointerType = { kind: 'pointer', pointee: intType }
@@ -241,6 +242,59 @@ function pointers() {
   return workspace(b.project, [note('pointersNote', 'Pointers', 'swap(&a, &b) reçoit deux adresses int* et échange *left et *right : les écritures à travers les pointeurs modifient directement a et b (3 8 puis 8 3).', 600, 0)])
 }
 
+// Fonction d'ordre supérieur : une fonction est passée en paramètre puis appelée.
+function higherOrder() {
+  const b = builder()
+  b.useModule('higherOrder', 'Higher-order')
+  b.root('double', 'FunctionDeclaration', { name: 'double', type: intType }, { parameters: ['doubleValue'], body: 'doubleBody' })
+  b.make('doubleValue', 'Parameter', { name: 'value', type: intType })
+  b.block('doubleBody', ['doubleReturn'])
+  b.returnValue('doubleReturn', 'doubleProduct')
+  b.binary('doubleProduct', '*', 'doubleRead', 'two'); b.ref('doubleRead', 'value'); b.intValue('two', 2)
+  // Le deuxième paramètre est une référence de fonction (int) -> int.
+  b.root('apply', 'FunctionDeclaration', { name: 'apply', type: intType }, { parameters: ['applyValue', 'transform'], body: 'applyBody' })
+  b.make('applyValue', 'Parameter', { name: 'value', type: intType })
+  b.make('transform', 'Parameter', { name: 'transform', type: { kind: 'function', parameters: [intType], returnType: intType } })
+  b.block('applyBody', ['applyReturn'])
+  b.returnValue('applyReturn', 'applyCall')
+  b.call('applyCall', 'transformRef', ['applyValueRead']); b.ref('transformRef', 'transform'); b.ref('applyValueRead', 'value')
+  b.root('higherOrderMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'higherOrderBody' })
+  b.block('higherOrderBody', ['printResult'])
+  b.print('printResult', 'applyCallMain')
+  // apply(21, double) : la fonction `double` est passée comme valeur.
+  b.call('applyCallMain', 'applyRef', ['twentyOne', 'doubleRef'])
+  b.ref('applyRef', 'apply'); b.intValue('twentyOne', 21); b.ref('doubleRef', 'double')
+  return workspace(b.project, [note('higherOrderNote', 'Higher-order', '`apply(value, transform)` reçoit une fonction en paramètre (type `(int) -> int`) et l’appelle par `transform(value)`. `apply(21, double)` renvoie donc 42.', 600, 0)])
+}
+
+// Maths natives SP3 : opérations indépendantes des langages cibles.
+function maths() {
+  const b = builder()
+  b.useModule('maths', 'Native maths')
+  b.root('a', 'VariableDeclaration', { name: 'a', type: intType }, { initializer: 'minusSeven' })
+  b.intValue('minusSeven', -7)
+  b.root('b', 'VariableDeclaration', { name: 'b', type: intType }, { initializer: 'threeInt' })
+  b.intValue('threeInt', 3)
+  b.root('absolute', 'VariableDeclaration', { name: 'absolute', type: intType }, { initializer: 'absCall' })
+  b.make('absCall', 'MathCall', { name: 'abs' }, { arguments: ['aRefAbs'] }); b.ref('aRefAbs', 'a')
+  b.root('largest', 'VariableDeclaration', { name: 'largest', type: intType }, { initializer: 'maxCall' })
+  b.make('maxCall', 'MathCall', { name: 'max' }, { arguments: ['aRefMax', 'bRefMax'] }); b.ref('aRefMax', 'a'); b.ref('bRefMax', 'b')
+  b.root('root', 'VariableDeclaration', { name: 'root', type: doubleType }, { initializer: 'sqrtCall' })
+  b.make('sqrtCall', 'MathCall', { name: 'sqrt' }, { arguments: ['eightyOne'] })
+  b.make('eightyOne', 'Literal', { type: doubleType, value: '81.0' })
+  b.root('power', 'VariableDeclaration', { name: 'power', type: doubleType }, { initializer: 'powCall' })
+  b.make('powCall', 'MathCall', { name: 'pow' }, { arguments: ['threeDouble', 'twoDouble'] })
+  b.make('threeDouble', 'Literal', { type: doubleType, value: '3.0' })
+  b.make('twoDouble', 'Literal', { type: doubleType, value: '2.0' })
+  b.root('mathMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'mathBody' })
+  b.block('mathBody', ['printAbs', 'printMax', 'printRoot', 'printPower'])
+  b.print('printAbs', 'absRead'); b.ref('absRead', 'absolute')
+  b.print('printMax', 'maxRead'); b.ref('maxRead', 'largest')
+  b.print('printRoot', 'rootRead'); b.ref('rootRead', 'root')
+  b.print('printPower', 'powerRead'); b.ref('powerRead', 'power')
+  return workspace(b.project, [note('mathNote', 'Native maths', 'Opérations SP3 natives : abs(-7) = 7, max(-7, 3) = 3, sqrt(81) = 9, pow(3, 2) = 9. Une note peut aussi afficher une formule : $$ \\sqrt{81} = 9 $$.', 600, 0)])
+}
+
 // Catalogue local, ouvrable sans réseau ni fichier externe.
 export const examples = [
   { id: 'fibonacci', labelKey: 'examples.fibonacci', build: fibonacci },
@@ -250,4 +304,6 @@ export const examples = [
   { id: 'imports', labelKey: 'examples.imports', build: imports },
   { id: 'foreach', labelKey: 'examples.forEach', build: forEach },
   { id: 'pointers', labelKey: 'examples.pointers', build: pointers },
+  { id: 'higherOrder', labelKey: 'examples.higherOrder', build: higherOrder },
+  { id: 'maths', labelKey: 'examples.maths', build: maths },
 ]
