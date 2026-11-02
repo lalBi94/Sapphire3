@@ -1,4 +1,5 @@
 import { getNodeSchema } from './logic/index.js'
+import { rankModules } from './moduleLayout.js'
 
 const fontSize = 12
 const lineHeight = 17
@@ -71,34 +72,6 @@ function measureModule(card, index, describe) {
     width: Math.max(minimumWidth, contentWidth + padding * 2 + 8, padding * 2 + textWidth(title, 14) + 8),
     height: Math.max(minimumHeight, headerHeight + lines.length * lineHeight + padding),
   }
-}
-
-// Range les modules en couches selon les dépendances : un exportateur précède ses utilisateurs.
-function rankModules(moduleIds, links) {
-  const incoming = new Map(moduleIds.map((id) => [id, 0]))
-  const children = new Map(moduleIds.map((id) => [id, []]))
-  for (const link of links) {
-    if (!incoming.has(link?.fromId) || !incoming.has(link?.toId)) continue
-    children.get(link.fromId).push(link.toId)
-    incoming.set(link.toId, incoming.get(link.toId) + 1)
-  }
-  const rank = new Map(moduleIds.map((id) => [id, 0]))
-  const queue = moduleIds.filter((id) => incoming.get(id) === 0)
-  const visited = new Set()
-  while (queue.length) {
-    const id = queue.shift()
-    if (visited.has(id)) continue
-    visited.add(id)
-    for (const next of children.get(id) ?? []) {
-      rank.set(next, Math.max(rank.get(next), rank.get(id) + 1))
-      incoming.set(next, incoming.get(next) - 1)
-      if (incoming.get(next) === 0) queue.push(next)
-    }
-  }
-  // Un cycle ne doit pas empiler tous ses modules dans la même colonne.
-  let fallback = Math.max(0, ...rank.values()) + 1
-  for (const id of moduleIds) if (!visited.has(id)) rank.set(id, fallback++)
-  return rank
 }
 
 // Place les modules mesurés en colonnes, sans chevauchement, dans l'ordre des couches.

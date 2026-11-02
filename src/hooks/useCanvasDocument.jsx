@@ -29,6 +29,11 @@ export default function useCanvasDocument() {
     dispatch({ type: 'geometry', id, patch })
   }
 
+  // Applique d'un coup de nouvelles positions de cartes, sans toucher au programme.
+  function arrangeModules(positions) {
+    dispatch({ type: 'layout', positions })
+  }
+
   // Synchronise le nom du module logique, ou seulement le titre d'une annotation visuelle.
   function renameCard(id, name) {
     dispatch({ type: 'rename', id, name })
@@ -200,5 +205,5 @@ export default function useCanvasDocument() {
     dispatch({ type: 'redo' })
   }
 
-  return { ...document, createCard, updateGeometry, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, duplicateNode, deleteNode, deleteModule, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, setExpandedNodes, setCardHidden, setCardLocked, setCardEmoji, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
+  return { ...document, createCard, updateGeometry, arrangeModules, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, duplicateNode, deleteNode, deleteModule, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, setExpandedNodes, setCardHidden, setCardLocked, setCardEmoji, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
 }

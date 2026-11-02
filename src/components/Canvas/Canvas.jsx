@@ -18,6 +18,7 @@ import { moduleTypes } from '../../utils/moduleTypes.js'
 import { expandableNodeIdsByModule, expandAllNodeIds, isFullyExpanded } from '../../utils/nodeTree.js'
 import { scrollNodeIntoCard } from '../../utils/cardScroll.js'
 import { buildWorkspaceSvg } from '../../utils/workspaceSvg.js'
+import { layoutModules } from '../../utils/moduleLayout.js'
 import ProjectNavigation from '../ProjectNavigation/ProjectNavigation.jsx'
 import useWorkspaceFiles from '../../hooks/useWorkspaceFiles.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
@@ -474,6 +475,16 @@ export default function Canvas() {
     })
   }
 
+  // Répartit les modules visibles en couches selon leurs dépendances, sans toucher au programme.
+  function handleArrangeModules() {
+    const modules = document.cards.filter((card) => card.type === 'module' && !card.hidden)
+    if (modules.length === 0) return
+    const positions = layoutModules(modules, moduleLinks)
+    const locked = new Set(modules.filter((module) => module.locked).map((module) => module.id))
+    const movable = Object.fromEntries(Object.entries(positions).filter(([id]) => !locked.has(id)))
+    if (Object.keys(movable).length > 0) document.arrangeModules(movable)
+  }
+
   // Calcule le rectangle global des modules visibles, sans inclure les annotations ni les cartes masquées.
   function getModulesBounds() {
     const modules = document.cards.filter((card) => card.type === 'module' && !card.hidden)
@@ -638,7 +649,7 @@ export default function Canvas() {
       onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={() => handleRecenter(getModulesBounds())}
       distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)}
       minimapVisible={minimapVisible} onToggleMinimap={() => setMinimapVisible((current) => !current)}
-      fullScreen={fullScreen} onToggleFullScreen={handleToggleFullScreen} gridVisible={gridVisible} onToggleGrid={() => setGridVisible((current) => !current)}
+      fullScreen={fullScreen} onToggleFullScreen={handleToggleFullScreen} gridVisible={gridVisible} onToggleGrid={() => setGridVisible((current) => !current)} onArrangeModules={handleArrangeModules}
       hiddenCards={hiddenCards} onShowCard={handleShowCard} onShowAllHidden={handleShowAllHidden}
       hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onOpenSearch={search.show} onRunSimulation={handleRunSimulation} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} selectedFunction={selectedFunction} onOpenFunction={handleOpenFunction} simulationRunning={Boolean(execution?.running)} simulationPaused={Boolean(execution?.paused)} onPauseSimulation={handlePauseExecution} onResumeSimulation={handleResumeExecution} onStopSimulation={handleStopExecution} onOpenRepository={() => openExternal(repositoryUrl)} onOpenSettings={() => setSettingsOpen(true)} onQuit={() => quitApplication()} updateAvailable={appUpdate.update.status === 'available'} updateVersion={appUpdate.update.release?.version ?? ''} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })} onCheckTranspile={getTranspileChecks}
       bookmarks={bookmarks} modules={moduleChoices} canBookmark={bookmarkStatus(selected).can} onSaveBookmark={handleSaveBookmark} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark} onOpenBookmarks={() => setBookmarksOpen(true)} />

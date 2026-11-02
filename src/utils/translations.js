@@ -100,6 +100,8 @@ const messages = {
   'nav.zoomOut': ['Zoom out', 'Réduire', '缩小', 'Alejar', 'تصغير', '縮小', 'ज़ूम आउट', 'Уменьшить'],
   'nav.zoom100': ['Zoom 100%', 'Zoom 100 %', '缩放 100%', 'Zoom 100 %', 'تكبير 100%', 'ズーム 100%', 'ज़ूम 100%', 'Масштаб 100%'],
   'nav.center': ['Center the view', 'Recentrer la vue', '居中视图', 'Centrar la vista', 'توسيط العرض', '表示を中央に', 'दृश्य केंद्रित करें', 'Центрировать вид'],
+  'nav.layout': ['Layout', 'Disposition', '布局', 'Disposición', 'التخطيط', 'レイアウト', 'लेआउट', 'Макет'],
+  'nav.arrangeModules': ['Arrange modules', 'Réorganiser les modules', '排列模块', 'Ordenar módulos', 'ترتيب الوحدات', 'モジュールを整列', 'मॉड्यूल व्यवस्थित करें', 'Упорядочить модули'],
   'nav.distortion': ['Curved grid', 'Grille courbée', '弯曲网格', 'Cuadrícula curva', 'شبكة منحنية', '湾曲グリッド', 'घुमावदार ग्रिड', 'Изогнутая сетка'],
   'nav.hiddenCards': ['Hidden items', 'Éléments masqués', '隐藏的项目', 'Elementos ocultos', 'العناصر المخفية', '非表示の項目', 'छिपी वस्तुएँ', 'Скрытые элементы'],
   'nav.run': ['Run', 'Simuler', '运行', 'Simular', 'تشغيل', '実行', 'चलाएँ', 'Запуск'],

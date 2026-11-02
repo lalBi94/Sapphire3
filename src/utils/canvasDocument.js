@@ -59,6 +59,11 @@ export function reduceDocument(state, action) {
   if (action.type === 'geometry' || action.type === 'text' || action.type === 'presentation') {
     return { ...state, cards: state.cards.map((card) => card.id === action.id ? { ...card, ...action.patch } : card) }
   }
+  if (action.type === 'layout') {
+    const positions = action.positions ?? {}
+    const cards = state.cards.map((card) => positions[card.id] ? { ...card, ...positions[card.id] } : card)
+    return cards.every((card, index) => card === state.cards[index]) ? state : { ...state, cards }
+  }
   if (action.type === 'deleteModule') {
     const result = deleteSourceModule(state.project, action.id)
     return result.ok
@@ -99,6 +104,6 @@ export function reduceHistory(state, action) {
   const next = reduceDocument(state.present, action)
   if (next === state.present) return state
   if (['pasteNode', 'moveNode', 'duplicateNode'].includes(action.type) && next.project === state.present.project) return { ...state, present: next }
-  if (['geometry', 'text', 'presentation'].includes(action.type)) return { ...state, present: next, future: [] }
+  if (['geometry', 'text', 'presentation', 'layout'].includes(action.type)) return { ...state, present: next, future: [] }
   return { past: [...state.past, state.present], present: next, future: [] }
 }
