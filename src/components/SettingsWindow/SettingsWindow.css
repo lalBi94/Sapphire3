@@ -37,14 +37,19 @@
 
 .settings-field { display: flex; flex-direction: column; gap: 6px; }
 .settings-field select { padding: 6px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-surface-raised); color: var(--color-text); font: inherit; }
-/* Langues en boutons radio : grille de cartes, la langue active est mise en évidence. */
-.settings-radio-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 4px; margin: 0; padding: 0; border: 0; }
-.settings-radio { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-control); cursor: pointer; }
-.settings-radio:hover { background: var(--color-hover); }
+/* Langues en une seule colonne, avec drapeaux et dégradé animé pour la langue active. */
+.settings-radio-group { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; border: 0; }
+.settings-radio { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: transparent; cursor: pointer; transition: border-color 160ms, background 160ms; }
+.settings-radio:hover { border-color: color-mix(in srgb, var(--flag-a) 62%, var(--color-border)); background: linear-gradient(110deg, color-mix(in srgb, var(--flag-a) 16%, transparent), color-mix(in srgb, var(--flag-b) 18%, transparent), color-mix(in srgb, var(--flag-c) 14%, transparent)); }
 .settings-radio input { flex: 0 0 auto; accent-color: var(--color-primary); }
-.settings-radio span { flex: 1; min-width: 0; }
-.settings-radio svg { flex: 0 0 auto; color: var(--color-primary); }
-.settings-radio--selected { border-color: var(--color-selection-border); background: var(--color-selection-surface); }
+.settings-radio__flag { flex: 0 0 auto; width: 28px; height: 18px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent); border-radius: 3px; box-shadow: 0 1px 2px rgb(0 0 0 / 25%); }
+.settings-radio__flag svg { display: block; width: 100%; height: 100%; }
+.settings-radio__label { flex: 1; min-width: 0; }
+.settings-radio > svg { flex: 0 0 auto; color: var(--color-primary); }
+.settings-radio--selected { border-color: color-mix(in srgb, var(--flag-a) 65%, var(--color-primary)); background: linear-gradient(110deg, color-mix(in srgb, var(--flag-a) 38%, var(--color-surface-raised)), color-mix(in srgb, var(--flag-b) 42%, var(--color-surface-raised)), color-mix(in srgb, var(--flag-c) 34%, var(--color-surface-raised)), color-mix(in srgb, var(--flag-a) 38%, var(--color-surface-raised))); background-size: 240% 100%; animation: sapphire-gradient-flow 2.8s linear infinite; }
+.settings-radio--selected .settings-radio__label { font-weight: 600; }
+.settings-radio--selected > svg { color: var(--color-text); }
+@media (prefers-reduced-motion: reduce) { .settings-radio--selected { animation: none; } }
 
 .settings-info { display: grid; gap: var(--space-control); margin: 0; }
 .settings-info > div { display: flex; justify-content: space-between; gap: var(--space-panel); padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-control); }

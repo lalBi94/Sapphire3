@@ -1,6 +1,7 @@
 import { BookmarkPlus, Check, Download, ExternalLink, FileInput, FileOutput, FilePlus, FolderOpen, Maximize2, RefreshCw, Save, SaveAll, Trash2, VectorSquare } from 'lucide-react'
 import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
 import KeybindsSection from './KeybindsSection.jsx'
+import LanguageFlag, { languageFlagColors } from './LanguageFlag.jsx'
 import { describeBookmark, getNodeSchema } from '../../utils/logic/index.js'
 import { supportedLanguages } from '../../utils/translations.js'
 import { appVersion } from '../../utils/appInfo.js'
@@ -119,9 +120,11 @@ export function LanguageSection() {
     <fieldset className="settings-radio-group" aria-label={t('nav.language')}>
       {supportedLanguages.map((option) => {
         const selected = option.id === language
-        return <label className={selected ? 'settings-radio settings-radio--selected' : 'settings-radio'} key={option.id}>
+        const colors = languageFlagColors[option.id] ?? languageFlagColors.en
+        return <label className={selected ? 'settings-radio settings-radio--selected' : 'settings-radio'} key={option.id} style={{ '--flag-a': colors[0], '--flag-b': colors[1], '--flag-c': colors[2] }}>
           <input type="radio" name="settings-language" value={option.id} checked={selected} onChange={() => setLanguage(option.id)} />
-          <span>{option.label}</span>
+          <span className="settings-radio__flag"><LanguageFlag language={option.id} /></span>
+          <span className="settings-radio__label">{option.label}</span>
           {selected && <Check size={14} aria-hidden="true" />}
         </label>
       })}
