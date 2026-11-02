@@ -18,7 +18,7 @@ const messages = {
   'bookmark.newModule': ['New module', 'Nouveau module', '新模块', 'Nuevo módulo', 'وحدة جديدة', '新しいモジュール', 'नया मॉड्यूल', 'Новый модуль'],
   'bookmark.intoModule': ['Add to {name}', 'Ajouter à {name}', '添加到 {name}', 'Añadir a {name}', 'إضافة إلى {name}', '{name} に追加', '{name} में जोड़ें', 'Добавить в {name}'],
   'bookmark.saveHint': ['Save this pure function or module to your bookmarks.', 'Enregistrer cette fonction ou ce module pur dans vos favoris.', '将此纯函数或纯模块保存到收藏。', 'Guardar esta función o módulo puro en tus favoritos.', 'حفظ هذه الدالة أو الوحدة النقية في مفضلاتك.', 'この純粋な関数またはモジュールをブックマークに保存します。', 'इस शुद्ध फ़ंक्शन या मॉड्यूल को अपने बुकमार्क में सहेजें।', 'Сохраните эту чистую функцию или модуль в закладки.'],
-  'bookmark.openWindow': ['Open window', 'Ouvrir la fenêtre', '打开窗口', 'Abrir ventana', 'فتح نافذة', 'ウィンドウを開く', 'विंडो खोलें', 'Открыть окно'],
+  'bookmark.openWindow': ['Open bookmarks window', 'Ouvrir la fenêtre des favoris', '打开收藏窗口', 'Abrir ventana de favoritos', 'فتح نافذة المفضلة', 'ブックマークウィンドウを開く', 'बुकमार्क विंडो खोलें', 'Открыть окно закладок'],
   'bookmark.function': ['Function', 'Fonction', '函数', 'Función', 'دالة', '関数', 'फ़ंक्शन', 'Функция'],
   'bookmark.module': ['Module', 'Module', '模块', 'Módulo', 'وحدة', 'モジュール', 'मॉड्यूल', 'Модуль'],
   'bookmark.savedOn': ['Saved {date}', 'Enregistré le {date}', '保存于 {date}', 'Guardado el {date}', 'حُفظ في {date}', '{date} に保存', '{date} को सहेजा गया', 'Сохранено {date}'],
