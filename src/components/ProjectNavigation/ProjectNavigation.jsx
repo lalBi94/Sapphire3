@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bug, Bookmark, BookmarkPlus, ChevronDown, Clock3, Code2, Download, Eye, FileInput, FileOutput, FilePlus, FolderOpen, Library, Maximize2, Palette, Play, Save, SaveAll, Search, Trash2, VectorSquare, X } from 'lucide-react'
+import { Bug, Bookmark, BookmarkPlus, ChevronDown, Clock3, Code2, Download, ExternalLink, Eye, FileInput, FileOutput, FilePlus, FolderOpen, Library, Maximize2, Palette, Play, Save, SaveAll, Search, Trash2, VectorSquare, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
 import { supportedLanguages } from '../../utils/translations.js'
 import { examples } from '../../utils/examples.js'
 import { transpilationLanguages } from '../../utils/transpilation/index.js'
 import { describeBookmark } from '../../utils/logic/index.js'
+import { appVersion } from '../../utils/appInfo.js'
 import { typeLabel } from '../LogicTree/logicLabels.js'
 import './ProjectNavigation.css'
 
@@ -27,7 +28,7 @@ function ReplaceConfirmation({ titleKey, bodyKey, detail, confirmKey, onConfirm,
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile, selectedFunction = null, onOpenFunction, simulationRunning = false, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark, onOpenBookmarks }) {
+export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, distorted, onToggleDistortion, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile, selectedFunction = null, onOpenFunction, simulationRunning = false, onOpenRepository, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark, onOpenBookmarks }) {
   const navigationRef = useRef(null)
   const [insertingId, setInsertingId] = useState(null)
   const { language, setLanguage, t } = useTranslation()
@@ -238,6 +239,8 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
         <select value={language} onChange={(event) => setLanguage(event.target.value)} aria-label={t('nav.language')}>
           {supportedLanguages.map((option) => <option value={option.id} key={option.id}>{option.label}</option>)}
         </select>      </label>
+      <span className="project-navigation__version" title={`${t('nav.version')} ${appVersion}`}>v{appVersion}</span>
+      <button type="button" className="project-navigation__github" onClick={onOpenRepository} aria-label={t('nav.github')} title={t('nav.github')}><ExternalLink size={13} aria-hidden="true" /></button>
       {error && <div className="project-navigation__error" role="alert"><span>{error}</span><button type="button" aria-label={t('nav.dismiss')} onClick={onDismiss}><X size={14} aria-hidden="true" /></button></div>}
     </nav>
     {pendingImport && <ReplaceConfirmation titleKey="import.title" bodyKey="import.body" detail={pendingImport.detail ?? pendingImport.path} confirmKey="import.confirm" onConfirm={onConfirmImport} onCancel={onCancelImport} />}

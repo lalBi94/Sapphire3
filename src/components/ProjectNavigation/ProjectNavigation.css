@@ -37,6 +37,10 @@
 .project-navigation__run-controls { display: flex; align-items: center; flex-shrink: 0; }
 .project-navigation__run-toggle { min-width: 24px; min-height: 26px; justify-content: center; }
 .project-navigation__run-menu { left: auto; right: 0; width: 260px; max-height: calc(100dvh - 50px); overflow: auto; }
+/* Version affichée à droite, puis le lien vers le dépôt GitHub. */
+.project-navigation__version { margin-left: var(--space-control); color: var(--color-text-muted); font-size: 10px; white-space: nowrap; }
+.project-navigation__github { padding: 4px; color: var(--color-text-muted); }
+.project-navigation button.project-navigation__github:hover:not(:disabled) { color: var(--color-text); }
 .project-navigation__future-note { font-size: 10px; line-height: 1.5; }
 .project-navigation button:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
 .project-navigation :is(button, summary):focus-visible, .project-navigation__confirmation button:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }

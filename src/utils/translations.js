@@ -27,6 +27,8 @@ const messages = {
   'bookmark.deleteAction': ['Delete', 'Supprimer', '删除', 'Eliminar', 'حذف'],
   'nav.settings': ['Settings', 'Réglages', '设置', 'Ajustes', 'الإعدادات'],
   'nav.language': ['Language', 'Langue', '语言', 'Idioma', 'اللغة'],
+  'nav.version': ['Version', 'Version', '版本', 'Versión', 'الإصدار'],
+  'nav.github': ['Open the project on GitHub', 'Ouvrir le projet sur GitHub', '在 GitHub 上打开项目', 'Abrir el proyecto en GitHub', 'افتح المشروع على GitHub'],
   'nav.openSp3': ['Open .sp3 file', 'Ouvrir un fichier .sp3', '打开 .sp3 文件', 'Abrir un archivo .sp3', 'فتح ملف .sp3'],
   'nav.new': ['New workspace', 'Nouvel espace de travail', '新建工作区', 'Nuevo espacio de trabajo', 'مساحة عمل جديدة'],
   'nav.recentFiles': ['Recent files', 'Fichiers récents', '最近的文件', 'Archivos recientes', 'الملفات الأخيرة'],
