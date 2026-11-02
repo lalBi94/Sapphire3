@@ -20,6 +20,7 @@ export const nodeSchema = Object.freeze({
   Block: { category: 'statement', group: 'block', slots: { statements: { categories: ['statement', 'declaration'], many: true, required: true } } },
   ReturnStatement: { category: 'statement', group: 'return', slots: { argument: { ...expression, required: false } } },
   PrintStatement: { category: 'statement', group: 'native', slots: { value: expression } },
+  ForEachStatement: { category: 'statement', group: 'native', slots: { array: expression, callback: expression } },
   IfStatement: { category: 'statement', group: 'condition', slots: { test: expression, consequent: block, alternate: { ...block, required: false } } },
   WhileStatement: { category: 'statement', group: 'loop', slots: { test: expression, body: block } },
   ForStatement: { category: 'statement', group: 'loop', slots: { initializer: { kinds: ['VariableDeclaration', 'ConstantDeclaration', 'AssignmentStatement', 'ExpressionStatement'], required: false }, test: { ...expression, required: false }, update: { categories: ['expression'], kinds: ['AssignmentStatement'], required: false }, body: block } },

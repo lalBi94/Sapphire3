@@ -6,6 +6,8 @@ function typeToString(type) {
   if (!type) return null
   if (type.kind === 'primitive') return type.name
   if (type.kind === 'array') return `${typeToString(type.elementType) ?? '?'}[]`
+  if (type.kind === 'pointer') return `${typeToString(type.pointee) ?? '?'}*`
+  if (type.kind === 'function') return `(${type.parameters.map((parameter) => typeToString(parameter) ?? '?').join(', ')}) -> ${typeToString(type.returnType) ?? '?'}`
   if (type.kind === 'named') return type.target?.name ?? 'named'
   return type.kind
 }

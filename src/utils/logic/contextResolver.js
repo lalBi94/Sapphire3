@@ -1,6 +1,6 @@
 import { isId, isRecord } from './model.js'
 import { getNodeSchema, moduleRootSlot, acceptsNodeKind } from './nodeSchema.js'
-import { primitiveType } from './primitives.js'
+import { primitiveType, isArrayType, functionType } from './primitives.js'
 import { getMathNative } from './mathNatives.js'
 
 // Indexe la source et les résultats déjà calculés, sans reconstruire d'AST à l'ouverture du menu.
@@ -122,6 +122,10 @@ function getExpectedType(record, slot, path, index) {
   if (record.kind === 'MathCall' && slot === 'arguments') {
     const parameters = getMathNative(record.properties?.name)?.parameters
     return parameters?.[Array.isArray(record.children?.arguments) ? record.children.arguments.length : 0] ?? null
+  }
+  if (record.kind === 'ForEachStatement' && slot === 'callback') {
+    const arrayValueType = index.nodeTypes.get(record.children?.array)
+    return isArrayType(arrayValueType) ? functionType([arrayValueType.elementType], primitiveType('void')) : null
   }
   if (record.kind === 'BinaryExpression') {
     const other = record.children?.[slot === 'left' ? 'right' : 'left']

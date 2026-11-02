@@ -1,4 +1,4 @@
-import { primitiveType, primitiveDefinitions, arrayType, isArrayType, isValidElementType, pointerType, isPointerType, pointerPointee, isValidPointee, getNodeSchema, binaryOperators, unaryOperators, acceptsOperand, sameType } from '../../utils/logic/index.js'
+import { primitiveType, primitiveDefinitions, arrayType, isArrayType, isValidElementType, pointerType, isPointerType, pointerPointee, isValidPointee, typeFromRecord, getNodeSchema, binaryOperators, unaryOperators, acceptsOperand, sameType } from '../../utils/logic/index.js'
 
 // Types entiers proposés pour l'index d'un accès à un élément de tableau ; une seule liste partagée par les formulaires.
 export const integerTypeNames = Object.freeze(Object.keys(primitiveDefinitions).filter((name) => acceptsOperand('integer', primitiveType(name))))
@@ -8,9 +8,16 @@ export function emptyExpression() {
   return { mode: '', value: '', empty: false, symbolId: '', operator: '', operandTypeName: '' }
 }
 
-// Convertit un nom de type choisi ('int', 'int[]' ou 'int*') en type logique, sans inventer de synonyme.
+// Convertit un nom de type choisi ('int', 'int[]', 'int*' ou une signature sérialisée) en type logique.
 export function typeFromName(name) {
   if (typeof name !== 'string' || name === '') return null
+  if (name.startsWith('@function:')) {
+    try {
+      return typeFromRecord(JSON.parse(name.slice('@function:'.length)))
+    } catch {
+      return null
+    }
+  }
   if (name.endsWith('[]')) {
     const element = primitiveType(name.slice(0, -2))
     return element && element.name !== 'void' ? arrayType(element) : null
@@ -20,6 +27,22 @@ export function typeFromName(name) {
     return pointee && pointee.name !== 'void' ? pointerType(pointee) : null
   }
   return primitiveType(name)
+}
+
+// Sérialise un type canonique pour un sélecteur, y compris une signature de fonction.
+export function typeNameFromType(type) {
+  if (!type) return ''
+  if (type.kind === 'primitive') return type.name
+  if (type.kind === 'array') {
+    const element = typeNameFromType(type.elementType)
+    return element ? `${element}[]` : ''
+  }
+  if (type.kind === 'pointer') {
+    const pointee = typeNameFromType(type.pointee)
+    return pointee ? `${pointee}*` : ''
+  }
+  if (type.kind === 'function') return `@function:${JSON.stringify(type)}`
+  return ''
 }
 
 // Filtre les opérations par leur résultat attendu, depuis les règles du moteur.
@@ -75,9 +98,7 @@ export function initialNodeForm(kind, node, expectedType, symbols, preset = null
   const symbol = symbols.find((entry) => target?.kind === 'import' ? entry.importId === target.importId : target?.kind === 'name' ? entry.name === target.name : entry.nodeId === target?.nodeId)
   const declared = properties.type
   const typeName = declared?.kind === 'named' ? '@alias'
-    : declared?.kind === 'array' && declared.elementType?.kind === 'primitive' ? `${declared.elementType.name}[]`
-    : declared?.kind === 'pointer' && declared.pointee?.kind === 'primitive' ? `${declared.pointee.name}*`
-    : declared?.kind === 'primitive' ? declared.name
+    : declared ? typeNameFromType(declared)
     : (kind === 'Literal' || kind === 'CastExpression') && expectedType?.kind === 'primitive' ? expectedType.name : ''
   // Le type d'élément d'un tableau est imposé par le slot attendu à la création, sinon librement choisi.
   // Pour un accès par index, le slot attendu donne le type de l'élément lu, donc le tableau visé est son type tableau.
@@ -93,6 +114,7 @@ export function initialNodeForm(kind, node, expectedType, symbols, preset = null
     elementTypeName: arrayElementTypeName, arraySize: emptyExpression(), arrayFill: emptyExpression(), arrayElements: [],
     accessArray: emptyExpression(), accessIndex: emptyExpression(), indexTypeName: 'int',
     mathName: kind === 'MathCall' ? properties.name ?? preset?.name ?? '' : '',
+    forEachArrayId: '', forEachCallbackId: '',
   }
 }
 
@@ -217,6 +239,13 @@ export function nodeConfiguration(kind, form, symbols, initialNode = null) {
   if (kind === 'ArrayAccess') {
     children.array = expressionDraft(form.accessArray, accessedArrayType(primitiveType(form.elementTypeName)), symbols) ?? { kind: 'Hole' }
     children.index = expressionDraft(form.accessIndex, arrayIndexType(form.indexTypeName), symbols) ?? { kind: 'Hole' }
+  }
+  // ForEach référence un tableau et une fonction déjà déclarés, sans lambda ni fermeture.
+  if (kind === 'ForEachStatement') {
+    const arraySymbol = symbols.find((entry) => entry.id === form.forEachArrayId)
+    const callbackSymbol = symbols.find((entry) => entry.id === form.forEachCallbackId)
+    if (arraySymbol) children.array = { kind: 'Reference', references: { target: symbolTarget(arraySymbol) } }
+    if (callbackSymbol) children.callback = { kind: 'Reference', references: { target: symbolTarget(callbackSymbol) } }
   }
   return { kind, properties, references, children }
 }

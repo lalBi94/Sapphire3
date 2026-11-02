@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Plus, Save, Trash2 } from 'lucide-react'
 import { getNodeSchema, binaryOperators, unaryOperators, primitiveType, getCallableSymbols, sameType, isArrayType, mathNativeIds } from '../../utils/logic/index.js'
-import { initialNodeForm, nodeConfiguration, emptyExpression, typeFromName, accessedArrayType, arrayIndexType, integerTypeNames, expressionOperators } from './nodeConfiguration.js'
+import { initialNodeForm, nodeConfiguration, emptyExpression, typeFromName, typeNameFromType, accessedArrayType, arrayIndexType, integerTypeNames, expressionOperators } from './nodeConfiguration.js'
 import NodeTypeInput from './NodeTypeInput.jsx'
 import NodeValueInput from './NodeValueInput.jsx'
 import ExpressionInput from './ExpressionInput.jsx'
-import { diagnosticLabel, symbolLabel } from '../LogicTree/logicLabels.js'
+import { diagnosticLabel, symbolLabel, typeLabel } from '../LogicTree/logicLabels.js'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './NodeForm.css'
 
@@ -26,6 +26,24 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
   const arrayElementType = isNew && isArrayType(context.expectedType) ? context.expectedType.elementType : null
   // Un accès par index vise un tableau du type attendu par le slot ; sans type attendu précis, la lecture reste libre.
   const accessTargetType = isNew && kind === 'ArrayAccess' ? accessedArrayType(context.expectedType) : null
+  // Signatures existantes proposées comme annotation de variable, constante ou paramètre.
+  const declaredFunctionType = initialNode ? context.index.nodeTypes.get(initialNode.id) : null
+  const functionTypes = []
+  if (['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind)) {
+    const seen = new Set()
+    for (const candidate of [declaredFunctionType, ...symbols.map((symbol) => symbol.type)]) {
+      if (candidate?.kind !== 'function') continue
+      const value = typeNameFromType(candidate)
+      if (!value || seen.has(value)) continue
+      seen.add(value)
+      functionTypes.push({ value, label: typeLabel(candidate, t) })
+    }
+  }
+  // ForEach : le rappel doit accepter exactement un élément du tableau choisi et retourner void.
+  const forEachArray = symbols.find((symbol) => symbol.id === form.forEachArrayId)
+  const forEachElementType = isArrayType(forEachArray?.type) ? forEachArray.type.elementType : null
+  const forEachArrays = symbols.filter((symbol) => isArrayType(symbol.type))
+  const forEachCallbacks = symbols.filter((symbol) => symbol.type?.kind === 'function' && symbol.type.parameters.length === 1 && symbol.type.returnType?.name === 'void' && (!forEachElementType || sameType(symbol.type.parameters[0], forEachElementType)))
   const references = symbols.filter((symbol) => {
     if (kind === 'CallExpression') return symbol.type?.kind === 'function' && (!isNew || !context.expectedType || sameType(context.expectedType, symbol.type.returnType))
     if (context.record.kind === 'CallExpression' && context.slot?.name === 'callee') return symbol.type?.kind === 'function'
@@ -46,8 +64,8 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
   // Les erreurs du moteur restent structurées ; l'interface affiche une explication courte.
   function handleSubmit(event) {
     event.preventDefault()
-    if (required && ((schema.named && !form.name.trim()) || (isNew && kind === 'FunctionDeclaration' && form.parameters.some((parameter) => !parameter.name.trim() || !parameter.typeName)))) {
-      setError({ key: 'form.saveHint' })
+    if (required && ((schema.named && !form.name.trim()) || (isNew && kind === 'FunctionDeclaration' && form.parameters.some((parameter) => !parameter.name.trim() || !parameter.typeName)) || (isNew && kind === 'ForEachStatement' && (!form.forEachArrayId || !form.forEachCallbackId)))) {
+      setError({ key: kind === 'ForEachStatement' ? 'form.forEachRequired' : 'form.saveHint' })
       return
     }
     const result = onSubmit(nodeConfiguration(kind, form, symbols, initialNode))
@@ -59,7 +77,7 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
   return (
     <form className="node-form" onSubmit={handleSubmit}>
       {schema.named && <label>{t('form.name')}<input aria-label={t('form.name')} value={form.name} onChange={(event) => change('name', event.target.value)} required={required} autoComplete="off" /></label>}
-      {(schema.declaresType || isNew && kind === 'PrintStatement') && <NodeTypeInput label={kind === 'FunctionDeclaration' ? t('form.returnType') : t('form.type')} value={form.typeName} onChange={(value) => change('typeName', value)} required={required} allowVoid={kind === 'FunctionDeclaration'} allowArray={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement')} allowPointer={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement')} alias={initialNode?.properties.type?.kind === 'named'} />}
+      {(schema.declaresType || isNew && kind === 'PrintStatement') && <NodeTypeInput label={kind === 'FunctionDeclaration' ? t('form.returnType') : t('form.type')} value={form.typeName} onChange={(value) => change('typeName', value)} required={required} allowVoid={kind === 'FunctionDeclaration'} allowArray={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement')} allowPointer={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement')} allowFunction={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind)} functionTypes={functionTypes} alias={initialNode?.properties.type?.kind === 'named'} />}
       {['ArrayLiteral', 'ArrayCreation'].includes(kind) && (arrayElementType
         ? <p className="node-form__hint">{t('form.arrayElementsOfType', { type: arrayElementType.name })}</p>
         : <NodeTypeInput label={t('field.elementType')} value={form.elementTypeName} onChange={(value) => change('elementTypeName', value)} required={required} />)}
@@ -93,7 +111,7 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
       {isNew && kind === 'FunctionDeclaration' && <fieldset><legend>{t('form.parameters')}</legend>
         {form.parameters.map((parameter, index) => <div className="node-form__parameter" key={index}>
           <label>{t('form.parameterName', { number: index + 1 })}<input aria-label={t('form.parameterName', { number: index + 1 })} value={parameter.name} required={required} onChange={(event) => change('parameters', form.parameters.map((entry, position) => position === index ? { ...entry, name: event.target.value } : entry))} /></label>
-          <NodeTypeInput label={t('form.parameterType', { number: index + 1 })} value={parameter.typeName} required={required} allowArray allowPointer onChange={(value) => change('parameters', form.parameters.map((entry, position) => position === index ? { ...entry, typeName: value } : entry))} />
+          <NodeTypeInput label={t('form.parameterType', { number: index + 1 })} value={parameter.typeName} required={required} allowArray allowPointer allowFunction functionTypes={functionTypes} onChange={(value) => change('parameters', form.parameters.map((entry, position) => position === index ? { ...entry, typeName: value } : entry))} />
           <button type="button" onClick={() => change('parameters', form.parameters.filter((_, position) => position !== index))}><Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.removeInput')}</button>
         </div>)}
         <button type="button" onClick={() => change('parameters', [...form.parameters, { name: '', typeName: '' }])}><Plus size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.addInput')}</button>
@@ -118,6 +136,22 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
           </select>
         </label>
         <ExpressionInput label={t('slot.index')} value={form.accessIndex} onChange={(value) => change('accessIndex', value)} type={arrayIndexType(form.indexTypeName)} symbols={symbols} required={required} allowIncomplete={form.allowIncomplete} />
+      </>}
+      {isNew && kind === 'ForEachStatement' && <>
+        <label>{t('form.forEachArray')}
+          <select aria-label={t('form.forEachArray')} value={form.forEachArrayId} onChange={(event) => change('forEachArrayId', event.target.value)} required={required}>
+            <option value="">{t('form.chooseName')}</option>
+            {forEachArrays.map((symbol) => <option key={symbol.id} value={symbol.id}>{symbolLabel(symbol)}</option>)}
+          </select>
+        </label>
+        {forEachArrays.length === 0 && <p className="node-form__hint">{t('form.forEachArrayHint')}</p>}
+        <label>{t('form.forEachCallback')}
+          <select aria-label={t('form.forEachCallback')} value={form.forEachCallbackId} onChange={(event) => change('forEachCallbackId', event.target.value)} required={required}>
+            <option value="">{t('form.chooseName')}</option>
+            {forEachCallbacks.map((symbol) => <option key={symbol.id} value={symbol.id}>{symbolLabel(symbol)}</option>)}
+          </select>
+        </label>
+        {forEachArray && forEachCallbacks.length === 0 && <p className="node-form__hint">{t('form.forEachCallbackHint')}</p>}
       </>}
       {isNew && kind === 'ForStatement' && <p className="node-form__hint">{t('form.loopHint')}</p>}
       {isNew && <p className="node-form__hint">{t('form.incompleteHint')}</p>}

@@ -5,7 +5,7 @@ export const pythonRuntimeNames = [
   '_sapphireMath', '_sapphireStruct', '_sapphireTypes', '_sapphireCodes',
   'sapphireUninitialized', 'sapphireRead', 'sapphireCheck', 'sapphireBinary',
   'sapphireUnary', 'sapphireCast', 'sapphireFormat', 'sapphireQuotient',
-  'sapphireArray', 'sapphireElement', 'sapphireWrite',
+  'sapphireArray', 'sapphireElement', 'sapphireWrite', 'sapphireForEach',
   'print', 'object', 'isinstance', 'bool', 'int', 'float', 'str', 'repr', 'abs', 'len', 'RuntimeError', 'OverflowError',
 ]
 
@@ -96,6 +96,13 @@ def sapphireWrite(array, index, value):
     if index < 0 or index >= len(array):
         raise RuntimeError("SIMULATION_ARRAY_BOUNDS")
     array[index] = value
+
+# Parcourt une copie de la liste pour figer les éléments visités.
+def sapphireForEach(array, callback):
+    if not isinstance(array, list):
+        raise RuntimeError("SIMULATION_REFERENCE")
+    for element in list(array):
+        callback(element)
 
 # Conserve les sorties scalaires Sapphire : booléens minuscules, zéros, tableaux et notation décimale.
 def sapphireFormat(value):

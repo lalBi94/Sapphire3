@@ -19,7 +19,7 @@ const reservedWords = new Set([
 
 // Produit le code JavaScript d'un programme Sapphire déjà analysé.
 export function generateJavaScript(analysis, { selection = null } = {}) {
-  const context = createGenerationContext(analysis, { selection, reservedWords, allowDollar: true, runtimeNames: ['sapphireNumeric', 'sapphireChecked', 'sapphireRead', 'sapphireUninitialized', 'sapphireArray', 'sapphireElement', 'sapphireWrite', 'console', 'Math', 'Number', 'BigInt', 'Object', 'Error'] })
+  const context = createGenerationContext(analysis, { selection, reservedWords, allowDollar: true, runtimeNames: ['sapphireNumeric', 'sapphireChecked', 'sapphireRead', 'sapphireUninitialized', 'sapphireArray', 'sapphireElement', 'sapphireWrite', 'sapphireForEach', 'console', 'Math', 'Number', 'BigInt', 'Object', 'Error'] })
   const { ast, diagnostics, typeByNode, generatedNames, reserveDeclaration, referenceName, entryName } = context
 
   // Génère une expression en conservant la structure et les opérateurs de l'AST.
@@ -106,6 +106,8 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
       return `${indent}${referenceName(target)} = ${value};`
     }
     if (node.kind === 'PrintStatement') return `${indent}console.log(String(${expression(child(node, 'value'))}));`
+    // ForEach parcourt une copie du tableau pour figer les éléments visités.
+    if (node.kind === 'ForEachStatement') return `${indent}sapphireForEach(${expression(child(node, 'array'))}, ${expression(child(node, 'callback'))});`
     if (node.kind === 'ReturnStatement') {
       const argument = child(node, 'argument')
       return `${indent}return${argument ? ` ${expression(argument)}` : ''};`
@@ -168,6 +170,7 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
     'function sapphireArray(length) { if (typeof length !== "number" && typeof length !== "bigint" || !Number.isInteger(Number(length)) || Number(length) < 0) throw new Error("SIMULATION_ARRAY_BOUNDS"); return Number(length); }',
     'function sapphireElement(array, index) { if (!Array.isArray(array)) throw new Error("SIMULATION_REFERENCE"); if (index < 0 || index >= array.length) throw new Error("SIMULATION_ARRAY_BOUNDS"); const value = array[index]; if (value === sapphireUninitialized) throw new Error("SIMULATION_UNINITIALIZED"); return value; }',
     'function sapphireWrite(array, index, value) { if (!Array.isArray(array)) throw new Error("SIMULATION_REFERENCE"); if (index < 0 || index >= array.length) throw new Error("SIMULATION_ARRAY_BOUNDS"); array[index] = value; }',
+    'function sapphireForEach(array, callback) { if (!Array.isArray(array)) throw new Error("SIMULATION_REFERENCE"); if (typeof callback !== "function") throw new Error("SIMULATION_REFERENCE"); for (const element of [...array]) callback(element); }',
     ...globalDeclarations,
     ...functions,
     '',

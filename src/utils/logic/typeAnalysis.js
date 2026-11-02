@@ -2,7 +2,7 @@ import { createDiagnostic, diagnosticCodes as codes } from './diagnostics.js'
 import { isRecord } from './model.js'
 import { binaryOperators, unaryOperators, getNodeSchema } from './nodeSchema.js'
 import { getMathNative } from './mathNatives.js'
-import { getPrimitive, primitiveType, isNumeric, sameType, acceptsOperand, arrayType, isArrayType, pointerType, pointerPointee } from './primitives.js'
+import { getPrimitive, primitiveType, isNumeric, sameType, acceptsOperand, arrayType, isArrayType, pointerType, pointerPointee, functionType, typeFromRecord } from './primitives.js'
 import { validateLiteral, convertConstant, evaluateBinary, evaluateUnary } from './numericConstants.js'
 
 // Extrait un enfant simple sans interpréter un trou ou une liste malformée comme une expression.
@@ -76,6 +76,9 @@ export function analyzeTypes(semantic, projectId) {
       } else {
         type = pointerType(pointee)
       }
+    } else if (isRecord(sourceType) && sourceType.kind === 'function') {
+      type = typeFromRecord(sourceType)
+      if (!type) report(codes.invalidType, 'Une signature de fonction doit avoir des paramètres typés non void et un retour primitif.', node, 'properties.type')
     } else if (isRecord(sourceType) && sourceType.kind === 'named') {
       const symbol = typeSymbols.get(node.sourceId)
       if (symbol && nodes.has(symbol.nodeId)) type = annotation(nodes.get(symbol.nodeId))
@@ -92,6 +95,10 @@ export function analyzeTypes(semantic, projectId) {
     }
     if (type?.kind === 'pointer' && !['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(node.kind)) {
       report(codes.invalidType, 'Un type pointeur n’est autorisé que pour une variable, une constante ou un paramètre.', node, 'properties.type')
+      type = null
+    }
+    if (type?.kind === 'function' && !['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(node.kind)) {
+      report(codes.invalidType, 'Un type fonction n’est autorisé que pour une variable, une constante ou un paramètre.', node, 'properties.type')
       type = null
     }
     annotationActive.delete(node.sourceId)
@@ -377,6 +384,25 @@ export function analyzeTypes(semantic, projectId) {
       const value = child(node, 'value')
       const type = resolve(value?.sourceId)
       if (type?.kind === 'primitive' && type.name === 'void') report(codes.voidNotAllowed, 'Une instruction Print doit recevoir une valeur.', node, 'children.value')
+    }
+    if (node.kind === 'ForEachStatement') {
+      const arrayNode = child(node, 'array')
+      const callbackNode = child(node, 'callback')
+      const arrayValueType = arrayNode ? resolve(arrayNode.sourceId) : null
+      if (arrayNode && arrayValueType && !isArrayType(arrayValueType)) {
+        report(codes.typeMismatch, 'ForEach attend un tableau en premier emplacement.', node, 'children.array')
+      }
+      if (callbackNode) {
+        const callbackType = resolve(callbackNode.sourceId)
+        if (callbackType && callbackType.kind !== 'function') {
+          report(codes.typeMismatch, 'ForEach attend une fonction de rappel en second emplacement.', node, 'children.callback')
+        } else if (callbackType?.kind === 'function' && isArrayType(arrayValueType)) {
+          const expected = functionType([arrayValueType.elementType], primitiveType('void'))
+          if (!sameType(expected, callbackType)) {
+            report(codes.typeMismatch, 'La fonction de rappel doit accepter un élément du tableau et retourner void.', node, 'children.callback')
+          }
+        }
+      }
     }
   }
 

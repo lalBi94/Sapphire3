@@ -112,6 +112,7 @@ export function generatePython(analysis, { selection = null } = {}) {
       return `${indent}${referenceName(target)} = ${value}`
     }
     if (node.kind === 'PrintStatement') return `${indent}print(sapphireFormat(${expression(child(node, 'value'))}))`
+    if (node.kind === 'ForEachStatement') return `${indent}sapphireForEach(${expression(child(node, 'array'))}, ${expression(child(node, 'callback'))})`
     if (node.kind === 'ReturnStatement') return `${indent}return${child(node, 'argument') ? ` ${expression(child(node, 'argument'))}` : ''}`
     if (node.kind === 'BreakStatement') return `${indent}break`
     if (node.kind === 'ContinueStatement') return `${loop?.update ? `${updateCode(loop.update, level)}\n` : ''}${indent}continue`

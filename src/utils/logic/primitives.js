@@ -106,3 +106,56 @@ export function pointerPointee(type) {
 export function isValidPointee(type) {
   return type?.kind === 'primitive' && type.name !== 'void'
 }
+
+// Vérifie si un type peut servir de paramètre : primitif non void, tableau, pointeur ou fonction.
+export function isValidParameterType(type, depth = 0) {
+  if (!type || depth > 20) return false
+  if (type.kind === 'primitive') return type.name !== 'void'
+  if (type.kind === 'array') return isValidElementType(type.elementType)
+  if (type.kind === 'pointer') return isValidPointee(type.pointee)
+  if (type.kind === 'function') {
+    return Array.isArray(type.parameters) &&
+      type.parameters.every((parameter) => isValidParameterType(parameter, depth + 1)) &&
+      isValidReturnType(type.returnType)
+  }
+  return false
+}
+
+// Vérifie si un type peut être un retour de fonction : un primitif, void compris.
+export function isValidReturnType(type) {
+  return type?.kind === 'primitive' && Boolean(getPrimitive(type.name))
+}
+
+// Crée un type fonction structurel, ou null si un paramètre ou le retour est invalide.
+export function functionType(parameters, returnType) {
+  if (!Array.isArray(parameters) || parameters.length > 100) return null
+  if (!parameters.every((parameter) => isValidParameterType(parameter))) return null
+  if (!isValidReturnType(returnType)) return null
+  return Object.freeze({ kind: 'function', parameters: Object.freeze([...parameters]), returnType })
+}
+
+// Vérifie si un type est une signature de fonction.
+export function isFunctionType(type) {
+  return type?.kind === 'function'
+}
+
+// Convertit un enregistrement de type source en type canonique, sans conversion implicite.
+export function typeFromRecord(record, depth = 0) {
+  if (!record || typeof record !== 'object' || depth > 20) return null
+  if (record.kind === 'primitive') return primitiveType(record.name)
+  if (record.kind === 'array') {
+    const element = typeFromRecord(record.elementType, depth + 1)
+    return isValidElementType(element) ? arrayType(element) : null
+  }
+  if (record.kind === 'pointer') {
+    const pointee = typeFromRecord(record.pointee, depth + 1)
+    return isValidPointee(pointee) ? pointerType(pointee) : null
+  }
+  if (record.kind === 'function') {
+    const parameters = Array.isArray(record.parameters)
+      ? record.parameters.map((parameter) => typeFromRecord(parameter, depth + 1))
+      : null
+    return functionType(parameters, typeFromRecord(record.returnType, depth + 1))
+  }
+  return null
+}

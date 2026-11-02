@@ -144,6 +144,8 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     if (node.kind === 'Reference') {
       const symbol = symbols.get(references.get(node.id)?.symbolId)
       if (!symbol) throw simulationError('SIMULATION_REFERENCE', 'The reference cannot be resolved.')
+      const target = functions.get(symbol.nodeId)
+      if (target) return { functionValue: true, nodeId: symbol.nodeId, label: `fn ${target.properties?.name ?? symbol.name ?? symbol.nodeId}` }
       return readBinding(symbol.nodeId, environment)
     }
     if (node.kind === 'BinaryExpression') {
@@ -191,9 +193,9 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       return target === types.get(node.children.argument)?.name ? value : checked(convertConstant(value, target))
     }
     if (node.kind === 'CallExpression') {
-      const callee = nodes.get(node.children.callee)
-      const symbol = symbols.get(references.get(callee?.id)?.symbolId)
-      const target = symbol ? functions.get(symbol.nodeId) : null
+      // Le callee est évalué comme une valeur : fonction déclarée ou variable de type fonction.
+      const callee = valueOf(nodes.get(node.children.callee), environment)
+      const target = callee?.functionValue === true ? functions.get(callee.nodeId) : null
       if (!target) throw simulationError('SIMULATION_REFERENCE', 'The called function cannot be resolved.')
       return executeFunction(target, (node.children.arguments ?? []).map((id) => valueOf(nodes.get(id), environment)))
     }
@@ -303,6 +305,21 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     }
     if (node.kind === 'PrintStatement') {
       output.push(formatValue(valueOf(nodes.get(node.children.value), environment)))
+      return
+    }
+    if (node.kind === 'ForEachStatement') {
+      const array = valueOf(nodes.get(node.children.array), environment)
+      if (!Array.isArray(array)) throw simulationError('SIMULATION_REFERENCE', 'ForEach expects an array.')
+      const callback = valueOf(nodes.get(node.children.callback), environment)
+      const target = callback?.functionValue === true ? functions.get(callback.nodeId) : null
+      if (!target) throw simulationError('SIMULATION_REFERENCE', 'ForEach expects a function callback.')
+      // La copie fige les éléments visités même si le rappel modifie le tableau d'origine.
+      const snapshot = [...array]
+      for (const element of snapshot) {
+        step(node)
+        observe(node, environment)
+        executeFunction(target, [element])
+      }
       return
     }
     if (node.kind === 'AssignmentStatement') {
@@ -448,13 +465,14 @@ function typeText(type) {
   if (type.kind === 'primitive') return type.name
   if (type.kind === 'array') return `${typeText(type.elementType) ?? '?'}[]`
   if (type.kind === 'pointer') return `${typeText(type.pointee) ?? '?'}*`
-  if (type.kind === 'function') return 'function'
+  if (type.kind === 'function') return `(${type.parameters.map((parameter) => typeText(parameter) ?? '?').join(', ')}) -> ${typeText(type.returnType) ?? '?'}`
   return type.kind
 }
 
 // Rend une valeur de simulation lisible sans perdre la distinction booléenne.
 function formatValue(value) {
   if (value && typeof value === 'object' && value.pointer === true) return value.label
+  if (value && typeof value === 'object' && value.functionValue === true) return value.label
   if (value === undefined) return 'undefined'
   if (typeof value === 'boolean') return value ? 'true' : 'false'
   if (typeof value === 'symbol') return 'uninitialized'
