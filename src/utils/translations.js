@@ -213,6 +213,7 @@ const messages = {
   'examples.arrays': ['Arrays', 'Tableaux', '数组', 'Arreglos', 'المصفوفات'],
   'examples.recursion': ['Recursion', 'Récursion', '递归', 'Recursión', 'الاستدعاء الذاتي'],
   'examples.imports': ['Imports', 'Imports', '导入', 'Importaciones', 'الاستيراد'],
+  'examples.forEach': ['For each', 'Pour chaque', '遍历', 'Para cada', 'لكل عنصر'],
   'import.title': ['Replace this workspace?', 'Remplacer cet espace de travail ?', '替换此工作区？', '¿Reemplazar este espacio de trabajo?', 'استبدال مساحة العمل هذه؟'],
   'import.body': ['This will replace your modules, notes, images and layout. Save first if you want to keep them.', 'Cela remplacera vos modules, notes, images et disposition. Enregistrez-les d’abord pour les conserver.', '这将替换您的模块、注释、图片和布局。如果想保留它们，请先保存。', 'Esto reemplazará sus módulos, notas, imágenes y disposición. Guárdelos primero si quiere conservarlos.', 'سيؤدي هذا إلى استبدال الوحدات والملاحظات والصور والتخطيط. احفظها أولاً للاحتفاظ بها.'],
   'import.cancel': ['Cancel', 'Annuler', '取消', 'Cancelar', 'إلغاء'],

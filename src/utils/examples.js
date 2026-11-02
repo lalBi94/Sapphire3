@@ -174,6 +174,27 @@ function imports() {
   return workspace(b.project)
 }
 
+// ForEach : parcourt un tableau en appelant une fonction via une variable de type fonction.
+function forEach() {
+  const b = builder()
+  b.useModule('foreach', 'For each')
+  b.root('values', 'VariableDeclaration', { name: 'values', type: intArrayType }, { initializer: 'valuesList' })
+  b.make('valuesList', 'ArrayLiteral', { elementType: intType }, { elements: ['v3', 'v1', 'v4', 'v1b', 'v5'] })
+  b.intValue('v3', 3); b.intValue('v1', 1); b.intValue('v4', 4); b.intValue('v1b', 1); b.intValue('v5', 5)
+  // `show` affiche chaque élément visité ; sa référence alimente une variable de type fonction.
+  b.root('show', 'FunctionDeclaration', { name: 'show', type: voidType }, { parameters: ['showValue'], body: 'showBody' })
+  b.make('showValue', 'Parameter', { name: 'value', type: intType })
+  b.block('showBody', ['showPrint'])
+  b.print('showPrint', 'showRef'); b.ref('showRef', 'value')
+  b.root('printer', 'VariableDeclaration', { name: 'printer', type: { kind: 'function', parameters: [intType], returnType: voidType } }, { initializer: 'printerRef' })
+  b.ref('printerRef', 'show')
+  b.root('forEachMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'forEachBody' })
+  b.block('forEachBody', ['each'])
+  b.make('each', 'ForEachStatement', {}, { array: 'valuesRef', callback: 'printerUse' })
+  b.ref('valuesRef', 'values'); b.ref('printerUse', 'printer')
+  return workspace(b.project)
+}
+
 // Catalogue local, ouvrable sans réseau ni fichier externe.
 export const examples = [
   { id: 'fibonacci', labelKey: 'examples.fibonacci', build: fibonacci },
@@ -181,4 +202,5 @@ export const examples = [
   { id: 'arrays', labelKey: 'examples.arrays', build: arrays },
   { id: 'recursion', labelKey: 'examples.recursion', build: recursion },
   { id: 'imports', labelKey: 'examples.imports', build: imports },
+  { id: 'foreach', labelKey: 'examples.forEach', build: forEach },
 ]
