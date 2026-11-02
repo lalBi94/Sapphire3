@@ -4,7 +4,6 @@ import { getAvailableActions } from './actionResolver.js'
 import { deleteSourceNodes, insertSourceNodes } from './sourceMutation.js'
 import { ensureModuleImports } from './moduleInterface.js'
 import { getNodeSchema } from './nodeSchema.js'
-import { getSyscall } from './syscalls.js'
 import { isId, isRecord } from './model.js'
 
 // Réutilise une analyse seulement lorsqu'elle décrit exactement la source courante.
@@ -64,7 +63,6 @@ function isIncomplete(entry, index) {
   if (entry.code === 'LITERAL_INVALID' && node?.kind === 'Literal' && !Object.hasOwn(node.properties, 'value')) return true
   if (entry.code !== 'TYPE_MISMATCH') return false
   if (node?.kind === 'ReturnStatement' && entry.location.field === 'children.argument' && (!node.children.argument || index.nodes.get(node.children.argument)?.kind === 'Hole')) return true
-  if (node?.kind === 'SystemCall') return entry.location.field === 'children.arguments' && (node.children?.arguments?.length ?? 0) < (getSyscall(node.properties?.name)?.parameters.length ?? 0)
   const signature = node?.kind === 'CallExpression' ? index.nodeTypes.get(node.children.callee) : null
   return entry.location.field === 'children.arguments' && signature?.kind === 'function' && (node.children.arguments?.length ?? 0) < signature.parameters.length
 }

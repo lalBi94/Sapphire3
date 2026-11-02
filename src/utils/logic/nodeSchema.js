@@ -32,7 +32,6 @@ export const nodeSchema = Object.freeze({
   Literal: { category: 'expression', group: 'value', declaresType: true, slots: {} },
   Reference: { category: 'expression', group: 'value', slots: {} },
   CallExpression: { category: 'expression', group: 'function', slots: { callee: expression, arguments: { categories: ['expression'], many: true, required: true } } },
-  SystemCall: { category: 'expression', group: 'native', slots: { arguments: { categories: ['expression'], many: true, required: true } } },
   CastExpression: { category: 'expression', group: 'operator', declaresType: true, slots: { argument: expression } },
   Hole: { category: 'hole', group: 'incomplete', slots: {} },
   // Tableaux : littéral, création bornée par une taille, puis accès par index.

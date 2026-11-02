@@ -2,7 +2,6 @@ import { analyzeProgram } from './analysis.js'
 import { validateLiteral, convertConstant, evaluateBinary, evaluateUnary } from './numericConstants.js'
 import { createDebugRecorder } from './debugTrace.js'
 import { satisfiesContract, normalizeContracts } from './contracts.js'
-import { getSyscall } from './syscalls.js'
 
 // Ajoute un code stable sans introduire de traduction ni de dépendance UI dans le moteur.
 function simulationError(code, message) {
@@ -196,13 +195,6 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       const target = symbol ? functions.get(symbol.nodeId) : null
       if (!target) throw simulationError('SIMULATION_REFERENCE', 'The called function cannot be resolved.')
       return executeFunction(target, (node.children.arguments ?? []).map((id) => valueOf(nodes.get(id), environment)))
-    }
-    // Appel système simulé : déterministe, en mémoire, sans effet natif.
-    if (node.kind === 'SystemCall') {
-      const definition = getSyscall(node.properties?.name)
-      if (!definition) throw simulationError('SIMULATION_REFERENCE', 'The system call cannot be resolved.')
-      const args = (node.children?.arguments ?? []).map((id) => valueOf(nodes.get(id), environment))
-      return definition.run({ args, steps, effect: { write: (text) => output.push(String(text)) } })
     }
     if (node.kind === 'ArrayLiteral') {
       return (node.children.elements ?? []).map((id) => valueOf(nodes.get(id), environment))
