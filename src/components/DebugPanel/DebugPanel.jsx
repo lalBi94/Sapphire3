@@ -6,13 +6,14 @@ import { snapPanelToArea } from '../../utils/panelSnap.js'
 import { failureLabel } from '../../utils/translations.js'
 import { memoryValue } from '../../utils/memorySpace.js'
 import { kindLabel, typeLabel } from '../LogicTree/logicLabels.js'
+import ArrayCells from '../ArrayCells/ArrayCells.jsx'
 import './DebugPanel.css'
 
 // Présente les valeurs scalaires sans perdre les chaînes vides ou les booléens du programme.
 function MemoryTable({ variables, modules, t }) {
   if (variables.length === 0) return <p>{t('debug.noVariables')}</p>
   return <table className="debug-panel__memory"><thead><tr><th>{t('form.name')}</th><th>{t('form.type')}</th><th>{t('form.value')}</th></tr></thead><tbody>
-    {variables.map((variable) => <tr key={variable.nodeId} data-memory-node={variable.nodeId}><th scope="row">{variable.name}<small>{modules.get(variable.moduleId)?.name}</small></th><td>{typeLabel(variable.type, t)}</td><td>{variable.initialized ? memoryValue(variable.value) : <em>{t('debug.uninitialized')}</em>}</td></tr>)}
+    {variables.map((variable) => <tr key={variable.nodeId} data-memory-node={variable.nodeId}><th scope="row">{variable.name}<small>{modules.get(variable.moduleId)?.name}</small></th><td>{typeLabel(variable.type, t)}</td><td>{variable.initialized ? (variable.array ? <ArrayCells array={variable.array} /> : memoryValue(variable.value)) : <em>{t('debug.uninitialized')}</em>}</td></tr>)}
   </tbody></table>
 }
 

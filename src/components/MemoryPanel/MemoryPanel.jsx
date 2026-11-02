@@ -3,6 +3,7 @@ import FloatingPanel from '../FloatingPanel/FloatingPanel.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { buildMemorySpace, memoryValue } from '../../utils/memorySpace.js'
 import { kindLabel, typeLabel } from '../LogicTree/logicLabels.js'
+import ArrayCells from '../ArrayCells/ArrayCells.jsx'
 import './MemoryPanel.css'
 
 // Présente une vue abstraite du code, des globales et de la pile d'appels de la session.
@@ -16,7 +17,7 @@ export default function MemoryPanel({ index, frame, reachability, onClose }) {
       <code className="memory-panel__address">{variable.address}</code>
       <strong>{variable.name}</strong>
       <small>{typeLabel(variable.type, t)}</small>
-      <span className="memory-panel__value">{variable.initialized ? memoryValue(variable.value) : t('debug.uninitialized')}</span>
+      <div className="memory-panel__value">{variable.initialized ? (variable.array ? <ArrayCells array={variable.array} /> : memoryValue(variable.value)) : t('debug.uninitialized')}</div>
     </li>
   }
 

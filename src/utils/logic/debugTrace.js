@@ -3,6 +3,7 @@ export function createDebugRecorder(analysis, global, output, uninitialized) {
   const frames = []
   const scopes = new Map(analysis.semantic.scopes.map((scope) => [scope.id, scope]))
   const variables = analysis.semantic.symbols.filter((symbol) => !symbol.importedFrom && ['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(symbol.kind))
+  const maximumArrayCells = 24
   let entries = 0
 
   // Distingue une valeur non initialisée d'une vraie chaîne ou d'un booléen.
@@ -17,10 +18,23 @@ export function createDebugRecorder(analysis, global, output, uninitialized) {
     return typeof value === 'bigint' ? Number(value) : value
   }
 
+  // Présente un élément de tableau comme une case lisible, sans perdre les chaînes.
+  function cellValue(value) {
+    if (typeof value === 'string') return JSON.stringify(value)
+    return displayValue(value)
+  }
+
+  // Décrit un tableau par sa longueur et ses premières cases, dans une limite bornée.
+  function arrayPreview(value) {
+    if (!Array.isArray(value)) return null
+    return { length: value.length, cells: value.slice(0, maximumArrayCells).map(cellValue) }
+  }
+
   function binding(symbol, environment) {
     const initialized = environment.values.has(symbol.nodeId) && environment.values.get(symbol.nodeId) !== uninitialized
     const value = initialized ? environment.values.get(symbol.nodeId) : undefined
-    return { nodeId: symbol.nodeId, moduleId: symbol.moduleId, name: symbol.name, type: symbol.type, initialized, ...(initialized ? { value: displayValue(value) } : {}) }
+    const array = initialized ? arrayPreview(value) : null
+    return { nodeId: symbol.nodeId, moduleId: symbol.moduleId, name: symbol.name, type: symbol.type, initialized, ...(initialized ? { value: displayValue(value) } : {}), ...(array ? { array } : {}) }
   }
 
   // Borne la rétention de l'historique ; l'unique état terminal reste toujours disponible.
@@ -33,6 +47,7 @@ export function createDebugRecorder(analysis, global, output, uninitialized) {
       current = current.parent
     }
     const count = 1 + globals.length + localScopes.reduce((total, scope) => total + 1 + scope.variables.length, 0) + output.length + activeScopes.length
+      + [...globals, ...localScopes.flatMap((scope) => scope.variables)].reduce((total, variable) => total + (variable.array?.cells.length ?? 0), 0)
     if (status === 'paused' && entries + count > 200000) throw Object.assign(new Error('Debug history memory limit reached.'), { code: 'DEBUG_HISTORY_LIMIT' })
     entries += count
     frames.push({ nodeId, status, errorCode, scopeIds: activeScopes.map((scope) => scope.instanceId), callStack: activeScopes.filter((scope) => scope.scopeId.startsWith('function:')).map((scope) => ({ instanceId: scope.instanceId, nodeId: scope.nodeId })), globals, localScopes, output: [...output] })

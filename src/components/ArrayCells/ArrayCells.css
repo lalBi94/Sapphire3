@@ -1,0 +1,6 @@
+/* Cases indexées d'un tableau pendant le debug. */
+.array-cells { display: flex; flex-wrap: wrap; gap: 3px; align-items: stretch; }
+.array-cells__cell { display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 26px; max-width: 64px; padding: 2px 4px; border: 1px solid var(--color-border); border-radius: var(--radius-small); background: var(--color-input); }
+.array-cells__cell small { color: var(--color-text-muted); font-size: 9px; line-height: 1; }
+.array-cells__cell code { max-width: 100%; overflow: hidden; color: var(--color-text); font-family: var(--font-mono); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.array-cells__more { align-self: center; color: var(--color-text-muted); font-size: 10px; }

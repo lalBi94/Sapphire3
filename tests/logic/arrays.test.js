@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { analyzeProgram, serializeSource, deserializeSource, simulateProgram, getAvailableActions, createContextIndex, createNodeBundle, insertSourceNodes, primitiveType, arrayType } from '../../src/utils/logic/index.js'
+import { analyzeProgram, serializeSource, deserializeSource, simulateProgram, getAvailableActions, createContextIndex, createNodeBundle, insertSourceNodes, primitiveType, arrayType, createDebugSession } from '../../src/utils/logic/index.js'
 import { transpileProgram } from '../../src/utils/transpilation/index.js'
 import { program, root, node, intType } from './fixtures.js'
 
@@ -328,4 +328,16 @@ test('tableaux : un index en variable, en expression ou issu d’un autre accès
   const result = simulateProgram(source)
   assert.equal(result.ok, true, result.error)
   assert.deepEqual(result.output, ['6', '7', '6'])
+})
+
+test('debug : un tableau est exposé en cases indexées, avec une limite de cases', () => {
+  const source = filledProgram()
+  source.nodes.find((node) => node.id === 'size').properties.value = 30
+  const session = createDebugSession(source)
+  const frame = session.frames.find((entry) => entry.nodeId === 'assign')
+  const variable = frame.globals.find((entry) => entry.name === 'buffer')
+  assert.equal(variable.array.length, 30)
+  assert.equal(variable.array.cells.length, 24)
+  assert.deepEqual(variable.array.cells.every((cell) => cell === 7), true)
+  assert.match(variable.value, /^\[7, 7, 7/)
 })
