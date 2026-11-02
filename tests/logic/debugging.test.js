@@ -257,3 +257,25 @@ test('accessibilité : court-circuit booléen sans considérer un appel ignoré 
   for (const id of ['booleanCall', 'booleanRef', 'unused', 'branch', 'twice']) assert.ok(result.unreachableNodeIds.includes(id), id)
   assert.deepEqual(simulateProgram(project).output, ['2'])
 })
+
+test('points d’arrêt : démarrage sur le premier, reprise vers le suivant et recommencer', () => {
+  const project = debugFixture()
+  const breakpoints = new Set(['local', 'increment'])
+  const session = createDebugSession(project, { breakpoints })
+  assert.equal(session.frames[session.cursor].nodeId, 'local')
+
+  const resumed = moveDebugSession(session, 'continue', { breakpoints })
+  assert.equal(resumed.frames[resumed.cursor].nodeId, 'increment')
+  assert.deepEqual(resumed.history, [session.cursor])
+
+  const ended = moveDebugSession(resumed, 'continue', { breakpoints })
+  assert.equal(ended.cursor, ended.frames.length - 1)
+
+  const restarted = moveDebugSession(ended, 'restart', { breakpoints })
+  assert.equal(restarted.frames[restarted.cursor].nodeId, 'local')
+  assert.deepEqual(restarted.history, [])
+
+  const unmatched = createDebugSession(project, { breakpoints: new Set(['missing']) })
+  assert.equal(unmatched.cursor, 0)
+  assert.equal(moveDebugSession(unmatched, 'continue', { breakpoints: new Set() }).cursor, unmatched.frames.length - 1)
+})

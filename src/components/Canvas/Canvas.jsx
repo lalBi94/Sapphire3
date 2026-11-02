@@ -62,6 +62,7 @@ export default function Canvas() {
   const [revealTarget, setRevealTarget] = useState(null)
   const [bookmarks, setBookmarks] = useState(() => loadBookmarks())
   const [bookmarksOpen, setBookmarksOpen] = useState(false)
+  const [breakpoints, setBreakpoints] = useState(() => new Set())
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [navCollapsed, setNavCollapsed] = useState(false)
   const menuTriggerRef = useRef(null)
@@ -349,7 +350,7 @@ export default function Canvas() {
     setExecution(null)
     setSimulationResult(null)
     setContextMenu(null)
-    setDebugSession(createDebugSession(document.project))
+    setDebugSession(createDebugSession(document.project, { breakpoints }))
   }
 
   // Génère le JavaScript uniquement après analyse du document courant.
@@ -445,7 +446,7 @@ export default function Canvas() {
     setSimulationResult(null)
     setContextMenu(null)
     setFunctionResult(null)
-    setDebugSession(createDebugSession(document.project, { functionId: functionTarget, args }))
+    setDebugSession(createDebugSession(document.project, { functionId: functionTarget, args, breakpoints }))
   }
 
   // Ferme le panneau d'exécution de fonction.
@@ -456,11 +457,21 @@ export default function Canvas() {
 
   // Ne change que le curseur de lecture et l'instantané mémoire exposé au débogueur.
   function handleDebugAction(action) {
-    const next = moveDebugSession(debugSession, action)
+    const next = moveDebugSession(debugSession, action, { breakpoints })
     const nodeId = next?.frames[next.cursor]?.nodeId
     const moduleId = document.index.nodes.get(nodeId)?.moduleId
     if (moduleId) setActiveCardId(moduleId)
     setDebugSession(next)
+  }
+
+  // Ajoute ou retire un point d'arrêt sur un nœud, sans toucher à la source logique.
+  function handleToggleBreakpoint(nodeId) {
+    setBreakpoints((current) => {
+      const next = new Set(current)
+      if (next.has(nodeId)) next.delete(nodeId)
+      else next.add(nodeId)
+      return next
+    })
   }
 
   // Calcule le rectangle global des modules visibles, sans inclure les annotations ni les cartes masquées.
@@ -652,7 +663,7 @@ export default function Canvas() {
         pure={pureIds.modules.has(card.id)}
         pulse={activeModuleId === card.id && executionStep !== null ? executionStep + 1 : null}
         expansionState={document.index.modules.has(card.id) ? getExpansionState(card.id) : null} onToggleExpansion={(id) => handleExpansion(id, getExpansionState(id) !== 'collapse')}>
-        {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} onReorder={(id, offset) => document.reorderNode(id, offset)} unusedIds={unusedIds} pureIds={pureIds.functions} dropTarget={transfers.dropTarget} />}
+        {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} onReorder={(id, offset) => document.reorderNode(id, offset)} unusedIds={unusedIds} pureIds={pureIds.functions} breakpoints={breakpoints} onToggleBreakpoint={handleToggleBreakpoint} dropTarget={transfers.dropTarget} />}
       </CanvasModule>)}
       <CanvasStatus camera={camera} zoom={zoom} hiddenCount={hiddenCards.length} onShowAllHidden={handleShowAllHidden} onRecenter={() => handleRecenter(getModulesBounds())} />
       {minimapVisible && <Minimap modules={minimapModules} camera={camera} zoom={zoom} canvasRef={canvasRef} onNavigate={panTo} />}
