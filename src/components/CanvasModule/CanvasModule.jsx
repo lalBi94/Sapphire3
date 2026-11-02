@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronsDownUp, ChevronsUpDown, Lock, Smile } from 'lucide-react'
+import { ChevronsDownUp, ChevronsUpDown, CirclePlus, Lock } from 'lucide-react'
 import { minimumModuleSize, moduleTypes } from '../../utils/moduleTypes.js'
 import { isEmbeddedImage } from '../../utils/embeddedImage.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
@@ -50,12 +50,12 @@ function ModuleEmoji({ emoji, onChange }) {
 
   return <>
     <button ref={buttonRef} type="button" className={`canvas-module__emoji${emoji ? ' canvas-module__emoji--set' : ''}`} aria-label={t('module.emojiAdd')} title={t('module.emojiAdd')} onPointerDown={(event) => event.stopPropagation()} onClick={toggle}>
-      {emoji ? <span aria-hidden="true">{emoji}</span> : <Smile size={14} strokeWidth={1.75} aria-hidden="true" />}
+      {emoji ? <span aria-hidden="true">{emoji}</span> : <CirclePlus size={14} strokeWidth={1.75} aria-hidden="true" />}
     </button>
     {open && anchor && createPortal(<div className="module-emoji__popover" role="dialog" aria-label={t('module.emojiPicker')} style={{ left: anchor.left, top: anchor.top }} onPointerDown={(event) => event.stopPropagation()}>
       <div className="module-emoji__grid">{emojiPresets.map((value) => <button type="button" key={value} className="module-emoji__choice" aria-label={value} onClick={() => choose(value)} onPointerDown={(event) => event.stopPropagation()}>{value}</button>)}</div>
       <div className="module-emoji__custom">
-        <input className="module-emoji__input" aria-label={t('module.emojiCustom')} value={draft} maxLength={8} placeholder="🙂" onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); choose(draft) } }} />
+        <input className="module-emoji__input" aria-label={t('module.emojiCustom')} value={draft} maxLength={8} placeholder={t('module.emojiCustom')} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); choose(draft) } }} />
         <button type="button" onClick={() => choose(draft)} onPointerDown={(event) => event.stopPropagation()}>{t('module.emojiApply')}</button>
       </div>
       {emoji && <button type="button" className="module-emoji__clear" onClick={() => choose('')} onPointerDown={(event) => event.stopPropagation()}>{t('module.emojiClear')}</button>}
