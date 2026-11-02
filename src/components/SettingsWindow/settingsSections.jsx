@@ -106,9 +106,9 @@ export function ProjectInfoSection({ project, currentPath, diagnostics = [], ref
   </div>
 }
 
-// Thème : le sélecteur de thèmes existant, sans duplication.
+// Thème : galerie stylisée du sélecteur de thèmes, sans duplication de la logique.
 export function ThemeSection() {
-  return <div className="settings-section"><ThemeMenu /></div>
+  return <div className="settings-section settings-section--theme"><ThemeMenu variant="settings" /></div>
 }
 
 // Langue : le catalogue reste la seule source des langues proposées.

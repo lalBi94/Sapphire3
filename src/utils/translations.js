@@ -237,6 +237,7 @@ const messages = {
   'theme.done': ['Done', 'Terminé', '完成', 'Hecho', 'تم', '完了', 'हो गया', 'Готово'],
   'theme.name': ['Theme name', 'Nom du thème', '主题名称', 'Nombre del tema', 'اسم المظهر', 'テーマ名', 'थीम का नाम', 'Название темы'],
   'theme.dark': ['Dark theme', 'Thème sombre', '深色主题', 'Tema oscuro', 'مظهر داكن', 'ダークテーマ', 'गहरी थीम', 'Тёмная тема'],
+  'theme.light': ['Light theme', 'Thème clair', '浅色主题', 'Tema claro', 'مظهر فاتح', 'ライトテーマ', 'हल्की थीम', 'Светлая тема'],
   'theme.defaultName': ['My theme', 'Mon thème', '我的主题', 'Mi tema', 'مظهري', 'マイテーマ', 'मेरी थीम', 'Моя тема'],
   'theme.noCustom': ['No custom theme yet.', 'Aucun thème personnalisé pour le moment.', '暂无自定义主题。', 'Aún no hay ningún tema personalizado.', 'لا يوجد مظهر مخصص بعد.', 'カスタムテーマはまだありません。', 'अभी तक कोई कस्टम थीम नहीं।', 'Пока нет пользовательских тем.'],
   'theme.confirmDelete': ['Delete this theme?', 'Supprimer ce thème ?', '删除此主题？', '¿Eliminar este tema?', 'حذف هذا المظهر؟', 'このテーマを削除しますか？', 'यह थीम हटाएँ?', 'Удалить эту тему?'],
