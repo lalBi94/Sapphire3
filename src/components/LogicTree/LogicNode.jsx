@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, ChevronDown, ChevronRight } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, OctagonMinus } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { getNodeSchema } from '../../utils/logic/index.js'
@@ -75,7 +75,7 @@ export default function LogicNode({ id, index, selectedId, activeExecutionId, on
       <NodeMenuButton label={name} onOpen={(event) => onOpenActions(event, { kind: 'node', id })} />
       <div className="logic-node__header">
         <button type="button" className={`logic-node__breakpoint${breakpoint ? ' logic-node__breakpoint--set' : ''}`} aria-pressed={breakpoint} aria-label={t(breakpoint ? 'canvas.breakpointRemove' : 'canvas.breakpointAdd', { name })} title={t(breakpoint ? 'canvas.breakpointRemove' : 'canvas.breakpointAdd', { name })} onClick={(event) => { event.stopPropagation(); onToggleBreakpoint?.(id) }}>
-          <span aria-hidden="true" />
+          <OctagonMinus size={12} strokeWidth={2} aria-hidden="true" />
         </button>
         <button type="button" className="logic-node__toggle" aria-expanded={expanded} aria-label={t(expanded ? 'canvas.collapse' : 'canvas.expand', { name })} onClick={handleToggle}>
           {expanded ? <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" /> : <ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" />}

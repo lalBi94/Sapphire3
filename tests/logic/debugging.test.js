@@ -258,22 +258,32 @@ test('accessibilité : court-circuit booléen sans considérer un appel ignoré 
   assert.deepEqual(simulateProgram(project).output, ['2'])
 })
 
-test('points d’arrêt : démarrage sur le premier, reprise vers le suivant et recommencer', () => {
+test('points d’arrêt : démarrage normal et arrêt uniquement pendant un saut', () => {
   const project = debugFixture()
-  const breakpoints = new Set(['local', 'increment'])
+  const breakpoints = new Set(['increment'])
   const session = createDebugSession(project, { breakpoints })
-  assert.equal(session.frames[session.cursor].nodeId, 'local')
+  assert.equal(session.cursor, 0, 'le debug commence sur le premier arrêt, pas sur un point d’arrêt')
+  assert.deepEqual(session.frames[session.cursor].nodeId, 'g')
 
-  const resumed = moveDebugSession(session, 'continue', { breakpoints })
-  assert.equal(resumed.frames[resumed.cursor].nodeId, 'increment')
-  assert.deepEqual(resumed.history, [session.cursor])
+  // La navigation manuelle passe normalement avant le point d'arrêt.
+  let manual = session
+  for (let index = 0; index < 4; index += 1) manual = moveDebugSession(manual, 'next', { breakpoints })
+  assert.equal(manual.frames[manual.cursor].nodeId, 'inner')
 
-  const ended = moveDebugSession(resumed, 'continue', { breakpoints })
+  // Finish scope saute vers printAfter mais s'arrête avant sur increment.
+  const stopped = moveDebugSession(manual, 'scope', { breakpoints })
+  assert.equal(stopped.frames[stopped.cursor].nodeId, 'increment')
+
+  const ended = moveDebugSession(stopped, 'continue', { breakpoints })
   assert.equal(ended.cursor, ended.frames.length - 1)
 
   const restarted = moveDebugSession(ended, 'restart', { breakpoints })
-  assert.equal(restarted.frames[restarted.cursor].nodeId, 'local')
+  assert.equal(restarted.cursor, 0)
   assert.deepEqual(restarted.history, [])
+
+  // Continue reprend aussi jusqu'au prochain point d'arrêt, depuis le début.
+  const resumed = moveDebugSession(session, 'continue', { breakpoints })
+  assert.equal(resumed.frames[resumed.cursor].nodeId, 'increment')
 
   const unmatched = createDebugSession(project, { breakpoints: new Set(['missing']) })
   assert.equal(unmatched.cursor, 0)

@@ -9,20 +9,22 @@ function breakpointSet(value) {
   return new Set()
 }
 
-// Retourne l'index du premier arrêt correspondant à un point d'arrêt, ou -1.
-function firstBreakpoint(frames, breakpoints) {
-  return frames.findIndex((frame) => breakpoints.has(frame.nodeId))
+// Retourne le premier point d'arrêt rencontré dans un saut, ou la destination prévue.
+function stopBefore(frames, start, end, breakpoints) {
+  for (let cursor = start; cursor <= end; cursor += 1) {
+    if (breakpoints.has(frames[cursor].nodeId)) return cursor
+  }
+  return end
 }
 
-// Prépare une trace bornée sans mutation source ; l'interface ne restitue que l'arrêt courant.
+// Prépare une trace bornée sans mutation source ; le debug démarre toujours sur le premier arrêt.
 export function createDebugSession(project, options = {}) {
   const breakpoints = breakpointSet(options.breakpoints)
   const analysis = analyzeProgram(project)
   const reachability = analyzeReachability(project, analysis)
   const result = simulateProgram(project, { ...options, captureDebug: true })
   const frames = result.debugFrames ?? []
-  const start = firstBreakpoint(frames, breakpoints)
-  return { project, frames, cursor: start >= 0 ? start : 0, history: [], reachability, breakpoints, errorCode: frames.length ? null : result.errorCode, result }
+  return { project, frames, cursor: 0, history: [], reachability, breakpoints, errorCode: frames.length ? null : result.errorCode, result }
 }
 
 // Avance d'une instruction, reprend jusqu'au prochain point d'arrêt, termine le scope actif ou restaure un arrêt.
@@ -30,10 +32,8 @@ export function moveDebugSession(session, action, options = {}) {
   if (!session || session.frames.length === 0) return session
   const breakpoints = breakpointSet(options.breakpoints ?? session.breakpoints)
   if (action === 'restart') {
-    const start = firstBreakpoint(session.frames, breakpoints)
-    const cursor = start >= 0 ? start : 0
-    if (cursor === 0 && session.history.length === 0) return session
-    return { ...session, cursor, history: [], breakpoints }
+    if (session.cursor === 0 && session.history.length === 0) return session
+    return { ...session, cursor: 0, history: [], breakpoints }
   }
   if (action === 'back') {
     if (session.history.length === 0) return session
@@ -41,10 +41,7 @@ export function moveDebugSession(session, action, options = {}) {
   }
   if (action === 'continue') {
     if (session.cursor >= session.frames.length - 1) return session
-    let cursor = session.cursor + 1
-    while (cursor < session.frames.length && !breakpoints.has(session.frames[cursor].nodeId)) cursor += 1
-    if (cursor >= session.frames.length) cursor = session.frames.length - 1
-    if (cursor === session.cursor) return session
+    const cursor = stopBefore(session.frames, session.cursor + 1, session.frames.length - 1, breakpoints)
     return { ...session, cursor, history: [...session.history, session.cursor], breakpoints }
   }
   if (!['next', 'scope'].includes(action) || session.cursor >= session.frames.length - 1) return session
@@ -56,6 +53,8 @@ export function moveDebugSession(session, action, options = {}) {
       if (scopeId ? !next.scopeIds.includes(scopeId) : next.scopeIds.length > 0) break
       cursor += 1
     }
+    // Un saut qui franchit un point d'arrêt s'y arrête au lieu d'aller au bout du scope.
+    cursor = stopBefore(session.frames, session.cursor + 1, cursor, breakpoints)
   }
   return { ...session, cursor, history: [...session.history, session.cursor], breakpoints }
 }

@@ -28,12 +28,12 @@
 .logic-node__toggle { display: grid; place-items: center; flex: 0 0 auto; width: 16px; height: 16px; padding: 0; border: 0; background: transparent; color: var(--color-text-muted); cursor: pointer; }
 .logic-node__toggle:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .logic-node__toggle:hover, .logic-node__heading:hover { color: var(--color-selection); }
-/* Point d'arrêt : pastille discrète, pleine et rouge lorsqu'il est posé. */
-.logic-node__breakpoint { display: grid; place-items: center; flex: 0 0 auto; width: 12px; height: 16px; padding: 0; border: 0; background: transparent; cursor: pointer; }
-.logic-node__breakpoint span { width: 8px; height: 8px; border: 1.5px solid var(--color-border-hover); border-radius: 50%; background: transparent; transition: background 120ms, border-color 120ms, box-shadow 120ms; }
-.logic-node__breakpoint:hover span { border-color: var(--color-diagnostic); }
-.logic-node__breakpoint--set span { border-color: var(--color-diagnostic); background: var(--color-diagnostic); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-diagnostic) 18%, transparent); }
-.logic-node__breakpoint:focus-visible { border-radius: var(--radius-small); outline: 2px solid var(--color-focus); outline-offset: 2px; }
+/* Point d'arrêt : petit panneau stop éteint, allumé lorsqu'il est posé. */
+.logic-node__breakpoint { display: grid; place-items: center; flex: 0 0 auto; width: 16px; height: 16px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--color-text-muted); opacity: 0.45; cursor: pointer; transition: color 120ms, background 120ms, opacity 120ms, box-shadow 120ms; }
+.logic-node__breakpoint:hover { color: var(--color-diagnostic); opacity: 0.9; }
+.logic-node__breakpoint--set { color: var(--color-diagnostic); opacity: 1; background: color-mix(in srgb, var(--color-diagnostic) 14%, transparent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-diagnostic) 16%, transparent); }
+.logic-node__breakpoint--set svg { fill: color-mix(in srgb, var(--color-diagnostic) 28%, transparent); }
+.logic-node__breakpoint:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .logic-node__toggle, .logic-node__heading { border-radius: var(--radius-small); }
 .logic-node__order { display: flex; flex: 0 0 auto; gap: 1px; }
 .logic-node__order-button { display: grid; place-items: center; width: 15px; height: 15px; padding: 0; border: 0; border-radius: var(--radius-small); background: transparent; color: var(--color-text-muted); cursor: pointer; }
