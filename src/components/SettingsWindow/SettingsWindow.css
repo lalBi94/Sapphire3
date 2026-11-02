@@ -39,6 +39,22 @@
 .settings-info dt { color: var(--color-text-muted); }
 .settings-info dd { margin: 0; text-align: right; }
 .settings-info__path { max-width: 62%; overflow-wrap: anywhere; }
+.settings-info__counts { display: flex; flex-wrap: wrap; gap: var(--space-control); margin: 0; }
+.settings-count { padding: 2px 8px; border: 1px solid var(--color-border); border-radius: 999px; color: var(--color-text-muted); font-size: 10px; }
+.settings-count--error { color: var(--color-diagnostic); border-color: color-mix(in srgb, var(--color-diagnostic) 50%, transparent); }
+.settings-count--warning { color: var(--color-node-condition); border-color: color-mix(in srgb, var(--color-node-condition) 50%, transparent); }
+.settings-issues { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.settings-issues li { display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-left: 2px solid var(--color-diagnostic); border-radius: var(--radius-small); background: color-mix(in srgb, var(--color-diagnostic) 8%, transparent); font-size: 11px; }
+.settings-issues li.settings-issues__warning { border-left-color: var(--color-node-condition); background: color-mix(in srgb, var(--color-node-condition) 8%, transparent); }
+.settings-issues__meta { color: var(--color-text-muted); font-size: 10px; }
+.settings-issues__meta code { font-size: 10px; }
+.settings-chart { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.settings-chart li { display: grid; grid-template-columns: minmax(70px, 28%) 1fr auto; align-items: center; gap: 8px; font-size: 10px; }
+.settings-chart__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-muted); }
+.settings-chart__track { height: 6px; overflow: hidden; border-radius: 999px; background: var(--color-hover); }
+.settings-chart__bar { display: block; height: 100%; border-radius: inherit; background: var(--color-primary); }
+.settings-chart__bar--group { background: var(--color-selection); }
+.settings-chart__value { color: var(--color-text-muted); text-align: right; }
 
 .settings-bookmarks { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .settings-bookmarks li { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); }

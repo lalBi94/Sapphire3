@@ -635,7 +635,7 @@ export default function Canvas() {
         busy={files.busy} pendingImport={files.pendingImport}
         onNew={files.handleNew} onOpenSp3={files.handleOpenSp3} onSave={files.handleSave} onSaveAs={files.saveAs} onImport={files.handleImport} onExportSvg={handleExportSvg}
         recentFiles={files.recentFiles} onOpenRecent={files.handleOpenRecent}
-        project={document.project} currentPath={files.currentPath}
+        project={document.project} currentPath={files.currentPath} diagnostics={document.analysis?.diagnostics ?? []} referenceCount={document.analysis?.semantic?.references?.length ?? 0} unusedCount={unusedIds.size}
         distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)} minimapVisible={minimapVisible} onToggleMinimap={() => setMinimapVisible((current) => !current)} navVisible={!navCollapsed} onToggleNav={() => setNavCollapsed((current) => !current)} hiddenCards={hiddenCards} onShowAllHidden={handleShowAllHidden} onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={() => handleRecenter(getModulesBounds())}
         bookmarks={bookmarks} canBookmark={bookmarkStatus(selected).can} onSaveBookmark={handleSaveBookmark} onOpenBookmarks={() => setBookmarksOpen(true)} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark}
         onOpenRepository={() => openExternal(repositoryUrl)} update={appUpdate.update} onCheckUpdate={() => appUpdate.check()} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })} />}
