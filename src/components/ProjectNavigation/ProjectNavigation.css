@@ -35,6 +35,9 @@
 @media (prefers-reduced-motion: reduce) { .project-navigation button.project-navigation__run--running { animation: none; } }
 @media (prefers-contrast: more), (forced-colors: active) { .project-navigation button.project-navigation__run--running { background-image: none; border-color: currentColor; color: var(--color-text) !important; } }
 .project-navigation__run-controls { display: flex; align-items: center; flex-shrink: 0; }
+/* Bouton d'arrêt à côté de Run, visible seulement pendant une simulation. */
+.project-navigation button.project-navigation__stop { padding: 4px 8px; gap: 4px; color: var(--color-diagnostic); }
+.project-navigation button.project-navigation__stop:hover:not(:disabled) { background: var(--color-hover); color: var(--color-text); }
 .project-navigation__run-toggle { min-width: 24px; min-height: 26px; justify-content: center; }
 .project-navigation__run-menu { left: auto; right: 0; width: 260px; max-height: calc(100dvh - 50px); overflow: auto; }
 /* Version affichée à droite, puis le lien vers le dépôt GitHub. */
