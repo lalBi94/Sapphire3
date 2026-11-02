@@ -1,4 +1,10 @@
-.canvas-workspace { display: flex; flex-direction: column; height: 100dvh; min-height: 0; overflow: hidden; }
+.canvas-workspace { position: relative; display: flex; flex-direction: column; height: 100dvh; min-height: 0; overflow: hidden; }
+/* Chevron de repli de la barre : toujours visible, il reste en place quand la barre disparaît. */
+.canvas-nav-toggle { position: absolute; top: 5px; right: 8px; z-index: 12; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 1px solid var(--color-border); border-radius: var(--radius-small); background: var(--color-surface-raised); color: var(--color-text-muted); cursor: pointer; }
+.canvas-nav-toggle:hover { color: var(--color-text); border-color: var(--color-border-hover); }
+.canvas-nav-toggle:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }
+/* Barre repliée : elle glisse vers le haut (rognée par le conteneur) et libère la hauteur pour le canvas. */
+.canvas-workspace--nav-collapsed .project-navigation { margin-top: calc(-1 * var(--navigation-height)); }
 .canvas-transfer-status { position: absolute; left: var(--space-panel); top: var(--space-panel); z-index: 6; display: flex; align-items: center; gap: var(--space-control); max-width: min(520px, calc(100% - 32px)); padding: var(--space-control); border: 1px solid var(--color-border); border-radius: var(--radius-control); color: var(--color-text); background: var(--color-surface-raised); box-shadow: var(--shadow-panel); font-size: 12px; cursor: default; }
 .canvas-transfer-status--error { border-color: var(--color-diagnostic); }
 .canvas-transfer-status span { overflow-wrap: anywhere; }

@@ -1,4 +1,4 @@
-.project-navigation { position: relative; z-index: 10; display: flex; align-items: center; gap: 2px; flex: 0 0 var(--navigation-height); height: var(--navigation-height); padding: 0 var(--space-control); border-bottom: 1px solid var(--color-border); background: var(--color-surface-raised); color: var(--color-text); font-size: 11px; }
+.project-navigation { position: relative; z-index: 10; display: flex; align-items: center; gap: 2px; flex: 0 0 var(--navigation-height); height: var(--navigation-height); padding: 0 36px 0 var(--space-control); border-bottom: 1px solid var(--color-border); background: var(--color-surface-raised); color: var(--color-text); font-size: 11px; transition: margin-top 200ms var(--easing-ui); }
 .project-navigation details { position: relative; }
 .project-navigation summary { display: flex; align-items: center; gap: 4px; padding: 5px 7px; border-radius: var(--radius-small); corner-shape: var(--corner-shape); cursor: pointer; list-style: none; }
 .project-navigation summary::-webkit-details-marker { display: none; }

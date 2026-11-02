@@ -27,6 +27,8 @@ const messages = {
   'bookmark.deleteAction': ['Delete', 'Supprimer', '删除', 'Eliminar', 'حذف', '削除', 'हटाएँ', 'Удалить'],
   'nav.settings': ['Settings', 'Réglages', '设置', 'Ajustes', 'الإعدادات', '設定', 'सेटिंग्स', 'Настройки'],
   'nav.language': ['Language', 'Langue', '语言', 'Idioma', 'اللغة', '言語', 'भाषा', 'Язык'],
+  'nav.hide': ['Hide the navigation bar', 'Masquer la barre de navigation', '隐藏导航栏', 'Ocultar la barra de navegación', 'إخفاء شريط التنقل', 'ナビゲーションバーを隠す', 'नेविगेशन बार छिपाएँ', 'Скрыть панель навигации'],
+  'nav.show': ['Show the navigation bar', 'Afficher la barre de navigation', '显示导航栏', 'Mostrar la barra de navegación', 'إظهار شريط التنقل', 'ナビゲーションバーを表示', 'नेविगेशन बार दिखाएँ', 'Показать панель навигации'],
   'menu.workspace': ['Workspace', 'Espace de travail', '工作区', 'Espacio de trabajo', 'مساحة العمل', 'ワークスペース', 'कार्यक्षेत्र', 'Рабочая область'],
   'menu.exports': ['Exports', 'Exports', '导出', 'Exportaciones', 'التصدير', 'エクスポート', 'निर्यात', 'Экспорт'],
   'menu.history': ['History', 'Historique', '历史', 'Historial', 'السجل', '履歴', 'इतिहास', 'История'],
