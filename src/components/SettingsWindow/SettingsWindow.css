@@ -9,6 +9,10 @@
 .settings-window__tab { width: 100%; padding: 6px 9px; border: 1px solid transparent; border-radius: var(--radius-control); background: transparent; color: var(--color-text); font: inherit; text-align: left; cursor: pointer; }
 .settings-window__tab:hover { background: var(--color-hover); }
 .settings-window__tab--active { border-color: var(--color-selection-border); background: var(--color-selection-surface); }
+/* Bouton de sortie, en bas de la navigation des paramètres. */
+.settings-window__quit { display: inline-flex; align-items: center; gap: 8px; margin-top: auto; padding: 8px 10px; border: 1px solid color-mix(in srgb, var(--color-diagnostic) 45%, transparent); border-radius: var(--radius-control); background: transparent; color: var(--color-diagnostic); font: inherit; text-align: left; cursor: pointer; }
+.settings-window__quit:hover { background: color-mix(in srgb, var(--color-diagnostic) 12%, transparent); }
+.settings-window__quit:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }
 
 .settings-window__content { flex: 1 1 auto; min-width: 0; overflow-y: auto; padding-right: 2px; }
 .settings-window__content-title { margin: 0 0 var(--space-panel); font-size: 13px; font-weight: 600; }

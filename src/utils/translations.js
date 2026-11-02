@@ -38,6 +38,7 @@ const messages = {
   'menu.actions': ['Actions', 'Actions', '操作', 'Acciones', 'الإجراءات', '操作', 'क्रियाएँ', 'Действия'],
   'menu.saved': ['Saved bookmarks', 'Favoris enregistrés', '已保存的收藏', 'Favoritos guardados', 'المفضلة المحفوظة', '保存済みブックマーク', 'सहेजे गए बुकमार्क', 'Сохранённые закладки'],
   'settings.open': ['Open settings window', 'Ouvrir la fenêtre des paramètres', '打开设置窗口', 'Abrir ventana de configuración', 'فتح نافذة الإعدادات', '設定ウィンドウを開く', 'सेटिंग विंडो खोलें', 'Открыть окно настроек'],
+  'settings.quit': ['Quit application', 'Quitter l’application', '退出应用', 'Salir de la aplicación', 'إنهاء التطبيق', 'アプリを終了', 'ऐप बंद करें', 'Выйти из приложения'],
   'settings.title': ['Application settings', 'Paramètres de l’application', '应用设置', 'Configuración de la aplicación', 'إعدادات التطبيق', 'アプリケーション設定', 'एप्लिकेशन सेटिंग', 'Настройки приложения'],
   'settings.category.project': ['Project', 'Projet', '项目', 'Proyecto', 'المشروع', 'プロジェクト', 'प्रोजेक्ट', 'Проект'],
   'settings.category.appearance': ['Appearance', 'Apparence', '外观', 'Apariencia', 'المظهر', '外観', 'रूप', 'Внешний вид'],

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Power } from 'lucide-react'
 import FloatingPanel from '../FloatingPanel/FloatingPanel.jsx'
 import { settingsCategories } from './settingsSections.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
@@ -7,7 +8,7 @@ import './SettingsWindow.css'
 // Fenêtre de paramètres de l'application : catégories et sous-catégories à gauche, contenu à droite.
 // Les pages proviennent du registre `settingsCategories` ; en ajouter une n'exige que d'étendre ce registre.
 export default function SettingsWindow(props) {
-  const { onClose } = props
+  const { onClose, onQuit } = props
   const { t } = useTranslation()
   const first = settingsCategories[0]
   const [selection, setSelection] = useState(`${first.id}:${first.sections[0].id}`)
@@ -29,6 +30,7 @@ export default function SettingsWindow(props) {
             })}
           </ul>
         </section>)}
+        {onQuit && <button type="button" className="settings-window__quit" onClick={onQuit}><Power size={14} aria-hidden="true" />{t('settings.quit')}</button>}
       </nav>
       <section className="settings-window__content" aria-label={t(section.labelKey)}>
         <h3 className="settings-window__content-title">{t(section.labelKey)}</h3>
