@@ -27,7 +27,7 @@ import { transpileProgram } from '../../utils/transpilation/index.js'
 import { transpilationLanguages } from '../../utils/transpilation/languages.js'
 import { exportWorkspaceFile } from '../../services/workspaceFiles.js'
 import { openExternal } from '../../services/externalLinks.js'
-import { quitApplication } from '../../services/appControl.js'
+import { quitApplication, toggleFullScreen } from '../../services/appControl.js'
 import { repositoryUrl } from '../../utils/appInfo.js'
 import { loadBookmarks, saveBookmarks } from '../../services/bookmarks.js'
 import SimulationPanel from '../SimulationPanel/SimulationPanel.jsx'
@@ -48,6 +48,8 @@ export default function Canvas() {
   const [growthRequest, setGrowthRequest] = useState({ moduleId: null, revision: 0 })
   const [distorted, setDistorted] = useState(true)
   const [minimapVisible, setMinimapVisible] = useState(true)
+  const [gridVisible, setGridVisible] = useState(true)
+  const [fullScreen, setFullScreen] = useState(false)
   const [simulationResult, setSimulationResult] = useState(null)
   const [execution, setExecution] = useState(null)
   const [debugSession, setDebugSession] = useState(null)
@@ -336,6 +338,11 @@ export default function Canvas() {
     setExecution((current) => current ? { ...current, running: false, paused: false, stopped: true } : current)
   }
 
+  // Bascule le plein écran et mémorise l'état réellement appliqué.
+  async function handleToggleFullScreen() {
+    setFullScreen(Boolean(await toggleFullScreen()))
+  }
+
   // Prépare les arrêts réversibles après l'analyse d'accessibilité, sans changer le workspace.
   function handleDebugSp3() {
     setExecution(null)
@@ -602,6 +609,7 @@ export default function Canvas() {
       onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={() => handleRecenter(getModulesBounds())}
       distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)}
       minimapVisible={minimapVisible} onToggleMinimap={() => setMinimapVisible((current) => !current)}
+      fullScreen={fullScreen} onToggleFullScreen={handleToggleFullScreen} gridVisible={gridVisible} onToggleGrid={() => setGridVisible((current) => !current)}
       hiddenCards={hiddenCards} onShowCard={handleShowCard} onShowAllHidden={handleShowAllHidden}
       hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onOpenSearch={search.show} onRunSimulation={handleRunSimulation} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} selectedFunction={selectedFunction} onOpenFunction={handleOpenFunction} simulationRunning={Boolean(execution?.running)} simulationPaused={Boolean(execution?.paused)} onPauseSimulation={handlePauseExecution} onResumeSimulation={handleResumeExecution} onStopSimulation={handleStopExecution} onOpenRepository={() => openExternal(repositoryUrl)} onOpenSettings={() => setSettingsOpen(true)} updateAvailable={appUpdate.update.status === 'available'} updateVersion={appUpdate.update.release?.version ?? ''} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })} onCheckTranspile={getTranspileChecks}
       bookmarks={bookmarks} modules={moduleChoices} canBookmark={bookmarkStatus(selected).can} onSaveBookmark={handleSaveBookmark} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark} onOpenBookmarks={() => setBookmarksOpen(true)} />
@@ -609,7 +617,7 @@ export default function Canvas() {
     <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label={t('canvas.aria')} tabIndex={0}
       onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerEnd} onPointerCancel={handlePointerEnd} onLostPointerCapture={handlePointerEnd} onKeyDown={handleKeyDown} onContextMenu={handleContextMenu}
       onDragStart={transfers.handleDragStart} onDragOver={transfers.handleDragOver} onDrop={transfers.handleDrop} onDragEnd={transfers.handleDragEnd}>
-      <CanvasGrid camera={camera} zoom={zoom} distorted={distorted} />
+      <CanvasGrid camera={camera} zoom={zoom} distorted={distorted} gridVisible={gridVisible} />
       <CanvasLinks cards={visibleCards} links={moduleLinks} camera={camera} zoom={zoom} />
       {visibleCards.map((card) => <CanvasModule key={`${document.revision}:${card.id}`} module={card} camera={camera} zoom={zoom}
         dropState={transfers.dropTarget?.kind === 'module' && transfers.dropTarget.id === card.id ? transfers.dropTarget.ok ? 'valid' : 'invalid' : undefined}

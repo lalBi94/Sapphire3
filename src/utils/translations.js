@@ -30,6 +30,8 @@ const messages = {
   'nav.hide': ['Hide the navigation bar', 'Masquer la barre de navigation', '隐藏导航栏', 'Ocultar la barra de navegación', 'إخفاء شريط التنقل', 'ナビゲーションバーを隠す', 'नेविगेशन बार छिपाएँ', 'Скрыть панель навигации'],
   'nav.show': ['Show the navigation bar', 'Afficher la barre de navigation', '显示导航栏', 'Mostrar la barra de navegación', 'إظهار شريط التنقل', 'ナビゲーションバーを表示', 'नेविगेशन बार दिखाएँ', 'Показать панель навигации'],
   'nav.minimap': ['Minimap', 'Mini-carte', '迷你地图', 'Minimapa', 'خريطة مصغرة', 'ミニマップ', 'मिनिमैप', 'Мини-карта'],
+  'nav.hideGrid': ['Hide grid', 'Masquer la grille', '隐藏网格', 'Ocultar la cuadrícula', 'إخفاء الشبكة', 'グリッドを隠す', 'ग्रिड छिपाएँ', 'Скрыть сетку'],
+  'nav.fullscreen': ['Full screen', 'Plein écran', '全屏', 'Pantalla completa', 'ملء الشاشة', '全画面', 'पूर्ण स्क्रीन', 'Полный экран'],
   'menu.workspace': ['Workspace', 'Espace de travail', '工作区', 'Espacio de trabajo', 'مساحة العمل', 'ワークスペース', 'कार्यक्षेत्र', 'Рабочая область'],
   'menu.exports': ['Exports', 'Exports', '导出', 'Exportaciones', 'التصدير', 'エクスポート', 'निर्यात', 'Экспорт'],
   'menu.history': ['History', 'Historique', '历史', 'Historial', 'السجل', '履歴', 'इतिहास', 'История'],

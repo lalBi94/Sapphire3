@@ -32,7 +32,7 @@ function createLine(position, vertical, width, height) {
 }
 
 // Maintient une densité lisible quelle que soit l'échelle, avec une origine fixe.
-export default function CanvasGrid({ camera, zoom, distorted = true }) {
+export default function CanvasGrid({ camera, zoom, distorted = true, gridVisible = true }) {
   const [size, setSize] = useState({ width: 1600, height: 1000 })
   const gridRef = useRef(null)
 
@@ -71,7 +71,7 @@ export default function CanvasGrid({ camera, zoom, distorted = true }) {
       aria-hidden="true"
       focusable="false"
     >
-      <path d={lines.join(' ')} />
+      {gridVisible && <path d={lines.join(' ')} />}
       {originVisible && (
         <path
           className="canvas-grid__origin"
