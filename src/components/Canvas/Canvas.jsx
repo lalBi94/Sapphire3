@@ -37,6 +37,7 @@ import SimulationPanel from '../SimulationPanel/SimulationPanel.jsx'
 import FunctionPanel from '../FunctionPanel/FunctionPanel.jsx'
 import DebugPanel from '../DebugPanel/DebugPanel.jsx'
 import MemoryPanel from '../MemoryPanel/MemoryPanel.jsx'
+import FlowPanel from '../FlowPanel/FlowPanel.jsx'
 import TranspilePanel from '../TranspilePanel/TranspilePanel.jsx'
 import NodeGraphPanel from '../NodeGraphPanel/NodeGraphPanel.jsx'
 import NodeSearchPanel from '../NodeSearchPanel/NodeSearchPanel.jsx'
@@ -58,6 +59,7 @@ export default function Canvas() {
   const [execution, setExecution] = useState(null)
   const [debugSession, setDebugSession] = useState(null)
   const [memoryOpen, setMemoryOpen] = useState(false)
+  const [flowRun, setFlowRun] = useState(null)
   const [transpilationResult, setTranspilationResult] = useState(null)
   const [transpileExportError, setTranspileExportError] = useState(null)
   const [nodeGraph, setNodeGraph] = useState(null)
@@ -87,6 +89,7 @@ export default function Canvas() {
     setTranspilationResult(null)
     setTranspileExportError(null)
     setFunctionResult(null)
+    setFlowRun(null)
   }, [document.project])
 
   useEffect(() => {
@@ -99,6 +102,18 @@ export default function Canvas() {
     }, 420)
     return () => window.clearTimeout(timer)
   }, [execution])
+
+  useEffect(() => {
+    if (!flowRun?.running) return undefined
+    const timer = window.setTimeout(() => {
+      setFlowRun((current) => {
+        if (!current || !current.running) return current
+        if (current.index >= current.session.frames.length - 1) return { ...current, running: false }
+        return { ...current, index: current.index + 1 }
+      })
+    }, 520)
+    return () => window.clearTimeout(timer)
+  }, [flowRun])
 
   const debugFrame = debugSession?.project === document.project ? debugSession.frames[debugSession.cursor] : null
   // Valeurs des variables et paramètres visibles, limitées à l'arrêt de debug courant.
@@ -325,10 +340,36 @@ export default function Canvas() {
 
   // Lance une simulation locale uniquement sur un programme statiquement valide.
   function handleRunSimulation() {
+    setFlowRun(null)
     setDebugSession(null)
     const result = simulateProgram(document.project)
     setSimulationResult(result)
     setExecution(result.ok && result.trace.length > 0 ? { trace: result.trace, index: 0, running: true, paused: false, stopped: false } : null)
+  }
+
+  // Ouvre la simulation graphique simplifiée sur la trace du moteur, sans code mort.
+  function handleRunGraphical() {
+    setExecution(null)
+    setSimulationResult(null)
+    setDebugSession(null)
+    setContextMenu(null)
+    const session = createDebugSession(document.project)
+    setFlowRun({ session, index: 0, running: session.frames.length > 1, paused: false, stopped: false })
+  }
+
+  // Met le flux graphique en pause sans perdre l'image courante.
+  function handlePauseFlow() {
+    setFlowRun((current) => current?.running ? { ...current, running: false, paused: true } : current)
+  }
+
+  // Reprend le flux graphique à l'étape suivante.
+  function handleResumeFlow() {
+    setFlowRun((current) => current?.paused ? { ...current, running: true, paused: false } : current)
+  }
+
+  // Arrête l'animation en laissant la dernière image visible.
+  function handleStopFlow() {
+    setFlowRun((current) => current ? { ...current, running: false, paused: false, stopped: true } : current)
   }
 
   // Met l'animation en pause sans la terminer : l'index courant est conservé.
@@ -355,6 +396,7 @@ export default function Canvas() {
   function handleDebugSp3() {
     setExecution(null)
     setSimulationResult(null)
+    setFlowRun(null)
     setContextMenu(null)
     setDebugSession(createDebugSession(document.project, { breakpoints }))
   }
@@ -442,6 +484,7 @@ export default function Canvas() {
   // Exécute la fonction choisie avec les entrées validées par le moteur.
   function handleRunFunction(args) {
     if (!functionTarget) return
+    setFlowRun(null)
     setFunctionResult({ functionId: functionTarget, result: simulateProgram(document.project, { functionId: functionTarget, args }) })
   }
 
@@ -450,6 +493,7 @@ export default function Canvas() {
     if (!functionTarget) return
     setExecution(null)
     setSimulationResult(null)
+    setFlowRun(null)
     setContextMenu(null)
     setFunctionResult(null)
     setDebugSession(createDebugSession(document.project, { functionId: functionTarget, args, breakpoints }))
@@ -656,7 +700,7 @@ export default function Canvas() {
       minimapVisible={minimapVisible} onToggleMinimap={() => setMinimapVisible((current) => !current)}
       fullScreen={fullScreen} onToggleFullScreen={handleToggleFullScreen} gridVisible={gridVisible} onToggleGrid={() => setGridVisible((current) => !current)} onArrangeModules={handleArrangeModules}
       hiddenCards={hiddenCards} onShowCard={handleShowCard} onShowAllHidden={handleShowAllHidden}
-      hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onOpenSearch={search.show} onRunSimulation={handleRunSimulation} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} selectedFunction={selectedFunction} onOpenFunction={handleOpenFunction} simulationRunning={Boolean(execution?.running)} simulationPaused={Boolean(execution?.paused)} onPauseSimulation={handlePauseExecution} onResumeSimulation={handleResumeExecution} onStopSimulation={handleStopExecution} onOpenRepository={() => openExternal(repositoryUrl)} onOpenSettings={() => setSettingsOpen(true)} onQuit={() => quitApplication()} updateAvailable={appUpdate.update.status === 'available'} updateVersion={appUpdate.update.release?.version ?? ''} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })} onCheckTranspile={getTranspileChecks}
+      hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onOpenSearch={search.show} onRunSimulation={handleRunSimulation} onRunGraphical={handleRunGraphical} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} selectedFunction={selectedFunction} onOpenFunction={handleOpenFunction} simulationRunning={Boolean(execution?.running)} simulationPaused={Boolean(execution?.paused)} onPauseSimulation={handlePauseExecution} onResumeSimulation={handleResumeExecution} onStopSimulation={handleStopExecution} onOpenRepository={() => openExternal(repositoryUrl)} onOpenSettings={() => setSettingsOpen(true)} onQuit={() => quitApplication()} updateAvailable={appUpdate.update.status === 'available'} updateVersion={appUpdate.update.release?.version ?? ''} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })} onCheckTranspile={getTranspileChecks}
       bookmarks={bookmarks} modules={moduleChoices} canBookmark={bookmarkStatus(selected).can} onSaveBookmark={handleSaveBookmark} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark} onOpenBookmarks={() => setBookmarksOpen(true)} />
     <button type="button" className="canvas-nav-toggle" aria-expanded={!navCollapsed} aria-label={t(navCollapsed ? 'nav.show' : 'nav.hide')} title={t(navCollapsed ? 'nav.show' : 'nav.hide')} onClick={() => setNavCollapsed((current) => !current)}>{navCollapsed ? <ChevronDown size={15} aria-hidden="true" /> : <ChevronUp size={15} aria-hidden="true" />}</button>
     <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label={t('canvas.aria')} tabIndex={0}
@@ -691,6 +735,7 @@ export default function Canvas() {
       {functionNode && <FunctionPanel key={`${functionTarget}:${functionSignature}`} index={document.index} functionNode={functionNode} result={functionResult?.functionId === functionTarget ? functionResult.result : null} onRun={handleRunFunction} onDebug={handleDebugFunction} onClose={handleCloseFunction} />}
       {debugSession?.project === document.project && <DebugPanel session={debugSession} index={document.index} onAction={handleDebugAction} onClose={() => setDebugSession(null)} memoryOpen={memoryOpen} onToggleMemory={() => setMemoryOpen((current) => !current)} />}
       {debugSession?.project === document.project && memoryOpen && <MemoryPanel index={document.index} frame={debugFrame} reachability={debugSession.reachability} onClose={() => setMemoryOpen(false)} />}
+      {flowRun && <FlowPanel session={flowRun.session} contextIndex={document.index} step={flowRun.index} running={flowRun.running} paused={flowRun.paused} stopped={flowRun.stopped} onPause={handlePauseFlow} onResume={handleResumeFlow} onStop={handleStopFlow} onClose={() => setFlowRun(null)} />}
       <TranspilePanel result={transpilationResult} exportError={transpileExportError} onExport={handleExportTranspilation} onClose={() => { setTranspilationResult(null); setTranspileExportError(null) }} />
       {search.open && <NodeSearchPanel index={document.index} cards={visibleCards} selectedId={selected?.kind === 'node' ? selected.id : null} focusToken={search.token} onReveal={handleRevealNode} onClose={handleCloseSearch} />}
       {bookmarksOpen && <BookmarkPanel bookmarks={bookmarks} modules={moduleChoices} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark} onClose={() => setBookmarksOpen(false)} />}

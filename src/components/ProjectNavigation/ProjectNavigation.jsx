@@ -28,7 +28,7 @@ function ReplaceConfirmation({ titleKey, bodyKey, detail, confirmKey, onConfirm,
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, onArrangeModules, distorted, onToggleDistortion, minimapVisible = true, onToggleMinimap, fullScreen = false, onToggleFullScreen, gridVisible = true, onToggleGrid, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onDebugSp3, onTranspile, onCheckTranspile, selectedFunction = null, onOpenFunction, simulationRunning = false, simulationPaused = false, onPauseSimulation, onResumeSimulation, onStopSimulation, onOpenRepository, onOpenSettings, onQuit, updateAvailable = false, updateVersion = '', onInstallUpdate, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark, onOpenBookmarks }) {
+export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, onArrangeModules, distorted, onToggleDistortion, minimapVisible = true, onToggleMinimap, fullScreen = false, onToggleFullScreen, gridVisible = true, onToggleGrid, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onRunGraphical, onDebugSp3, onTranspile, onCheckTranspile, selectedFunction = null, onOpenFunction, simulationRunning = false, simulationPaused = false, onPauseSimulation, onResumeSimulation, onStopSimulation, onOpenRepository, onOpenSettings, onQuit, updateAvailable = false, updateVersion = '', onInstallUpdate, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark, onOpenBookmarks }) {
   const navigationRef = useRef(null)
   const [insertingId, setInsertingId] = useState(null)
   const [transpileChecks, setTranspileChecks] = useState({})
@@ -116,11 +116,17 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
     onImport()
   }
 
-  // Referme les volets avant de lancer le mode SP3 demandé, sans activer les modes graphiques futurs.
+  // Referme les volets avant de lancer le mode demandé, sans activer les modes graphiques futurs.
   function handleRun(debug = false) {
     closeMenus()
     if (debug) onDebugSp3()
     else onRunSimulation()
+  }
+
+  // Referme les volets avant d'ouvrir la simulation graphique simplifiée.
+  function handleRunGraphical() {
+    closeMenus()
+    onRunGraphical()
   }
 
   return <>
@@ -263,7 +269,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
               <button type="button" onClick={() => { closeMenus(); onOpenFunction(selectedFunction.id) }}><Bug size={14} aria-hidden="true" />{t('run.debugThisFunction')}</button>
             </>}
             <p className="project-navigation__section">{t('run.graphical')}</p>
-            <button type="button" disabled title={t('run.later')}>{t('run.simulateGraphical')}</button>
+            <button type="button" onClick={handleRunGraphical}>{t('run.simulateGraphical')}</button>
             <button type="button" disabled title={t('run.later')}>{t('run.debugGraphical')}</button>
             <p className="project-navigation__future-note">{t('run.later')}</p>
           </div>
