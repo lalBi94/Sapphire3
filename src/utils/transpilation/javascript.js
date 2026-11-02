@@ -3,6 +3,7 @@ import { child, createGenerationContext, generateSelection } from './context.js'
 import { createNumericOperations, validateLiteral } from '../logic/numericConstants.js'
 import { primitiveDefinitions } from '../logic/primitives.js'
 import { diagnosticCodes } from '../logic/diagnostics.js'
+import { getMathNative } from '../logic/mathNatives.js'
 
 const operators = Object.freeze({
   and: '&&',
@@ -17,9 +18,35 @@ const reservedWords = new Set([
   'try', 'typeof', 'var', 'void', 'while', 'with', 'yield',
 ])
 
+// Traduit chaque opération native vers l'équivalent JavaScript le plus direct.
+// Les helpers ne servent qu'aux sémantiques que les natifs JS ne préservent pas seuls.
+const nativeJavaScript = Object.freeze({
+  abs: ([value]) => `sapphireIntegerAbs(${value})`,
+  min: ([left, right]) => `sapphireIntegerMin(${left}, ${right})`,
+  max: ([left, right]) => `sapphireIntegerMax(${left}, ${right})`,
+  clamp: ([value, lower, upper]) => `sapphireClamp(${value}, ${lower}, ${upper})`,
+  sign: ([value]) => `sapphireSign(${value})`,
+  gcd: ([left, right]) => `sapphireGcd(${left}, ${right})`,
+  pow: ([base, exponent]) => `sapphireFinite(Math.pow(${base}, ${exponent}))`,
+  lerp: ([start, end, ratio]) => `sapphireLerp(${start}, ${end}, ${ratio})`,
+  log: ([value]) => `sapphireFinite(Math.log(${value}))`,
+  sqrt: ([value]) => `sapphireFinite(Math.sqrt(${value}))`,
+  sin: ([value]) => `sapphireFinite(Math.sin(${value}))`,
+  cos: ([value]) => `sapphireFinite(Math.cos(${value}))`,
+  tan: ([value]) => `sapphireFinite(Math.tan(${value}))`,
+  floor: ([value]) => `sapphireFinite(Math.floor(${value}))`,
+  ceil: ([value]) => `sapphireFinite(Math.ceil(${value}))`,
+  round: ([value]) => `sapphireFinite(Math.round(${value}))`,
+  length: ([value]) => `BigInt(Array.from(${value}).length)`,
+  charAt: ([value, index]) => `sapphireCharAt(${value}, ${index})`,
+  substring: ([value, start, end]) => `sapphireSubstring(${value}, ${start}, ${end})`,
+  contains: ([value, search]) => `(${value}).includes(${search})`,
+  arrayLength: ([value]) => `BigInt((${value}).length)`,
+})
+
 // Produit le code JavaScript d'un programme Sapphire déjà analysé.
 export function generateJavaScript(analysis, { selection = null } = {}) {
-  const context = createGenerationContext(analysis, { selection, reservedWords, allowDollar: true, runtimeNames: ['sapphireNumeric', 'sapphireChecked', 'sapphireRead', 'sapphireUninitialized', 'sapphireArray', 'sapphireElement', 'sapphireWrite', 'sapphireForEach', 'console', 'Math', 'Number', 'BigInt', 'Object', 'Error'] })
+  const context = createGenerationContext(analysis, { selection, reservedWords, allowDollar: true, runtimeNames: ['sapphireNumeric', 'sapphireChecked', 'sapphireRead', 'sapphireUninitialized', 'sapphireArray', 'sapphireElement', 'sapphireWrite', 'sapphireForEach', 'sapphireFinite', 'sapphireIntegerAbs', 'sapphireIntegerMin', 'sapphireIntegerMax', 'sapphireClamp', 'sapphireSign', 'sapphireGcd', 'sapphireLerp', 'sapphireCharAt', 'sapphireSubstring', 'console', 'Math', 'Number', 'BigInt', 'Object', 'Error', 'Array'] })
   const { ast, diagnostics, typeByNode, generatedNames, reserveDeclaration, referenceName, entryName } = context
 
   // Génère une expression en conservant la structure et les opérateurs de l'AST.
@@ -69,6 +96,13 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
     }
     if (node.kind === 'ArrayAccess') {
       return `sapphireElement(${expression(child(node, 'array'))}, ${expression(child(node, 'index'))})`
+    }
+    if (node.kind === 'MathCall') {
+      const definition = getMathNative(node.properties?.name)
+      const emitter = definition ? nativeJavaScript[definition.id] : null
+      if (emitter) return emitter((node.children.arguments ?? []).map(expression))
+      diagnostics.push(createDiagnostic('TRANSPILE_EXPRESSION_UNSUPPORTED', `Opération native ${node.properties?.name ?? '?'} non prise en charge.`, node.location))
+      return 'undefined'
     }
     diagnostics.push(createDiagnostic('TRANSPILE_EXPRESSION_UNSUPPORTED', `Expression ${node.kind} non prise en charge.`, node.location))
     return 'undefined'
@@ -171,6 +205,16 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
     'function sapphireElement(array, index) { if (!Array.isArray(array)) throw new Error("SIMULATION_REFERENCE"); if (index < 0 || index >= array.length) throw new Error("SIMULATION_ARRAY_BOUNDS"); const value = array[index]; if (value === sapphireUninitialized) throw new Error("SIMULATION_UNINITIALIZED"); return value; }',
     'function sapphireWrite(array, index, value) { if (!Array.isArray(array)) throw new Error("SIMULATION_REFERENCE"); if (index < 0 || index >= array.length) throw new Error("SIMULATION_ARRAY_BOUNDS"); array[index] = value; }',
     'function sapphireForEach(array, callback) { if (!Array.isArray(array)) throw new Error("SIMULATION_REFERENCE"); if (typeof callback !== "function") throw new Error("SIMULATION_REFERENCE"); for (const element of [...array]) callback(element); }',
+    'function sapphireFinite(value) { if (!Number.isFinite(value)) throw new Error("SIMULATION_MATH_DOMAIN"); return value; }',
+    'function sapphireIntegerAbs(value) { return value < 0n ? -value : value; }',
+    'function sapphireIntegerMin(left, right) { return left < right ? left : right; }',
+    'function sapphireIntegerMax(left, right) { return left > right ? left : right; }',
+    'function sapphireClamp(value, lower, upper) { return value < lower ? lower : value > upper ? upper : value; }',
+    'function sapphireSign(value) { return value < 0n ? -1n : value > 0n ? 1n : 0n; }',
+    'function sapphireGcd(left, right) { let a = left < 0n ? -left : left; let b = right < 0n ? -right : right; while (b !== 0n) { const remainder = a % b; a = b; b = remainder; } return a; }',
+    'function sapphireLerp(start, end, ratio) { return sapphireFinite(start + (end - start) * ratio); }',
+    'function sapphireCharAt(value, index) { const characters = Array.from(value); const position = Number(index); if (!Number.isInteger(position) || position < 0 || position >= characters.length) throw new Error("SIMULATION_STRING_BOUNDS"); return characters[position]; }',
+    'function sapphireSubstring(value, start, end) { const characters = Array.from(value); const from = Number(start); const to = Number(end); if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || from > to || to > characters.length) throw new Error("SIMULATION_STRING_BOUNDS"); return characters.slice(from, to).join(""); }',
     ...globalDeclarations,
     ...functions,
     '',

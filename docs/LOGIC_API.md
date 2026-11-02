@@ -175,7 +175,21 @@ Les opérations natives SP3 sont un nœud `MathCall` (nom historique) dont `prop
 
 `length`, `charAt` et `substring` comptent des **scalaires Unicode**, pas des unités UTF-16 ; l'indice de `substring` est inclusif au début et **exclusif à la fin**. Un indice ou une portion hors bornes arrête l'exécution avec `SIMULATION_STRING_BOUNDS`. `gcd` renvoie toujours une valeur positive, `sign` renvoie `-1`, `0` ou `1`, et `log` est le logarithme népérien. `arrayLength` accepte n'importe quel type d'élément sans l'imposer.
 
-Un nom inconnu est diagnostiqué `NODE_INCOMPLETE` ; une arité ou un type d'argument incompatible produit `TYPE_MISMATCH`. La simulation locale exécute ces opérations de façon déterministe ; un résultat non fini (NaN ou infini, par exemple `sqrt(-1)` ou `log(0)`) arrête l'exécution avec `SIMULATION_MATH_DOMAIN`, le modèle numérique n'admettant aucune valeur non finie. Les **transpileurs** refusent `MathCall` (`TRANSPILE_EXPRESSION_UNSUPPORTED`) tant qu'aucun équivalent portable n'est défini.
+Un nom inconnu est diagnostiqué `NODE_INCOMPLETE` ; une arité ou un type d'argument incompatible produit `TYPE_MISMATCH`. La simulation locale exécute ces opérations de façon déterministe ; un résultat non fini (NaN ou infini, par exemple `sqrt(-1)` ou `log(0)`) arrête l'exécution avec `SIMULATION_MATH_DOMAIN`, le modèle numérique n'admettant aucune valeur non finie.
+
+La **transpilation JavaScript/Python** traduit désormais `MathCall` en utilisant l'équivalent natif le plus direct, avec de petits helpers lorsque le langage cible ne préserve pas seul la sémantique SP3 :
+
+| Opérations | JavaScript | Python |
+| --- | --- | --- |
+| `abs`, `min`, `max`, `clamp`, `sign`, `gcd` | helpers entiers BigInt | `abs`, `min`, `max`, helpers et `math.gcd` |
+| `pow`, `sqrt`, `log`, trigonométrie | `Math.*` avec contrôle de résultat fini | `math.*` avec conversion des erreurs de domaine en `SIMULATION_MATH_DOMAIN` |
+| `lerp` | helper avec contrôle de résultat fini | helper avec contrôle de résultat fini |
+| `floor`, `ceil`, `round` | `Math.floor`/`ceil`/`round` | helpers qui conservent le type double et l'arrondi de `Math.round` |
+| `length`, `charAt`, `substring` | comptage en scalaires Unicode, helpers de bornes | `len`, helpers de bornes en scalaires Unicode |
+| `contains` | `String.prototype.includes` | opérateur `in` |
+| `arrayLength` | `BigInt(array.length)` | `len(array)` |
+
+Les bornes de texte produisent `SIMULATION_STRING_BOUNDS` dans les deux cibles, comme dans la simulation. Les **pointeurs** restent refusés (`TRANSPILE_EXPRESSION_UNSUPPORTED`).
 
 ### Littéraux et précision
 

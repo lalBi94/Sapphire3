@@ -6,7 +6,10 @@ export const pythonRuntimeNames = [
   'sapphireUninitialized', 'sapphireRead', 'sapphireCheck', 'sapphireBinary',
   'sapphireUnary', 'sapphireCast', 'sapphireFormat', 'sapphireQuotient',
   'sapphireArray', 'sapphireElement', 'sapphireWrite', 'sapphireForEach',
-  'print', 'object', 'isinstance', 'bool', 'int', 'float', 'str', 'repr', 'abs', 'len', 'RuntimeError', 'OverflowError',
+  'sapphireFinite', 'sapphireClamp', 'sapphireSign', 'sapphireLerp',
+  'sapphireCharAt', 'sapphireSubstring', 'sapphireLog', 'sapphireSqrt',
+  'sapphirePow', 'sapphireFloor', 'sapphireCeil', 'sapphireRound',
+  'print', 'object', 'isinstance', 'bool', 'int', 'float', 'str', 'repr', 'abs', 'len', 'min', 'max', 'RuntimeError', 'OverflowError', 'ValueError',
 ]
 
 // Embarque uniquement l'adaptation runtime Python, alimentée par les bornes/codes du moteur commun.
@@ -103,6 +106,62 @@ def sapphireForEach(array, callback):
         raise RuntimeError("SIMULATION_REFERENCE")
     for element in list(array):
         callback(element)
+
+# Refuse un résultat non fini, comme le modèle numérique Sapphire.
+def sapphireFinite(value):
+    if not _sapphireMath.isfinite(value):
+        raise RuntimeError("SIMULATION_MATH_DOMAIN")
+    return value
+
+# Opérations entières natives qui n'ont pas d'équivalent direct strict.
+def sapphireClamp(value, lower, upper):
+    return lower if value < lower else upper if value > upper else value
+
+def sapphireSign(value):
+    return -1 if value < 0 else 1 if value > 0 else 0
+
+def sapphireLerp(start, end, ratio):
+    return sapphireFinite(start + (end - start) * ratio)
+
+# Indices et portions de texte en scalaires Unicode, avec refus des bornes invalides.
+def sapphireCharAt(value, index):
+    if index < 0 or index >= len(value):
+        raise RuntimeError("SIMULATION_STRING_BOUNDS")
+    return value[index]
+
+def sapphireSubstring(value, start, end):
+    if start < 0 or start > end or end > len(value):
+        raise RuntimeError("SIMULATION_STRING_BOUNDS")
+    return value[start:end]
+
+# Logarithmes, racines et puissances ramenés au code de domaine Sapphire.
+def sapphireLog(value):
+    if value <= 0:
+        raise RuntimeError("SIMULATION_MATH_DOMAIN")
+    return _sapphireMath.log(value)
+
+def sapphireSqrt(value):
+    if value < 0:
+        raise RuntimeError("SIMULATION_MATH_DOMAIN")
+    return _sapphireMath.sqrt(value)
+
+def sapphirePow(base, exponent):
+    try:
+        return sapphireFinite(_sapphireMath.pow(base, exponent))
+    except (ValueError, OverflowError):
+        raise RuntimeError("SIMULATION_MATH_DOMAIN") from None
+
+# Arrondis double, avec le même comportement que Math.floor/ceil/round en JavaScript.
+def sapphireFloor(value):
+    return float(_sapphireMath.floor(value))
+
+def sapphireCeil(value):
+    return float(_sapphireMath.ceil(value))
+
+def sapphireRound(value):
+    if value == 0: return value
+    if -0.5 <= value < 0: return -0.0
+    return float(_sapphireMath.floor(value + 0.5))
 
 # Conserve les sorties scalaires Sapphire : booléens minuscules, zéros, tableaux et notation décimale.
 def sapphireFormat(value):

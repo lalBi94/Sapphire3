@@ -2,6 +2,7 @@ import { createDiagnostic } from '../logic/diagnostics.js'
 import { validateLiteral } from '../logic/numericConstants.js'
 import { child, createGenerationContext, generateSelection } from './context.js'
 import { pythonRuntime, pythonRuntimeNames } from './pythonRuntime.js'
+import { getMathNative } from '../logic/mathNatives.js'
 
 const reservedWords = new Set([
   'False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await', 'break', 'class',
@@ -9,6 +10,32 @@ const reservedWords = new Set([
   'if', 'import', 'in', 'is', 'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise',
   'return', 'try', 'while', 'with', 'yield', '__debug__',
 ])
+
+// Traduit chaque opération native vers l'équivalent Python le plus direct.
+// Les helpers ne servent qu'aux sémantiques que les natifs Python ne préservent pas seuls.
+const nativePython = Object.freeze({
+  abs: ([value]) => `abs(${value})`,
+  min: ([left, right]) => `min(${left}, ${right})`,
+  max: ([left, right]) => `max(${left}, ${right})`,
+  clamp: ([value, lower, upper]) => `sapphireClamp(${value}, ${lower}, ${upper})`,
+  sign: ([value]) => `sapphireSign(${value})`,
+  gcd: ([left, right]) => `_sapphireMath.gcd(${left}, ${right})`,
+  pow: ([base, exponent]) => `sapphirePow(${base}, ${exponent})`,
+  lerp: ([start, end, ratio]) => `sapphireLerp(${start}, ${end}, ${ratio})`,
+  log: ([value]) => `sapphireLog(${value})`,
+  sqrt: ([value]) => `sapphireSqrt(${value})`,
+  sin: ([value]) => `sapphireFinite(_sapphireMath.sin(${value}))`,
+  cos: ([value]) => `sapphireFinite(_sapphireMath.cos(${value}))`,
+  tan: ([value]) => `sapphireFinite(_sapphireMath.tan(${value}))`,
+  floor: ([value]) => `sapphireFloor(${value})`,
+  ceil: ([value]) => `sapphireCeil(${value})`,
+  round: ([value]) => `sapphireRound(${value})`,
+  length: ([value]) => `len(${value})`,
+  charAt: ([value, index]) => `sapphireCharAt(${value}, ${index})`,
+  substring: ([value, start, end]) => `sapphireSubstring(${value}, ${start}, ${end})`,
+  contains: ([value, search]) => `(${search} in ${value})`,
+  arrayLength: ([value]) => `len(${value})`,
+})
 
 // Émet Python 3 depuis l'AST typé commun, sans réexécuter ni réinterpréter la source.
 export function generatePython(analysis, { selection = null } = {}) {
@@ -73,6 +100,13 @@ export function generatePython(analysis, { selection = null } = {}) {
       return `([${initializer ? expression(initializer) : 'sapphireUninitialized'}] * ${size})`
     }
     if (node.kind === 'ArrayAccess') return `sapphireElement(${expression(child(node, 'array'))}, ${expression(child(node, 'index'))})`
+    if (node.kind === 'MathCall') {
+      const definition = getMathNative(node.properties?.name)
+      const emitter = definition ? nativePython[definition.id] : null
+      if (emitter) return emitter((node.children.arguments ?? []).map(expression))
+      diagnostics.push(createDiagnostic('TRANSPILE_EXPRESSION_UNSUPPORTED', `Opération native ${node.properties?.name ?? '?'} non prise en charge.`, node.location))
+      return 'None'
+    }
     diagnostics.push(createDiagnostic('TRANSPILE_EXPRESSION_UNSUPPORTED', 'Expression non prise en charge.', node.location))
     return 'None'
   }
