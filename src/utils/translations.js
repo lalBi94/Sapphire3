@@ -439,6 +439,8 @@ const messages = {
   'simulation.title': ['Simulation', 'Simulation', '模拟', 'Simulación', 'المحاكاة'],
   'simulation.close': ['Close simulation', 'Fermer la simulation', '关闭模拟', 'Cerrar la simulación', 'إغلاق المحاكاة'],
   'simulation.completed': ['Completed', 'Terminée', '已完成', 'Terminada', 'مكتملة'],
+  'simulation.stopped': ['Stopped', 'Arrêtée', '已停止', 'Detenida', 'متوقفة'],
+  'simulation.stop': ['Stop', 'Arrêter', '停止', 'Detener', 'إيقاف'],
   'simulation.running': ['Running', 'En cours', '运行中', 'En curso', 'قيد التشغيل'],
   'simulation.steps': ['steps', 'étapes', '步骤', 'pasos', 'خطوات'],
   'simulation.step': ['step', 'étape', '步骤', 'paso', 'خطوة'],

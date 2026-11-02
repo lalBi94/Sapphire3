@@ -309,7 +309,12 @@ export default function Canvas() {
     setDebugSession(null)
     const result = simulateProgram(document.project)
     setSimulationResult(result)
-    setExecution(result.ok && result.trace.length > 0 ? { trace: result.trace, index: 0, running: true } : null)
+    setExecution(result.ok && result.trace.length > 0 ? { trace: result.trace, index: 0, running: true, stopped: false } : null)
+  }
+
+  // Interrompt une simulation en cours d'animation sans effacer sa sortie déjà produite.
+  function handleStopExecution() {
+    setExecution((current) => current ? { ...current, running: false, stopped: true } : current)
   }
 
   // Prépare les arrêts réversibles après l'analyse d'accessibilité, sans changer le workspace.
@@ -599,7 +604,7 @@ export default function Canvas() {
         <span>{transfers.notice.error ? diagnosticLabel(transfers.notice.error, t) : t(transfers.notice.message)}{transfers.notice.detail && ` · ${diagnosticLabel(transfers.notice.detail, t)}`}</span>
         <button type="button" aria-label={t('nav.dismiss')} onClick={transfers.dismiss}><X size={14} aria-hidden="true" /></button>
       </div>}
-      <SimulationPanel result={simulationResult} running={Boolean(execution?.running)} currentStep={execution ? execution.index + 1 : 0} onClose={() => { setSimulationResult(null); setExecution(null) }} />
+      <SimulationPanel result={simulationResult} running={Boolean(execution?.running)} stopped={Boolean(execution?.stopped)} currentStep={execution ? execution.index + 1 : 0} onStop={handleStopExecution} onClose={() => { setSimulationResult(null); setExecution(null) }} />
       {functionNode && <FunctionPanel key={`${functionTarget}:${functionSignature}`} index={document.index} functionNode={functionNode} result={functionResult?.functionId === functionTarget ? functionResult.result : null} onRun={handleRunFunction} onDebug={handleDebugFunction} onClose={handleCloseFunction} />}
       {debugSession?.project === document.project && <DebugPanel session={debugSession} index={document.index} onAction={handleDebugAction} onClose={() => setDebugSession(null)} />}
       <TranspilePanel result={transpilationResult} exportError={transpileExportError} onExport={handleExportTranspilation} onClose={() => { setTranspilationResult(null); setTranspileExportError(null) }} />

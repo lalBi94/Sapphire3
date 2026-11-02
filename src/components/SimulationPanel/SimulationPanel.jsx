@@ -1,21 +1,23 @@
-import { X } from 'lucide-react'
+import { Square, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import usePanelFront from '../../hooks/usePanelFront.jsx'
 import { failureLabel } from '../../utils/translations.js'
 import './SimulationPanel.css'
 
 // Affiche les sorties et l'erreur éventuelle de la dernière simulation locale.
-export default function SimulationPanel({ result, running = false, currentStep = 0, onClose }) {
+export default function SimulationPanel({ result, running = false, stopped = false, currentStep = 0, onClose, onStop }) {
   const { t } = useTranslation()
   const front = usePanelFront()
   if (!result) return null
+  const status = running ? t('simulation.running') : stopped ? t('simulation.stopped') : t('simulation.completed')
   return (
     <aside className="simulation-panel" data-canvas-ui data-canvas-scroll aria-label={t('simulation.title')} style={front.zIndex ? { zIndex: front.zIndex } : undefined} onPointerDown={(event) => { front.bringToFront(); event.stopPropagation() }} onFocusCapture={front.bringToFront} onKeyDown={(event) => event.stopPropagation()}>
       <header>
         <h2>{t('simulation.title')}</h2>
+        {running && <button type="button" className="simulation-panel__stop" aria-label={t('simulation.stop')} title={t('simulation.stop')} onClick={onStop}><Square size={14} strokeWidth={2} aria-hidden="true" fill="currentColor" />{t('simulation.stop')}</button>}
         <button type="button" aria-label={t('simulation.close')} onClick={onClose}><X size={16} aria-hidden="true" /></button>
       </header>
-      {result.ok ? <><p className="simulation-panel__status">{running ? t('simulation.running') : t('simulation.completed')} · {currentStep}/{result.trace.length} {t(result.trace.length === 1 ? 'simulation.step' : 'simulation.steps')}</p><pre>{result.output.join('\n') || t('simulation.noOutput')}</pre>
+      {result.ok ? <><p className="simulation-panel__status" role="status">{status} · {currentStep}/{result.trace.length} {t(result.trace.length === 1 ? 'simulation.step' : 'simulation.steps')}</p><pre>{result.output.join('\n') || t('simulation.noOutput')}</pre>
         {result.contracts?.total > 0 && <section className="simulation-panel__contracts" aria-label={t('contracts.title')}>
           <h3>{t('contracts.title')}</h3>
           {result.contracts.violations.length === 0
