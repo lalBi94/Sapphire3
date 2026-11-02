@@ -32,3 +32,16 @@ export function buildMemorySpace(index, frame, reachability = null) {
   }))
   return { functions, globals, stack }
 }
+
+// Associe chaque déclaration et chaque référence visible à sa valeur au point d'arrêt courant.
+export function buildDebugValues(index, frame) {
+  const values = new Map()
+  const bindings = [...(frame?.globals ?? []), ...(frame?.localScopes ?? []).flatMap((scope) => scope.variables)]
+  for (const binding of bindings) values.set(binding.nodeId, binding)
+  for (const reference of index.references?.values() ?? []) {
+    const symbol = index.symbols?.get(reference.symbolId)
+    if (symbol && values.has(symbol.nodeId) && !values.has(reference.nodeId)) values.set(reference.nodeId, values.get(symbol.nodeId))
+  }
+  return values
+}
+

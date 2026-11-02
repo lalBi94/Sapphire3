@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createContextIndex, createDebugSession } from '../../src/utils/logic/index.js'
-import { buildMemorySpace, memoryValue } from '../../src/utils/memorySpace.js'
+import { analyzeProgram, createContextIndex, createDebugSession } from '../../src/utils/logic/index.js'
+import { buildMemorySpace, buildDebugValues, memoryValue } from '../../src/utils/memorySpace.js'
 import { debugFixture } from '../logic/fixtures.js'
 
 test('espace mémoire : segments de code, données globales et pile d’appels', () => {
@@ -37,4 +37,22 @@ test('espace mémoire : frame absente et adresses illustratives stables', () => 
   assert.deepEqual(again.functions.map((fn) => fn.address), empty.functions.map((fn) => fn.address))
   assert.equal(memoryValue('text'), '"text"')
   assert.equal(memoryValue(-0), '-0')
+})
+
+test('valeurs au survol : déclarations, références et paramètres du point d’arrêt', () => {
+  const project = debugFixture()
+  const session = createDebugSession(project)
+  const index = createContextIndex(project, analyzeProgram(project))
+
+  const atCondition = buildDebugValues(index, session.frames.find((entry) => entry.nodeId === 'condition'))
+  assert.equal(atCondition.get('g').value, 1)
+  assert.equal(atCondition.get('local').value, 2)
+  assert.equal(atCondition.get('localRef').value, 2, 'une référence reprend la valeur de sa déclaration')
+
+  const atIncrement = buildDebugValues(index, session.frames.find((entry) => entry.nodeId === 'increment'))
+  assert.equal(atIncrement.get('n').value, 3)
+
+  const beforeInit = buildDebugValues(index, session.frames.find((entry) => entry.nodeId === 'local'))
+  assert.equal(beforeInit.get('local').initialized, false)
+  assert.equal(buildDebugValues(index, null).size, 0)
 })
