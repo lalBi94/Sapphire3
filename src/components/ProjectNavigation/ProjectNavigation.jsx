@@ -219,7 +219,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
           <summary><Code2 size={13} aria-hidden="true" />{t('transpile.button')}<ChevronDown size={12} aria-hidden="true" /></summary>
           <div className="project-navigation__menu">
             <p className="project-navigation__section">{t('transpile.chooseLanguage')}</p>
-            {transpilationLanguages.map((option) => <button type="button" key={option.id} disabled={!option.available} onClick={() => { closeMenus(); onTranspile(option.id) }}>{option.name}{!option.available && ` · ${t('transpile.unavailable')}`}</button>)}
+            {transpilationLanguages.map((option) => <button type="button" key={option.id} disabled={!option.available} onClick={() => { closeMenus(); onTranspile(option.id) }}><span>{option.name}</span><span className={`project-navigation__chip${option.available ? ' project-navigation__chip--available' : ' project-navigation__chip--unavailable'}`}>{t(option.available ? 'transpile.available' : 'transpile.unavailable')}</span></button>)}
           </div>
         </details>
         <button type="button" className={`project-navigation__run${simulationRunning ? ' project-navigation__run--running' : ''}`} title={t('run.simulateSp3')} onClick={() => handleRun()}><Play size={13} fill="currentColor" aria-hidden="true" />{t('nav.run')}</button>
