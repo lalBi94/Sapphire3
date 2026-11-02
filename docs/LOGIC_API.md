@@ -79,6 +79,7 @@ La catégorie de module `main` est retirée : une ancienne source v1 l'utilisant
 | `Literal` | `type` obligatoire et `value` strictement compatible ; aucune inférence depuis la valeur |
 | `Reference` | `references.target` |
 | `CallExpression` | `callee` expression, `arguments[]` |
+| `MathCall` | `name` obligatoire (opération du registre `mathNatives`) ; `arguments[]` typés selon l'opération |
 | `CastExpression` | `type` cible obligatoire, `argument` expression ; conversion explicitement demandée |
 | `Hole` | Incomplétude explicite, diagnostic bloquant mais représentation conservée |
 | `ArrayLiteral` | `elementType` obligatoire, `elements[]` expressions du même type |
@@ -136,6 +137,19 @@ Un pointeur est un type construit `{kind:'pointer', pointee:{kind:'primitive', n
 
 Deux opérateurs unaires portent les pointeurs : **`&`** (`operands:'addressable'`, résultat pointeur vers l'opérande) exige un opérande **stockable** — `Reference` ou `ArrayAccess` — sinon `PLACEMENT_ILLEGAL` ; **`*`** (`operands:'pointer'`, résultat la cible) exige un opérande de type pointeur. Ils ne participent à aucun calcul constant. La **simulation locale** les exécute : `&` produit une **adresse** — `&nom` vers une variable, `&[i]` vers un élément de tableau — et `*p` relit la valeur **courante** de l'emplacement, y compris après une mutation ; la mémoire de debug, les variables observées et les sorties affichent l'adresse sous cette forme. Les **transpileurs** les refusent (`TRANSPILE_EXPRESSION_UNSUPPORTED`) faute d'équivalent portable dans les langages cibles. Le déréférencement `*p` est une simple lecture : il n'est pas admis comme cible d'affectation dans cette version.
 
+### Opérations mathématiques natives
+
+Les opérations mathématiques SP3 sont un nœud `MathCall` dont `properties.name` désigne une entrée du registre pur `mathNatives` (`src/utils/logic/mathNatives.js`). Le registre est le seul point d'extension de cette famille ; chaque entrée fixe les types des paramètres et le type de retour, sans conversion implicite ni surcharge.
+
+| Opération | Paramètres | Retour |
+| --- | --- | --- |
+| `abs` | `int` | `int` |
+| `min`, `max` | `int`, `int` | `int` |
+| `pow` | `double`, `double` | `double` |
+| `sqrt`, `sin`, `cos`, `tan`, `floor`, `ceil`, `round` | `double` | `double` |
+
+Un nom inconnu est diagnostiqué `NODE_INCOMPLETE` ; une arité ou un type d'argument incompatible produit `TYPE_MISMATCH`. La simulation locale exécute ces opérations de façon déterministe ; un résultat non fini (NaN ou infini, par exemple `sqrt(-1)`) arrête l'exécution avec `SIMULATION_MATH_DOMAIN`, le modèle numérique n'admettant aucune valeur non finie. Les **transpileurs** refusent `MathCall` (`TRANSPILE_EXPRESSION_UNSUPPORTED`) tant qu'aucun équivalent portable n'est défini.
+
 ### Littéraux et précision
 
 Forme : `{kind:'Literal', properties:{type:{kind:'primitive',name:'short int'},value:'32767'}, ...}`. Un entier accepte un entier JSON exact dans son domaine, ou un texte décimal signé sans point ni exposant. Le calcul interne utilise BigInt, jamais persisté dans la source ou exposé comme nouveau type. Les fractions, hexadécimaux textuels et chaînes avec espaces sont refusés.
@@ -170,7 +184,7 @@ Les types des expressions non constantes sont entièrement statiques, mais leurs
 
 ### Simulation locale
 
-`simulateProgram(project, {maxSteps?})` est une exécution locale déterministe, séparée de React, du DOM, de Neutralinojs et de tout accès réseau. Elle exige une analyse sans diagnostic bloquant et une fonction marquée `properties.entryPoint: true` sans paramètre d'entrée. La première tranche prend en charge les littéraux, références, opérations, conversions transparentes, appels, déclarations, affectations, `if`, `while`, `for`, `return`, `break`, `continue`, expressions et `PrintStatement`.
+`simulateProgram(project, {maxSteps?})` est une exécution locale déterministe, séparée de React, du DOM, de Neutralinojs et de tout accès réseau. Elle exige une analyse sans diagnostic bloquant et une fonction marquée `properties.entryPoint: true` sans paramètre d'entrée. La première tranche prend en charge les littéraux, références, opérations, conversions transparentes, appels, opérations mathématiques natives, déclarations, affectations, `if`, `while`, `for`, `return`, `break`, `continue`, expressions et `PrintStatement`.
 
 La simulation écrit uniquement dans un résultat mémoire `{ok, output, trace, result?, returnValue?, variables?, steps, contracts?, error?}` ; elle ne modifie pas la source et n'enregistre rien. `trace` est une liste ordonnée d'identifiants de nœuds effectivement visités, y compris les expressions évaluées et les répétitions de boucle ou d'appel. Elle permet à l'interface de présenter une exécution progressive sans déplacer ni modifier les données de présentation persistées. `maxSteps` protège l'interface contre les boucles non terminantes. Les bornes runtime avancées, les entrées interactives, les effets de fichier, l'ordonnancement et la génération de code restent hors de ce premier incrément.
 
@@ -204,7 +218,7 @@ Une intégration est désormais en place : les cartes Module partagent l'identif
 
 ### Insertion contextuelle
 
-`getAvailableActions` déduit les constructions insérables du schéma (`nodeSchema`) et du contexte lexical, jamais d'une liste codée en dur. Les modules utilisent `rootNodeIds` ; les autres nœuds utilisent `children`. Les slots sont proposés avant les constructions ; un slot unique occupé ou malformé n'est pas remplaçable. `placement.js` partage les restrictions lexicales avec le validateur : fonctions et types aux racines du module, paramètres dans une liste de fonction, `return` dans une fonction, `break`/`continue` dans une boucle.
+`getAvailableActions` déduit les constructions insérables du schéma (`nodeSchema`) et du contexte lexical, jamais d'une liste codée en dur. Les modules utilisent `rootNodeIds` ; les autres nœuds utilisent `children`. Les slots sont proposés avant les constructions ; un slot unique occupé ou malformé n'est pas remplaçable. `placement.js` partage les restrictions lexicales avec le validateur : fonctions et types aux racines du module, paramètres dans une liste de fonction, `return` dans une fonction, `break`/`continue` dans une boucle. Chaque opération mathématique native est proposée séparément sous la sous-catégorie `native.math` du menu, avec son nom prédéfini ; le nœud `MathCall` créé reste modifiable ensuite.
 
 Le bouton unique « + » en haut à droite ouvre exactement ce menu, ancré sous son déclencheur ; le clic droit demeure disponible. Le menu du module expose aussi la suppression confirmée du module entier. Les annotations Comment ont un menu de suppression de présentation distinct, sans appel au moteur logique.
 

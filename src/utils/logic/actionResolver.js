@@ -1,4 +1,5 @@
 import { nodeSchema, acceptsNodeKind } from './nodeSchema.js'
+import { mathNativeIds } from './mathNatives.js'
 import { isArrayType } from './primitives.js'
 import { getPlacementIssue } from './placement.js'
 import { resolveContext } from './contextResolver.js'
@@ -22,6 +23,11 @@ export function getAvailableActions(project, targetId, slotName, options = {}) {
       if (context.record.kind === 'CallExpression' && slot.name === 'callee' && kind !== 'Reference') continue
       // Un tableau ne peut remplir qu'un emplacement qui attend un tableau ; le choix reste libre sinon.
       if (['ArrayLiteral', 'ArrayCreation'].includes(kind) && context.expectedType && !isArrayType(context.expectedType)) continue
+      // Chaque opération mathématique est proposée séparément, sous la sous-catégorie Maths.
+      if (kind === 'MathCall') {
+        for (const id of mathNativeIds) actions.push({ id: `${slot.name}:${kind}:${id}`, kind, slot: slot.name, category: nodeSchema[kind].category, group: 'native.math', preset: { name: id } })
+        continue
+      }
       actions.push({ id: `${slot.name}:${kind}`, kind, slot: slot.name, category: nodeSchema[kind].category })
     }
   }

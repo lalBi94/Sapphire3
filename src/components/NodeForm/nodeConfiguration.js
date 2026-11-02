@@ -69,7 +69,7 @@ export function expressionSymbols(symbols, type, allowAnyType = false) {
 }
 
 // Prépare un brouillon UI à partir des seules propriétés existantes, sans valeur logique inventée.
-export function initialNodeForm(kind, node, expectedType, symbols) {
+export function initialNodeForm(kind, node, expectedType, symbols, preset = null) {
   const properties = node?.properties ?? {}
   const target = node?.references?.target
   const symbol = symbols.find((entry) => target?.kind === 'import' ? entry.importId === target.importId : target?.kind === 'name' ? entry.name === target.name : entry.nodeId === target?.nodeId)
@@ -92,6 +92,7 @@ export function initialNodeForm(kind, node, expectedType, symbols) {
     parameters: [], entryPoint: properties.entryPoint === true, allowIncomplete: false,
     elementTypeName: arrayElementTypeName, arraySize: emptyExpression(), arrayFill: emptyExpression(), arrayElements: [],
     accessArray: emptyExpression(), accessIndex: emptyExpression(), indexTypeName: 'int',
+    mathName: kind === 'MathCall' ? properties.name ?? preset?.name ?? '' : '',
   }
 }
 
@@ -180,6 +181,10 @@ export function nodeConfiguration(kind, form, symbols, initialNode = null) {
     const symbol = symbols.find((entry) => entry.id === form.symbolId)
     if (symbol) references.target = symbolTarget(symbol)
     else if (!initialNode || form.symbolId !== '@unresolved') delete references.target
+  }
+  if (kind === 'MathCall') {
+    if (form.mathName) properties.name = form.mathName
+    else delete properties.name
   }
   if (initialNode) return { properties, references }
   const children = {}

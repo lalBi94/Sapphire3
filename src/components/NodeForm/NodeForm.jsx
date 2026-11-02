@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Plus, Save, Trash2 } from 'lucide-react'
-import { getNodeSchema, binaryOperators, unaryOperators, primitiveType, getCallableSymbols, sameType, isArrayType } from '../../utils/logic/index.js'
+import { getNodeSchema, binaryOperators, unaryOperators, primitiveType, getCallableSymbols, sameType, isArrayType, mathNativeIds } from '../../utils/logic/index.js'
 import { initialNodeForm, nodeConfiguration, emptyExpression, typeFromName, accessedArrayType, arrayIndexType, integerTypeNames, expressionOperators } from './nodeConfiguration.js'
 import NodeTypeInput from './NodeTypeInput.jsx'
 import NodeValueInput from './NodeValueInput.jsx'
@@ -10,9 +10,9 @@ import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './NodeForm.css'
 
 // Configure les propriétés du langage sans éditer ni remplacer implicitement les liens syntaxiques.
-export default function NodeForm({ kind, initialNode = null, context, onSubmit }) {
+export default function NodeForm({ kind, initialNode = null, preset = null, context, onSubmit }) {
   const { t } = useTranslation()
-  const [form, setForm] = useState(() => initialNodeForm(kind, initialNode, context.expectedType, getCallableSymbols(context)))
+  const [form, setForm] = useState(() => initialNodeForm(kind, initialNode, context.expectedType, getCallableSymbols(context), preset))
   const [error, setError] = useState(null)
 
   const schema = getNodeSchema(kind)
@@ -73,6 +73,12 @@ export default function NodeForm({ kind, initialNode = null, context, onSubmit }
         </select>
       </label>}
       {kind === 'Literal' && <NodeValueInput label={t('form.value')} typeName={resolvedName} value={form.value} empty={form.empty} required={required} onChange={(value) => change('value', value)} onEmptyChange={(value) => change('empty', value)} />}
+      {kind === 'MathCall' && <label>{t('kind.MathCall')}
+        <select aria-label={t('kind.MathCall')} value={form.mathName ?? ''} onChange={(event) => change('mathName', event.target.value)} required={required}>
+          <option value="">{t('form.chooseName')}</option>
+          {mathNativeIds.map((id) => <option key={id} value={id}>{id}</option>)}
+        </select>
+      </label>}
       {(kind === 'Reference' || (isNew && kind === 'CallExpression')) && <label>{t(kind === 'Reference' ? 'form.symbol' : 'form.function')}
         <select aria-label={t(kind === 'Reference' ? 'form.symbol' : 'form.function')} value={form.symbolId || (unresolved ? '@unresolved' : '')} onChange={(event) => change('symbolId', event.target.value)} required={required}>
           <option value="">{t('form.chooseName')}</option>

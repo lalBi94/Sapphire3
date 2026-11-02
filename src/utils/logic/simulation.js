@@ -2,6 +2,7 @@ import { analyzeProgram } from './analysis.js'
 import { validateLiteral, convertConstant, evaluateBinary, evaluateUnary } from './numericConstants.js'
 import { createDebugRecorder } from './debugTrace.js'
 import { satisfiesContract, normalizeContracts } from './contracts.js'
+import { getMathNative } from './mathNatives.js'
 
 // Ajoute un code stable sans introduire de traduction ni de dépendance UI dans le moteur.
 function simulationError(code, message) {
@@ -195,6 +196,13 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       const target = symbol ? functions.get(symbol.nodeId) : null
       if (!target) throw simulationError('SIMULATION_REFERENCE', 'The called function cannot be resolved.')
       return executeFunction(target, (node.children.arguments ?? []).map((id) => valueOf(nodes.get(id), environment)))
+    }
+    // Opération mathématique native : déterministe et sans effet de bord.
+    if (node.kind === 'MathCall') {
+      const definition = getMathNative(node.properties?.name)
+      if (!definition) throw simulationError('SIMULATION_REFERENCE', 'The math operation cannot be resolved.')
+      const args = (node.children?.arguments ?? []).map((id) => valueOf(nodes.get(id), environment))
+      return definition.run(args)
     }
     if (node.kind === 'ArrayLiteral') {
       return (node.children.elements ?? []).map((id) => valueOf(nodes.get(id), environment))
