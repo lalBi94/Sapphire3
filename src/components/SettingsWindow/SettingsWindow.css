@@ -33,6 +33,14 @@
 
 .settings-field { display: flex; flex-direction: column; gap: 6px; }
 .settings-field select { padding: 6px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-surface-raised); color: var(--color-text); font: inherit; }
+/* Langues en boutons radio : grille de cartes, la langue active est mise en évidence. */
+.settings-radio-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 4px; margin: 0; padding: 0; border: 0; }
+.settings-radio { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-control); cursor: pointer; }
+.settings-radio:hover { background: var(--color-hover); }
+.settings-radio input { flex: 0 0 auto; accent-color: var(--color-primary); }
+.settings-radio span { flex: 1; min-width: 0; }
+.settings-radio svg { flex: 0 0 auto; color: var(--color-primary); }
+.settings-radio--selected { border-color: var(--color-selection-border); background: var(--color-selection-surface); }
 
 .settings-info { display: grid; gap: var(--space-control); margin: 0; }
 .settings-info > div { display: flex; justify-content: space-between; gap: var(--space-panel); padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-control); }

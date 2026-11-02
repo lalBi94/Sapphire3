@@ -1,4 +1,4 @@
-import { BookmarkPlus, Download, ExternalLink, FileInput, FileOutput, FilePlus, FolderOpen, Maximize2, RefreshCw, Save, SaveAll, Trash2, VectorSquare } from 'lucide-react'
+import { BookmarkPlus, Check, Download, ExternalLink, FileInput, FileOutput, FilePlus, FolderOpen, Maximize2, RefreshCw, Save, SaveAll, Trash2, VectorSquare } from 'lucide-react'
 import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
 import { describeBookmark, getNodeSchema } from '../../utils/logic/index.js'
 import { supportedLanguages } from '../../utils/translations.js'
@@ -111,15 +111,20 @@ export function ThemeSection() {
   return <div className="settings-section settings-section--theme"><ThemeMenu variant="settings" /></div>
 }
 
-// Langue : le catalogue reste la seule source des langues proposées.
+// Langue : toutes les langues proposées, sous forme de boutons radio dans une grille.
 export function LanguageSection() {
   const { t, language, setLanguage } = useTranslation()
   return <div className="settings-section">
-    <label className="settings-field">{t('nav.language')}
-      <select aria-label={t('nav.language')} value={language} onChange={(event) => setLanguage(event.target.value)}>
-        {supportedLanguages.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
-      </select>
-    </label>
+    <fieldset className="settings-radio-group" aria-label={t('nav.language')}>
+      {supportedLanguages.map((option) => {
+        const selected = option.id === language
+        return <label className={selected ? 'settings-radio settings-radio--selected' : 'settings-radio'} key={option.id}>
+          <input type="radio" name="settings-language" value={option.id} checked={selected} onChange={() => setLanguage(option.id)} />
+          <span>{option.label}</span>
+          {selected && <Check size={14} aria-hidden="true" />}
+        </label>
+      })}
+    </fieldset>
   </div>
 }
 
