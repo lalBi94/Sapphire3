@@ -295,6 +295,8 @@ const messages = {
   'examples.fibonacci': ['Fibonacci', 'Fibonacci', '斐波那契', 'Fibonacci', 'فيبوناتشي', 'フィボナッチ', 'Fibonacci', 'Фибоначчи'],
   'examples.choose': ['Open an example', 'Ouvrir un exemple', '打开示例', 'Abrir un ejemplo', 'افتح مثالاً', '例を開く', 'एक उदाहरण खोलें', 'Открыть пример'],
   'examples.sorting': ['Sorting', 'Tri', '排序', 'Ordenación', 'الترتيب', '並べ替え', 'Sorting', 'Сортировка'],
+  'examples.quickSort': ['Quick sort', 'Tri rapide', '快速排序', 'Ordenación rápida', 'فرز سريع', 'クイックソート', 'क्विक सॉर्ट', 'Быстрая сортировка'],
+  'examples.coinChange': ['Coin change', 'Rendu de monnaie', '找零', 'Cambio de monedas', 'تغيير العملة', '硬貨の両替', 'सिक्का परिवर्तन', 'Размен монет'],
   'examples.arrays': ['Arrays', 'Tableaux', '数组', 'Arreglos', 'المصفوفات', '配列', 'Arrays', 'Массивы'],
   'examples.recursion': ['Recursion', 'Récursion', '递归', 'Recursión', 'الاستدعاء الذاتي', '再帰', 'Recursion', 'Рекурсия'],
   'examples.imports': ['Imports', 'Imports', '导入', 'Importaciones', 'الاستيراد', 'インポート', 'Imports', 'Импорты'],
