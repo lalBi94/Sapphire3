@@ -22,7 +22,7 @@ function nativeGroups() {
   return groups
 }
 
-export default function NodeForm({ kind, initialNode = null, preset = null, context, onSubmit }) {
+export default function NodeForm({ kind, initialNode = null, preset = null, context, onSubmit, showName = true }) {
   const { t } = useTranslation()
   const [form, setForm] = useState(() => initialNodeForm(kind, initialNode, context.expectedType, getCallableSymbols(context), preset))
   const [error, setError] = useState(null)
@@ -103,7 +103,7 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
   if (!schema) return <p>{t('form.notAvailable')}</p>
   return (
     <form className="node-form" onSubmit={handleSubmit}>
-      {schema.named && <label>{t('form.name')}<input aria-label={t('form.name')} value={form.name} onChange={(event) => change('name', event.target.value)} required={required} autoComplete="off" /></label>}
+      {schema.named && showName && <label>{t('form.name')}<input aria-label={t('form.name')} value={form.name} onChange={(event) => change('name', event.target.value)} required={required} autoComplete="off" /></label>}
       {(schema.declaresType || isNew && kind === 'PrintStatement') && <NodeTypeInput label={kind === 'FunctionDeclaration' ? t('form.returnType') : t('form.type')} value={form.typeName} onChange={(value) => change('typeName', value)} required={required} allowVoid={kind === 'FunctionDeclaration'} allowArray={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement')} allowPointer={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement')} allowFunction={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind)} allowGeneric={allowGenericType} functionTypes={functionTypes} alias={initialNode?.properties.type?.kind === 'named'} />}
       {['ArrayLiteral', 'ArrayCreation'].includes(kind) && (arrayElementType
         ? <p className="node-form__hint">{t('form.arrayElementsOfType', { type: arrayElementType.name })}</p>

@@ -1,6 +1,6 @@
 import { useReducer } from 'react'
 import { moduleTypes } from '../utils/moduleTypes.js'
-import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark } from '../utils/logic/index.js'
+import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol } from '../utils/logic/index.js'
 import { initialDocument, reduceHistory } from '../utils/canvasDocument.js'
 
 // Évite deux cartes Module du même nom lors de l'insertion d'un favori.
@@ -112,6 +112,18 @@ export default function useCanvasDocument() {
     return { ...prepared, moduleId, moduleName, existingModule: existing }
   }
 
+  // Calcule l'aperçu d'un renommage sémantique sans modifier le document courant.
+  function previewSymbolRename(id, name) {
+    return renameSourceSymbol(document.project, id, name, { analysis: document.analysis, index: document.index })
+  }
+
+  // Applique le renommage après recalcul sur la source courante ; l'historique couvre l'opération entière.
+  function applySymbolRename(id, name) {
+    const prepared = previewSymbolRename(id, name)
+    if (prepared.ok) dispatch({ type: 'renameSymbol', previousProject: document.project, prepared, id, name })
+    return prepared
+  }
+
   // Réordonne une instruction dans sa liste parente, sans recréer le nœud ni changer ses identifiants.
   function reorderNode(id, offset) {
     const prepared = reorderSourceNode(document.project, id, offset, { index: document.index })
@@ -205,5 +217,5 @@ export default function useCanvasDocument() {
     dispatch({ type: 'redo' })
   }
 
-  return { ...document, createCard, updateGeometry, arrangeModules, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, duplicateNode, deleteNode, deleteModule, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, setExpandedNodes, setCardHidden, setCardLocked, setCardEmoji, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
+  return { ...document, createCard, updateGeometry, arrangeModules, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, duplicateNode, deleteNode, deleteModule, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, previewSymbolRename, applySymbolRename, setExpandedNodes, setCardHidden, setCardLocked, setCardEmoji, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
 }

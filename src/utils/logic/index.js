@@ -11,6 +11,7 @@ export { createContextIndex, resolveContext, getVisibleSymbols } from './context
 export { getAvailableActions } from './actionResolver.js'
 export { createNodeBundle } from './nodeFactory.js'
 export { insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts } from './sourceMutation.js'
+export { renameSourceSymbol } from './rename.js'
 export { nodeSchema, getNodeSchema, binaryOperators, unaryOperators } from './nodeSchema.js'
 export { mathNatives, getMathNative, mathNativeIds } from './mathNatives.js'
 export { simulateProgram } from './simulation.js'

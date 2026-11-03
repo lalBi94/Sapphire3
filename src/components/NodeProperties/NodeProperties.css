@@ -28,6 +28,29 @@
 .node-properties__diagnostics strong { color: var(--color-diagnostic); font-weight: 400; }
 .node-properties__diagnostics small { color: var(--color-text-muted); }
 .node-properties__danger { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--color-border); display: grid; gap: 8px; }
+.node-properties__rename { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--color-border); }
+.node-properties__rename form { display: grid; gap: 8px; }
+.node-properties__rename label { display: grid; gap: 4px; color: var(--color-text-muted); }
+.node-properties__rename input { width: 100%; min-width: 0; padding: var(--space-control); border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-input); color: var(--color-text); font: inherit; }
+.node-properties__rename-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.node-properties__rename-actions button { display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); color: var(--color-text); background: transparent; font: inherit; font-size: 10px; cursor: pointer; }
+.node-properties__rename-actions button:hover:not(:disabled) { border-color: var(--color-border-hover); background: var(--color-hover); }
+.node-properties__rename-actions button:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
+.node-properties__rename-result { margin-top: 10px; }
+.node-properties__rename-summary { margin: 0 0 6px; color: var(--color-text-muted); font-size: 10px; }
+.node-properties__rename-error { margin: 0 0 6px; color: var(--color-diagnostic); font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+.node-properties__rename-diagnostics { margin: 0 0 8px; padding: 0; list-style: none; display: grid; gap: 4px; }
+.node-properties__rename-diagnostics li { display: grid; gap: 2px; font-size: 10px; overflow-wrap: anywhere; }
+.node-properties__rename-diagnostics strong { color: var(--color-diagnostic); font-weight: 400; }
+.node-properties__rename-diagnostics small { color: var(--color-text-muted); }
+.node-properties__rename-changes { max-height: 220px; overflow: auto; margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.node-properties__rename-changes li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 6px; padding: 5px 6px; border: 1px solid var(--color-border); border-radius: var(--radius-small); background: var(--color-surface-raised); font-size: 10px; }
+.node-properties__rename-changes li > span:nth-child(2) { min-width: 0; overflow-wrap: anywhere; }
+.node-properties__rename-changes small { grid-column: 2; color: var(--color-text-muted); overflow-wrap: anywhere; }
+.node-properties__rename-kind { align-self: start; padding: 1px 5px; border: 1px solid var(--color-border); border-radius: var(--radius-small); color: var(--color-text-muted); font-size: 9px; white-space: nowrap; }
+.node-properties__rename-kind--declaration { border-color: var(--color-selection-border); color: var(--color-selection); background: var(--color-selection-surface); }
+.node-properties__rename-kind--export, .node-properties__rename-kind--import { border-color: var(--color-yellow); color: var(--color-yellow); }
+.node-properties__rename-kind--type { border-color: var(--color-node-type); color: var(--color-node-type); }
 .node-properties__hierarchy { margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--color-border); }
 .node-properties__hierarchy > ul, .node-properties__hierarchy ul { margin: 0; padding: 0; list-style: none; }
 .node-properties__hierarchy ul ul { padding-left: 12px; border-left: 1px solid var(--color-border); }

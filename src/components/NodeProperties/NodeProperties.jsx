@@ -8,6 +8,7 @@ import { buildNodeImage } from '../../utils/nodeImage.js'
 import NodeForm from '../NodeForm/NodeForm.jsx'
 import ModuleNameForm from './ModuleNameForm.jsx'
 import ModuleInterface from './ModuleInterface.jsx'
+import RenameSymbol from './RenameSymbol.jsx'
 import NodeCodePreview from './NodeCodePreview.jsx'
 import FloatingPanel from '../FloatingPanel/FloatingPanel.jsx'
 import DeleteAction from '../DeleteAction/DeleteAction.jsx'
@@ -66,7 +67,7 @@ function ProjectHierarchy({ project, index, selected, onSelect, t }) {
 }
 
 // Affiche les propriétés et l'extrait de code dans le cadre flottant commun aux analyses.
-export default function NodeProperties({ selected, project, index, onConfigure, onRename, onSelect, onDelete, onDeleteModule, onExport, onImport, onRemoveImport, onContracts, onClose, onExportImage, onExportNodeJson, mutationError }) {
+export default function NodeProperties({ selected, project, index, onConfigure, onRename, onPreviewSymbolRename, onApplySymbolRename, onSelect, onDelete, onDeleteModule, onExport, onImport, onRemoveImport, onContracts, onClose, onExportImage, onExportNodeJson, mutationError }) {
   const { t, language } = useTranslation()
   const [reportState, setReportState] = useState('')
   const [contractKind, setContractKind] = useState('')
@@ -131,7 +132,10 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
         <button type="button" className="node-properties__tool" title={t('details.exportImage')} aria-label={t('details.exportImage')} onClick={handleExportImage}><ImageIcon size={14} aria-hidden="true" /></button>
         <button type="button" className="node-properties__tool" title={t('details.exportJson')} aria-label={t('details.exportJson')} onClick={handleExportJson}><FileJson size={14} aria-hidden="true" /></button>
       </div>}
-      {selected.kind === 'module' ? <ModuleNameForm key={`${record.id}:${record.name}`} module={record} onRename={onRename} /> : configurable ? <NodeForm key={`${record.id}:${JSON.stringify([record.properties, record.references])}`} kind={record.kind} initialNode={record} context={context} onSubmit={(patch) => onConfigure(record.id, patch)} /> : <p>{t('details.addParts')}</p>}
+      {selected.kind === 'module' ? <ModuleNameForm key={`${record.id}:${record.name}`} module={record} onRename={onRename} /> : configurable ? <>
+        {schema?.named && <RenameSymbol key={`${record.id}:${record.properties.name}`} record={record} index={index} onPreview={onPreviewSymbolRename} onApply={onApplySymbolRename} />}
+        <NodeForm key={`${record.id}:${JSON.stringify([record.properties, record.references])}`} kind={record.kind} initialNode={record} context={context} showName={!schema.named} onSubmit={(patch) => onConfigure(record.id, patch)} />
+      </> : <p>{t('details.addParts')}</p>}
       {selected.kind === 'module' && <ModuleInterface key={record.id} module={record} project={project} analysis={index.analysis} index={index} onExport={onExport} onImport={onImport} onRemoveImport={onRemoveImport} />}
       {contractable && <section className="node-properties__contracts" aria-label={t('contracts.title')}>
         <h3>{t('contracts.title')} <InfoHint text={t('contracts.hint')} /></h3>
