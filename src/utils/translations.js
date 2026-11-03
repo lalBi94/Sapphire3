@@ -304,6 +304,7 @@ const messages = {
   'examples.pointers': ['Pointers', 'Pointeurs', '指针', 'Punteros', 'المؤشرات', 'ポインタ', 'Pointers', 'Указатели'],
   'examples.higherOrder': ['Higher-order function', 'Fonction d’ordre supérieur', '高阶函数', 'Función de orden superior', 'دالة من الرتبة الأعلى', '高階関数', 'Higher-order function', 'Функция высшего порядка'],
   'examples.maths': ['Native maths', 'Maths natives', '原生数学', 'Matemáticas nativas', 'رياضيات أصلية', 'ネイティブ数学', 'Native maths', 'Встроенная математика'],
+  'examples.calculus': ['Calculus', 'Calcul', '微积分', 'Cálculo', 'التفاضل والتكامل', '微積分', 'कलन', 'Математический анализ'],
   'examples.category.algorithms': ['Algorithms', 'Algorithmes', '算法', 'Algoritmos', 'الخوارزميات', 'アルゴリズム', 'एल्गोरिदम', 'Алгоритмы'],
   'examples.category.arrays': ['Arrays', 'Tableaux', '数组', 'Arreglos', 'المصفوفات', '配列', 'Arrays', 'Массивы'],
   'examples.category.functions': ['Functions', 'Fonctions', '函数', 'Funciones', 'الدوال', '関数', 'फ़ंक्शन', 'Функции'],

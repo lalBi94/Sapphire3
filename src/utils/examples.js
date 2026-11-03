@@ -420,6 +420,59 @@ function maths() {
   return workspace(b.project, [note('mathNote', 'Native maths', 'Opérations SP3 natives : abs(-7) = 7, max(-7, 3) = 3, sqrt(81) = 9, pow(3, 2) = 9. Une note peut aussi afficher une formule : $$ \\sqrt{81} = 9 $$.', 600, 0)])
 }
 
+// Calcul numérique multi-module : dérivée centrale et intégrale de Simpson pour x².
+function calculus() {
+  const b = builder()
+  b.useModule('calculus', 'Calculus')
+  b.root('squareFunction', 'FunctionDeclaration', { name: 'square', type: doubleType }, { parameters: ['squareX'], body: 'squareBody' })
+  b.make('squareX', 'Parameter', { name: 'x', type: doubleType })
+  b.block('squareBody', ['squareReturn'])
+  b.returnValue('squareReturn', 'squareProduct')
+  b.binary('squareProduct', '*', 'squareXRead', 'squareXReadTwo'); b.ref('squareXRead', 'x'); b.ref('squareXReadTwo', 'x')
+
+  b.root('derivativeFunction', 'FunctionDeclaration', { name: 'derivative', type: doubleType }, { parameters: ['derivativeX'], body: 'derivativeBody' })
+  b.make('derivativeX', 'Parameter', { name: 'x', type: doubleType })
+  b.block('derivativeBody', ['derivativeH', 'derivativeReturn'])
+  b.make('derivativeH', 'VariableDeclaration', { name: 'h', type: doubleType }, { initializer: 'derivativeHValue' })
+  b.make('derivativeHValue', 'Literal', { type: doubleType, value: '0.5' })
+  b.returnValue('derivativeReturn', 'derivativeQuotient')
+  b.binary('derivativeQuotient', '/', 'derivativeDelta', 'derivativeDenominator')
+  b.binary('derivativeDelta', '-', 'derivativeRightValue', 'derivativeLeftValue')
+  b.call('derivativeRightValue', 'derivativeRightSquare', ['derivativeXPlusH']); b.ref('derivativeRightSquare', 'square')
+  b.binary('derivativeXPlusH', '+', 'derivativeXRight', 'derivativeHRight'); b.ref('derivativeXRight', 'x'); b.ref('derivativeHRight', 'h')
+  b.call('derivativeLeftValue', 'derivativeLeftSquare', ['derivativeXMinusH']); b.ref('derivativeLeftSquare', 'square')
+  b.binary('derivativeXMinusH', '-', 'derivativeXLeft', 'derivativeHLeft'); b.ref('derivativeXLeft', 'x'); b.ref('derivativeHLeft', 'h')
+  b.binary('derivativeDenominator', '*', 'derivativeTwo', 'derivativeHMiddle'); b.make('derivativeTwo', 'Literal', { type: doubleType, value: '2.0' }); b.ref('derivativeHMiddle', 'h')
+
+  b.root('integralFunction', 'FunctionDeclaration', { name: 'integral', type: doubleType }, { parameters: ['integralA', 'integralB'], body: 'integralBody' })
+  b.make('integralA', 'Parameter', { name: 'a', type: doubleType })
+  b.make('integralB', 'Parameter', { name: 'b', type: doubleType })
+  b.block('integralBody', ['middleDecl', 'weightDecl', 'integralReturn'])
+  b.make('middleDecl', 'VariableDeclaration', { name: 'middle', type: doubleType }, { initializer: 'middleValue' })
+  b.binary('middleValue', '/', 'middleSum', 'middleTwo'); b.binary('middleSum', '+', 'integralARead', 'integralBRead'); b.ref('integralARead', 'a'); b.ref('integralBRead', 'b'); b.make('middleTwo', 'Literal', { type: doubleType, value: '2.0' })
+  b.make('weightDecl', 'VariableDeclaration', { name: 'weight', type: doubleType }, { initializer: 'weightValue' })
+  b.binary('weightValue', '/', 'weightSpan', 'weightSix'); b.binary('weightSpan', '-', 'integralBWeight', 'integralAWeight'); b.ref('integralBWeight', 'b'); b.ref('integralAWeight', 'a'); b.make('weightSix', 'Literal', { type: doubleType, value: '6.0' })
+  b.returnValue('integralReturn', 'integralProduct')
+  b.binary('integralProduct', '*', 'weightRead', 'integralSum')
+  b.ref('weightRead', 'weight')
+  b.binary('integralSum', '+', 'integralLeftSquare', 'integralRightTerms')
+  b.call('integralLeftSquare', 'integralLeftRef', ['integralAValue']); b.ref('integralLeftRef', 'square'); b.ref('integralAValue', 'a')
+  b.binary('integralRightTerms', '+', 'integralMiddleTerm', 'integralRightSquare')
+  b.binary('integralMiddleTerm', '*', 'integralFour', 'integralMiddleSquare'); b.make('integralFour', 'Literal', { type: doubleType, value: '4.0' }); b.call('integralMiddleSquare', 'integralMiddleRef', ['integralMiddleValue']); b.ref('integralMiddleRef', 'square'); b.ref('integralMiddleValue', 'middle')
+  b.call('integralRightSquare', 'integralRightRef', ['integralBValue']); b.ref('integralRightRef', 'square'); b.ref('integralBValue', 'b')
+
+  b.useModule('calculusDemo', 'Calculus demo')
+  b.root('calculusMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'calculusBody' })
+  b.block('calculusBody', ['printDerivative', 'printIntegral'])
+  b.print('printDerivative', 'derivativeCall')
+  b.call('derivativeCall', 'derivativeImportRef', ['threeDerivative']); b.make('derivativeImportRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'derivativeImport' } }); b.make('threeDerivative', 'Literal', { type: doubleType, value: '3.0' })
+  b.print('printIntegral', 'integralCall')
+  b.call('integralCall', 'integralImportRef', ['zeroIntegral', 'oneIntegral']); b.make('integralImportRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'integralImport' } }); b.make('zeroIntegral', 'Literal', { type: doubleType, value: '0.0' }); b.make('oneIntegral', 'Literal', { type: doubleType, value: '1.0' })
+  b.project.modules.find((module) => module.id === 'calculus').exports.push({ nodeId: 'derivativeFunction', name: 'derivative' }, { nodeId: 'integralFunction', name: 'integral' })
+  b.project.modules.find((module) => module.id === 'calculusDemo').imports.push({ id: 'derivativeImport', moduleId: 'calculus', nodeId: 'derivativeFunction', localName: 'derivative' }, { id: 'integralImport', moduleId: 'calculus', nodeId: 'integralFunction', localName: 'integral' })
+  return workspace(b.project, [note('calculusNote', 'Calculus', 'Dérivée centrale de x² en 3 : (f(3,5) − f(2,5)) / 1 = 6. Intégrale de Simpson de x² sur [0, 1] : (1/6) × (f(0) + 4f(0,5) + f(1)) = 1/3. $$ \\frac{d}{dx}x^2 = 2x $$ et $$ \\int_0^1 x^2\\,dx = \\frac{1}{3} $$.', 600, 0)])
+}
+
 // Domaines touchés par les exemples : ils pilotent uniquement le regroupement du menu.
 export const exampleCategories = [
   { id: 'algorithms', labelKey: 'examples.category.algorithms' },
@@ -443,4 +496,5 @@ export const examples = [
   { id: 'pointers', labelKey: 'examples.pointers', category: 'pointers', build: pointers },
   { id: 'higherOrder', labelKey: 'examples.higherOrder', category: 'functions', build: higherOrder },
   { id: 'maths', labelKey: 'examples.maths', category: 'operations', build: maths },
+  { id: 'calculus', labelKey: 'examples.calculus', category: 'operations', build: calculus },
 ]

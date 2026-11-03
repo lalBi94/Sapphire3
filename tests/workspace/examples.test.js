@@ -18,10 +18,11 @@ const expectedOutput = {
   pointers: ['3', '8', '8', '3'],
   higherOrder: ['42'],
   maths: ['7', '3', '9', '9'],
+  calculus: ['6', '0.3333333333333333'],
 }
 
 test('bibliothèque d’exemples : chaque projet est valide, analysable et s’exécute', () => {
-  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'sorting', 'quickSort', 'coinChange', 'arrays', 'recursion', 'imports', 'foreach', 'pointers', 'higherOrder', 'maths'])
+  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'sorting', 'quickSort', 'coinChange', 'arrays', 'recursion', 'imports', 'foreach', 'pointers', 'higherOrder', 'maths', 'calculus'])
   for (const example of examples) {
     assert.ok(exampleCategories.some((category) => category.id === example.category), `${example.id}: catégorie connue`)
     const workspace = deserializeWorkspace(JSON.stringify(example.build()))
@@ -35,8 +36,8 @@ test('bibliothèque d’exemples : chaque projet est valide, analysable et s’e
   }
 })
 
-test('exemples multi-modules quickSort et coinChange : JavaScript et Python reproduisent la simulation', () => {
-  for (const id of ['quickSort', 'coinChange']) {
+test('exemples multi-modules algorithmiques et mathématiques : JavaScript et Python reproduisent la simulation', () => {
+  for (const id of ['quickSort', 'coinChange', 'calculus']) {
     const project = examples.find((example) => example.id === id).build().project
     const expected = simulateProgram(project).output.map((line) => `${line}\n`).join('')
     const javascript = transpileProgram(project)
