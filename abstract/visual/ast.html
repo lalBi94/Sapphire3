@@ -29,7 +29,7 @@
       <div class="notes-soft">
         <p style="margin-bottom:6px"><b>Documents de référence</b></p>
         <ul style="margin-bottom:0">
-          <li><a href="../ARCHITECTURE_AST.pdf"><code>ARCHITECTURE_AST.pdf</code></a> — le document technique complet, sept sections, généré depuis le LaTeX.</li>
+          <li><a href="../ARCHITECTURE_AST.pdf"><code>ARCHITECTURE_AST.pdf</code></a> — le document technique complet, huit sections, généré depuis le LaTeX.</li>
           <li><a href="../ARCHITECTURE_AST.tex"><code>ARCHITECTURE_AST.tex</code></a> — la source LaTeX de ce document, relisible et modifiable telle quelle.</li>
           <li>Dans le dépôt&nbsp;: <code>docs/LOGIC_API.md</code> (contrats du moteur), <code>docs/WORKSPACE_FILES.md</code> (enveloppe <code>.sp3</code>), <code>src/utils/logic/</code> (l'implémentation).</li>
         </ul>
@@ -43,7 +43,7 @@
         <li><a href="#typage">6 · Typage statique strict</a></li>
         <li><a href="#diagnostics">7 · Diagnostics</a></li>
         <li><a href="#flux">8 · De la source aux résultats</a></li>
-        <li><a href="#execution">9 · Simulation et transpilation</a></li>
+        <li><a href="#execution">9 · Simulation, débogage et transpilation</a></li>
         <li><a href="#invariants">10 · Invariants et refus</a></li>
       </ol>
     </section>
@@ -66,13 +66,14 @@
           <h3>Le moteur est pur</h3>
           <p><code>src/utils/logic/</code> n'importe ni React, ni DOM, ni Neutralinojs. Les fonctions ne modifient
           pas leurs entrées&nbsp;; elles renvoient de nouvelles sources et des résultats dérivés. Il est testé seul,
-          par 326 tests Node sans dépendance de test.</p>
+          par 360 tests Node sans dépendance de test.</p>
         </div>
         <div class="card">
           <h3>Périmètre volontairement borné</h3>
           <p>Pas de classes, pas de structures, pas de sous-modules, pas de surcharge, pas d'inférence de
-          secours. Une direction objet est évoquée, aucun contrat n'est décidé&nbsp;: rien de tout cela n'est
-          simulé dans le format.</p>
+          secours. La généricité se limite à un paramètre <code>T</code> par fonction, sans contrainte. Une
+          direction objet est évoquée, aucun contrat n'est décidé&nbsp;: rien de tout cela n'est simulé dans le
+          format.</p>
         </div>
       </div>
     </section>
@@ -354,6 +355,27 @@
         absente ou invalide est diagnostiquée et ne produit aucun type de secours. Une déclaration ne récupère
         jamais le type de son initialiseur.
       </p>
+      <p>
+        Deux types construits s'annotent en plus sur une variable, une constante ou un paramètre&nbsp;: le
+        <b>pointeur</b> <code>{kind:'pointer', pointee}</code> vers un primitif non <code>void</code>, et la
+        <b>signature de fonction</b> <code>{kind:'function', parameters, returnType}</code>. <code>&amp;</code> prend
+        l'adresse d'une valeur stockable&nbsp;; <code>*</code> relit la valeur pointée et peut servir de cible
+        d'affectation, la simulation écrivant alors dans l'emplacement d'origine. Une fonction nommée est une valeur
+        de première classe&nbsp;: une <code>Reference</code> vers une fonction porte sa signature et peut être
+        stockée, transmise puis appelée. Aucune lambda ni fermeture n'existe. Chaque type construit reste limité à
+        ses emplacements autorisés, sans conversion implicite.
+      </p>
+
+      <h3>Généricité V1</h3>
+      <p>
+        Une fonction peut porter <code>generic: true</code> et utiliser l'unique type
+        <code>{kind:'generic', name:'T'}</code>, seulement sur son retour et ses paramètres. <code>T</code> est inféré
+        à chaque appel direct&nbsp;: toutes ses occurrences doivent recevoir le même primitif non <code>void</code>, et
+        le retour prend ce type. <code>T[]</code>, <code>T*</code>, les génériques imbriqués, les opérations sur
+        <code>T</code> et l'usage de la fonction générique comme valeur sont refusés. Aucune spécialisation n'est
+        créée&nbsp;: la simulation exécute la même fonction et les transpileurs émettent une fonction ordinaire, avec
+        les types concrets publiés dans <code>semantic.genericCalls</code>.
+      </p>
 
       <h3>Tableaux</h3>
       <p>
@@ -480,7 +502,7 @@
     </section>
 
     <section id="execution">
-      <h2>9 · Simulation et transpilation</h2>
+      <h2>9 · Simulation, débogage et transpilation</h2>
       <div class="grid">
         <div class="card">
           <h3>Simuler</h3>
@@ -490,6 +512,17 @@
           <code>trace</code> (identifiants source dans l'ordre), puis le résultat et le nombre de pas, ou un code
           d'erreur stable. Budget de pas et profondeur d'appel bornés&nbsp;; sortie et trace restent en mémoire.
           Aucune saisie interactive, aucun effet natif, aucun réseau.</p>
+        </div>
+        <div class="card">
+          <h3>Déboguer</h3>
+          <p><code>createDebugSession(project)</code> prépare avec le même interpréteur des états bornés, puis
+          <code>moveDebugSession</code> les parcourt&nbsp;: suivant entrant dans les appels, sortie de portée, retour au
+          point d'arrêt précédent et redémarrage. Les points d'arrêt visuels restent en mémoire de session&nbsp;; un
+          saut s'y arrête. <b>Memory space</b> présente code et fonctions, données globales et pile d'appels avec des
+          adresses illustratives, sans allocation réelle. La <b>simulation graphique simplifiée</b> est une option
+          explicite de Run&nbsp;: elle anime les fonctions atteignables, leurs appels directs, la pile, les variables et
+          la sortie, sans persistance ni code mort&nbsp;; les appels indirects via une variable de type fonction n'y
+          sont pas tracés.</p>
         </div>
         <div class="card">
           <h3>Transpiler</h3>
@@ -506,6 +539,14 @@
         généré proviennent de la même fabrique que celles du simulateur — BigInt pour les entiers, arrondi binaire32,
         conversions, dépassements, sous-flux et division par zéro identiques. Le fichier produit n'embarque pas les
         budgets du simulateur et n'est jamais exécuté automatiquement par l'application.
+      </p>
+      <h3>Opérations natives SP3</h3>
+      <p>
+        <code>PrintStatement</code> ajoute la représentation textuelle d'une valeur à la sortie. <code>MathCall</code>
+        désigne une opération du registre pur <code>mathNatives.js</code> — mathématiques, texte et longueur de
+        tableau — typée sans conversion implicite. La simulation les exécute localement, avec des codes stables pour un
+        résultat non fini ou des bornes Unicode dépassées. JavaScript et Python les transpilent avec l'équivalent natif
+        le plus direct et de petits helpers lorsque la sémantique SP3 l'exige. Aucun effet système, aucun réseau.
       </p>
     </section>
 

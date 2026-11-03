@@ -381,6 +381,21 @@
         Le typage est statique et strict&nbsp;: une variable, une constante et un paramètre déclarent leur type,
         chaque littéral porte le sien, et aucune conversion implicite n'existe entre deux types distincts.
       </p>
+      <p>
+        Une fonction peut porter la propriété optionnelle <code>generic: true</code> et utiliser l'unique type
+        <code>T</code> sur son retour et ses paramètres. <code>T</code> est inféré à chaque appel direct avec un
+        primitif non <code>void</code> ; toutes ses occurrences doivent recevoir le même type. Les tableaux et pointeurs
+        de <code>T</code>, les génériques imbriqués et les usages de la fonction générique comme valeur restent
+        refusés dans cette V1.
+      </p>
+      <p>
+        Les autres types construits suivent la même règle d'emplacement&nbsp;: un pointeur <code>int*</code> vers un
+        primitif non <code>void</code> et une signature de fonction <code>(int) -&gt; int</code> s'annotent sur une
+        variable, une constante ou un paramètre. <code>&amp;</code> prend l'adresse d'une valeur stockable&nbsp;;
+        <code>*</code> relit la valeur pointée et peut être affecté pour écrire l'emplacement d'origine&nbsp;; la
+        transpilation refuse encore les pointeurs. Une <code>Reference</code> vers une fonction porte sa signature et
+        peut être stockée, transmise puis appelée, sans lambda ni fermeture.
+      </p>
       <figure class="shot" data-shot="17-forme-entree">
         <div class="shot-layout">
           <div class="shot-frame">
@@ -389,7 +404,7 @@
           <ol class="notes">
             <li data-marker="formulaire">Création d'une seconde fonction, <code>Principal</code>, dans le module <b>Affichage</b>.</li>
             <li data-marker="case">Marquer «&nbsp;programme de départ&nbsp;» pose <code>properties.entryPoint: true</code>. Le marqueur est un booléen réservé aux fonctions, indépendant du nom&nbsp;: <code>main</code> tout court n'a aucun privilège.</li>
-            <li data-marker="bouton">Un seul point d'entrée par projet. S'il est déjà pris, la case est neutralisée&nbsp;; et si deux en existed dans un fichier importé, le moteur signale <code>ENTRY_POINT_DUPLICATE</code> sans supprimer les données.</li>
+            <li data-marker="bouton">Un seul point d'entrée par projet. S'il est déjà pris, la case est neutralisée&nbsp;; et si deux en existent dans un fichier importé, le moteur signale <code>ENTRY_POINT_DUPLICATE</code> sans supprimer les données.</li>
           </ol>
         </div>
         <figcaption><b>17 — Le point d'entrée se désigne, il ne se déduit pas du nom.</b></figcaption>
@@ -414,6 +429,12 @@
         <h2>10 · Afficher et conditionner</h2>
         <span class="tag">Instructions</span>
       </div>
+      <p>
+        Depuis la campagne de captures, la catégorie <b>SP3 native operations</b> ajoute l'instruction
+        <code>ForEachStatement</code> (tableau et fonction de rappel, parcours d'une copie) et les opérations
+        <code>MathCall</code> du registre pur&nbsp;: maths, texte et longueur de tableau. Elles sont typées sans
+        conversion implicite, exécutées localement et transpilées en JavaScript et Python.
+      </p>
       <figure class="shot" data-shot="19-forme-afficher">
         <div class="shot-layout">
           <div class="shot-frame">
@@ -582,6 +603,12 @@
         Rien ne s'exécute tout seul. Une action explicite lance un interpréteur local, déterministe, coupé de
         React, du DOM, de Neutralinojs et de tout réseau, avec un budget d'étapes et une profondeur d'appel
         bornés.
+      </p>
+      <p>
+        Depuis cette campagne de captures, le débogueur ajoute des <b>points d'arrêt visuels</b>, une fenêtre
+        <b>Memory space</b> (code, globales et pile d'appels avec adresses illustratives), les valeurs et types au
+        survol ainsi que les tableaux en cases. Run propose aussi une <b>simulation graphique simplifiée</b>
+        animée, limitée aux fonctions atteignables et à leurs appels directs.
       </p>
       <figure class="shot" data-shot="28-execution">
         <div class="shot-layout">
@@ -828,7 +855,7 @@
         l'application&nbsp;; <code>Ctrl+S</code> enregistre le fichier courant.</li>
         <li>Avant remplacement, la source est validée&nbsp;: en cas d'erreur ou d'annulation, le document en cours
         reste intact. Une version inconnue est conservée et signalée, jamais migrée en silence.</li>
-        <li>Les préférences — langue, thème, cinq chemins récents — sont stockées à part, dans un répertoire
+        <li>Les préférences — langue, thème, cinq chemins récents, dernier fichier et raccourcis clavier personnalisés — sont stockées à part, dans un répertoire
         persistant utilisateur, jamais à côté de l'exécutable.</li>
       </ul>
       <div class="notes-soft">
@@ -852,7 +879,7 @@
         </thead>
         <tbody>
           <tr><td>Sorties du simulateur</td><td>Une seule capacité&nbsp;: <code>Afficher</code>. Pas de saisie interactive, pas d'effet natif, pas de réseau, pas de journal persistant.</td></tr>
-          <tr><td>Exécution</td><td>Uniquement sur action explicite&nbsp;; les vues d'exécution graphiques sont marquées «&nbsp;à venir&nbsp;» dans l'interface.</td></tr>
+          <tr><td>Exécution</td><td>Uniquement sur action explicite&nbsp;; le débogueur, la mémoire abstraite et la simulation graphique simplifiée sont des options distinctes de Run.</td></tr>
           <tr><td>Langages cibles</td><td>JavaScript et Python opérationnels. C/C++ et Java désactivés&nbsp;— aucune promesse de génération.</td></tr>
           <tr><td>Analyse</td><td>Conservatrice&nbsp;: aucune preuve générale sur les valeurs, les comparaisons numériques, les dépendances globales ou la terminaison.</td></tr>
           <tr><td>Modèle objet</td><td>Évoqué comme direction, aucun contrat décidé. Pas de classes ni de structures dans le modèle source actuel&nbsp;; <code>TypeDeclaration</code> est un alias transparent.</td></tr>
@@ -865,7 +892,7 @@
     </section>
 
     <footer class="site-footer">
-      <p>Sapphire 3 · documentation visuelle · 42 captures réelles, 20 sections. Les repères d'annotation sont produits par la campagne de captures de l'application, en pourcentages de la vue 1600 × 900.</p>
+      <p>Sapphire 3 · documentation visuelle · 42 captures réelles, 20 sections. Les captures précèdent les derniers incréments (généricité, keybinds, mémoire de debug et simulation graphique), décrits dans le texte. Les repères d'annotation sont produits par la campagne de captures de l'application, en pourcentages de la vue 1600 × 900.</p>
     </footer>
   </main>
 

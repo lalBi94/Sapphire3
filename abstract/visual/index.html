@@ -19,7 +19,7 @@
 
   <main>
     <section class="hero" id="presentation">
-      <p class="kicker">Application desktop Windows · 0.1.0-alpha.3</p>
+      <p class="kicker">Application desktop Windows · 0.1.0-beta.1</p>
       <h1>Des blocs qui sont de vrai code, pas des dessins qui y ressemblent</h1>
       <p class="lede">
         Sapphire 3 est un environnement de programmation visuelle. Chaque carte posée sur le canvas est une
@@ -44,18 +44,19 @@
             Canvas navigable avec zoom et repères, cartes Module, notes et images, fonctions et types déclarés à
             la racine d'un module, blocs conditionnels, boucles et instruction <code>ForEach</code>, affectations, appels,
             tableaux, typage statique, références de fonction, pointeurs (adresse, déréférencement et écriture à
-            travers un pointeur), opérations mathématiques natives, formules mathématiques (KaTeX) dans les notes,
-            références intermodules avec flèches courbes, simulation locale pas à pas (pause, reprise, arrêt),
-            graphe de contrôle, dépendances, transpilation JavaScript et Python, fenêtre de paramètres de
-            l'application, export JSON et SVG, six thèmes, interface en huit langues (anglais, français, chinois,
-            espagnol, arabe, japonais, hindi, russe), import/export <code>.sp3</code>.
+            travers un pointeur), opérations natives SP3 (maths, texte et tableaux), formules mathématiques (KaTeX)
+            dans les notes, références intermodules avec flèches courbes, simulation locale pas à pas (pause, reprise,
+            arrêt), débogueur avec points d'arrêt, mémoire abstraite et valeurs au survol, vue graphique simplifiée
+            des flux, graphe de contrôle, dépendances, transpilation JavaScript et Python, fenêtre de paramètres,
+            raccourcis clavier configurables, export PNG/JSON d'un nœud, auto-layout des modules, export JSON et SVG,
+            thèmes, interface en huit langues (anglais, français, chinois, espagnol, arabe, japonais, hindi, russe),
+            import/export <code>.sp3</code> et généricité V1 avec un paramètre <code>T</code>.
           </p>
         </div>
         <div class="card">
           <h3>Ce qui ne l'est pas encore</h3>
           <p>
-            Aucune exécution automatique&nbsp;: la simulation est lancée par une action explicite. La sauvegarde automatique réécrit le fichier .sp3 courant après chaque modification (retard de 500 ms). Les cibles C/C++/Java sont présentes mais désactivées. Le modèle objet n'est pas décidé.
-            Les vues d'exécution graphiques sont annoncées comme «&nbsp;à venir&nbsp;» dans l'interface.
+            Aucune exécution automatique&nbsp;: la simulation est lancée par une action explicite. La sauvegarde automatique réécrit le fichier .sp3 courant après chaque modification (retard de 500 ms). Les cibles C/C++/Java sont présentes mais désactivées. Le modèle objet n'est pas décidé. La généricité reste limitée à un seul paramètre <code>T</code>, sans tableau ni pointeur de <code>T</code>, et une fonction générique ne peut pas être utilisée comme valeur. Le rendu de monnaie des exemples est glouton pour un jeu canonique, et l'exemple de calcul utilise une intégrale numérique de Simpson.
           </p>
         </div>
         <div class="card">
@@ -98,7 +99,7 @@
         <p><b>Le code est écrit avec des assistants.</b> Sapphire 3 est un projet conduit en dialogue avec des
         outils d'assistance au développement (OpenCode, DeepSeek V3.2, ChatGPT Sol&nbsp;6.1, GLM 3.2, Nemotron de
         NVIDIA)&nbsp;: c'est un mode de fabrication assumé, pas un détail caché. Ce qui l'encadre&nbsp;: chaque
-        incrément est relu, testé (326 tests du moteur logique, runner Node natif, sans dépendance de test) et
+        incrément est relu, testé (360 tests du moteur logique, runner Node natif, sans dépendance de test) et
         validé dans l'interface avant d'être retenu. Le vocabulaire, les contrats et les limites sont décidés par
         le projet, pas par le générateur.</p>
         <p style="margin-bottom:0"><b>Cette documentation évolue avec le projet.</b> Elle décrit l'état atteint, pas
@@ -118,7 +119,7 @@
           <tr><td>Style</td><td>CSS natif + jetons dans <code>src/styles/tokens.css</code></td><td>Six thèmes, variables sémantiques, pas de charge distant de police ou de feuille de style</td></tr>
           <tr><td>Icônes</td><td><code>lucide-react ^1.64.0</code></td><td>Utilisés comme glyphes décoratifs, toujours accompagnés d'un libellé ou d'<code>aria-label</code></td></tr>
           <tr><td>Moteur logique</td><td>JavaScript pur dans <code>src/utils/logic/</code></td><td>Sans React, sans DOM, sans API native&nbsp;; source JSON versionnée, importable et testable seul</td></tr>
-          <tr><td>Tests</td><td><code>node --test</code></td><td>326 tests&nbsp;: scénarios valides, invalides, incomplets, localisations, non-mutation, conservation JSON</td></tr>
+          <tr><td>Tests</td><td><code>node --test</code></td><td>360 tests&nbsp;: scénarios valides, invalides, incomplets, localisations, non-mutation, conservation JSON</td></tr>
           <tr><td>Documentation AST</td><td>LaTeX → PDF</td><td><code>abstract/ARCHITECTURE_AST.tex</code> et son PDF, compilés par <code>pnpm docs:ast</code></td></tr>
         </tbody>
       </table>

@@ -22,18 +22,19 @@
 \section*{1. Objectif et périmètre}
 Le moteur transforme un document source de Modules et de Nodes en un
 \textbf{AST logique indépendant des langages cibles}, puis en informations
-sémantiques et diagnostics. Il accepte les étapes intermédiaires de construction :
-une erreur ne détruit ni la source ni la possibilité d'inspecter l'arbre.
+sémantiques et diagnostics. Une erreur ne détruit ni la source ni la
+possibilité d'inspecter l'arbre.
 
-Le périmètre livré couvre la construction de l'AST, les portées lexicales,
-les références locales et intermodules, un typage statique strict et la
-sérialisation JSON versionnée. S'y ajoutent, sur action explicite seulement,
-une \textbf{simulation locale} déterministe, un \textbf{débogage pas à pas},
-des \textbf{contrats de nœud} vérifiés pendant l'exécution, une \textbf{analyse
-de graphes} (dépendances, flot de contrôle, accessibilité) et une
-\textbf{transpilation} vers JavaScript et Python. Le moteur est du JavaScript
-pur, sans React, DOM, Neutralinojs ou dépendance npm ; l'interface graphique
-est désormais branchée à ce moteur.
+Le périmètre livré couvre l'AST, les portées lexicales, les références locales
+et intermodules, un typage statique strict — primitifs, tableaux, pointeurs,
+signatures de fonction et paramètre générique T — et la sérialisation JSON.
+S'y ajoutent, sur action explicite, la \textbf{simulation locale} déterministe,
+le \textbf{débogage pas à pas} avec points d'arrêt et mémoire pédagogique, les
+\textbf{contrats}, l'\textbf{analyse de graphes}, la \textbf{simulation
+graphique simplifiée} et la \textbf{transpilation} JavaScript/Python. Les
+opérations natives (\code{Print}, \code{MathCall}, \code{ForEach}) restent
+locales et sans effet système. Moteur JavaScript pur, sans React, DOM,
+Neutralinojs ni npm ; l'interface y est branchée.
 
 \textbf{Exclus :} suggestions contextuelles, exécution automatique, génération
 de code implicite, analyse de flot avancée, modèles objets et persistance
@@ -67,10 +68,9 @@ L'ancienne catégorie source \code{main} est retirée. Un projet valide contient
 zéro ou une seule fonction portant \code{properties.entryPoint: true},
 indépendamment de son nom ; toute désignation supplémentaire produit
 \code{ENTRY\_POINT\_DUPLICATE} et un marqueur mal placé
-\code{ENTRY\_POINT\_INVALID}, sans suppression des données invalides. Aucun nom,
-signature cible ni appel implicite n'est imposé : la simulation, le débogage et
-la transpilation n'agissent que sur un lancement explicite. Les sous-modules ne
-sont pas introduits à ce stade.
+\code{ENTRY\_POINT\_INVALID}, sans supprimer les données invalides. Aucun nom
+ni signature cible implicite : simulation, débogage et transpilation exigent un
+lancement explicite. Les sous-modules ne sont pas introduits.
 
 \newpage
 \chaptertitle{2}{Architecture et invariants}
@@ -100,8 +100,8 @@ cycles, parents multiples et propriétaires ; parcours et fragments détachés.\
 \code{semantics.js} & Collecte des portées et déclarations, contrôle des
 imports/exports et résolution des références.\\[3pt]
 \code{typeAnalysis.js},\newline\code{primitives.js} & Annotations obligatoires,
-signatures, tableaux et expressions statiquement déterminées ; catalogue des
-dix primitifs, bornes et arrondis.\\[3pt]
+signatures, types construits et générique T ; dix primitifs, bornes et
+arrondis.\\[3pt]
 \code{numericConstants.js} & Contrôles des expressions constantes : conversions,
 dépassements, sous-flux et division par zéro.\\[3pt]
 \code{diagnostics.js},\newline\code{serialization.js} & Codes stables, gravité,
@@ -110,9 +110,9 @@ localisation ; lecture et écriture JSON sans migration implicite.\\[3pt]
 atomique : actions disponibles, cache d'analyse, insertion, mise à jour,
 suppression et réordonnancement.\\[3pt]
 \code{simulation.js},\newline\code{contracts.js} & Interpréteur local déterministe,
-trace, valeurs observées et contrats vérifiés après chaque instruction.\\[3pt]
+trace, valeurs observées, opérations natives et contrats vérifiés après chaque instruction.\\[3pt]
 \code{debugging.js},\newline\code{reachability.js} & Session de débogage
-déterministe (états préparés puis parcourus) et analyse conservatrice d'accessibilité.\\[3pt]
+déterministe (états préparés, points d'arrêt, sauts) et analyse conservatrice d'accessibilité.\\[3pt]
 \code{nodeGraphs.js},\newline\code{moduleLinks.js} & Graphes de dépendances et de
 flot de contrôle d'un sous-arbre ; liens intermodules réellement utilisés.\\[3pt]
 \code{nodeTransfer.js},\newline\code{moduleInterface.js},\newline\code{deadCode.js},\newline\code{deletionImpact.js} & Transferts de sous-arbres,
@@ -120,11 +120,10 @@ exports/imports de module, déclarations inutilisées et impact d'une suppressio
 \end{tabular}
 
 Ces fichiers sont dans \code{src/utils/logic/} ; l'API publique est
-\code{index.js}. La fonction \code{analyzeProgram(source)} renvoie
-\code{source}, \code{ast}, \code{semantic}, \code{diagnostics} et
-\code{canGenerate}, sans jamais modifier la source. Les backends de
-transpilation vivent séparément dans \code{src/utils/transpilation/} ;
-JavaScript et Python sont actifs, C, C++ et Java restent indisponibles.
+\code{index.js}. \code{analyzeProgram(source)} renvoie \code{source},
+\code{ast}, \code{semantic}, \code{diagnostics} et \code{canGenerate}, sans
+modifier la source. Les backends vivent dans \code{src/utils/transpilation/} ;
+JavaScript et Python sont actifs, C, C++ et Java indisponibles.
 
 \section*{4. Structures et invariants}
 \begin{itemize}
@@ -135,9 +134,10 @@ uniques dans leur module. Aucun identifiant n'est recréé pendant les passes.
 L'ordre des listes de slots est significatif, pas celui du tableau \code{nodes}.
 \item Déclarations : variables, constantes, fonctions, paramètres et alias de
 types. Instructions : blocs, retours, affectations, conditions, boucles
-(\code{break}/\code{continue} compris), instructions d'expression et affichage.
-Expressions : littéraux, références, appels, opérations unaires/binaires,
-littéraux et créations de tableaux, accès à un élément et conversions.
+(\code{break}/\code{continue} compris), parcours \code{ForEach}, instructions
+d'expression et affichage. Expressions : littéraux, références (y compris de
+fonction), appels, opérations unaires (\code{\&}, \code{*}) et binaires,
+tableaux, accès à un élément, opérations natives et conversions.
 \item Un slot requis absent produit \code{Hole}. Un lien impossible produit
 \code{Invalid}. Les fragments détachés restent visibles ; la source conserve
 également les enregistrements malformés ou dupliqués.
@@ -147,8 +147,12 @@ fonctions. Dix primitifs : \code{short int}, \code{short uint}, \code{int},
 \code{uint}, \code{float}, \code{double}, \code{string}, \code{char},
 \code{boolean}, \code{void} (retour uniquement). Le type tableau
 \code{\{kind:'array', elementType\}} s'annote uniquement sur une variable, une
-constante ou un paramètre, avec un élément primitif non \code{void}. Aucune
-promotion ni conversion implicite.
+constante ou un paramètre, avec un élément primitif non \code{void}. Le type
+pointeur \code{\{kind:'pointer', pointee\}} et le type fonction
+\code{\{kind:'function', parameters, returnType\}} s'annotent sur ces mêmes
+emplacements ; une fonction générique porte le type
+\code{\{kind:'generic', name:'T'\}} sur son retour et ses paramètres seulement.
+Aucune promotion ni conversion implicite.
 \end{itemize}
 
 \newpage
@@ -231,13 +235,15 @@ Entiers signés/non signés de 16/32 bits, flottants IEEE 754 de 32/64 bits ;
 sont numériques explicites, avec troncature ou arrondi et contrôle des bornes.
 
 \textbf{Vérifications exécutées :} \code{pnpm test}, runner natif Node :
-\textbf{285 tests réussis, 0 échec}. Couverture de la construction de l'AST,
-des portées et références, du typage et des tableaux, des bornes et arrondis
-numériques, de la sérialisation JSON, de la simulation (tableaux, contrats et
-fonction choisie compris), du débogage pas à pas et de l'accessibilité, des
-graphes de dépendances et de flot, de la transpilation JavaScript et Python,
-des transferts de sous-arbres, des exports/imports et de la détection des
-déclarations inutilisées.
+\textbf{360 tests réussis, 0 échec}. Couverture de la construction de l'AST,
+des portées et références, du typage et des tableaux, des pointeurs et de
+l'écriture à travers eux, des types fonction et références de fonction, de la
+généricité T, des bornes et arrondis numériques, de la sérialisation JSON, de
+la simulation (tableaux, contrats, fonction choisie, \code{ForEach} et
+opérations natives compris), du débogage pas à pas (points d'arrêt et mémoire),
+de l'accessibilité, des graphes de dépendances et de flot, de la transpilation
+JavaScript et Python, des transferts de sous-arbres, des exports/imports et de
+la détection des déclarations inutilisées.
 
 \code{pnpm build} : frontend compilé avec succès. Ce contrôle protège le
 frontend existant ; le moteur séparé est vérifié par les tests Node, pas par
@@ -245,27 +251,30 @@ la compilation du bundle. Le moteur reste sans React, DOM ni API native ;
 l'interface ne partage avec lui que les identifiants de module et les libellés.
 Aucune fonction native nouvelle n'a été ajoutée pour ce document.
 
-\section*{7. Simulation, contrats et transpilation}
+\section*{7. Simulation, débogage et transpilation}
 Sur action explicite, \code{simulateProgram} exécute le point d'entrée — ou une
 fonction choisie avec des entrées typées — sans modifier la source. Le résultat
 reste en mémoire : sorties, trace ordonnée d'identifiants de nœuds, valeur de
-retour et variables observées. Un budget de pas (1 à 100 000) et une profondeur
-d'appel bornée (200) limitent le travail ; boucles non terminantes et appels
-trop profonds sont interrompus proprement. Les tableaux s'exécutent localement,
-avec contrôle des bornes et des cases jamais remplies.
+retour et variables observées. Budget de pas (1 à 100 000) et profondeur
+d'appel (200) bornent le travail. Tableaux, pointeurs, \code{ForEach} par
+recopie et opérations natives (\code{Print}, \code{MathCall}) s'exécutent
+localement ; \code{*p} relit et écrit l'emplacement visé. Une fonction générique
+s'exécute sans spécialisation, avec ses types concrets inférés.
 
-Les contrats \code{positive}, \code{nonNegative} et \code{nonEmpty} attachés à
-une déclaration sont évalués après chaque instruction ; leurs violations sont
-signalées sans interrompre le programme. Le débogage réutilise le même
-interpréteur : les états sont préparés puis parcourus (suivant entrant dans les
-appels, sortie de scope, retour à l'arrêt précédent, redémarrage), sans
-exécution native suspendue.
+Les contrats \code{positive}, \code{nonNegative} et \code{nonEmpty} sont
+évalués après chaque instruction ; leurs violations sont signalées sans
+interrompre le programme. Le débogage réutilise le même interpréteur et
+parcourt des états préparés (suivant, sortie de scope, retour, redémarrage),
+avec points d'arrêt visuels et sauts qui s'y arrêtent, mémoire pédagogique
+(code, globales, pile d'appels) et simulation graphique simplifiée des fonctions
+atteignables et de leurs appels directs, sans persistance ni appels indirects.
 
 La transpilation délègue à des backends enregistrés : JavaScript et Python sont
-actifs, C, C++ et Java restent indisponibles. Les diagnostics bloquants
-empêchent toute génération ; un point d'entrée paramétré est refusé plutôt
-qu'appelé sans arguments. Le code produit n'est jamais exécuté automatiquement
-par l'application.
+actifs, C, C++ et Java indisponibles. Ils couvrent tableaux, références de
+fonction, \code{ForEach} par recopie et opérations natives ; les pointeurs sont
+refusés faute d'équivalent portable. Les diagnostics bloquants empêchent toute
+génération ; un point d'entrée paramétré est refusé. Le code produit n'est
+jamais exécuté automatiquement.
 
 \section*{8. Évolution sans couplage prématuré}
 La simulation, le débogage et la transpilation consomment déjà l'AST et les
@@ -273,19 +282,23 @@ symboles résolus. Les \textbf{suggestions contextuelles} au point d'édition et
 de \textbf{nouveaux générateurs} de cibles restent à venir ; chaque générateur
 devra refuser les diagnostics bloquants. \code{canGenerate} signifie seulement
 « aucune erreur détectée par les passes actuelles », et non une garantie
-d'exécutabilité. Aucun de ces moteurs n'est implémenté et aucun système de
-plugins n'a été inventé.
+d'exécutabilité. Aucun moteur de suggestion ni système de plugins n'est
+implémenté.
 
 Le format v1 préserve les champs supplémentaires. Une version inconnue est
 conservée et signalée, sans migration. La sérialisation refuse les données
 non JSON au lieu de les supprimer silencieusement. Les profondeurs d'analyse
 et de sérialisation sont bornées pour éviter les dépassements de pile.
 
-\textbf{Limites assumées :} pas de sous-modules, objets, génériques, réexports
-ni résolution de fichiers ; un tableau porte un élément primitif unique, sans
-tableau imbriqué. Les dépassements constants sont diagnostiqués ; les valeurs
-reçues à l'exécution ne sont pas bornées globalement par l'analyse. Les cibles
-C, C++ et Java sont annoncées mais indisponibles. Les futurs backends devront
-appliquer les mêmes opérations contrôlées, sans rebouclage. L'API complète et
-les conventions de slots sont décrites dans \code{docs/LOGIC\_API.md}.
+\textbf{Limites assumées :} pas de sous-modules, objets, réexports ni
+résolution de fichiers ; un tableau porte un élément primitif unique, sans
+tableau imbriqué ; la généricité se limite à un \code{T} par fonction, sans
+\code{T[]}, \code{T*}, contrainte ni usage comme valeur ; les pointeurs
+s'exécutent mais ne se transpilent pas ; la simulation graphique ne trace pas
+les appels indirects via une variable de type fonction. Les dépassements
+constants sont diagnostiqués ; les valeurs reçues à l'exécution ne sont pas
+bornées globalement par l'analyse. Les cibles C, C++ et Java sont annoncées mais
+indisponibles. Les futurs backends devront appliquer les mêmes opérations
+contrôlées, sans rebouclage. L'API complète et les conventions de slots sont
+décrites dans \code{docs/LOGIC\_API.md}.
 \end{document}
