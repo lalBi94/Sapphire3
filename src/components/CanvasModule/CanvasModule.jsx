@@ -64,7 +64,7 @@ function ModuleEmoji({ emoji, onChange }) {
 }
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onRename, onTextChange, onImageChange, onEmojiChange, children, selected = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, children, selected = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -196,6 +196,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
     event.currentTarget.focus({ preventScroll: true })
     event.currentTarget.setPointerCapture(event.pointerId)
     moveRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, originX: module.x, originY: module.y, zoom }
+    onMoveStart?.(module.id)
     setIsMoving(true)
   }
 
@@ -213,6 +214,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
     if (moveRef.current?.pointerId !== event.pointerId) return
     moveRef.current = null
     setIsMoving(false)
+    onMoveEnd?.(module.id)
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
   }
 

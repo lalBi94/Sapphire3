@@ -1,6 +1,6 @@
 import { useReducer } from 'react'
 import { moduleTypes } from '../utils/moduleTypes.js'
-import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol } from '../utils/logic/index.js'
+import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol, deleteSourceTargets, duplicateSourceTargets, moveSourceNodes } from '../utils/logic/index.js'
 import { initialDocument, reduceHistory } from '../utils/canvasDocument.js'
 
 // Évite deux cartes Module du même nom lors de l'insertion d'un favori.
@@ -124,6 +124,49 @@ export default function useCanvasDocument() {
     return prepared
   }
 
+  // Déplace plusieurs nœuds sélectionnés vers le même destinataire, en une seule réanalyse.
+  function moveNodes(ids, receiver) {
+    const prepared = moveSourceNodes(document.project, ids, receiver, { index: document.index })
+    if (prepared.ok) dispatch({ type: 'moveNodes', previousProject: document.project, prepared, ids, receiver })
+    return prepared
+  }
+
+  // Duplique un ensemble de nœuds et de modules ; les cartes des modules copiés sont ajoutées dans la même étape.
+  function duplicateSelection(targets) {
+    const allocated = []
+    const idFactory = () => {
+      const id = crypto.randomUUID()
+      allocated.push(id)
+      return id
+    }
+    const prepared = duplicateSourceTargets(document.project, targets, { idFactory, index: document.index })
+    if (!prepared.ok) return prepared
+    const cards = prepared.duplicatedModules.map((entry, position) => {
+      const source = document.cards.find((card) => card.id === entry.sourceModuleId)
+      const definition = moduleTypes.module
+      return {
+        id: entry.moduleId,
+        type: 'module',
+        name: entry.name,
+        x: (source?.x ?? 0) + 32 * (position + 1),
+        y: (source?.y ?? 0) + 32 * (position + 1),
+        width: source?.width ?? definition.width,
+        height: source?.height ?? definition.height,
+        expandedNodeIds: (source?.expandedNodeIds ?? []).map((id) => entry.nodeIdMap[id]).filter(Boolean),
+        ...(source?.emoji ? { emoji: source.emoji } : {}),
+      }
+    })
+    dispatch({ type: 'bulkDuplicate', previousProject: document.project, prepared, targets, ids: allocated, cards })
+    return prepared
+  }
+
+  // Supprime tous les nœuds et modules sélectionnés, avec leurs cartes, en une seule étape.
+  function deleteSelection(targets) {
+    const prepared = deleteSourceTargets(document.project, targets, { index: document.index })
+    if (prepared.ok) dispatch({ type: 'bulkDelete', previousProject: document.project, prepared, targets })
+    return prepared
+  }
+
   // Réordonne une instruction dans sa liste parente, sans recréer le nœud ni changer ses identifiants.
   function reorderNode(id, offset) {
     const prepared = reorderSourceNode(document.project, id, offset, { index: document.index })
@@ -217,5 +260,5 @@ export default function useCanvasDocument() {
     dispatch({ type: 'redo' })
   }
 
-  return { ...document, createCard, updateGeometry, arrangeModules, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, duplicateNode, deleteNode, deleteModule, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, previewSymbolRename, applySymbolRename, setExpandedNodes, setCardHidden, setCardLocked, setCardEmoji, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
+  return { ...document, createCard, updateGeometry, arrangeModules, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, moveNodes, duplicateNode, duplicateSelection, deleteNode, deleteModule, deleteSelection, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, previewSymbolRename, applySymbolRename, setExpandedNodes, setCardHidden, setCardLocked, setCardEmoji, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
 }

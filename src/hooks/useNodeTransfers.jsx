@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { captureSourceNode, moveSourceNode } from '../utils/logic/index.js'
+import { captureSourceNode, moveSourceNodes } from '../utils/logic/index.js'
 
 const dragType = 'application/x-sapphire-node'
 
@@ -13,7 +13,7 @@ function dropReceiver(element) {
 }
 
 // Gère le presse-papiers local et les gestes de transfert sans persistance ni API native.
-export default function useNodeTransfers({ project, index, selected, workspaceRef, onPaste, onMove, onDuplicate, onTransferred }) {
+export default function useNodeTransfers({ project, index, selected, selectedNodeIds = [], workspaceRef, onPaste, onMove, onDuplicate, onTransferred }) {
   const [clipboard, setClipboard] = useState(null)
   const [notice, setNotice] = useState(null)
   const [dropTarget, setDropTarget] = useState(null)
@@ -55,12 +55,12 @@ export default function useNodeTransfers({ project, index, selected, workspaceRe
     const heading = event.target.closest('.logic-node__heading')
     if (!heading) return
     const id = heading.closest('[data-source-node]')?.dataset.sourceNode
-    const captured = captureSourceNode(project, id, { index })
-    if (!captured.ok) { event.preventDefault(); showNotice({ error: captured.code }); return }
+    if (!id) return
     event.stopPropagation()
+    const ids = selectedNodeIds.includes(id) ? selectedNodeIds : [id]
     event.dataTransfer.effectAllowed = 'move'
     event.dataTransfer.setData(dragType, id)
-    dragRef.current = { id, project, cache: new Map() }
+    dragRef.current = { ids, project, cache: new Map() }
     showNotice({ message: 'transfer.dragging', transient: true })
   }
 
@@ -70,7 +70,7 @@ export default function useNodeTransfers({ project, index, selected, workspaceRe
     if (drag.project !== project) return { ok: false, code: 'TRANSFER_STALE' }
     const key = JSON.stringify(receiver)
     if (!drag.cache.has(key)) {
-      const result = moveSourceNode(project, drag.id, receiver, { index })
+      const result = moveSourceNodes(project, drag.ids, receiver, { index })
       drag.cache.set(key, { ok: result.ok, code: result.code })
     }
     return drag.cache.get(key)
@@ -98,7 +98,7 @@ export default function useNodeTransfers({ project, index, selected, workspaceRe
     dragRef.current = null
     setDropTarget(null)
     if (!valid.ok) { finish(valid); return }
-    finish(onMove(drag.id, receiver), 'transfer.moved')
+    finish(onMove(drag.ids, receiver), 'transfer.moved')
   }
 
   // Retire les indicateurs après annulation ou après sortie de la zone de travail.

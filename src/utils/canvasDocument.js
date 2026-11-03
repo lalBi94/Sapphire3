@@ -1,5 +1,5 @@
 import { moduleTypes } from './moduleTypes.js'
-import { createProject, createModule, analyzeProgram, createContextIndex, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol } from './logic/index.js'
+import { createProject, createModule, analyzeProgram, createContextIndex, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol, deleteSourceTargets, duplicateSourceTargets, moveSourceNodes } from './logic/index.js'
 
 // Recalcule les dérivés uniquement quand la source logique change.
 function withSource(state, project, analysis = analyzeProgram(project), index = createContextIndex(project, analysis)) {
@@ -11,7 +11,14 @@ function withSource(state, project, analysis = analyzeProgram(project), index = 
 function replaySourceMutation(state, action) {
   if (action.type === 'pasteNode') return pasteSourceNode(state.project, action.clipboard, action.receiver, { ids: action.ids, index: state.index })
   if (action.type === 'moveNode') return moveSourceNode(state.project, action.id, action.receiver, { index: state.index })
+  if (action.type === 'moveNodes') return moveSourceNodes(state.project, action.ids, action.receiver, { index: state.index })
   if (action.type === 'duplicateNode') return duplicateSourceNode(state.project, action.id, { ids: action.ids, index: state.index })
+  if (action.type === 'bulkDelete') return deleteSourceTargets(state.project, action.targets, { index: state.index })
+  if (action.type === 'bulkDuplicate') {
+    let cursor = 0
+    const idFactory = () => action.ids[cursor++] ?? ''
+    return duplicateSourceTargets(state.project, action.targets, { idFactory, index: state.index })
+  }
   if (action.type === 'insert') {
     const imports = action.moduleId ? ensureModuleImports(state.project, action.moduleId, action.bundle.nodes) : { ok: true, project: state.project }
     return imports.ok ? insertSourceNodes(imports.project, action.request, action.bundle, imports.project === state.project ? { index: state.index } : {}) : imports
@@ -74,13 +81,39 @@ export function reduceDocument(state, action) {
   if (action.type === 'deleteComment') {
     return { ...state, cards: state.cards.filter((card) => card.id !== action.id || !['comment', 'image'].includes(card.type)) }
   }
+  if (action.type === 'bulkDelete') {
+    const result = state.project === action.previousProject ? action.prepared : deleteSourceTargets(state.project, action.targets, { index: state.index })
+    if (!result.ok) return { ...state, mutationError: result.code }
+    const removed = new Set(result.removedModuleIds)
+    return withSource({ ...state, cards: state.cards.filter((card) => !removed.has(card.id)) }, result.project, result.analysis, result.index)
+  }
+  if (action.type === 'bulkDuplicate') {
+    const result = state.project === action.previousProject ? action.prepared : replaySourceMutation(state, action)
+    if (!result.ok) return { ...state, mutationError: result.code }
+    const cards = result.duplicatedModules.map((entry, position) => {
+      const source = state.cards.find((card) => card.id === entry.sourceModuleId)
+      const spec = action.cards[position] ?? {}
+      return {
+        ...spec,
+        id: entry.moduleId,
+        name: entry.name,
+        type: 'module',
+        x: spec.x ?? 0,
+        y: spec.y ?? 0,
+        width: spec.width ?? moduleTypes.module.width,
+        height: spec.height ?? moduleTypes.module.height,
+        expandedNodeIds: (source?.expandedNodeIds ?? []).map((id) => entry.nodeIdMap[id]).filter(Boolean),
+      }
+    })
+    return withSource({ ...state, cards: [...state.cards, ...cards] }, result.project, result.analysis, result.index)
+  }
   if (action.type === 'rename') {
     const card = state.cards.find((entry) => entry.id === action.id)
     if (!card || !moduleTypes[card.type].renamable || !action.name.trim()) return state
     const next = { ...state, cards: state.cards.map((entry) => entry.id === card.id ? { ...entry, name: action.name } : entry) }
     return card.type === 'module' ? withSource(next, { ...state.project, modules: state.project.modules.map((module) => module.id === card.id ? { ...module, name: action.name } : module) }) : next
   }
-  if (['insert', 'configure', 'delete', 'reorderNode', 'contracts', 'renameSymbol', 'moduleExport', 'moduleImport', 'moduleImportRemove', 'pasteNode', 'moveNode', 'duplicateNode'].includes(action.type)) {
+  if (['insert', 'configure', 'delete', 'reorderNode', 'contracts', 'renameSymbol', 'moduleExport', 'moduleImport', 'moduleImportRemove', 'pasteNode', 'moveNode', 'moveNodes', 'duplicateNode'].includes(action.type)) {
     const result = state.project === action.previousProject ? action.prepared : replaySourceMutation(state, action)
     return result.ok ? withSource(state, result.project, result.analysis, result.index) : { ...state, mutationError: result.code }
   }
@@ -104,7 +137,7 @@ export function reduceHistory(state, action) {
   }
   const next = reduceDocument(state.present, action)
   if (next === state.present) return state
-  if (['pasteNode', 'moveNode', 'duplicateNode'].includes(action.type) && next.project === state.present.project) return { ...state, present: next }
+  if (['pasteNode', 'moveNode', 'moveNodes', 'duplicateNode'].includes(action.type) && next.project === state.present.project) return { ...state, present: next }
   if (['geometry', 'text', 'presentation', 'layout'].includes(action.type)) return { ...state, present: next, future: [] }
   return { past: [...state.past, state.present], present: next, future: [] }
 }
