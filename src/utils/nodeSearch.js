@@ -1,13 +1,8 @@
 import { getNodeSchema } from './logic/index.js'
 import { kindLabel, nodeSummary } from '../components/LogicTree/logicLabels.js'
+import { normalizeSearchText } from './searchText.js'
 
-// Compare sans casse ni accents : un clavier français tape « func » pour « fonction ».
-export function normalizeSearchText(value) {
-  return String(value ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLocaleLowerCase()
-}
+export { normalizeSearchText }
 
 // Étiquette affichée d'un nœud : son nom libre, sinon son type de construction.
 export function nodeDisplayName(node, t) {

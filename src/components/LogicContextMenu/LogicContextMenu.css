@@ -1,10 +1,27 @@
 .logic-context-menu { position: absolute; z-index: 100; display: flex; flex-direction: row; gap: var(--space-control); box-sizing: border-box; max-width: calc(100% - 16px); max-height: calc(100% - 16px); overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-panel); background: var(--surface-reflection), var(--surface-floating); box-shadow: var(--shadow-panel); padding: var(--space-small); cursor: default; }
 .logic-context-menu__columns { display: grid; grid-template-columns: minmax(150px, 206px) minmax(150px, 206px); grid-template-rows: minmax(0, 1fr); flex-shrink: 0; min-height: 0; }
+.logic-context-menu__blocks { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .logic-context-menu__node-actions { border-left: 1px solid var(--color-border); }
 .logic-context-menu { cursor: grab; touch-action: none; }
 .logic-context-menu:active { cursor: grabbing; }
-.logic-context-menu__actions { min-width: 0; min-height: 0; overflow-y: auto; padding-inline: var(--space-control); padding-block-end: var(--space-control); }
+.logic-context-menu__actions { flex: 1 1 auto; min-width: 0; min-height: 0; overflow-y: auto; padding-inline: var(--space-control); padding-block-end: var(--space-control); }
 .logic-context-menu__title { color: var(--color-text-muted); padding: 9px; font-family: var(--font-display); font-size: 11px; font-weight: 500; }
+/* Recherche de blocs : halo stable au repos, anneau animé existant au focus via .glow. */
+.logic-context-menu__search { display: flex; align-items: center; gap: var(--space-small); padding: var(--space-small) var(--space-control) 0; color: var(--color-text-muted); }
+.logic-context-menu__search > svg { flex: 0 0 auto; }
+.logic-context-menu__search-field { position: relative; flex: 1 1 auto; min-width: 0; }
+.logic-context-menu__search input { box-sizing: border-box; width: 100%; min-width: 0; padding: 7px 28px 7px 9px; border: 1px solid color-mix(in srgb, var(--color-selection) 45%, var(--color-border)); border-radius: var(--radius-control); color: var(--color-text); background: var(--color-input); font: inherit; font-size: 11px; user-select: text; box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-selection) 9%, transparent), 0 0 12px color-mix(in srgb, var(--color-primary) 10%, transparent); }
+.logic-context-menu__search input::placeholder { color: var(--color-text-muted); }
+.logic-context-menu__search input:focus { outline: none; }
+.logic-context-menu__search input:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.logic-context-menu__search input::-webkit-search-cancel-button { display: none; }
+.logic-context-menu__search-clear { position: absolute; top: 50%; right: 5px; transform: translateY(-50%); display: grid; place-items: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: var(--radius-small); background: transparent; color: var(--color-text-muted); cursor: pointer; }
+.logic-context-menu__search-clear:hover { color: var(--color-text); background: var(--color-hover); }
+.logic-context-menu__search-clear:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 1px; }
+.logic-context-menu__search-count { margin: 0; padding: 8px 9px 2px; color: var(--color-text-muted); font-size: 10px; }
+.logic-context-menu__search-empty { margin: 0; padding: 10px 9px; color: var(--color-text-muted); font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.logic-context-menu__result-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.logic-context-menu__result-hint { flex: 0 0 auto; max-width: 45%; margin-left: auto; padding-left: var(--space-small); color: var(--color-text-muted); font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Bande de catégorie pliable : collante et pleine largeur, le chevron indique l'état. */
 .logic-context-menu__actions button.logic-context-menu__group { position: sticky; top: 0; z-index: 1; gap: 4px; margin-inline: calc(-1 * var(--space-control)); padding-inline: calc(9px + var(--space-control)); border-radius: 0; background: var(--surface-floating); color: var(--color-text); font-family: var(--font-display); font-weight: 600; cursor: pointer; }
 .logic-context-menu__actions button.logic-context-menu__group svg { flex: 0 0 auto; color: var(--color-text-muted); }

@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, BookmarkPlus, ChevronDown, ChevronRight, CircleDot, ChevronsDownUp, ChevronsUpDown, ClipboardPaste, Copy, CopyPlus, EyeOff, GitBranch, Lock, LockOpen, Network, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, BookmarkPlus, ChevronDown, ChevronRight, CircleDot, ChevronsDownUp, ChevronsUpDown, ClipboardPaste, Copy, CopyPlus, EyeOff, GitBranch, Lock, LockOpen, Network, Plus, Search, Trash2, X } from 'lucide-react'
 import { getAvailableActions, getNodeSchema } from '../../utils/logic/index.js'
 import { moduleTypes } from '../../utils/moduleTypes.js'
+import { scoreFuzzyMatch } from '../../utils/fuzzySearch.js'
 import { diagnosticLabel, groupLabel, kindLabel, slotLabel } from '../LogicTree/logicLabels.js'
 import NodeForm from '../NodeForm/NodeForm.jsx'
 import DeleteAction from '../DeleteAction/DeleteAction.jsx'
@@ -38,14 +39,25 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
   const [kind, setKind] = useState('')
   const [preset, setPreset] = useState(null)
   const [expandedGroups, setExpandedGroups] = useState(() => new Set())
+  const [search, setSearch] = useState('')
   const [position, setPosition] = useState({ x, y })
   const [bounded, setBounded] = useState(false)
   const menuRef = useRef(null)
   const moveRef = useRef(null)
+  const searchRef = useRef(null)
   const available = getAvailableActions(project, targetId, slotName || undefined, { index })
   const selectedSlot = available.slot?.name ?? ''
   const parent = targetId.kind === 'node' ? index.parents.get(targetId.id)?.[0] : null
   const canDuplicate = parent?.kind === 'module' || getNodeSchema(index.nodes.get(parent?.id)?.kind)?.slots?.[parent?.slot]?.many
+  const searchTerm = search.trim()
+  const searchActive = searchTerm.length > 0
+  const searchMatches = searchActive
+    ? available.actions
+      .map((action) => ({ action, score: actionSearchScore(action) }))
+      .filter((entry) => entry.score > 0)
+      .sort((left, right) => right.score - left.score || actionLabel(left.action).localeCompare(actionLabel(right.action)) || String(left.action.slot).localeCompare(String(right.action.slot)))
+      .slice(0, 60)
+    : []
 
   useEffect(() => {
     const menu = menuRef.current
@@ -64,6 +76,11 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
     const focused = first ?? menuRef.current
     focused.focus({ preventScroll: true })
   }, [kind, slotName])
+
+  // À l'ouverture, la saisie de recherche reçoit le focus pour taper un bloc immédiatement.
+  useEffect(() => {
+    searchRef.current?.focus({ preventScroll: true })
+  }, [])
 
   useEffect(() => {
     // Ferme aussi le sous-formulaire lorsque l'utilisateur vise un autre élément.
@@ -118,10 +135,53 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
     })
   }
 
+  // Libellé affiché d'une action : nom prédéfini (opération native) ou construction.
+  function actionLabel(action) {
+    return action.preset?.name ?? kindLabel(action.kind, t)
+  }
+
+  // Rapproche la saisie du libellé, du type, de la catégorie et du slot de l'action.
+  function actionSearchScore(action) {
+    const schema = getNodeSchema(action.kind)
+    const group = action.group ?? schema?.group ?? ''
+    return scoreFuzzyMatch(searchTerm, [
+      { text: actionLabel(action), weight: 1 },
+      { text: kindLabel(action.kind, t), weight: 0.98 },
+      { text: action.kind, weight: 0.78 },
+      { text: action.preset?.name ?? '', weight: 0.96 },
+      { text: groupLabel(group, t), weight: 0.72 },
+      { text: group, weight: 0.5 },
+      { text: slotLabel(action.slot, t), weight: 0.62 },
+      { text: action.slot, weight: 0.45 },
+    ])
+  }
+
   // Choisit une construction et, pour une opération mathématique, le nom prédéfini par son entrée de menu.
   function selectAction(action) {
+    if (action.slot && action.slot !== selectedSlot) setSlotName(action.slot)
     setKind(action.kind)
     setPreset(action.preset ?? null)
+  }
+
+  // Entrée choisit le meilleur résultat ; Échap efface d'abord la recherche avant de fermer.
+  function handleSearchKeyDown(event) {
+    if (event.key === 'Enter' && searchMatches.length > 0) {
+      event.preventDefault()
+      event.stopPropagation()
+      selectAction(searchMatches[0].action)
+      return
+    }
+    if (event.key === 'Escape' && search) {
+      event.preventDefault()
+      event.stopPropagation()
+      setSearch('')
+    }
+  }
+
+  // Vide le champ et rend le focus à la saisie pour enchaîner.
+  function clearSearch() {
+    setSearch('')
+    searchRef.current?.focus({ preventScroll: true })
   }
 
   // Affiche une catégorie et, une fois dépliée, ses actions puis ses sous-catégories.
@@ -149,13 +209,28 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
   return (
     <div ref={menuRef} className="logic-context-menu" data-canvas-ui data-canvas-scroll tabIndex={-1} aria-label={t('canvas.blockMenu')} style={menuStyle} onPointerDown={(event) => { event.stopPropagation(); handleMoveStart(event) }} onPointerMove={handleMove} onPointerUp={handleMoveEnd} onPointerCancel={handleMoveEnd} onLostPointerCapture={handleMoveEnd} onKeyDown={handleKeyDown}>
       <div className="logic-context-menu__columns">
-      <div className="logic-context-menu__actions" role="menu" aria-label={selectedSlot ? t('canvas.addTo', { slot: slotLabel(selectedSlot, t) }) : t('canvas.addWhere')}>
-        <div className="logic-context-menu__title">{selectedSlot ? slotLabel(selectedSlot, t) : t('canvas.addNodes')}</div>
-        {selectedSlot && available.slots.length > 1 && <button type="button" role="menuitem" onClick={() => { setSlotName(''); setKind(''); setPreset(null) }}><ArrowLeft className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.back')}</button>}
-        {!available.ok && <p>{diagnosticLabel(available.code, t)}</p>}
-        {available.ok && !selectedSlot && available.slots.map((slot) => <button type="button" role="menuitem" key={slot.name} disabled={slot.occupied || slot.malformed} onClick={() => { setSlotName(slot.name); setKind(''); setPreset(null) }}><CircleDot className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{slotLabel(slot.name, t)}{slot.occupied ? t('canvas.alreadyUsed') : slot.many ? t('canvas.several') : ''}</button>)}
-        {available.ok && selectedSlot && groupedActions(available.actions).map((entry) => renderGroup(entry))}
-        {available.ok && (available.slots.length === 0 || (selectedSlot && available.actions.length === 0)) && <p>{t('canvas.nothingToAdd')}</p>}
+      <div className="logic-context-menu__blocks">
+        {available.ok && available.actions.length > 0 && <div className="logic-context-menu__search" role="search">
+          <Search size={14} aria-hidden="true" />
+          <div className="logic-context-menu__search-field">
+            <input ref={searchRef} className="glow" type="search" value={search} placeholder={t('search.placeholder')} aria-label={t('search.title')} onChange={(event) => setSearch(event.target.value)} onKeyDown={handleSearchKeyDown} />
+            {search && <button type="button" className="logic-context-menu__search-clear" aria-label={t('menu.searchClear')} title={t('menu.searchClear')} onClick={clearSearch}><X size={12} aria-hidden="true" /></button>}
+          </div>
+        </div>}
+        <div className="logic-context-menu__actions" role="menu" aria-label={selectedSlot ? t('canvas.addTo', { slot: slotLabel(selectedSlot, t) }) : t('canvas.addWhere')}>
+          <div className="logic-context-menu__title">{selectedSlot ? slotLabel(selectedSlot, t) : t('canvas.addNodes')}</div>
+          {selectedSlot && available.slots.length > 1 && <button type="button" role="menuitem" onClick={() => { setSlotName(''); setKind(''); setPreset(null) }}><ArrowLeft className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.back')}</button>}
+          {!available.ok && <p>{diagnosticLabel(available.code, t)}</p>}
+          {available.ok && searchActive && (searchMatches.length === 0
+            ? <p className="logic-context-menu__search-empty">{t('search.none', { term: searchTerm })}</p>
+            : <>
+              <p className="logic-context-menu__search-count" role="status">{t(searchMatches.length === 1 ? 'search.resultsOne' : 'search.results', { count: searchMatches.length })}</p>
+              {searchMatches.map(({ action }) => <button type="button" role="menuitem" key={action.id} aria-pressed={kind === action.kind && (action.preset?.name ?? '') === (preset?.name ?? '')} onClick={() => selectAction(action)}><Plus className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" /><span className="logic-context-menu__result-label">{actionLabel(action)}</span>{!selectedSlot && <span className="logic-context-menu__result-hint">{slotLabel(action.slot, t)}</span>}</button>)}
+            </>)}
+          {available.ok && !searchActive && !selectedSlot && available.slots.map((slot) => <button type="button" role="menuitem" key={slot.name} disabled={slot.occupied || slot.malformed} onClick={() => { setSlotName(slot.name); setKind(''); setPreset(null) }}><CircleDot className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{slotLabel(slot.name, t)}{slot.occupied ? t('canvas.alreadyUsed') : slot.many ? t('canvas.several') : ''}</button>)}
+          {available.ok && !searchActive && selectedSlot && groupedActions(available.actions).map((entry) => renderGroup(entry))}
+          {available.ok && !searchActive && (available.slots.length === 0 || (selectedSlot && available.actions.length === 0)) && <p>{t('canvas.nothingToAdd')}</p>}
+        </div>
       </div>
       <div className="logic-context-menu__actions logic-context-menu__node-actions" role="menu" aria-label={t('canvas.nodeActions')}>
         <div className="logic-context-menu__title">{t('canvas.nodeActions')}</div>

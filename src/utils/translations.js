@@ -659,6 +659,7 @@ const messages = {
   'group.incomplete': ['Incomplete', 'Incomplets', '不完整', 'Incompletos', 'غير مكتملة', '不完全', 'अपूर्ण', 'Незавершённые'],
   'menu.groupExpand': ['Expand section', 'Déplier la section', '展开分区', 'Expandir sección', 'توسيع القسم', 'セクションを展開', 'अनुभाग विस्तारित करें', 'Развернуть раздел'],
   'menu.groupCollapse': ['Collapse section', 'Replier la section', '折叠分区', 'Contraer sección', 'طي القسم', 'セクションを折りたたむ', 'अनुभाग संकुचित करें', 'Свернуть раздел'],
+  'menu.searchClear': ['Clear block search', 'Effacer la recherche de blocs', '清除块搜索', 'Borrar búsqueda de bloques', 'مسح بحث الكتل', 'ブロック検索をクリア', 'ब्लॉक खोज साफ़ करें', 'Очистить поиск блоков'],
   'kind.FunctionDeclaration': ['Function', 'Fonction', '函数', 'Función', 'دالة', '関数', 'फ़ंक्शन', 'Функция'],
   'kind.VariableDeclaration': ['Variable', 'Variable', '变量', 'Variable', 'متغير', '変数', 'चर', 'Переменная'],
   'kind.ConstantDeclaration': ['Constant', 'Constante', '常量', 'Constante', 'ثابت', '定数', 'स्थिरांक', 'Константа'],
