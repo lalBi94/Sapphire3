@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { initialDocument, reduceDocument, reduceHistory } from '../../src/utils/canvasDocument.js'
 import { serializeWorkspace, deserializeWorkspace, emptyWorkspace } from '../../src/utils/workspaceFile.js'
+import { examples } from '../../src/utils/examples.js'
 import { createModule, captureSourceNode, pasteSourceNode, duplicateSourceNode, moveSourceNode, deleteSourceNodes, insertSourceNodes, createNode, captureBookmark, insertBookmark } from '../../src/utils/logic/index.js'
 import { debugFixture, node, intType } from '../logic/fixtures.js'
 
@@ -224,6 +225,23 @@ test('emoji de carte : conservé à l’aller-retour et refusé s’il est mal f
   const invalid = JSON.parse(text)
   invalid.presentation.cards[0].emoji = 5
   assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)), { message: 'Invalid card emoji.' })
+})
+
+test('vue d’écran : conservée à l’aller-retour et refusée si elle est inconnue', () => {
+  const camera = { x: 0, y: 0, zoomLevel: 0 }
+  const source = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'pixelScreens').build()))
+  const cards = source.presentation.cards.map((entry) => entry.type === 'screen' ? { ...entry, screenView: 'code' } : entry)
+  const text = serializeWorkspace(source.project, cards, camera)
+  assert.match(text, /"screenView":\s*"code"/)
+  const roundTrip = deserializeWorkspace(text)
+  assert.deepEqual(roundTrip.presentation.cards.filter((entry) => entry.type === 'screen').map((entry) => entry.screenView), ['code', 'code'])
+  // La vue par défaut n'alourdit pas le fichier.
+  const plain = JSON.parse(serializeWorkspace(source.project, source.presentation.cards, camera))
+  assert.equal(plain.presentation.cards.some((entry) => Object.hasOwn(entry, 'screenView')), false)
+  const invalid = JSON.parse(text)
+  const screenCard = invalid.presentation.cards.find((entry) => entry.type === 'screen')
+  screenCard.screenView = 'pixels'
+  assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)), { message: 'Invalid screen view.' })
 })
 
 test('contrats : conservés à l’aller-retour et refusés s’ils sont mal formés', () => {

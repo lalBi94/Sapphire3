@@ -847,6 +847,7 @@ export default function Canvas() {
         onResize={(id, width, height) => document.updateGeometry(id, { width, height })}
         onMove={handleModuleMove} onMoveStart={handleModuleMoveStart} onMoveEnd={handleModuleMoveEnd}
         onScreenScaleChange={(id, screenScale) => document.updateGeometry(id, { screenScale })}
+        onScreenViewChange={(id, screenView) => document.updateGeometry(id, { screenView })}
         screenState={screenPlayback ? null : screenStates[card.id] ?? null}
         screenFrames={screenPlayback ? simulationResult.screenFrames : null}
         screenPlaying={screenPlayback && Boolean(execution?.running)}
@@ -856,7 +857,7 @@ export default function Canvas() {
         pure={card.type !== 'screen' && pureIds.modules.has(card.id)}
         pulse={activeModuleId === card.id && executionStep !== null ? executionStep + 1 : null}
         expansionState={document.index.modules.has(card.id) ? getExpansionState(card.id) : null} onToggleExpansion={(id) => handleExpansion(id, getExpansionState(id) !== 'collapse')}>
-        {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} selectedIds={selectedIds} readOnly={presentationMode} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} onReorder={(id, offset) => document.reorderNode(id, offset)} unusedIds={unusedIds} pureIds={pureIds.functions} breakpoints={breakpoints} onToggleBreakpoint={handleToggleBreakpoint} debugValues={debugValues} genericCalls={genericCalls} dropTarget={transfers.dropTarget} />}
+        {document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} selectedIds={selectedIds} readOnly={presentationMode} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} onReorder={(id, offset) => document.reorderNode(id, offset)} unusedIds={unusedIds} pureIds={pureIds.functions} breakpoints={breakpoints} onToggleBreakpoint={handleToggleBreakpoint} debugValues={debugValues} genericCalls={genericCalls} dropTarget={transfers.dropTarget} />}
       </CanvasModule>)}
       <CanvasStatus camera={camera} zoom={zoom} hiddenCount={hiddenCards.length} onShowAllHidden={handleShowAllHidden} onRecenter={() => handleRecenter(getModulesBounds())} />
       {selectedTargets.length > 1 && !hasScreenSelection && !presentationMode && <SelectionToolbar key={selectedTargets.map((target) => `${target.kind}:${target.id}`).join('|')} count={selectedTargets.length} onDuplicate={handleDuplicateSelection} onDelete={handleDeleteSelection} onClear={() => setSelection([])} />}

@@ -359,6 +359,8 @@ const messages = {
   'screen.api': ['Exported API', 'API exportée', '导出的 API', 'API exportada', 'واجهة برمجة التطبيقات المُصدَّرة', 'エクスポート API', 'निर्यातित API', 'Экспортируемый API'],
   'screen.callers': ['Called by', 'Appelé par', '调用方', 'Llamado por', 'يُستدعى من', '呼び出し元', 'इनके द्वारा कॉल', 'Вызывается из'],
   'screen.noCallers': ['No caller yet.', 'Aucun appelant pour le moment.', '暂无调用方。', 'Aún no hay llamadas.', 'لا يوجد مستدعٍ بعد.', '呼び出し元はまだありません。', 'अभी कोई कॉलर नहीं।', 'Пока нет вызывающих.'],
+  'screen.viewScreen': ['Show the screen', 'Afficher l’écran', '显示屏幕', 'Mostrar la pantalla', 'عرض الشاشة', '画面を表示', 'स्क्रीन दिखाएँ', 'Показать экран'],
+  'screen.viewCode': ['Show the module code', 'Afficher le code du module', '显示模块代码', 'Mostrar el código del módulo', 'عرض كود الوحدة', 'モジュールのコードを表示', 'मॉड्यूल कोड दिखाएँ', 'Показать код модуля'],
   'canvas.block': ['block', 'le bloc', '块', 'el bloque', 'الكتلة', 'ブロック', 'ब्लॉक', 'блок'],
   'card.module': ['Module', 'Module', '模块', 'Módulo', 'وحدة', 'モジュール', 'मॉड्यूल', 'Модуль'],
   'card.screen': ['Screen', 'Écran', '屏幕', 'Pantalla', 'شاشة', '画面', 'स्क्रीन', 'Экран'],

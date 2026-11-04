@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronsDownUp, ChevronsUpDown, CirclePlus, Lock } from 'lucide-react'
+import { ChevronsDownUp, ChevronsUpDown, CirclePlus, Code2, Lock, Monitor } from 'lucide-react'
 import { minimumModuleSize, moduleTypes } from '../../utils/moduleTypes.js'
 import { isEmbeddedImage } from '../../utils/embeddedImage.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
@@ -65,7 +65,7 @@ function ModuleEmoji({ emoji, onChange }) {
 }
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, onScreenScaleChange, screenState = null, screenFrames = null, screenPlaying = false, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, onScreenScaleChange, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -106,6 +106,8 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
 
   const definition = moduleTypes[module.type]
   const name = module.name || t(definition.labelKey)
+  // Une carte écran montre son écran par défaut, ou le code de son module caché.
+  const screenView = module.screenView === 'code' ? 'code' : 'screen'
   // La bascule d'en-tête promet l'action inverse de l'état actuel du pliage.
   const expansionLabel = t(expansionState === 'collapse' ? 'canvas.collapseAll' : 'canvas.expandAll')
 
@@ -346,6 +348,17 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
           )}
         </h2>
         {pure && <span className="canvas-module__pure" title={t('canvas.pureHint')} aria-label={t('canvas.pureHint')}>{t('canvas.pure')}</span>}
+        {definition.hasScreen && !readOnly && <button
+          type="button"
+          className="canvas-module__view"
+          aria-label={t(screenView === 'code' ? 'screen.viewScreen' : 'screen.viewCode')}
+          aria-pressed={screenView === 'code'}
+          title={t(screenView === 'code' ? 'screen.viewScreen' : 'screen.viewCode')}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => { event.stopPropagation(); onScreenViewChange?.(module.id, screenView === 'code' ? 'screen' : 'code') }}
+        >
+          {screenView === 'code' ? <Monitor size={13} strokeWidth={2} aria-hidden="true" /> : <Code2 size={13} strokeWidth={2} aria-hidden="true" />}
+        </button>}
         {module.locked && !readOnly && <button
           type="button"
           className="canvas-module__lock"
@@ -368,7 +381,11 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         </button>}
       </header>
       {definition.hasScreen ? (
-        <div className="canvas-module__content" data-canvas-scroll><ScreenCanvas card={module} state={screenState} frames={screenFrames} screenId={module.id} playing={screenPlaying} readOnly={readOnly} onScale={(scale) => onScreenScaleChange?.(module.id, scale)} /></div>
+        <div className="canvas-module__content" data-canvas-scroll>
+          {screenView === 'code'
+            ? children
+            : <ScreenCanvas card={module} state={screenState} frames={screenFrames} screenId={module.id} playing={screenPlaying} readOnly={readOnly} onScale={(scale) => onScreenScaleChange?.(module.id, scale)} />}
+        </div>
       ) : definition.hasText ? (
         readOnly ? (
           <div className="canvas-module__comment canvas-module__comment--view canvas-module__comment--readonly">

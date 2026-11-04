@@ -2,7 +2,7 @@ import { isId, isRecord, sourceFormatVersion, moduleKinds, createProject } from 
 import { isContractKind } from './logic/contracts.js'
 import { serializeSource } from './logic/serialization.js'
 import { screenLimits } from './logic/mathNatives.js'
-import { moduleTypes, minimumModuleSize } from './moduleTypes.js'
+import { moduleTypes, minimumModuleSize, screenViews } from './moduleTypes.js'
 import { isEmbeddedImage } from './embeddedImage.js'
 
 export const workspaceFileVersion = 1
@@ -70,12 +70,13 @@ function validatePresentation(project, presentation) {
         : modules.has(card.id) || (card.type === 'comment' && typeof card.text !== 'string') || (card.type === 'image' && (!isEmbeddedImage(card.image) || typeof card.caption !== 'string'))) {
       throw workspaceError('Cards do not match the logical project.')
     }
-    if (!Array.isArray(card.expandedNodeIds) || new Set(card.expandedNodeIds).size !== card.expandedNodeIds.length || card.expandedNodeIds.some((id) => !isId(id) || nodes.get(id)?.moduleId !== card.id || card.type !== 'module')) {
+    if (!Array.isArray(card.expandedNodeIds) || new Set(card.expandedNodeIds).size !== card.expandedNodeIds.length || card.expandedNodeIds.some((id) => !isId(id) || nodes.get(id)?.moduleId !== card.id || !['module', 'screen'].includes(card.type))) {
       throw workspaceError('Invalid expanded node data.')
     }
     if (card.hidden !== undefined && typeof card.hidden !== 'boolean') throw workspaceError('Invalid card visibility.')
     if (card.locked !== undefined && typeof card.locked !== 'boolean') throw workspaceError('Invalid card lock.')
     if (card.emoji !== undefined && (typeof card.emoji !== 'string' || card.emoji.length > 16)) throw workspaceError('Invalid card emoji.')
+    if (card.screenView !== undefined && !screenViews.includes(card.screenView)) throw workspaceError('Invalid screen view.')
     ids.add(card.id)
   }
   if (project.modules.some((module) => !ids.has(module.id))) throw workspaceError('A module is missing its visual card.')
@@ -87,8 +88,8 @@ function validatePresentation(project, presentation) {
 
 // N'écrit l'emoji ou les drapeaux de carte que lorsqu'ils sont définis, pour garder les fichiers habituels inchangés.
 function exportableCard(card, nodes) {
-  const { hidden, locked, emoji, ...rest } = card
-  return { ...rest, ...(hidden ? { hidden: true } : {}), ...(locked ? { locked: true } : {}), ...(emoji ? { emoji } : {}), expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) }
+  const { hidden, locked, emoji, screenView, ...rest } = card
+  return { ...rest, ...(hidden ? { hidden: true } : {}), ...(locked ? { locked: true } : {}), ...(emoji ? { emoji } : {}), ...(screenView && screenView !== 'screen' ? { screenView } : {}), expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) }
 }
 
 // Produit le même instantané JSON versionné pour les extensions .sp3 et .json.

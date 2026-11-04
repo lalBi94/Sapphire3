@@ -9,3 +9,6 @@ export const moduleTypes = {
 }
 
 export const minimumModuleSize = { width: 180, height: 120 }
+
+// Vues possibles d'une carte écran : l'écran lui-même, ou le code de son module caché.
+export const screenViews = ['screen', 'code']
