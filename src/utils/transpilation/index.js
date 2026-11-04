@@ -11,6 +11,22 @@ function hasScreen(source) {
   return Array.isArray(source?.modules) && source.modules.some((module) => module?.screen)
 }
 
+// Une jauge SP3 est un widget d'interface : même refus explicite qu'un écran.
+function hasGauge(source) {
+  return Array.isArray(source?.modules) && source.modules.some((module) => module?.gauge)
+}
+
+// Produit le refus stable opposé à toute transpilation contenant une jauge.
+function gaugeFailure(source, target, analysis = null) {
+  return {
+    ok: false,
+    target,
+    code: 'TRANSPILE_GAUGE_UNSUPPORTED',
+    diagnostics: [{ code: 'TRANSPILE_GAUGE_UNSUPPORTED', severity: 'error', message: 'Une jauge SP3 rend le programme non transpilable.', location: { projectId: source?.id ?? null, moduleId: null, nodeId: null, field: null } }],
+    ...(analysis ? { analysis } : {}),
+  }
+}
+
 // Produit le refus stable opposé à toute transpilation contenant un écran.
 function screenFailure(source, target, analysis = null) {
   return {
@@ -26,6 +42,7 @@ function screenFailure(source, target, analysis = null) {
 export function transpileSelection(source, selection, { target = 'javascript', analysis = analyzeProgram(source) } = {}) {
   if (!Object.hasOwn(backends, target)) return { ok: false, code: '', diagnostics: [{ code: 'TRANSPILE_TARGET_UNSUPPORTED' }] }
   if (hasScreen(source)) return screenFailure(source, target, analysis)
+  if (hasGauge(source)) return gaugeFailure(source, target, analysis)
   return backends[target](analysis, { selection })
 }
 
@@ -38,6 +55,7 @@ export function transpileProgram(source, options = {}) {
     return { ok: false, target, code: '', diagnostics: [{ code: 'TRANSPILE_TARGET_UNSUPPORTED', severity: 'error', message: `Cible non prise en charge : ${target}.`, location: { projectId: source?.id ?? null, moduleId: null, nodeId: null, field: null } }], analysis }
   }
   if (hasScreen(source)) return screenFailure(source, target, analysis)
+  if (hasGauge(source)) return gaugeFailure(source, target, analysis)
   if (hasBlockingDiagnostics(analysis.diagnostics)) return { ok: false, target, code: '', diagnostics: analysis.diagnostics, analysis }
   const generated = backend(analysis)
   const diagnostics = [...analysis.diagnostics, ...generated.diagnostics]

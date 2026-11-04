@@ -244,6 +244,22 @@ test('vue d’écran : conservée à l’aller-retour et refusée si elle est in
   assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)), { message: 'Invalid screen view.' })
 })
 
+test('jauge : carte conservée à l’aller-retour et métadonnées validées', () => {
+  const camera = { x: 0, y: 0, zoomLevel: 0 }
+  const source = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'gaugeDemo').build()))
+  const text = serializeWorkspace(source.project, source.presentation.cards, camera)
+  const roundTrip = deserializeWorkspace(text)
+  assert.deepEqual(roundTrip.presentation.cards.filter((card) => card.type === 'gauge').map((card) => card.name), ['Progress gauge'])
+  // Une jauge sans module correspondant est refusée, comme un écran orphelin.
+  const invalidCard = JSON.parse(text)
+  invalidCard.presentation.cards = invalidCard.presentation.cards.map((card) => card.type === 'gauge' ? { ...card, id: 'missing' } : card)
+  assert.throws(() => deserializeWorkspace(JSON.stringify(invalidCard)), { message: 'Cards do not match the logical project.' })
+  // Une plage inversée est refusée.
+  const invalidRange = JSON.parse(text)
+  invalidRange.project.modules = invalidRange.project.modules.map((module) => module.gauge ? { ...module, gauge: { ...module.gauge, min: 10, max: 10 } } : module)
+  assert.throws(() => deserializeWorkspace(JSON.stringify(invalidRange)), { message: 'Invalid gauge module data.' })
+})
+
 test('contrats : conservés à l’aller-retour et refusés s’ils sont mal formés', () => {
   const camera = { x: 0, y: 0, zoomLevel: 0 }
   const document = reduceDocument(initialDocument(), { type: 'createCard', card: card('module') })

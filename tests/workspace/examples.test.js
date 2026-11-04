@@ -23,10 +23,11 @@ const expectedOutput = {
   pixelScreens: ['Logos bouncing'],
   rain: ['Rain'],
   gameOfLife: ['Game of life'],
+  gaugeDemo: ['Gauge full'],
 }
 
 test('bibliothèque d’exemples : chaque projet est valide, analysable et s’exécute', () => {
-  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'sorting', 'quickSort', 'coinChange', 'arrays', 'recursion', 'imports', 'foreach', 'pointers', 'higherOrder', 'maths', 'calculus', 'pixelScreens', 'rain', 'gameOfLife'])
+  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'sorting', 'quickSort', 'coinChange', 'arrays', 'recursion', 'imports', 'foreach', 'pointers', 'higherOrder', 'maths', 'calculus', 'pixelScreens', 'rain', 'gameOfLife', 'gaugeDemo'])
   for (const example of examples) {
     assert.ok(exampleCategories.some((category) => category.id === example.category), `${example.id}: catégorie connue`)
     if (example.subcategory) assert.ok(exampleSubcategories.some((subcategory) => subcategory.id === example.subcategory), `${example.id}: sous-catégorie connue`)
@@ -79,6 +80,22 @@ test('exemple pluie matricielle : colonnes, traînée et boucle sans raccord', (
   const counts = result.screenFrames.map((frame) => frame.rainScreen.pixels.filter((value, index) => index % 4 === 3 && value > 0).length)
   assert.ok(counts.every((count) => count === 9))
   assert.equal(transpileProgram(workspace.project).code, 'TRANSPILE_SCREEN_UNSUPPORTED')
+})
+
+test('exemple jauge : pilotée de l’extérieur et non transpilable', () => {
+  const workspace = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'gaugeDemo').build()))
+  const card = workspace.presentation.cards.find((entry) => entry.type === 'gauge')
+  assert.ok(card)
+  const result = simulateProgram(workspace.project)
+  assert.equal(result.ok, true, result.errorCode)
+  assert.deepEqual(result.output, ['Gauge full'])
+  assert.deepEqual(result.gauges.progressGauge, { value: 100, min: 0, max: 100 })
+  assert.equal(result.gaugeFrames.length, result.trace.length)
+  const values = result.gaugeFrames.map((frame) => frame.progressGauge?.value).filter((value) => value !== undefined)
+  assert.ok(values.includes(0))
+  assert.ok(values.includes(40))
+  assert.equal(values[values.length - 1], 100)
+  assert.equal(transpileProgram(workspace.project).code, 'TRANSPILE_GAUGE_UNSUPPORTED')
 })
 
 test('exemple jeu de la vie : écran 90×56, règles de Conway et cycle infini', () => {

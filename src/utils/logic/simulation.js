@@ -4,6 +4,7 @@ import { createDebugRecorder } from './debugTrace.js'
 import { satisfiesContract, normalizeContracts } from './contracts.js'
 import { getMathNative } from './mathNatives.js'
 import { createScreenStateReader, sameScreenStates } from './screenState.js'
+import { createGaugeStateReader } from './gaugeState.js'
 
 // Ajoute un code stable sans introduire de traduction ni de dépendance UI dans le moteur.
 function simulationError(code, message) {
@@ -39,6 +40,10 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   let steps = 0
   const screenReader = (project.modules ?? []).some((module) => module.screen) ? createScreenStateReader(project) : null
   const usesPresent = (project.nodes ?? []).some((node) => node?.kind === 'MathCall' && node.properties?.name === 'screenPresent')
+  // Jauges : un état complet par pas, pour que la carte suive exactement le focus de nœud.
+  const gaugeReader = (project.modules ?? []).some((module) => module.gauge) ? createGaugeStateReader(project) : null
+  const gaugeFrames = []
+  const maximumGaugeFrames = 4000
   const screenFrames = []
   const maximumScreenFrames = 240
   let lastScreens = null
@@ -88,6 +93,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     steps += 1
     if (steps > maxSteps) throw simulationError('SIMULATION_STEP_LIMIT', 'Simulation step limit reached.')
     trace.push(node.id)
+    if (gaugeReader && gaugeFrames.length < maximumGaugeFrames) gaugeFrames.push(gaugeReader(global.values))
     return node
   }
 
@@ -498,14 +504,16 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       steps,
       variables: collectVariables(),
       screens: screenReader ? screenReader(global.values) : {},
+      gauges: gaugeReader ? gaugeReader(global.values) : {},
       contracts: { total: contracts.reduce((count, entry) => count + entry.kinds.length, 0), observations: contractObservations, violations: contractViolations },
       ...(debug ? { debugFrames: debug.frames } : {}),
       ...(screenReader ? { screenFrames } : {}),
+      ...(gaugeReader ? { gaugeFrames } : {}),
     }
   } catch (error) {
     const errorCode = error?.code ?? 'SIMULATION_FAILED'
     debug?.record(lastInstructionId, lastEnvironment, lastScopes, 'error', errorCode)
-    return { ok: false, output, outputSteps, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, screens: screenReader ? screenReader(global.values) : {}, ...(debug ? { debugFrames: debug.frames } : {}), ...(screenReader ? { screenFrames } : {}) }
+    return { ok: false, output, outputSteps, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, screens: screenReader ? screenReader(global.values) : {}, gauges: gaugeReader ? gaugeReader(global.values) : {}, ...(debug ? { debugFrames: debug.frames } : {}), ...(screenReader ? { screenFrames } : {}), ...(gaugeReader ? { gaugeFrames } : {}) }
   }
 }
 

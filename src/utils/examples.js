@@ -1,5 +1,6 @@
 import { createProject, createModule, createNode } from './logic/index.js'
 import { createScreenModule, screenDefaults } from './screenNode.js'
+import { createGaugeModule, gaugeDefaults } from './gaugeNode.js'
 import { moduleTypes } from './moduleTypes.js'
 
 const intType = { kind: 'primitive', name: 'int' }
@@ -39,7 +40,9 @@ function workspace(project, notes = []) {
   const definition = moduleTypes.module
   const cards = project.modules.map((module, position) => module.screen
     ? { id: module.id, type: 'screen', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.screen.width, height: moduleTypes.screen.height, screenWidth: module.screen.width, screenHeight: module.screen.height, screenScale: screenDefaults.scale, expandedNodeIds: [] }
-    : { id: module.id, type: 'module', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: Math.max(definition.width, 520), height: Math.max(definition.height, 420), expandedNodeIds: [] })
+    : module.gauge
+      ? { id: module.id, type: 'gauge', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.gauge.width, height: moduleTypes.gauge.height, expandedNodeIds: [] }
+      : { id: module.id, type: 'module', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: Math.max(definition.width, 520), height: Math.max(definition.height, 420), expandedNodeIds: [] })
   cards.push(...notes)
   return { application: 'Sapphire 3', workspaceVersion: 1, project, presentation: { cards, camera: { x: 0, y: 0, zoomLevel: 0 }, selected: null } }
 }
@@ -963,6 +966,55 @@ function rain() {
   ])
 }
 
+// Jauge pilotée depuis un module normal : la valeur monte par paliers pendant l'exécution.
+function gaugeDemo() {
+  const b = builder()
+  const gauge = createGaugeModule('progressGauge', 'Progress gauge', 1, { min: 0, max: 100 })
+  b.project.modules.push(gauge.module)
+  b.project.nodes.push(...gauge.nodes)
+  b.useModule('gaugeApp', 'Gauge app')
+
+  const find = (name) => gauge.module.exports.find((entry) => entry.name === name).nodeId
+  const app = b.project.modules.find((module) => module.id === 'gaugeApp')
+  app.imports.push(
+    { id: 'addImport', moduleId: 'progressGauge', nodeId: find('GAUGE_SP3_ADD_VALUE_1'), localName: 'addValue' },
+    { id: 'resetImport', moduleId: 'progressGauge', nodeId: find('GAUGE_SP3_RESET_1'), localName: 'resetGauge' },
+  )
+
+  // Appelle une fonction importée avec ses arguments.
+  function importedCall(prefix, importId, args) {
+    b.make(`${prefix}Statement`, 'ExpressionStatement', {}, { expression: `${prefix}Call` })
+    b.call(`${prefix}Call`, `${prefix}Callee`, args)
+    b.make(`${prefix}Callee`, 'Reference', {}, {}, { target: { kind: 'import', importId } })
+    return `${prefix}Statement`
+  }
+
+  b.root('gaugeMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'gaugeMainBody' })
+  b.make('gaugeReset', 'ExpressionStatement', {}, { expression: 'gaugeResetCall' })
+  b.call('gaugeResetCall', 'gaugeResetCallee', [])
+  b.make('gaugeResetCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'resetImport' } })
+  b.make('gaugeIndex', 'VariableDeclaration', { name: 'i', type: intType }, { initializer: 'gaugeIndexStart' })
+  b.intValue('gaugeIndexStart', 0)
+  b.binary('gaugeTest', '<', 'gaugeTestIndex', 'gaugeTestEnd')
+  b.ref('gaugeTestIndex', 'i')
+  b.intValue('gaugeTestEnd', 5)
+  b.make('gaugeUpdate', 'AssignmentStatement', {}, { target: 'gaugeUpdateTarget', value: 'gaugeUpdateValue' })
+  b.ref('gaugeUpdateTarget', 'i')
+  b.binary('gaugeUpdateValue', '+', 'gaugeUpdateLeft', 'gaugeUpdateOne')
+  b.ref('gaugeUpdateLeft', 'i')
+  b.intValue('gaugeUpdateOne', 1)
+  b.make('gaugeStepValue', 'Literal', { type: doubleType, value: '20.0' })
+  b.block('gaugeLoopBody', [importedCall('gaugeAdd', 'addImport', ['gaugeStepValue'])])
+  b.make('gaugeLoop', 'ForStatement', {}, { initializer: 'gaugeIndex', test: 'gaugeTest', update: 'gaugeUpdate', body: 'gaugeLoopBody' })
+  b.print('gaugePrint', 'gaugeMessage')
+  b.make('gaugeMessage', 'Literal', { type: { kind: 'primitive', name: 'string' }, value: 'Gauge full' })
+  b.block('gaugeMainBody', ['gaugeReset', 'gaugeLoop', 'gaugePrint'])
+
+  return workspace(b.project, [
+    note('gaugeNote', 'Gauge', 'La jauge est pilotée depuis Gauge app : RESET puis cinq ADD_VALUE(20) la remplissent de 0 à 100. Son module caché exporte SET_VALUE, ADD_VALUE, GET_VALUE, GET_MIN, GET_MAX, SET_RANGE et RESET.', 0, 320, 620, 240),
+  ])
+}
+
 export const exampleCategories = [
   { id: 'algorithms', labelKey: 'examples.category.algorithms' },
   { id: 'arrays', labelKey: 'examples.category.arrays' },
@@ -970,6 +1022,7 @@ export const exampleCategories = [
   { id: 'pointers', labelKey: 'examples.category.pointers' },
   { id: 'operations', labelKey: 'examples.category.operations' },
   { id: 'screens', labelKey: 'examples.category.screens' },
+  { id: 'widgets', labelKey: 'examples.category.widgets' },
   { id: 'modules', labelKey: 'examples.category.modules' },
 ]
 
@@ -990,6 +1043,7 @@ export const examples = [
   { id: 'pixelScreens', labelKey: 'examples.pixelScreens', category: 'screens', subcategory: 'animation', build: pixelScreens },
   { id: 'rain', labelKey: 'examples.rain', category: 'screens', subcategory: 'animation', build: rain },
   { id: 'gameOfLife', labelKey: 'examples.gameOfLife', category: 'screens', subcategory: 'automata', build: gameOfLife },
+  { id: 'gaugeDemo', labelKey: 'examples.gaugeDemo', category: 'widgets', build: gaugeDemo },
 ]
 
 // Sous-catégories facultatives à l'intérieur d'une catégorie du volet Examples.

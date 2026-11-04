@@ -90,7 +90,7 @@ export default function Canvas() {
   const selected = selectedTargets[0] ?? null
   const selectedIds = useMemo(() => new Set(selectedTargets.map((target) => target.id)), [selectedTargets])
   const selectedNodeIds = useMemo(() => selectedTargets.filter((target) => target.kind === 'node').map((target) => target.id), [selectedTargets])
-  const hasScreenSelection = useMemo(() => selectedTargets.some((target) => target.kind === 'module' && document.cards.some((card) => card.id === target.id && card.type === 'screen')), [selectedTargets, document.cards])
+  const hasScreenSelection = useMemo(() => selectedTargets.some((target) => target.kind === 'module' && document.cards.some((card) => card.id === target.id && ['screen', 'gauge'].includes(card.type))), [selectedTargets, document.cards])
   const selectedModuleIds = useMemo(() => selectedTargets.filter((target) => target.kind === 'module').map((target) => target.id), [selectedTargets])
   const { camera, zoom, canvasRef, isPanning, handlePointerDown, handlePointerMove, handlePointerEnd, handleKeyDown, handleRecenter, panTo, zoomBy, resetZoom, restoreCamera } = useCanvasPan()
   const files = useWorkspaceFiles({ project: document.project, cards: document.cards, camera, selected, onReplace: handleReplaceWorkspace })
@@ -134,6 +134,11 @@ export default function Canvas() {
   const screenPlayback = Boolean(!debugFrame && simulationResult?.screenFrames?.length && execution && (execution.running || execution.paused || execution.stopped))
   // État visuel courant des écrans : frame de debug prioritaire, sinon état final.
   const screenStates = debugFrame?.screens ?? simulationResult?.screens ?? {}
+  // Jauges : un état par pas, aligné sur la trace affichée ; la frame de debug reste prioritaire.
+  const gaugeStates = debugFrame?.gauges
+    ?? (execution ? simulationResult?.gaugeFrames?.[Math.min(execution.index, (simulationResult?.gaugeFrames?.length ?? 1) - 1)] : null)
+    ?? simulationResult?.gauges
+    ?? {}
   const selectedScreen = selected?.kind === 'module' && document.cards.some((card) => card.id === selected.id && card.type === 'screen')
   // Valeurs des variables et paramètres visibles, limitées à l'arrêt de debug courant.
   const debugValues = useMemo(() => debugFrame ? buildDebugValues(document.index, debugFrame) : null, [document.index, debugFrame])
@@ -151,7 +156,7 @@ export default function Canvas() {
   const visibleCards = useMemo(() => document.cards.filter((card) => !card.hidden), [document.cards])
   const hiddenCards = useMemo(() => document.cards.filter((card) => card.hidden), [document.cards])
   // La mini-carte ne montre que les modules visibles, comme le cadre de recentrage.
-  const minimapModules = useMemo(() => visibleCards.filter((card) => card.type === 'module' || card.type === 'screen').map(({ id, x, y, width, height }) => ({ id, x, y, width, height })), [visibleCards])
+  const minimapModules = useMemo(() => visibleCards.filter((card) => card.type === 'module' || card.type === 'screen' || card.type === 'gauge').map(({ id, x, y, width, height }) => ({ id, x, y, width, height })), [visibleCards])
   // Fonction sélectionnée : seule cible proposée pour « Run/Debug this function ».
   const selectedFunction = useMemo(() => selected?.kind === 'node' && document.index.nodes.get(selected.id)?.kind === 'FunctionDeclaration' ? { id: selected.id } : null, [selected, document.index])
   // Logic Pulse : la carte du module qui vient d'exécuter un pas pulse brièvement.
@@ -858,12 +863,13 @@ export default function Canvas() {
         screenState={screenPlayback ? null : screenStates[card.id] ?? null}
         screenFrames={screenPlayback ? simulationResult.screenFrames : null}
         screenPlaying={screenPlayback && Boolean(execution?.running)}
+        gaugeState={gaugeStates[card.id] ?? null}
         readOnly={presentationMode}
         onRename={document.renameCard} onTextChange={document.updateComment} onImageChange={document.updateImage} onEmojiChange={document.setCardEmoji}
         onToggleLock={handleToggleLock}
-        pure={card.type !== 'screen' && pureIds.modules.has(card.id)}
+        pure={!['screen', 'gauge'].includes(card.type) && pureIds.modules.has(card.id)}
         pulse={activeModuleId === card.id && executionStep !== null ? executionStep + 1 : null}
-        expansionState={document.index.modules.has(card.id) ? getExpansionState(card.id) : null} onToggleExpansion={(id) => handleExpansion(id, getExpansionState(id) !== 'collapse')}>
+        expansionState={['module', 'screen'].includes(card.type) && document.index.modules.has(card.id) ? getExpansionState(card.id) : null} onToggleExpansion={(id) => handleExpansion(id, getExpansionState(id) !== 'collapse')}>
         {document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} selectedIds={selectedIds} readOnly={presentationMode} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} onReorder={(id, offset) => document.reorderNode(id, offset)} unusedIds={unusedIds} pureIds={pureIds.functions} breakpoints={breakpoints} onToggleBreakpoint={handleToggleBreakpoint} debugValues={debugValues} genericCalls={genericCalls} dropTarget={transfers.dropTarget} />}
       </CanvasModule>)}
       <CanvasStatus camera={camera} zoom={zoom} hiddenCount={hiddenCards.length} onShowAllHidden={handleShowAllHidden} onRecenter={() => handleRecenter(getModulesBounds())} />
