@@ -1,5 +1,7 @@
 # Sapphire 3
 
+![Espace de travail Sapphire 3 : deux modules Library et App reliés par une flèche, avec leurs blocs dépliés](docs/assets/sapphire3-workspace.png)
+
 Application desktop de programmation visuelle en construction. Le canvas visuel, l'édition contextuelle des nœuds et les fondations d'un moteur AST indépendant des langages sont présents.
 
 ## Installation et démarrage
