@@ -319,6 +319,7 @@ const messages = {
   'examples.maths': ['Native maths', 'Maths natives', '原生数学', 'Matemáticas nativas', 'رياضيات أصلية', 'ネイティブ数学', 'Native maths', 'Встроенная математика'],
   'examples.calculus': ['Calculus', 'Calcul', '微积分', 'Cálculo', 'التفاضل والتكامل', '微積分', 'कलन', 'Математический анализ'],
   'examples.pixelScreens': ['Pixel screens', 'Écrans pixel', '像素屏幕', 'Pantallas de píxeles', 'شاشات البكسل', 'ピクセル画面', 'पिक्सेल स्क्रीन', 'Пиксельные экраны'],
+  'examples.gameOfLife': ['Game of life', 'Jeu de la vie', '生命游戏', 'Juego de la vida', 'لعبة الحياة', 'ライフゲーム', 'जीवन का खेल', 'Игра «Жизнь»'],
   'examples.category.algorithms': ['Algorithms', 'Algorithmes', '算法', 'Algoritmos', 'الخوارزميات', 'アルゴリズム', 'एल्गोरिदम', 'Алгоритмы'],
   'examples.category.arrays': ['Arrays', 'Tableaux', '数组', 'Arreglos', 'المصفوفات', '配列', 'Arrays', 'Массивы'],
   'examples.category.functions': ['Functions', 'Fonctions', '函数', 'Funciones', 'الدوال', '関数', 'फ़ंक्शन', 'Функции'],

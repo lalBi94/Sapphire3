@@ -41,13 +41,18 @@ export function createScreenModule(moduleId, name, index, options = {}) {
     width: screenGlobalName('WIDTH', index),
     height: screenGlobalName('HEIGHT', index),
   }
-  const pixelsValue = node('pixelsValue', 'ArrayCreation', { elementType: intType }, { size: literal('pixelCount', width * height * 4), initializer: literal('pixelZero', 0) })
+  const pixelsValue = node('pixelsValue', 'ArrayCreation', { elementType: intType }, { size: literal('pixelCount', 4), initializer: literal('pixelZero', 0) })
   const pixelsId = node('pixels', 'VariableDeclaration', { name: names.pixels, type: intArrayType }, { initializer: pixelsValue })
-  const widthValue = literal('widthValue', width)
+  // Le tampon démarre en 1×1 : un seul redimensionnement natif crée la grille finale,
+  // sans consommer un pas de simulation par pixel (indispensable aux grands écrans).
+  const widthValue = literal('widthValue', 1)
   const widthId = node('width', 'VariableDeclaration', { name: names.width, type: intType }, { initializer: widthValue })
-  const heightValue = literal('heightValue', height)
+  const heightValue = literal('heightValue', 1)
   const heightId = node('height', 'VariableDeclaration', { name: names.height, type: intType }, { initializer: heightValue })
-  module.rootNodeIds.push(pixelsId, widthId, heightId)
+  const pixelsResize = assignment('resizePixelsInit', ref('pixelsResizeTarget', names.pixels), callNative('resizePixelsInitCall', 'screenResize', [ref('pixelsResizeSource', names.pixels), ref('pixelsResizeWidth', names.width), ref('pixelsResizeHeight', names.height), literal('pixelsResizeNextWidth', width), literal('pixelsResizeNextHeight', height)]))
+  const widthResize = assignment('widthResizeInit', ref('widthResizeTarget', names.width), literal('widthResizeValue', width))
+  const heightResize = assignment('heightResizeInit', ref('heightResizeTarget', names.height), literal('heightResizeValue', height))
+  module.rootNodeIds.push(pixelsId, widthId, heightId, pixelsResize, widthResize, heightResize)
 
   // Ajoute une fonction racine exportable et retourne ses identifiants de paramètres.
   function addFunction(kind, returnType, parameters, statements) {

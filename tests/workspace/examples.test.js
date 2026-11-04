@@ -20,10 +20,11 @@ const expectedOutput = {
   maths: ['7', '3', '9', '9'],
   calculus: ['6', '0.3333333333333333'],
   pixelScreens: ['Screens moving'],
+  gameOfLife: ['Game of life'],
 }
 
 test('bibliothèque d’exemples : chaque projet est valide, analysable et s’exécute', () => {
-  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'sorting', 'quickSort', 'coinChange', 'arrays', 'recursion', 'imports', 'foreach', 'pointers', 'higherOrder', 'maths', 'calculus', 'pixelScreens'])
+  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'sorting', 'quickSort', 'coinChange', 'arrays', 'recursion', 'imports', 'foreach', 'pointers', 'higherOrder', 'maths', 'calculus', 'pixelScreens', 'gameOfLife'])
   for (const example of examples) {
     assert.ok(exampleCategories.some((category) => category.id === example.category), `${example.id}: catégorie connue`)
     const workspace = deserializeWorkspace(JSON.stringify(example.build()))
@@ -52,6 +53,21 @@ test('exemple écrans pixel : deux écrans distincts et transpilation refusée',
   const last = result.screenFrames[result.screenFrames.length - 1]
   assert.notDeepEqual(first.screenOne.pixels, last.screenOne.pixels)
   assert.notDeepEqual(first.screenTwo.pixels, last.screenTwo.pixels)
+  assert.equal(transpileProgram(workspace.project).code, 'TRANSPILE_SCREEN_UNSUPPORTED')
+})
+
+test('exemple jeu de la vie : écran 90×56 et générations animées', () => {
+  const workspace = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'gameOfLife').build()))
+  const screens = workspace.presentation.cards.filter((card) => card.type === 'screen')
+  assert.equal(screens.length, 1)
+  assert.equal(screens[0].screenWidth, 90)
+  assert.equal(screens[0].screenHeight, 56)
+  const result = simulateProgram(workspace.project)
+  assert.equal(result.ok, true, result.errorCode)
+  assert.ok(result.screenFrames.length > 10)
+  assert.equal(result.screens.lifeScreen.width, 90)
+  assert.equal(result.screens.lifeScreen.height, 56)
+  assert.ok(result.screens.lifeScreen.pixels.some((value, index) => index % 4 !== 3 && value > 0))
   assert.equal(transpileProgram(workspace.project).code, 'TRANSPILE_SCREEN_UNSUPPORTED')
 })
 
