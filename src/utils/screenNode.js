@@ -97,10 +97,22 @@ export function createScreenModule(moduleId, name, index, options = {}) {
     assignment('resizePixels', ref('pixelsTarget', names.pixels), callNative('resizeCall', 'screenResize', [ref('pixelsRefHeight', names.pixels), ref('widthRefHeight', names.width), ref('heightRefHeight', names.height), ref('widthRefHeightTwo', names.width), ref('heightParamRef', 'height')])),
     assignment('assignHeight', ref('heightTarget', names.height), ref('heightValueRef', 'height')),
   ])
+  const blit = addFunction('BLIT', voidType, [
+    { id: 'parameter:grid', name: 'grid', type: intArrayType },
+    { id: 'parameter:palette', name: 'palette', type: intArrayType },
+  ], [
+    expression('blitCall', callNative('blitNative', 'screenBlit', [
+      ref('pixelsRefBlit', names.pixels), ref('widthRefBlit', names.width), ref('heightRefBlit', names.height),
+      ref('gridRefBlit', 'grid'), ref('gridWidthRefBlit', names.width), ref('gridHeightRefBlit', names.height), ref('paletteRefBlit', 'palette'),
+    ])),
+  ])
+  const present = addFunction('PRESENT', voidType, [], [
+    expression('presentCall', callNative('presentNative', 'screenPresent', [])),
+  ])
 
   return {
     module,
     nodes,
-    functions: { setPixel: setPixel.name, getPixel: getPixel.name, getWidth: getWidth.name, getHeight: getHeight.name, names },
+    functions: { setPixel: setPixel.name, getPixel: getPixel.name, getWidth: getWidth.name, getHeight: getHeight.name, blit: blit.name, present: present.name, names },
   }
 }

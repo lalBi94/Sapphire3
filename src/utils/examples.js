@@ -571,7 +571,7 @@ function pixelScreens() {
   ])
 }
 
-// Mini jeu de la vie : planeur, clignotant et bloc sur un écran 90×56.
+// Jeu de la vie : convolution, table de transition et blit écran.
 function gameOfLife() {
   const b = builder()
   const screen = createScreenModule('lifeScreen', 'Game of life screen', 1, { width: 90, height: 56 })
@@ -579,7 +579,7 @@ function gameOfLife() {
   b.project.nodes.push(...screen.nodes)
   b.useModule('lifePatterns', 'Life patterns')
 
-  // Déclare un tableau d'entiers global, utilisé comme table de motifs.
+  // Déclare un tableau constant global.
   function constantArray(id, values) {
     b.root(id, 'ConstantDeclaration', { name: id, type: intArrayType }, { initializer: `${id}Init` })
     b.make(`${id}Init`, 'ArrayLiteral', { elementType: intType }, { elements: values.map((value, index) => {
@@ -589,201 +589,125 @@ function gameOfLife() {
     }) })
   }
 
-  // Coordonnées plates des phases du planeur, puis des deux phases du clignotant.
-  constantArray('gliderX', [1, 2, 0, 1, 2, 0, 2, 1, 2, 1, 2, 0, 2, 1, 2, 0, 1, 2, 0, 1])
-  constantArray('gliderY', [0, 1, 2, 2, 2, 0, 0, 1, 1, 2, 0, 1, 1, 2, 2, 0, 1, 1, 2, 2])
-  constantArray('blinkerX', [0, 1, 2, 1, 1, 1])
-  constantArray('blinkerY', [0, 0, 0, -1, 0, 1])
+  // Grille 90×56 initialisée à zéro, plus les buffers de calcul.
+  b.root('lifeGrid', 'VariableDeclaration', { name: 'grid', type: intArrayType }, { initializer: 'lifeGridInit' })
+  b.make('lifeGridInit', 'ArrayCreation', { elementType: intType }, { size: 'lifeGridSize', initializer: 'lifeGridZero' })
+  b.intValue('lifeGridSize', 90 * 56)
+  b.intValue('lifeGridZero', 0)
+  b.root('lifeCounts', 'VariableDeclaration', { name: 'counts', type: intArrayType })
+  b.root('lifeNext', 'VariableDeclaration', { name: 'next', type: intArrayType })
+  constantArray('kernel', [1, 1, 1, 1, 0, 1, 1, 1, 1])
+  constantArray('rule', [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0])
+  constantArray('palette', [0, 0, 0, 0, 255, 213, 71, 255])
 
-  // Construit une fonction qui dessine ou efface un motif cellule par cellule.
-  function patternFunction({ id, arrayX, arrayY, limit, modulo, shifted, shiftDivisor = 1, baseX, baseY, color }) {
-    b.root(id, 'FunctionDeclaration', { name: id, type: voidType }, { parameters: [`${id}Frame`, `${id}Alpha`], body: `${id}Body` })
-    b.make(`${id}Frame`, 'Parameter', { name: 'frame', type: intType })
-    b.make(`${id}Alpha`, 'Parameter', { name: 'alpha', type: intType })
-    b.make(`${id}Phase`, 'VariableDeclaration', { name: 'phase', type: intType }, { initializer: `${id}PhaseValue` })
-    b.binary(`${id}PhaseValue`, '%', `${id}PhaseFrame`, `${id}PhaseModulo`)
-    b.ref(`${id}PhaseFrame`, 'frame')
-    b.intValue(`${id}PhaseModulo`, modulo)
-    const declarations = [`${id}Phase`]
-
-    if (shifted) {
-      b.make(`${id}Shift`, 'VariableDeclaration', { name: 'shift', type: intType }, { initializer: `${id}ShiftValue` })
-      b.binary(`${id}ShiftValue`, '/', `${id}ShiftFrame`, `${id}ShiftDivisor`)
-      b.ref(`${id}ShiftFrame`, 'frame')
-      b.intValue(`${id}ShiftDivisor`, shiftDivisor)
-      declarations.push(`${id}Shift`)
-      b.make(`${id}BaseX`, 'VariableDeclaration', { name: 'baseX', type: intType }, { initializer: `${id}BaseXValue` })
-      b.binary(`${id}BaseXValue`, '+', `${id}BaseXStart`, `${id}BaseXShift`)
-      b.intValue(`${id}BaseXStart`, baseX)
-      b.ref(`${id}BaseXShift`, 'shift')
-      declarations.push(`${id}BaseX`)
-      b.make(`${id}BaseY`, 'VariableDeclaration', { name: 'baseY', type: intType }, { initializer: `${id}BaseYValue` })
-      b.binary(`${id}BaseYValue`, '+', `${id}BaseYStart`, `${id}BaseYShift`)
-      b.intValue(`${id}BaseYStart`, baseY)
-      b.ref(`${id}BaseYShift`, 'shift')
-      declarations.push(`${id}BaseY`)
-    } else {
-      b.make(`${id}BaseX`, 'VariableDeclaration', { name: 'baseX', type: intType }, { initializer: `${id}BaseXValue` })
-      b.intValue(`${id}BaseXValue`, baseX)
-      declarations.push(`${id}BaseX`)
-      b.make(`${id}BaseY`, 'VariableDeclaration', { name: 'baseY', type: intType }, { initializer: `${id}BaseYValue` })
-      b.intValue(`${id}BaseYValue`, baseY)
-      declarations.push(`${id}BaseY`)
-    }
-
-    b.make(`${id}Index`, 'VariableDeclaration', { name: 'i', type: intType }, { initializer: `${id}IndexStart` })
-    b.intValue(`${id}IndexStart`, 0)
-    b.make(`${id}CellIndex`, 'VariableDeclaration', { name: 'index', type: intType }, { initializer: `${id}CellIndexValue` })
-    b.binary(`${id}CellIndexValue`, '+', `${id}CellIndexPhase`, `${id}CellIndexI`)
-    b.binary(`${id}CellIndexPhase`, '*', `${id}CellIndexPhaseLeft`, `${id}CellIndexPhaseLimit`)
-    b.ref(`${id}CellIndexPhaseLeft`, 'phase')
-    b.intValue(`${id}CellIndexPhaseLimit`, limit)
-    b.ref(`${id}CellIndexI`, 'i')
-
-    b.make(`${id}X`, 'VariableDeclaration', { name: 'x', type: intType }, { initializer: `${id}XValue` })
-    b.binary(`${id}XValue`, '+', `${id}XBase`, `${id}XArrayIndex`)
-    b.ref(`${id}XBase`, 'baseX')
-    b.ref(`${id}XArrayRef`, arrayX)
-    b.make(`${id}XArrayIndex`, 'ArrayAccess', {}, { array: `${id}XArrayRef`, index: `${id}XIndexRef` })
-    b.ref(`${id}XIndexRef`, 'index')
-
-    b.make(`${id}Y`, 'VariableDeclaration', { name: 'y', type: intType }, { initializer: `${id}YValue` })
-    b.binary(`${id}YValue`, '+', `${id}YBase`, `${id}YArrayIndex`)
-    b.ref(`${id}YBase`, 'baseY')
-    b.ref(`${id}YArrayRef`, arrayY)
-    b.make(`${id}YArrayIndex`, 'ArrayAccess', {}, { array: `${id}YArrayRef`, index: `${id}YIndexRef` })
-    b.ref(`${id}YIndexRef`, 'index')
-
-    b.make(`${id}Pixel`, 'VariableDeclaration', { name: 'pixel', type: intType }, { initializer: `${id}PixelValue` })
-    b.binary(`${id}PixelValue`, '+', `${id}PixelProduct`, `${id}PixelX`)
-    b.binary(`${id}PixelProduct`, '*', `${id}PixelY`, `${id}PixelWidth`)
-    b.ref(`${id}PixelY`, 'y')
-    b.intValue(`${id}PixelWidth`, 90)
-    b.ref(`${id}PixelX`, 'x')
-
-    b.make(`${id}CallStatement`, 'ExpressionStatement', {}, { expression: `${id}Call` })
-    b.call(`${id}Call`, `${id}Callee`, [`${id}CallPixel`, `${id}Red`, `${id}Green`, `${id}Blue`, `${id}AlphaRef`])
-    b.make(`${id}Callee`, 'Reference', {}, {}, { target: { kind: 'import', importId: 'setLifeImport' } })
-    b.ref(`${id}CallPixel`, 'pixel')
-    b.intValue(`${id}Red`, color[0])
-    b.intValue(`${id}Green`, color[1])
-    b.intValue(`${id}Blue`, color[2])
-    b.ref(`${id}AlphaRef`, 'alpha')
-
-    b.binary(`${id}Test`, '<', `${id}TestI`, `${id}TestLimit`)
-    b.ref(`${id}TestI`, 'i')
-    b.intValue(`${id}TestLimit`, limit)
-    b.make(`${id}Update`, 'AssignmentStatement', {}, { target: `${id}UpdateTarget`, value: `${id}UpdateValue` })
-    b.ref(`${id}UpdateTarget`, 'i')
-    b.binary(`${id}UpdateValue`, '+', `${id}UpdateI`, `${id}UpdateOne`)
-    b.ref(`${id}UpdateI`, 'i')
-    b.intValue(`${id}UpdateOne`, 1)
-    b.block(`${id}LoopBody`, [`${id}CellIndex`, `${id}X`, `${id}Y`, `${id}Pixel`, `${id}CallStatement`])
-    b.make(`${id}Loop`, 'ForStatement', {}, { initializer: `${id}Index`, test: `${id}Test`, update: `${id}Update`, body: `${id}LoopBody` })
-    b.block(`${id}Body`, [...declarations, `${id}Loop`])
-  }
-
-  patternFunction({ id: 'drawGlider', arrayX: 'gliderX', arrayY: 'gliderY', limit: 5, modulo: 4, shifted: true, shiftDivisor: 1, baseX: 12, baseY: 12, color: [255, 213, 71] })
-  patternFunction({ id: 'drawBlinker', arrayX: 'blinkerX', arrayY: 'blinkerY', limit: 3, modulo: 2, shifted: false, baseX: 70, baseY: 20, color: [196, 177, 255] })
-  patternFunction({ id: 'drawBlinkerTwo', arrayX: 'blinkerX', arrayY: 'blinkerY', limit: 3, modulo: 2, shifted: false, baseX: 30, baseY: 44, color: [242, 166, 196] })
-
-  // Dessine plusieurs still lifes classiques, répartis sur l'écran.
-  b.root('drawStillLife', 'FunctionDeclaration', { name: 'drawStillLife', type: voidType }, { parameters: [], body: 'drawStillLifeBody' })
-  const stillLifeCells = [
-    [70, 40], [71, 40], [70, 41], [71, 41],
-    [60, 5], [61, 5], [60, 6], [61, 6],
-    [80, 30], [81, 30], [80, 31], [81, 31],
-    [51, 10], [52, 10], [50, 11], [53, 11], [51, 12], [52, 12],
-    [11, 40], [12, 40], [10, 41], [13, 41], [11, 42], [12, 42],
-    [76, 45], [75, 46], [77, 46], [76, 47],
-    [20, 5], [21, 5], [20, 6], [22, 6], [21, 7],
+  // Pulsar 13×13, deux clignotants, un crapaud et quatre still lifes.
+  const pulsar = [
+    [2, 0], [3, 0], [4, 0], [8, 0], [9, 0], [10, 0],
+    [0, 2], [5, 2], [7, 2], [12, 2],
+    [0, 3], [5, 3], [7, 3], [12, 3],
+    [0, 4], [5, 4], [7, 4], [12, 4],
+    [2, 5], [3, 5], [4, 5], [8, 5], [9, 5], [10, 5],
+    [2, 7], [3, 7], [4, 7], [8, 7], [9, 7], [10, 7],
+    [0, 8], [5, 8], [7, 8], [12, 8],
+    [0, 9], [5, 9], [7, 9], [12, 9],
+    [0, 10], [5, 10], [7, 10], [12, 10],
+    [2, 12], [3, 12], [4, 12], [8, 12], [9, 12], [10, 12],
   ]
-  const stillLifeStatements = stillLifeCells.map(([x, y], index) => {
-    const prefix = `still${index}`
-    b.make(`${prefix}Statement`, 'ExpressionStatement', {}, { expression: `${prefix}Call` })
-    b.call(`${prefix}Call`, `${prefix}Callee`, [`${prefix}Pixel`, `${prefix}Red`, `${prefix}Green`, `${prefix}Blue`, `${prefix}Alpha`])
-    b.make(`${prefix}Callee`, 'Reference', {}, {}, { target: { kind: 'import', importId: 'setLifeImport' } })
-    b.intValue(`${prefix}Pixel`, y * 90 + x)
-    b.intValue(`${prefix}Red`, 126)
-    b.intValue(`${prefix}Green`, 200)
-    b.intValue(`${prefix}Blue`, 255)
-    b.intValue(`${prefix}Alpha`, 255)
+  const seeds = []
+  const add = (baseX, baseY, cells) => { for (const [x, y] of cells) seeds.push([baseX + x, baseY + y]) }
+  add(10, 10, pulsar)
+  add(70, 20, [[0, 0], [1, 0], [2, 0]])
+  add(30, 44, [[0, 0], [1, 0], [2, 0]])
+  add(70, 40, [[1, 0], [2, 0], [3, 0], [0, 1], [1, 1], [2, 1]])
+  add(50, 5, [[0, 0], [1, 0], [0, 1], [1, 1]])
+  add(80, 30, [[0, 0], [1, 0], [0, 1], [1, 1]])
+  add(5, 40, [[1, 0], [2, 0], [0, 1], [3, 1], [1, 2], [2, 2]])
+  add(50, 25, [[1, 0], [2, 0], [0, 1], [3, 1], [1, 2], [2, 2]])
+
+  // Affecte les cellules de départ de la grille.
+  const seedStatements = seeds.map(([x, y], index) => {
+    const prefix = `lifeSeed${index}`
+    b.make(`${prefix}Target`, 'ArrayAccess', {}, { array: `${prefix}Grid`, index: `${prefix}Index` })
+    b.ref(`${prefix}Grid`, 'grid')
+    b.intValue(`${prefix}Index`, y * 90 + x)
+    b.make(`${prefix}Value`, 'Literal', { type: intType, value: 1 })
+    b.make(`${prefix}Statement`, 'AssignmentStatement', {}, { target: `${prefix}Target`, value: `${prefix}Value` })
     return `${prefix}Statement`
   })
-  b.block('drawStillLifeBody', stillLifeStatements)
 
+  // Appelle les natives génériques de grille.
+  function gridCall(id, name, args) {
+    b.make(id, 'MathCall', { name }, { arguments: args })
+    return id
+  }
+  const countsCall = gridCall('lifeConvolve', 'arrayConvolve', ['lifeGridRef', 'lifeWidth', 'lifeHeight', 'lifeKernelRef', 'lifeKernelWidth', 'lifeKernelHeight'])
+  b.ref('lifeGridRef', 'grid')
+  b.intValue('lifeWidth', 90)
+  b.intValue('lifeHeight', 56)
+  b.ref('lifeKernelRef', 'kernel')
+  b.intValue('lifeKernelWidth', 3)
+  b.intValue('lifeKernelHeight', 3)
+  const lookupCall = gridCall('lifeLookup', 'arrayLookup', ['lifeCountsRef', 'lifeGridLookupRef', 'lifeRuleRef'])
+  b.ref('lifeCountsRef', 'counts')
+  b.ref('lifeGridLookupRef', 'grid')
+  b.ref('lifeRuleRef', 'rule')
+
+  // Importe blit/present depuis l'écran.
+  const blitExport = screen.module.exports.find((entry) => entry.name === screen.functions.blit)
+  const presentExport = screen.module.exports.find((entry) => entry.name === screen.functions.present)
   const patterns = b.project.modules.find((module) => module.id === 'lifePatterns')
-  patterns.exports.push({ nodeId: 'drawGlider', name: 'drawGlider' }, { nodeId: 'drawBlinker', name: 'drawBlinker' }, { nodeId: 'drawBlinkerTwo', name: 'drawBlinkerTwo' }, { nodeId: 'drawStillLife', name: 'drawStillLife' })
-  const setLife = screen.module.exports.find((entry) => entry.name === 'SCREEN_SP3_SET_PIXEL_1')
-  patterns.imports.push({ id: 'setLifeImport', moduleId: 'lifeScreen', nodeId: setLife.nodeId, localName: 'setOne' })
+  patterns.imports.push(
+    { id: 'lifeBlitImport', moduleId: 'lifeScreen', nodeId: blitExport.nodeId, localName: 'blit' },
+    { id: 'lifePresentImport', moduleId: 'lifeScreen', nodeId: presentExport.nodeId, localName: 'present' },
+  )
+
+  // runLife : sème la grille, puis applique 72 générations.
+  b.root('runLife', 'FunctionDeclaration', { name: 'runLife', type: voidType }, { parameters: [], body: 'runLifeBody' })
+  b.make('lifeCountsAssign', 'AssignmentStatement', {}, { target: 'lifeCountsTarget', value: countsCall })
+  b.ref('lifeCountsTarget', 'counts')
+  b.make('lifeNextAssign', 'AssignmentStatement', {}, { target: 'lifeNextTarget', value: lookupCall })
+  b.ref('lifeNextTarget', 'next')
+  b.make('lifeGridAssign', 'AssignmentStatement', {}, { target: 'lifeGridTarget', value: 'lifeNextRef' })
+  b.ref('lifeGridTarget', 'grid')
+  b.ref('lifeNextRef', 'next')
+  b.make('lifeBlitStatement', 'ExpressionStatement', {}, { expression: 'lifeBlitCall' })
+  b.call('lifeBlitCall', 'lifeBlitCallee', ['lifeGridBlitRef', 'lifePaletteRef'])
+  b.make('lifeBlitCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'lifeBlitImport' } })
+  b.ref('lifeGridBlitRef', 'grid')
+  b.ref('lifePaletteRef', 'palette')
+  b.make('lifePresentStatement', 'ExpressionStatement', {}, { expression: 'lifePresentCall' })
+  b.call('lifePresentCall', 'lifePresentCallee', [])
+  b.make('lifePresentCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'lifePresentImport' } })
+  b.make('lifeGeneration', 'VariableDeclaration', { name: 'generation', type: intType }, { initializer: 'lifeGenerationStart' })
+  b.intValue('lifeGenerationStart', 0)
+  b.binary('lifeGenerationTest', '<', 'lifeGenerationIndex', 'lifeGenerationEnd')
+  b.ref('lifeGenerationIndex', 'generation')
+  b.intValue('lifeGenerationEnd', 72)
+  b.make('lifeGenerationUpdate', 'AssignmentStatement', {}, { target: 'lifeGenerationTarget', value: 'lifeGenerationNext' })
+  b.ref('lifeGenerationTarget', 'generation')
+  b.binary('lifeGenerationNext', '+', 'lifeGenerationLeft', 'lifeGenerationOne')
+  b.ref('lifeGenerationLeft', 'generation')
+  b.intValue('lifeGenerationOne', 1)
+  b.block('lifeGenerationBody', ['lifeCountsAssign', 'lifeNextAssign', 'lifeGridAssign', 'lifeBlitStatement', 'lifePresentStatement'])
+  b.make('lifeGenerationLoop', 'ForStatement', {}, { initializer: 'lifeGeneration', test: 'lifeGenerationTest', update: 'lifeGenerationUpdate', body: 'lifeGenerationBody' })
+  b.block('runLifeBody', [...seedStatements, 'lifeGenerationLoop'])
+  patterns.exports.push({ nodeId: 'runLife', name: 'runLife' })
 
   b.useModule('lifeApp', 'Life app')
   b.root('lifeMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'lifeMainBody' })
-
-  // Appelle une fonction importée avec ses arguments.
-  function importedCall(prefix, importId, args) {
-    b.make(`${prefix}Statement`, 'ExpressionStatement', {}, { expression: `${prefix}Call` })
-    b.call(`${prefix}Call`, `${prefix}Callee`, args)
-    b.make(`${prefix}Callee`, 'Reference', {}, {}, { target: { kind: 'import', importId } })
-    return `${prefix}Statement`
-  }
-
-  // Prépare une valeur entière et retourne son identifiant.
-  function intLiteral(prefix, value) {
-    b.intValue(prefix, value)
-    return prefix
-  }
-
-  // Référence la variable de boucle `frame`.
-  function frameRef(prefix) {
-    b.ref(prefix, 'frame')
-    return prefix
-  }
-
-  // Construit `frame - 1` pour effacer la génération précédente.
-  function previousFrame(prefix) {
-    b.binary(`${prefix}Value`, '-', `${prefix}Frame`, `${prefix}One`)
-    b.ref(`${prefix}Frame`, 'frame')
-    b.intValue(`${prefix}One`, 1)
-    return `${prefix}Value`
-  }
-
-  const lifeBody = [
-    importedCall('lifeGliderStart', 'gliderImport', [intLiteral('lifeGliderStartFrame', 0), intLiteral('lifeGliderStartAlpha', 255)]),
-    importedCall('lifeBlinkerStart', 'blinkerImport', [intLiteral('lifeBlinkerStartFrame', 0), intLiteral('lifeBlinkerStartAlpha', 255)]),
-    importedCall('lifeBlinkerTwoStart', 'blinkerTwoImport', [intLiteral('lifeBlinkerTwoStartFrame', 0), intLiteral('lifeBlinkerTwoStartAlpha', 255)]),
-    importedCall('lifeStillLifeStart', 'stillLifeImport', []),
-  ]
-  b.make('lifeFrame', 'VariableDeclaration', { name: 'frame', type: intType }, { initializer: 'lifeFrameStart' })
-  intLiteral('lifeFrameStart', 1)
-  b.binary('lifeTest', '<', 'lifeTestFrame', 'lifeTestEnd')
-  frameRef('lifeTestFrame')
-  intLiteral('lifeTestEnd', 7)
-  b.make('lifeUpdate', 'AssignmentStatement', {}, { target: 'lifeUpdateTarget', value: 'lifeUpdateValue' })
-  frameRef('lifeUpdateTarget')
-  b.binary('lifeUpdateValue', '+', 'lifeUpdateFrame', 'lifeUpdateOne')
-  frameRef('lifeUpdateFrame')
-  intLiteral('lifeUpdateOne', 1)
-  const lifeLoopBody = [
-    importedCall('lifeGliderClear', 'gliderImport', [previousFrame('lifeGliderClearPrevious'), intLiteral('lifeGliderClearAlpha', 0)]),
-    importedCall('lifeGliderDraw', 'gliderImport', [frameRef('lifeGliderDrawFrame'), intLiteral('lifeGliderDrawAlpha', 255)]),
-    importedCall('lifeBlinkerClear', 'blinkerImport', [previousFrame('lifeBlinkerClearPrevious'), intLiteral('lifeBlinkerClearAlpha', 0)]),
-    importedCall('lifeBlinkerDraw', 'blinkerImport', [frameRef('lifeBlinkerDrawFrame'), intLiteral('lifeBlinkerDrawAlpha', 255)]),
-    importedCall('lifeBlinkerTwoClear', 'blinkerTwoImport', [previousFrame('lifeBlinkerTwoClearPrevious'), intLiteral('lifeBlinkerTwoClearAlpha', 0)]),
-    importedCall('lifeBlinkerTwoDraw', 'blinkerTwoImport', [frameRef('lifeBlinkerTwoDrawFrame'), intLiteral('lifeBlinkerTwoDrawAlpha', 255)]),
-  ]
-  b.block('lifeLoopBody', lifeLoopBody)
-  b.make('lifeLoop', 'ForStatement', {}, { initializer: 'lifeFrame', test: 'lifeTest', update: 'lifeUpdate', body: 'lifeLoopBody' })
+  b.make('lifeRunStatement', 'ExpressionStatement', {}, { expression: 'lifeRunCall' })
+  b.call('lifeRunCall', 'lifeRunCallee', [])
+  b.make('lifeRunCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'lifeRunImport' } })
   b.print('lifePrint', 'lifeMessage')
   b.make('lifeMessage', 'Literal', { type: { kind: 'primitive', name: 'string' }, value: 'Game of life' })
-  b.block('lifeMainBody', [...lifeBody, 'lifeLoop', 'lifePrint'])
+  b.block('lifeMainBody', ['lifeRunStatement', 'lifePrint'])
   const app = b.project.modules.find((module) => module.id === 'lifeApp')
-  app.imports.push({ id: 'gliderImport', moduleId: 'lifePatterns', nodeId: 'drawGlider', localName: 'drawGlider' }, { id: 'blinkerImport', moduleId: 'lifePatterns', nodeId: 'drawBlinker', localName: 'drawBlinker' }, { id: 'blinkerTwoImport', moduleId: 'lifePatterns', nodeId: 'drawBlinkerTwo', localName: 'drawBlinkerTwo' }, { id: 'stillLifeImport', moduleId: 'lifePatterns', nodeId: 'drawStillLife', localName: 'drawStillLife' })
+  app.imports.push({ id: 'lifeRunImport', moduleId: 'lifePatterns', nodeId: 'runLife', localName: 'runLife' })
 
   const result = workspace(b.project, [
-    note('lifeScreenNote', 'Game of life', 'Écran 90×56. La hauteur arrondit 90/φ ≈ 55,6. Plusieurs still lifes, deux clignotants et un planeur servent de points de départ. $$90 \\times \\lfloor 90/\\varphi \\rfloor = 90 \\times 56$$', 0, 580, 760, 220),
-    note('lifePatternsNote', 'Classic patterns', 'Le planeur avance d’une cellule par génération ; les deux clignotants alternent horizontal et vertical ; les blocs, ruches, baignoire et bateau restent stables.', 820, 460, 520, 220),
-    note('lifeAppNote', 'Seven generations', 'main dessine la génération 0 puis boucle sur les générations 1 à 6. Run rejoue les images en boucle tant que la simulation est active ; la liste d’images reste bornée par le moteur.', 1440, 460, 520, 220),
+    note('lifeScreenNote', 'Game of life', 'Écran 90×56. Les règles de Conway sont calculées par convolution et table de transition. Un pulsar, deux clignotants, un crapaud et quatre still lifes servent de départ. $$90 \\times \\lfloor 90/\\varphi \\rfloor = 90 \\times 56$$', 0, 580, 760, 220),
+    note('lifePatternsNote', 'Real Life rules', 'La grille évolue avec arrayConvolve + arrayLookup, puis screenBlit et screenPresent. Les motifs sont isolés et reviennent à leur état initial après six générations.', 820, 460, 520, 220),
+    note('lifeAppNote', '72 generations', 'runLife sème la grille puis applique 72 générations, soit douze cycles de six. L’UI rejoue les images en aller-retour continu, sans remise à zéro visible.', 1440, 460, 520, 220),
   ])
   const cards = result.presentation.cards
   const screenCard = cards.find((card) => card.id === 'lifeScreen')
@@ -794,7 +718,6 @@ function gameOfLife() {
   if (appCard) appCard.x = 1440
   return result
 }
-
 export const exampleCategories = [
   { id: 'algorithms', labelKey: 'examples.category.algorithms' },
   { id: 'arrays', labelKey: 'examples.category.arrays' },

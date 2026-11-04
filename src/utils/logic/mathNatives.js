@@ -83,6 +83,77 @@ function screenColor(value) {
   return color
 }
 
+// Refuse une grille, un noyau ou une table de transition invalide.
+function gridBounds(message) {
+  const error = new Error(message)
+  error.code = 'SIMULATION_GRID_BOUNDS'
+  throw error
+}
+
+// Applique un noyau 2D à une grille plate ; les cases hors grille valent zéro.
+function convolveGrid(grid, widthValue, heightValue, kernel, kernelWidthValue, kernelHeightValue) {
+  if (!Array.isArray(grid) || !Array.isArray(kernel)) referenceError('The convolution expects a grid and a kernel.')
+  const width = Number(widthValue)
+  const height = Number(heightValue)
+  const kernelWidth = Number(kernelWidthValue)
+  const kernelHeight = Number(kernelHeightValue)
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || grid.length < width * height) gridBounds('The convolution grid is invalid.')
+  if (!Number.isInteger(kernelWidth) || !Number.isInteger(kernelHeight) || kernelWidth < 1 || kernelHeight < 1 || kernel.length < kernelWidth * kernelHeight) gridBounds('The convolution kernel is invalid.')
+  const centerX = Math.floor(kernelWidth / 2)
+  const centerY = Math.floor(kernelHeight / 2)
+  const result = new Array(width * height)
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      let total = 0
+      for (let ky = 0; ky < kernelHeight; ky += 1) {
+        const sourceY = y + ky - centerY
+        if (sourceY < 0 || sourceY >= height) continue
+        for (let kx = 0; kx < kernelWidth; kx += 1) {
+          const sourceX = x + kx - centerX
+          if (sourceX < 0 || sourceX >= width) continue
+          total += Number(grid[sourceY * width + sourceX] ?? 0) * Number(kernel[ky * kernelWidth + kx] ?? 0)
+        }
+      }
+      result[y * width + x] = BigInt(total)
+    }
+  }
+  return result
+}
+
+// Applique une table de 18 entrées indexée par état (0/1) × 9 + nombre de voisins.
+function lookupGrid(counts, grid, table) {
+  if (!Array.isArray(counts) || !Array.isArray(grid) || !Array.isArray(table)) referenceError('The lookup expects three arrays.')
+  if (counts.length !== grid.length || table.length !== 18) gridBounds('The lookup arrays or table have an invalid size.')
+  const result = new Array(grid.length)
+  for (let index = 0; index < grid.length; index += 1) {
+    const state = Number(grid[index])
+    const count = Number(counts[index])
+    if ((state !== 0 && state !== 1) || !Number.isInteger(count) || count < 0 || count > 8) gridBounds('The lookup grid or counts are invalid.')
+    result[index] = BigInt(table[state * 9 + count])
+  }
+  return result
+}
+
+// Écrit une grille de couleurs indexées dans le tampon RGBA d'un écran.
+function blitGrid(pixels, widthValue, heightValue, grid, gridWidthValue, gridHeightValue, palette) {
+  const dimensions = screenBuffer(pixels, widthValue, heightValue)
+  const gridWidth = Number(gridWidthValue)
+  const gridHeight = Number(gridHeightValue)
+  if (!Array.isArray(grid) || gridWidth !== dimensions.width || gridHeight !== dimensions.height || grid.length < gridWidth * gridHeight) gridBounds('The blit grid must match the screen size.')
+  if (!Array.isArray(palette) || palette.length < 4 || palette.length % 4 !== 0) gridBounds('The blit palette is invalid.')
+  const colors = palette.length / 4
+  for (let index = 0; index < grid.length; index += 1) {
+    const colorIndex = Number(grid[index])
+    if (!Number.isInteger(colorIndex) || colorIndex < 0 || colorIndex >= colors) gridBounds('A blit color index is outside the palette.')
+    const source = colorIndex * 4
+    const target = index * 4
+    pixels[target] = BigInt(screenColor(palette[source]))
+    pixels[target + 1] = BigInt(screenColor(palette[source + 1]))
+    pixels[target + 2] = BigInt(screenColor(palette[source + 2]))
+    pixels[target + 3] = BigInt(screenColor(palette[source + 3]))
+  }
+}
+
 // Valide les dimensions et le tampon d'un écran, puis retourne des index sûrs.
 function screenBuffer(pixels, width, height) {
   if (!Array.isArray(pixels)) referenceError('The screen expects a pixel array.')
@@ -210,6 +281,20 @@ export const mathNatives = Object.freeze({
       return [...value].reverse()
     },
   }),
+  arrayConvolve: Object.freeze({
+    id: 'arrayConvolve',
+    group: 'native.arrays',
+    parameters: Object.freeze([arrayParameterType, intType, intType, arrayParameterType, intType, intType]),
+    returnType: intArrayType,
+    run: ([grid, width, height, kernel, kernelWidth, kernelHeight]) => convolveGrid(grid, width, height, kernel, kernelWidth, kernelHeight),
+  }),
+  arrayLookup: Object.freeze({
+    id: 'arrayLookup',
+    group: 'native.arrays',
+    parameters: Object.freeze([arrayParameterType, arrayParameterType, arrayParameterType]),
+    returnType: intArrayType,
+    run: ([counts, grid, table]) => lookupGrid(counts, grid, table),
+  }),
   stringSplit: Object.freeze({
     id: 'stringSplit',
     group: 'native.text',
@@ -286,6 +371,20 @@ export const mathNatives = Object.freeze({
       }
       return nextPixels
     },
+  }),
+  screenBlit: Object.freeze({
+    id: 'screenBlit',
+    group: 'native.screen',
+    parameters: Object.freeze([intArrayType, intType, intType, intArrayType, intType, intType, intArrayType]),
+    returnType: voidType,
+    run: ([pixels, width, height, grid, gridWidth, gridHeight, palette]) => blitGrid(pixels, width, height, grid, gridWidth, gridHeight, palette),
+  }),
+  screenPresent: Object.freeze({
+    id: 'screenPresent',
+    group: 'native.screen',
+    parameters: Object.freeze([]),
+    returnType: voidType,
+    run: () => undefined,
   }),
   arrayLength: Object.freeze({
     id: 'arrayLength',

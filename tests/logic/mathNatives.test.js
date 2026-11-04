@@ -162,6 +162,31 @@ test('opérations aléatoires : double dans [0, 1) et entier dans une plage incl
   assert.equal(simulateProgram(invalid).errorCode, 'SIMULATION_RANDOM_RANGE')
 })
 
+test('opérations de grille : convolution, table de transition et blit écran', () => {
+  const convolve = getMathNative('arrayConvolve')
+  const lookup = getMathNative('arrayLookup')
+  const blit = getMathNative('screenBlit')
+  const present = getMathNative('screenPresent')
+  assert.ok(convolve && lookup && blit && present)
+
+  const counts = convolve.run([[0, 0, 0, 0, 1, 0, 0, 0, 0], 3, 3, [1, 1, 1, 1, 0, 1, 1, 1, 1], 3, 3])
+  assert.deepEqual(counts.map(Number), [1, 1, 1, 1, 0, 1, 1, 1, 1])
+
+  const next = lookup.run([
+    [0, 0, 0, 0, 3, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
+  ])
+  assert.deepEqual(next.map(Number), [0, 0, 0, 0, 1, 0, 0, 0, 0])
+
+  const pixels = new Array(3 * 3 * 4).fill(0n)
+  const palette = [0, 0, 0, 0, 255, 213, 71, 255]
+  blit.run([pixels, 3, 3, [0, 1, 0, 1, 1, 1, 0, 0, 0], 3, 3, palette])
+  assert.deepEqual(pixels.slice(4, 8).map(Number), [255, 213, 71, 255])
+  assert.deepEqual(pixels.slice(0, 4).map(Number), [0, 0, 0, 0])
+  assert.equal(present.run([]), undefined)
+})
+
 test('opérations de texte : longueur, caractère, portion et recherche', () => {
   const length = variableProgram('length', intType, ['text'])
   literal(length, 'text', stringType, 'héllo')

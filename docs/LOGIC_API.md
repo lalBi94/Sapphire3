@@ -191,16 +191,22 @@ Les opérations natives SP3 sont un nœud `MathCall` (nom historique) dont `prop
 | `arrayContains` | `T[]`, `T` | `boolean` |
 | `arrayIndexOf` | `T[]`, `T` | `int` |
 | `arrayReverse` | `T[]` | `T[]` |
+| `arrayConvolve` | `int[]`, `int`, `int`, `int[]`, `int`, `int` | `int[]` |
+| `arrayLookup` | `int[]`, `int[]`, `int[]` | `int[]` |
 | `stringSplit` | `string`, `char` | `string[]` |
 | `stringJoin` | `string[]`, `string` | `string` |
 | `stringIndexOf` | `string`, `string` | `int` |
 | `screenSetPixel` | `int[]`, `int`, `int`, `int`, `int`, `int`, `int`, `int` | `void` |
 | `screenGetPixel` | `int[]`, `int`, `int`, `int`, `int[]` | `void` |
 | `screenResize` | `int[]`, `int`, `int`, `int`, `int` | `int[]` |
+| `screenBlit` | `int[]`, `int`, `int`, `int[]`, `int`, `int`, `int[]` | `void` |
+| `screenPresent` | — | `void` |
 
 `length`, `charAt` et `substring` comptent des **scalaires Unicode**, pas des unités UTF-16 ; l'indice de `substring` est inclusif au début et **exclusif à la fin**. Un indice ou une portion hors bornes arrête l'exécution avec `SIMULATION_STRING_BOUNDS`. `gcd` renvoie toujours une valeur positive, `sign` renvoie `-1`, `0` ou `1`, et `log` est le logarithme népérien. `arrayLength` accepte n'importe quel type d'élément sans l'imposer.
 
 Les opérations `screenSetPixel`, `screenGetPixel` et `screenResize` servent aux modules cachés des cartes **Screen**. Elles manipulent un tampon `int[]` RGBA de `largeur × hauteur × 4`, avec des dimensions bornées à `128 × 128`. `screenSetPixel` écrit quatre composantes entre 0 et 255, `screenGetPixel` écrit la couleur courante dans un tableau de sortie de quatre entiers, et `screenResize` retourne une nouvelle copie redimensionnée. Une dimension ou un indice invalide produit `SIMULATION_SCREEN_BOUNDS`, une composante invalide `SIMULATION_SCREEN_COLOR`. Les modules Screen rendent le programme **non transpilable** (`TRANSPILE_SCREEN_UNSUPPORTED`).
+
+Les opérations de grille sont génériques et ne connaissent pas le jeu de la vie. `arrayConvolve` applique un noyau plat `int[]` à une grille plate `int[]` ; les cases hors grille valent zéro et le résultat est un nouveau tableau. `arrayLookup` applique une table de 18 entrées : l'index vaut `état × 9 + nombre de voisins`, où l'état doit être `0` ou `1` et le nombre de voisins entre `0` et `8`. Une grille, un noyau ou une table invalide produit `SIMULATION_GRID_BOUNDS`. `screenBlit` écrit une grille d'indices de palette dans un tampon écran, la palette contenant quatre composantes RGBA par couleur ; `screenPresent` marque une frontière d'image et force la capture d'une image complète dans `screenFrames`, y compris si elle est identique à la précédente. Les wrappers `SCREEN_SP3_BLIT_<N>` et `SCREEN_SP3_PRESENT_<N>` sont exportés par le module caché d'un écran. `screenBlit` ne capture pas d'image à lui seul : il faut appeler `screenPresent`. Ces deux opérations de grille ne sont pas encore transpilées vers JavaScript/Python ; les projets contenant un écran sont de toute façon non transpilables.
 
 `arraySlice` retourne une **copie** du segment `[start, end)`, sans modifier la source ; des bornes invalides produisent `SIMULATION_ARRAY_BOUNDS`. `arrayConcat` exige deux tableaux du même type d'élément et retourne un nouveau tableau ; `arrayReverse` retourne également un nouveau tableau. `arrayContains` et `arrayIndexOf` comparent les éléments sans conversion (premier index, `-1` si absent). `stringSplit` découpe sur un `char` et **conserve les segments vides** ; `stringJoin` ne convertit aucun élément ; `stringIndexOf` retourne un index en scalaires Unicode ou `-1`. Aucune de ces opérations ne modifie son tableau d'entrée.
 

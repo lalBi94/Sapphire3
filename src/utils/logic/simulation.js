@@ -90,10 +90,10 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   }
 
   // Conserve une image d'écran après une écriture native, sans dupliquer un état identique.
-  function captureScreens() {
+  function captureScreens(force = false) {
     if (!screenReader || screenFrames.length >= maximumScreenFrames) return
     const current = screenReader(global.values)
-    if (sameScreenStates(lastScreens, current)) return
+    if (!force && sameScreenStates(lastScreens, current)) return
     lastScreens = current
     screenFrames.push(current)
   }
@@ -221,7 +221,8 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       if (!definition) throw simulationError('SIMULATION_REFERENCE', 'The math operation cannot be resolved.')
       const args = (node.children?.arguments ?? []).map((id) => valueOf(nodes.get(id), environment))
       const value = definition.run(args)
-      if (definition.id.startsWith('screen')) captureScreens()
+      if (definition.id === 'screenPresent') captureScreens(true)
+      else if (!['screenBlit', 'screenResize'].includes(definition.id) && definition.id.startsWith('screen')) captureScreens(false)
       return value
     }
     if (node.kind === 'ArrayLiteral') {
