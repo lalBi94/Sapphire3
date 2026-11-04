@@ -314,10 +314,11 @@ export function analyzeTypes(semantic, projectId) {
       report(codes.typeMismatch, 'Nombre d’arguments incompatible avec l’opération mathématique.', node, 'children.arguments')
       return null
     }
+    const argumentTypes = args.map((argument) => resolve(argument?.sourceId))
     let valid = true
     args.forEach((argument, index) => {
       const expected = definition.parameters[index]
-      const actual = resolve(argument?.sourceId)
+      const actual = argumentTypes[index]
       // Un paramètre tableau générique accepte n'importe quel tableau sans imposer son élément.
       if (expected?.kind === 'array' && !expected.elementType) {
         if (!isArrayType(actual)) {
@@ -326,9 +327,24 @@ export function analyzeTypes(semantic, projectId) {
         }
         return
       }
+      // Le second paramètre doit correspondre exactement au type d'élément du tableau reçu.
+      if (expected?.kind === 'arrayElement') {
+        const array = argumentTypes[expected.arrayIndex]
+        if (isArrayType(array) && (!actual || !sameType(array.elementType, actual))) {
+          report(codes.typeMismatch, 'L’élément doit avoir le type d’élément du tableau.', node, `children.arguments[${index}]`)
+          valid = false
+        }
+        return
+      }
       if (!expect(expected, actual, node, `children.arguments[${index}]`)) valid = false
     })
-    return valid ? definition.returnType : null
+    const checkIndex = typeof definition.check === 'function' ? definition.check(argumentTypes) : null
+    if (typeof checkIndex === 'number') {
+      report(codes.typeMismatch, 'Les tableaux doivent avoir le même type d’élément.', node, `children.arguments[${checkIndex}]`)
+      valid = false
+    }
+    const returnType = typeof definition.returnType === 'function' ? definition.returnType(argumentTypes) : definition.returnType
+    return valid ? returnType : null
   }
 
   // Résout le type d'élément annoté d'un tableau ; seuls les primitifs non void sont admis.

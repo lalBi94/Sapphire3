@@ -35,6 +35,14 @@ const nativePython = Object.freeze({
   substring: ([value, start, end]) => `sapphireSubstring(${value}, ${start}, ${end})`,
   contains: ([value, search]) => `(${search} in ${value})`,
   arrayLength: ([value]) => `len(${value})`,
+  arraySlice: ([value, start, end]) => `sapphireArraySlice(${value}, ${start}, ${end})`,
+  arrayConcat: ([left, right]) => `(${left}) + (${right})`,
+  arrayContains: ([value, search]) => `(${search} in ${value})`,
+  arrayIndexOf: ([value, search]) => `sapphireArrayIndexOf(${value}, ${search})`,
+  arrayReverse: ([value]) => `(${value})[::-1]`,
+  stringSplit: ([value, separator]) => `(${value}).split(${separator})`,
+  stringJoin: ([values, separator]) => `(${separator}).join(${values})`,
+  stringIndexOf: ([value, search]) => `(${value}).find(${search})`,
 })
 
 // Émet Python 3 depuis l'AST typé commun, sans réexécuter ni réinterpréter la source.

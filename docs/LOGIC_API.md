@@ -184,8 +184,18 @@ Les opérations natives SP3 sont un nœud `MathCall` (nom historique) dont `prop
 | `substring` | `string`, `int`, `int` | `string` |
 | `contains` | `string`, `string` | `boolean` |
 | `arrayLength` | tout tableau `T[]` | `int` |
+| `arraySlice` | `T[]`, `int`, `int` | `T[]` |
+| `arrayConcat` | `T[]`, `T[]` (même élément) | `T[]` |
+| `arrayContains` | `T[]`, `T` | `boolean` |
+| `arrayIndexOf` | `T[]`, `T` | `int` |
+| `arrayReverse` | `T[]` | `T[]` |
+| `stringSplit` | `string`, `char` | `string[]` |
+| `stringJoin` | `string[]`, `string` | `string` |
+| `stringIndexOf` | `string`, `string` | `int` |
 
 `length`, `charAt` et `substring` comptent des **scalaires Unicode**, pas des unités UTF-16 ; l'indice de `substring` est inclusif au début et **exclusif à la fin**. Un indice ou une portion hors bornes arrête l'exécution avec `SIMULATION_STRING_BOUNDS`. `gcd` renvoie toujours une valeur positive, `sign` renvoie `-1`, `0` ou `1`, et `log` est le logarithme népérien. `arrayLength` accepte n'importe quel type d'élément sans l'imposer.
+
+`arraySlice` retourne une **copie** du segment `[start, end)`, sans modifier la source ; des bornes invalides produisent `SIMULATION_ARRAY_BOUNDS`. `arrayConcat` exige deux tableaux du même type d'élément et retourne un nouveau tableau ; `arrayReverse` retourne également un nouveau tableau. `arrayContains` et `arrayIndexOf` comparent les éléments sans conversion (premier index, `-1` si absent). `stringSplit` découpe sur un `char` et **conserve les segments vides** ; `stringJoin` ne convertit aucun élément ; `stringIndexOf` retourne un index en scalaires Unicode ou `-1`. Aucune de ces opérations ne modifie son tableau d'entrée.
 
 Un nom inconnu est diagnostiqué `NODE_INCOMPLETE` ; une arité ou un type d'argument incompatible produit `TYPE_MISMATCH`. La simulation locale exécute ces opérations de façon déterministe ; un résultat non fini (NaN ou infini, par exemple `sqrt(-1)` ou `log(0)`) arrête l'exécution avec `SIMULATION_MATH_DOMAIN`, le modèle numérique n'admettant aucune valeur non finie.
 
@@ -200,6 +210,11 @@ La **transpilation JavaScript/Python** traduit désormais `MathCall` en utilisan
 | `length`, `charAt`, `substring` | comptage en scalaires Unicode, helpers de bornes | `len`, helpers de bornes en scalaires Unicode |
 | `contains` | `String.prototype.includes` | opérateur `in` |
 | `arrayLength` | `BigInt(array.length)` | `len(array)` |
+| `arraySlice`, `arrayReverse` | copie et helpers de bornes | copie et helpers de bornes |
+| `arrayConcat` | nouveau tableau par étalement | nouvelle liste par concaténation |
+| `arrayContains`, `arrayIndexOf` | `includes` et helper d’index | `in` et helper d’index |
+| `stringSplit`, `stringJoin` | `split` et `join` | `split` et `join` |
+| `stringIndexOf` | helper d’index en scalaires Unicode | `str.find` |
 
 Les bornes de texte produisent `SIMULATION_STRING_BOUNDS` dans les deux cibles, comme dans la simulation. Les **pointeurs** restent refusés (`TRANSPILE_EXPRESSION_UNSUPPORTED`).
 

@@ -1,4 +1,4 @@
-import { primitiveType } from './primitives.js'
+import { primitiveType, arrayType, sameType, isArrayType } from './primitives.js'
 
 const intType = primitiveType('int')
 const doubleType = primitiveType('double')
@@ -7,6 +7,9 @@ const charType = primitiveType('char')
 const booleanType = primitiveType('boolean')
 // Paramètre générique `T[]` : n'importe quel tableau, sans imposer le type des éléments.
 const arrayParameterType = Object.freeze({ kind: 'array', elementType: null })
+// Paramètre d'élément lié au premier tableau : `T` doit être le type d'élément de `T[]`.
+const arrayElementParameterType = Object.freeze({ kind: 'arrayElement', arrayIndex: 0 })
+const stringArrayType = Object.freeze({ kind: 'array', elementType: stringType })
 
 // Refuse un résultat non fini : le modèle numérique strict n'admet ni NaN ni infini.
 function finite(value) {
@@ -21,6 +24,48 @@ function textBounds(message) {
   const error = new Error(message)
   error.code = 'SIMULATION_STRING_BOUNDS'
   throw error
+}
+
+// Refuse une opération native qui attend un tableau avec un code stable.
+function referenceError(message) {
+  const error = new Error(message)
+  error.code = 'SIMULATION_REFERENCE'
+  throw error
+}
+
+// Refuse une adresse ou une portion de tableau hors bornes avec un code stable.
+function arrayBounds(message) {
+  const error = new Error(message)
+  error.code = 'SIMULATION_ARRAY_BOUNDS'
+  throw error
+}
+
+// Convertit un entier source en index sûr après contrôle du domaine.
+function arrayIndexValue(value, maximum) {
+  const index = Number(value)
+  if (!Number.isInteger(index) || index < 0 || index > maximum) arrayBounds('The array slice is outside its bounds.')
+  return index
+}
+
+// Retourne une copie du segment [start, end), sans modifier la source.
+function sliceArray(array, start, end) {
+  if (!Array.isArray(array)) referenceError('The native operation expects an array.')
+  const from = arrayIndexValue(start, array.length)
+  const to = arrayIndexValue(end, array.length)
+  if (from > to) arrayBounds('The array slice is outside its bounds.')
+  return array.slice(from, to)
+}
+
+// Retourne l'index du premier élément égal, ou -1 sans lever d'erreur.
+function indexOfElement(array, value) {
+  if (!Array.isArray(array)) referenceError('The native operation expects an array.')
+  return BigInt(array.indexOf(value))
+}
+
+// Compte les scalaires Unicode avant une position UTF-16.
+function unicodeIndexOf(value, search) {
+  const index = value.indexOf(search)
+  return index < 0 ? -1n : BigInt([...value.slice(0, index)].length)
 }
 
 // Calcule le plus grand commun diviseur positif de deux entiers, zéro compris.
@@ -70,6 +115,78 @@ export const mathNatives = Object.freeze({
     },
   }),
   contains: Object.freeze({ id: 'contains', group: 'native.text', parameters: Object.freeze([stringType, stringType]), returnType: booleanType, run: ([value, search]) => value.includes(search) }),
+  arraySlice: Object.freeze({
+    id: 'arraySlice',
+    group: 'native.arrays',
+    parameters: Object.freeze([arrayParameterType, intType, intType]),
+    returnType: ([array]) => array,
+    run: ([value, start, end]) => sliceArray(value, start, end),
+  }),
+  arrayConcat: Object.freeze({
+    id: 'arrayConcat',
+    group: 'native.arrays',
+    parameters: Object.freeze([arrayParameterType, arrayParameterType]),
+    returnType: ([array]) => array,
+    check: ([left, right]) => isArrayType(left) && isArrayType(right) && !sameType(left, right) ? 1 : null,
+    run: ([left, right]) => {
+      if (!Array.isArray(left) || !Array.isArray(right)) referenceError('The native operation expects two arrays.')
+      return [...left, ...right]
+    },
+  }),
+  arrayContains: Object.freeze({
+    id: 'arrayContains',
+    group: 'native.arrays',
+    parameters: Object.freeze([arrayParameterType, arrayElementParameterType]),
+    returnType: booleanType,
+    run: ([value, search]) => {
+      if (!Array.isArray(value)) referenceError('The native operation expects an array.')
+      return value.includes(search)
+    },
+  }),
+  arrayIndexOf: Object.freeze({
+    id: 'arrayIndexOf',
+    group: 'native.arrays',
+    parameters: Object.freeze([arrayParameterType, arrayElementParameterType]),
+    returnType: intType,
+    run: ([value, search]) => indexOfElement(value, search),
+  }),
+  arrayReverse: Object.freeze({
+    id: 'arrayReverse',
+    group: 'native.arrays',
+    parameters: Object.freeze([arrayParameterType]),
+    returnType: ([array]) => array,
+    run: ([value]) => {
+      if (!Array.isArray(value)) referenceError('The native operation expects an array.')
+      return [...value].reverse()
+    },
+  }),
+  stringSplit: Object.freeze({
+    id: 'stringSplit',
+    group: 'native.text',
+    parameters: Object.freeze([stringType, charType]),
+    returnType: arrayType(stringType),
+    run: ([value, separator]) => {
+      if (typeof separator !== 'string') textBounds('The native operation expects a character separator.')
+      return value.split(separator)
+    },
+  }),
+  stringJoin: Object.freeze({
+    id: 'stringJoin',
+    group: 'native.text',
+    parameters: Object.freeze([stringArrayType, stringType]),
+    returnType: stringType,
+    run: ([values, separator]) => {
+      if (!Array.isArray(values) || values.some((value) => typeof value !== 'string')) referenceError('The native operation expects an array of strings.')
+      return values.join(separator)
+    },
+  }),
+  stringIndexOf: Object.freeze({
+    id: 'stringIndexOf',
+    group: 'native.text',
+    parameters: Object.freeze([stringType, stringType]),
+    returnType: intType,
+    run: ([value, search]) => unicodeIndexOf(value, search),
+  }),
   arrayLength: Object.freeze({
     id: 'arrayLength',
     group: 'native.arrays',

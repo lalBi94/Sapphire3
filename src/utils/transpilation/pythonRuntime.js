@@ -6,6 +6,7 @@ export const pythonRuntimeNames = [
   'sapphireUninitialized', 'sapphireRead', 'sapphireCheck', 'sapphireBinary',
   'sapphireUnary', 'sapphireCast', 'sapphireFormat', 'sapphireQuotient',
   'sapphireArray', 'sapphireElement', 'sapphireWrite', 'sapphireForEach',
+  'sapphireArraySlice', 'sapphireArrayIndexOf',
   'sapphireFinite', 'sapphireClamp', 'sapphireSign', 'sapphireLerp',
   'sapphireCharAt', 'sapphireSubstring', 'sapphireLog', 'sapphireSqrt',
   'sapphirePow', 'sapphireFloor', 'sapphireCeil', 'sapphireRound',
@@ -133,6 +134,21 @@ def sapphireSubstring(value, start, end):
     if start < 0 or start > end or end > len(value):
         raise RuntimeError("SIMULATION_STRING_BOUNDS")
     return value[start:end]
+
+def sapphireArraySlice(value, start, end):
+    if not isinstance(value, list):
+        raise RuntimeError("SIMULATION_REFERENCE")
+    if start < 0 or start > end or end > len(value):
+        raise RuntimeError("SIMULATION_ARRAY_BOUNDS")
+    return value[start:end]
+
+def sapphireArrayIndexOf(value, search):
+    if not isinstance(value, list):
+        raise RuntimeError("SIMULATION_REFERENCE")
+    try:
+        return value.index(search)
+    except ValueError:
+        return -1
 
 # Logarithmes, racines et puissances ramenés au code de domaine Sapphire.
 def sapphireLog(value):

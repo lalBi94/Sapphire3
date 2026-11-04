@@ -42,11 +42,19 @@ const nativeJavaScript = Object.freeze({
   substring: ([value, start, end]) => `sapphireSubstring(${value}, ${start}, ${end})`,
   contains: ([value, search]) => `(${value}).includes(${search})`,
   arrayLength: ([value]) => `BigInt((${value}).length)`,
+  arraySlice: ([value, start, end]) => `sapphireArraySlice(${value}, ${start}, ${end})`,
+  arrayConcat: ([left, right]) => `[...(${left}), ...(${right})]`,
+  arrayContains: ([value, search]) => `(${value}).includes(${search})`,
+  arrayIndexOf: ([value, search]) => `sapphireArrayIndexOf(${value}, ${search})`,
+  arrayReverse: ([value]) => `[...(${value})].reverse()`,
+  stringSplit: ([value, separator]) => `(${value}).split(${separator})`,
+  stringJoin: ([values, separator]) => `(${values}).join(${separator})`,
+  stringIndexOf: ([value, search]) => `sapphireStringIndexOf(${value}, ${search})`,
 })
 
 // Produit le code JavaScript d'un programme Sapphire déjà analysé.
 export function generateJavaScript(analysis, { selection = null } = {}) {
-  const context = createGenerationContext(analysis, { selection, reservedWords, allowDollar: true, runtimeNames: ['sapphireNumeric', 'sapphireChecked', 'sapphireRead', 'sapphireUninitialized', 'sapphireArray', 'sapphireElement', 'sapphireWrite', 'sapphireForEach', 'sapphireFinite', 'sapphireIntegerAbs', 'sapphireIntegerMin', 'sapphireIntegerMax', 'sapphireClamp', 'sapphireSign', 'sapphireGcd', 'sapphireLerp', 'sapphireCharAt', 'sapphireSubstring', 'console', 'Math', 'Number', 'BigInt', 'Object', 'Error', 'Array'] })
+  const context = createGenerationContext(analysis, { selection, reservedWords, allowDollar: true, runtimeNames: ['sapphireNumeric', 'sapphireChecked', 'sapphireRead', 'sapphireUninitialized', 'sapphireArray', 'sapphireElement', 'sapphireWrite', 'sapphireForEach', 'sapphireFinite', 'sapphireIntegerAbs', 'sapphireIntegerMin', 'sapphireIntegerMax', 'sapphireClamp', 'sapphireSign', 'sapphireGcd', 'sapphireLerp', 'sapphireCharAt', 'sapphireSubstring', 'sapphireArraySlice', 'sapphireArrayIndexOf', 'sapphireStringIndexOf', 'console', 'Math', 'Number', 'BigInt', 'Object', 'Error', 'Array'] })
   const { ast, diagnostics, typeByNode, generatedNames, reserveDeclaration, referenceName, entryName } = context
 
   // Génère une expression en conservant la structure et les opérateurs de l'AST.
@@ -215,6 +223,9 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
     'function sapphireLerp(start, end, ratio) { return sapphireFinite(start + (end - start) * ratio); }',
     'function sapphireCharAt(value, index) { const characters = Array.from(value); const position = Number(index); if (!Number.isInteger(position) || position < 0 || position >= characters.length) throw new Error("SIMULATION_STRING_BOUNDS"); return characters[position]; }',
     'function sapphireSubstring(value, start, end) { const characters = Array.from(value); const from = Number(start); const to = Number(end); if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || from > to || to > characters.length) throw new Error("SIMULATION_STRING_BOUNDS"); return characters.slice(from, to).join(""); }',
+    'function sapphireArraySlice(value, start, end) { if (!Array.isArray(value)) throw new Error("SIMULATION_REFERENCE"); const from = Number(start); const to = Number(end); if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || from > to || to > value.length) throw new Error("SIMULATION_ARRAY_BOUNDS"); return value.slice(from, to); }',
+    'function sapphireArrayIndexOf(value, search) { if (!Array.isArray(value)) throw new Error("SIMULATION_REFERENCE"); return BigInt(value.indexOf(search)); }',
+    'function sapphireStringIndexOf(value, search) { const index = value.indexOf(search); return index < 0 ? -1n : BigInt(Array.from(value.slice(0, index)).length); }',
     ...globalDeclarations,
     ...functions,
     '',
