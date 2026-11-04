@@ -2,7 +2,7 @@ import { primitiveDefinitions } from '../logic/primitives.js'
 import { diagnosticCodes } from '../logic/diagnostics.js'
 
 export const pythonRuntimeNames = [
-  '_sapphireMath', '_sapphireStruct', '_sapphireTypes', '_sapphireCodes',
+  '_sapphireMath', '_sapphireStruct', '_sapphireRandom', '_sapphireTypes', '_sapphireCodes',
   'sapphireUninitialized', 'sapphireRead', 'sapphireCheck', 'sapphireBinary',
   'sapphireUnary', 'sapphireCast', 'sapphireFormat', 'sapphireQuotient',
   'sapphireArray', 'sapphireElement', 'sapphireWrite', 'sapphireForEach',
@@ -19,6 +19,7 @@ export function pythonRuntime() {
   return `# Contrôles Sapphire : bornes et codes issus du moteur commun.
 import math as _sapphireMath
 import struct as _sapphireStruct
+import random as _sapphireRandom
 
 _sapphireTypes = ${JSON.stringify(types)}
 _sapphireCodes = ${JSON.stringify(diagnosticCodes)}

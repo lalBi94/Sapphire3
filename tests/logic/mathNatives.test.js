@@ -61,6 +61,10 @@ test('opérations mathématiques : le registre est cohérent et expose les fonct
   }
   assert.equal(getMathNative('unknown'), null)
   assert.equal(getNodeSchema('MathCall').group, 'native', 'le nœud reste une opération native')
+  assert.equal(getMathNative('randomDouble').parameters.length, 0)
+  assert.deepEqual(getMathNative('randomDouble').returnType, doubleType)
+  assert.deepEqual(getMathNative('randomInt').parameters, [intType, intType])
+  assert.deepEqual(getMathNative('randomInt').returnType, intType)
 })
 
 test('opérations mathématiques : un appel valide est typé, un nom ou une arité invalide est refusé', () => {
@@ -135,6 +139,27 @@ test('opérations natives : le registre expose les maths, le texte et les tablea
   assert.equal(getMathNative('arrayLength').group, 'native.arrays')
   assert.equal(getMathNative('arrayLength').parameters[0].kind, 'array')
   assert.equal(getMathNative('arrayLength').parameters[0].elementType, null, 'le tableau reste générique')
+})
+
+test('opérations aléatoires : double dans [0, 1) et entier dans une plage inclusive', () => {
+  const doubleSource = variableProgram('randomDouble', doubleType, [])
+  const doubleResult = simulateProgram(doubleSource)
+  assert.equal(doubleResult.ok, true, doubleResult.errorCode)
+  const doubleValue = Number(doubleResult.variables.find((entry) => entry.name === 'r').value)
+  assert.ok(doubleValue >= 0 && doubleValue < 1, `double hors plage : ${doubleValue}`)
+
+  const intSource = variableProgram('randomInt', intType, ['min', 'max'])
+  literal(intSource, 'min', intType, '1')
+  literal(intSource, 'max', intType, '6')
+  const intResult = simulateProgram(intSource)
+  assert.equal(intResult.ok, true, intResult.errorCode)
+  const intValue = Number(intResult.variables.find((entry) => entry.name === 'r').value)
+  assert.ok(Number.isInteger(intValue) && intValue >= 1 && intValue <= 6, `entier hors plage : ${intValue}`)
+
+  const invalid = variableProgram('randomInt', intType, ['min', 'max'])
+  literal(invalid, 'min', intType, '5')
+  literal(invalid, 'max', intType, '1')
+  assert.equal(simulateProgram(invalid).errorCode, 'SIMULATION_RANDOM_RANGE')
 })
 
 test('opérations de texte : longueur, caractère, portion et recherche', () => {

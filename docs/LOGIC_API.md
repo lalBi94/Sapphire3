@@ -179,6 +179,8 @@ Les opérations natives SP3 sont un nœud `MathCall` (nom historique) dont `prop
 | `log` | `double` | `double` |
 | `pow` | `double`, `double` | `double` |
 | `sqrt`, `sin`, `cos`, `tan`, `floor`, `ceil`, `round` | `double` | `double` |
+| `randomDouble` | — | `double` |
+| `randomInt` | `int`, `int` | `int` |
 | `length` | `string` | `int` |
 | `charAt` | `string`, `int` | `char` |
 | `substring` | `string`, `int`, `int` | `string` |
@@ -202,7 +204,7 @@ Les opérations `screenSetPixel`, `screenGetPixel` et `screenResize` servent aux
 
 `arraySlice` retourne une **copie** du segment `[start, end)`, sans modifier la source ; des bornes invalides produisent `SIMULATION_ARRAY_BOUNDS`. `arrayConcat` exige deux tableaux du même type d'élément et retourne un nouveau tableau ; `arrayReverse` retourne également un nouveau tableau. `arrayContains` et `arrayIndexOf` comparent les éléments sans conversion (premier index, `-1` si absent). `stringSplit` découpe sur un `char` et **conserve les segments vides** ; `stringJoin` ne convertit aucun élément ; `stringIndexOf` retourne un index en scalaires Unicode ou `-1`. Aucune de ces opérations ne modifie son tableau d'entrée.
 
-Un nom inconnu est diagnostiqué `NODE_INCOMPLETE` ; une arité ou un type d'argument incompatible produit `TYPE_MISMATCH`. La simulation locale exécute ces opérations de façon déterministe ; un résultat non fini (NaN ou infini, par exemple `sqrt(-1)` ou `log(0)`) arrête l'exécution avec `SIMULATION_MATH_DOMAIN`, le modèle numérique n'admettant aucune valeur non finie.
+Un nom inconnu est diagnostiqué `NODE_INCOMPLETE` ; une arité ou un type d'argument incompatible produit `TYPE_MISMATCH`. La simulation locale exécute ces opérations de façon déterministe, **sauf `randomDouble` et `randomInt`** : `randomDouble` retourne un double dans `[0, 1)`, `randomInt(min, max)` retourne un entier inclusif dans `[min, max]`, et une plage inversée produit `SIMULATION_RANDOM_RANGE`. Ces deux opérations sont les seules sources d'aléa et changent d'une exécution à l'autre ; la transpilation utilise `Math.random`/`sapphireRandomInt` en JavaScript et `random.random`/`random.randint` en Python. Un résultat non fini (NaN ou infini, par exemple `sqrt(-1)` ou `log(0)`) arrête l'exécution avec `SIMULATION_MATH_DOMAIN`, le modèle numérique n'admettant aucune valeur non finie.
 
 La **transpilation JavaScript/Python** traduit désormais `MathCall` en utilisant l'équivalent natif le plus direct, avec de petits helpers lorsque le langage cible ne préserve pas seul la sémantique SP3 :
 
@@ -212,6 +214,7 @@ La **transpilation JavaScript/Python** traduit désormais `MathCall` en utilisan
 | `pow`, `sqrt`, `log`, trigonométrie | `Math.*` avec contrôle de résultat fini | `math.*` avec conversion des erreurs de domaine en `SIMULATION_MATH_DOMAIN` |
 | `lerp` | helper avec contrôle de résultat fini | helper avec contrôle de résultat fini |
 | `floor`, `ceil`, `round` | `Math.floor`/`ceil`/`round` | helpers qui conservent le type double et l'arrondi de `Math.round` |
+| `randomDouble`, `randomInt` | `Math.random` et helper `sapphireRandomInt` | `random.random` et `random.randint` |
 | `length`, `charAt`, `substring` | comptage en scalaires Unicode, helpers de bornes | `len`, helpers de bornes en scalaires Unicode |
 | `contains` | `String.prototype.includes` | opérateur `in` |
 | `arrayLength` | `BigInt(array.length)` | `len(array)` |
@@ -257,7 +260,7 @@ Les types des expressions non constantes sont entièrement statiques, mais leurs
 
 ### Simulation locale
 
-`simulateProgram(project, {maxSteps?})` est une exécution locale déterministe, séparée de React, du DOM, de Neutralinojs et de tout accès réseau. Elle exige une analyse sans diagnostic bloquant et une fonction marquée `properties.entryPoint: true` sans paramètre d'entrée. La première tranche prend en charge les littéraux, références (y compris de fonction), opérations, conversions transparentes, appels (fonction directe ou via une variable de type fonction), opérations mathématiques natives, déclarations, affectations, `if`, `while`, `for`, `ForEachStatement`, `return`, `break`, `continue`, expressions et `PrintStatement`.
+`simulateProgram(project, {maxSteps?})` est une exécution locale, séparée de React, du DOM, de Neutralinojs et de tout accès réseau. Elle est déterministe, **sauf les deux opérations aléatoires explicites** qui utilisent le générateur du moteur. Elle exige une analyse sans diagnostic bloquant et une fonction marquée `properties.entryPoint: true` sans paramètre d'entrée. La première tranche prend en charge les littéraux, références (y compris de fonction), opérations, conversions transparentes, appels (fonction directe ou via une variable de type fonction), opérations mathématiques natives, déclarations, affectations, `if`, `while`, `for`, `ForEachStatement`, `return`, `break`, `continue`, expressions et `PrintStatement`.
 
 **ForEach.** `ForEachStatement` consomme un pas de budget pour l'instruction puis un par élément visité, évalue son tableau, exige un tableau puis une fonction de rappel, et appelle le rappel une fois par élément. Le tableau est **copié au démarrage** de la boucle (`[...array]` en JavaScript, `list(array)` en Python) : si le rappel modifie le tableau d'origine, la séquence d'éléments déjà figée n'est pas affectée. Aucune valeur implicite n'est ajoutée aux cases jamais remplies : un rappel qui lit une telle case échoue comme une lecture de variable sans initialiseur. Un déréférencement (`*p`) peut aussi servir de cible d'affectation et modifier l'emplacement pointé (voir « Écriture à travers un pointeur »).
 
@@ -389,7 +392,7 @@ Le hook de document alloue les identifiants une seule fois, puis le reducer rejo
 
 L'analyse est conservatrice : pas de preuve générale sur les valeurs des variables, les comparaisons numériques, les dépendances globales ou la terminaison des appels. Une condition inconnue garde tous les chemins possibles. **Non parcouru lors d'une simulation n'est pas synonyme d'inatteignable.** Les résultats sont informatifs, sans nouveaux diagnostics bloquants ni suppression de source. Si l'analyse source est bloquante, `ok` vaut `false` et les listes sont vides.
 
-`createDebugSession(project, {maxSteps?})` prépare une trace déterministe et bornée avec le même interpréteur que `simulateProgram`. Il ne s'agit pas d'un deuxième moteur ni d'une exécution native suspendue : les états sont calculés avant la navigation, puis l'interface ne montre que l'arrêt courant. Le résultat contient `project`, `frames`, `cursor`, `history`, `reachability`, un éventuel `errorCode` empêchant le démarrage et le résultat technique `result` de la simulation. Un échec runtime reste dans le dernier état enregistré et n'est affiché qu'une fois cet arrêt atteint.
+`createDebugSession(project, {maxSteps?})` prépare une trace calculée une fois et bornée avec le même interpréteur que `simulateProgram` ; une nouvelle exécution peut tirer d'autres valeurs aléatoires. Il ne s'agit pas d'un deuxième moteur ni d'une exécution native suspendue : les états sont calculés avant la navigation, puis l'interface ne montre que l'arrêt courant. Le résultat contient `project`, `frames`, `cursor`, `history`, `reachability`, un éventuel `errorCode` empêchant le démarrage et le résultat technique `result` de la simulation. Un échec runtime reste dans le dernier état enregistré et n'est affiché qu'une fois cet arrêt atteint.
 
 Une variable capturée peut porter un champ `pointer` stable : `{kind:'reference', nodeId, instanceId, label, constant}` pour `&variable`, ou `{kind:'element', arrayNodeId, arrayInstanceId, index, length, label, constant}` pour `&tableau[i]`. `instanceId` et `arrayInstanceId` valent `null` pour une cible globale ; aucune référence JavaScript mutable n'est conservée. `buildPointerGraph(index, frame)` dans `src/utils/memorySpace.js` transforme ces champs en portées actives, variables, cases de tableaux, adresses illustratives et arêtes pointeur → cible pour la fenêtre de debug ; les cibles hors des portées actives restent non résolues.
 

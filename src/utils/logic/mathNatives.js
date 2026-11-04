@@ -118,6 +118,18 @@ function greatestCommonDivisor(left, right) {
   return a
 }
 
+// Tire un entier inclusif dans [min, max] et refuse une plage inversée.
+function randomInteger(min, max) {
+  const lower = Number(min)
+  const upper = Number(max)
+  if (!Number.isInteger(lower) || !Number.isInteger(upper) || lower > upper) {
+    const error = new Error('A random integer range must be ordered.')
+    error.code = 'SIMULATION_RANDOM_RANGE'
+    throw error
+  }
+  return BigInt(lower + Math.floor(Math.random() * (upper - lower + 1)))
+}
+
 // Registre pur des opérations natives SP3, seul point d'extension de cette famille.
 // Chaque entrée fixe son groupe de menu, les types de ses paramètres et son type de retour.
 export const mathNatives = Object.freeze({
@@ -300,6 +312,8 @@ export const mathNatives = Object.freeze({
   floor: Object.freeze({ id: 'floor', group: 'native.math', parameters: Object.freeze([doubleType]), returnType: doubleType, run: ([value]) => finite(Math.floor(value)) }),
   ceil: Object.freeze({ id: 'ceil', group: 'native.math', parameters: Object.freeze([doubleType]), returnType: doubleType, run: ([value]) => finite(Math.ceil(value)) }),
   round: Object.freeze({ id: 'round', group: 'native.math', parameters: Object.freeze([doubleType]), returnType: doubleType, run: ([value]) => finite(Math.round(value)) }),
+  randomDouble: Object.freeze({ id: 'randomDouble', group: 'native.math', parameters: Object.freeze([]), returnType: doubleType, run: () => Math.random() }),
+  randomInt: Object.freeze({ id: 'randomInt', group: 'native.math', parameters: Object.freeze([intType, intType]), returnType: intType, run: ([min, max]) => randomInteger(min, max) }),
 })
 
 // Retourne une opération native par son identifiant, ou null si elle est inconnue.
