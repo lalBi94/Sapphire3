@@ -41,16 +41,19 @@ test('bibliothèque d’exemples : chaque projet est valide, analysable et s’e
   }
 })
 
-test('exemple écrans pixel : deux logos qui rebondissent et une image par génération', () => {
+test('exemple écrans pixel : deux logos qui rebondissent en boucle sans raccord', () => {
   const workspace = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'pixelScreens').build()))
   const screens = workspace.presentation.cards.filter((card) => card.type === 'screen')
   assert.equal(screens.length, 2)
-  assert.equal(screens[0].screenWidth, 30)
+  assert.equal(screens[0].screenWidth, 34)
   assert.equal(screens[0].screenHeight, 18)
   const result = simulateProgram(workspace.project)
   assert.equal(result.ok, true, result.errorCode)
   // Une image par génération, grâce à `screenPresent` qui remplace la capture par écriture.
-  assert.equal(result.screenFrames.length, 20)
+  assert.equal(result.screenFrames.length, 19)
+  // La dernière image referme la boucle : la période détectée vaut 18 pour les deux écrans.
+  assert.equal(findFrameCycle(result.screenFrames, 'screenOne'), 18)
+  assert.equal(findFrameCycle(result.screenFrames, 'screenTwo'), 18)
   const position = (frame, id) => {
     const screen = frame[id]
     for (let index = 0; index < screen.pixels.length; index += 4) {
@@ -58,25 +61,23 @@ test('exemple écrans pixel : deux logos qui rebondissent et une image par gén�
     }
     return null
   }
-  const first = position(result.screenFrames[0], 'screenOne')
-  const middle = position(result.screenFrames[10], 'screenOne')
-  assert.ok(first && middle)
-  assert.notDeepEqual(first, middle)
+  assert.notDeepEqual(position(result.screenFrames[0], 'screenOne'), position(result.screenFrames[2], 'screenOne'))
+  assert.deepEqual(position(result.screenFrames[0], 'screenOne'), position(result.screenFrames[18], 'screenOne'))
   assert.equal(result.screenFrames[0].screenTwo.pixels.filter((value, index) => index % 4 === 3 && value > 0).length, 4)
   assert.equal(transpileProgram(workspace.project).code, 'TRANSPILE_SCREEN_UNSUPPORTED')
 })
 
-test('exemple pluie matricielle : colonnes, traînée et une image par génération', () => {
+test('exemple pluie matricielle : colonnes, traînée et boucle sans raccord', () => {
   const workspace = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'rain').build()))
   const screen = workspace.presentation.cards.find((card) => card.type === 'screen')
   assert.equal(screen.screenWidth, 90)
-  assert.equal(screen.screenHeight, 56)
+  assert.equal(screen.screenHeight, 18)
   const result = simulateProgram(workspace.project)
   assert.equal(result.ok, true, result.errorCode)
-  assert.ok(result.screenFrames.length > 8)
+  assert.equal(result.screenFrames.length, 19)
+  assert.equal(findFrameCycle(result.screenFrames, 'rainScreen'), 18)
   const counts = result.screenFrames.map((frame) => frame.rainScreen.pixels.filter((value, index) => index % 4 === 3 && value > 0).length)
-  assert.ok(counts[0] > 0)
-  assert.ok(counts[counts.length - 1] > counts[0])
+  assert.ok(counts.every((count) => count === 9))
   assert.equal(transpileProgram(workspace.project).code, 'TRANSPILE_SCREEN_UNSUPPORTED')
 })
 

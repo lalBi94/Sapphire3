@@ -474,7 +474,7 @@ function calculus() {
 // Deux écrans 30×18 avec chacun un logo 3×3 qui ricoche sur les bords, façon DVD.
 function pixelScreens() {
   const b = builder()
-  const screenWidth = 30
+  const screenWidth = 34
   const screenHeight = 18
   const logo = 2
   const maxX = screenWidth - logo
@@ -499,8 +499,8 @@ function pixelScreens() {
     globalVariable(`${prefix}DY`, `${prefix}DY`, dy)
   }
 
-  logoState('one', 3, 2, 1, 1)
-  logoState('two', maxX - 3, maxY - 2, -1, -1)
+  logoState('one', 4, 2, 4, 2)
+  logoState('two', 20, 10, -4, 2)
 
   // Écrit un pixel : index = base + décalage constant dans un tampon 30×18.
   function pixelSet(id, importId, base, offset, red, green, blue, alpha) {
@@ -615,7 +615,7 @@ function pixelScreens() {
   b.intValue('screenFrameStart', 0)
   b.make('screenTest', 'BinaryExpression', { operator: '<' }, { left: 'screenFrameIndex', right: 'screenFrameEnd' })
   b.ref('screenFrameIndex', 'frame')
-  b.intValue('screenFrameEnd', 20)
+  b.intValue('screenFrameEnd', 19)
   b.make('screenUpdate', 'AssignmentStatement', {}, { target: 'screenFrameTarget', value: 'screenFrameNext' })
   b.ref('screenFrameTarget', 'frame')
   b.binary('screenFrameNext', '+', 'screenFrameLeft', 'screenFrameOne')
@@ -818,15 +818,15 @@ function gameOfLife() {
   if (appCard) appCard.x = 1440
   return result
 }
-// Pluie matricielle : douze colonnes tombent avec une traînée, sur un écran 90×56.
+// Pluie matricielle : quatre colonnes tombent avec une traînée, sur un écran 90×18.
 function rain() {
   const b = builder()
   const screenWidth = 90
-  const screenHeight = 56
-  const columns = 8
-  const spacing = 11
-  const trail = 6
-  const generations = 14
+  const screenHeight = 18
+  const columns = 3
+  const spacing = 30
+  const trail = 3
+  const generations = 19
   const screen = createScreenModule('rainScreen', 'Rain screen', 1, { width: screenWidth, height: screenHeight })
   b.project.modules.push(screen.module)
   b.project.nodes.push(...screen.nodes)
@@ -840,7 +840,7 @@ function rain() {
     { id: 'rainPresentImport', moduleId: 'rainScreen', nodeId: present.nodeId, localName: 'present' },
   )
 
-  // Écrit un pixel d'écran : index = y × largeur + x, y et x étant des variables locales.
+  // Écrit un pixel d'écran : index = y × largeur + x.
   function pixelSet(id, yName, xName, red, green, blue, alpha) {
     b.make(`${id}Statement`, 'ExpressionStatement', {}, { expression: `${id}Call` })
     b.call(`${id}Call`, `${id}Callee`, [`${id}Pixel`, `${id}Red`, `${id}Green`, `${id}Blue`, `${id}Alpha`])
@@ -857,12 +857,18 @@ function rain() {
     return `${id}Statement`
   }
 
-  // Un tableau de positions, une tête de pluie par colonne.
+  // Chaque image est une pure fonction des hauteurs : aucune traînée conservée,
+  // donc aucun transitoire et une séquence exactement périodique.
+  const dropColors = [
+    [60, 255, 120, 255],
+    [40, 185, 88, 205],
+    [22, 112, 55, 150],
+  ]
+
   b.root('rainDrops', 'VariableDeclaration', { name: 'drops', type: intArrayType }, { initializer: 'rainDropsInit' })
   b.make('rainDropsInit', 'MathCall', { name: 'arrayFill' }, { arguments: ['rainSize', 'rainZero'] })
   b.intValue('rainSize', columns)
   b.intValue('rainZero', 0)
-  // Hauteur de départ tirée au hasard pour chaque colonne, dépliée à la construction.
   for (let index = 0; index < columns; index += 1) {
     b.make(`rainSeed${index}`, 'AssignmentStatement', {}, { target: `rainSeed${index}Target`, value: `rainSeed${index}Value` })
     b.make(`rainSeed${index}Target`, 'ArrayAccess', {}, { array: `rainSeed${index}Array`, index: `rainSeed${index}Index` })
@@ -876,7 +882,6 @@ function rain() {
 
   b.root('rainMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'rainMainBody' })
 
-  // Boucle des générations.
   b.make('rainGeneration', 'VariableDeclaration', { name: 'generation', type: intType }, { initializer: 'rainGenerationStart' })
   b.intValue('rainGenerationStart', 0)
   b.binary('rainGenerationTest', '<', 'rainGenerationIndex', 'rainGenerationEnd')
@@ -888,7 +893,6 @@ function rain() {
   b.ref('rainGenerationLeft', 'generation')
   b.intValue('rainGenerationOne', 1)
 
-  // Boucle des colonnes.
   b.make('rainColumn', 'VariableDeclaration', { name: 'column', type: intType }, { initializer: 'rainColumnStart' })
   b.intValue('rainColumnStart', 0)
   b.binary('rainColumnTest', '<', 'rainColumnIndex', 'rainColumnEnd')
@@ -900,50 +904,50 @@ function rain() {
   b.ref('rainColumnLeft', 'column')
   b.intValue('rainColumnOne', 1)
 
-  // head = drops[column] ; x = column × écart ; queue et suivante dépendent de la hauteur.
   b.make('rainHead', 'VariableDeclaration', { name: 'head', type: intType }, { initializer: 'rainHeadValue' })
   b.make('rainHeadValue', 'ArrayAccess', {}, { array: 'rainHeadArray', index: 'rainHeadIndex' })
   b.ref('rainHeadArray', 'drops')
   b.ref('rainHeadIndex', 'column')
-
   b.make('rainX', 'VariableDeclaration', { name: 'x', type: intType }, { initializer: 'rainXValue' })
   b.binary('rainXValue', '*', 'rainXColumn', 'rainXSpacing')
   b.ref('rainXColumn', 'column')
   b.intValue('rainXSpacing', spacing)
-
-  b.make('rainTailY', 'VariableDeclaration', { name: 'tailY', type: intType }, { initializer: 'rainTailValue' })
-  b.binary('rainTailValue', '%', 'rainTailSum', 'rainTailHeight')
-  b.binary('rainTailSum', '+', 'rainTailHead', 'rainTailOffset')
-  b.ref('rainTailHead', 'head')
-  b.intValue('rainTailOffset', screenHeight - trail)
-  b.intValue('rainTailHeight', screenHeight)
-
   b.make('rainNext', 'VariableDeclaration', { name: 'next', type: intType }, { initializer: 'rainNextValue' })
   b.binary('rainNextValue', '%', 'rainNextSum', 'rainNextHeight')
   b.binary('rainNextSum', '+', 'rainNextHead', 'rainNextOne')
   b.ref('rainNextHead', 'head')
   b.intValue('rainNextOne', 1)
   b.intValue('rainNextHeight', screenHeight)
-
   b.make('rainDropsAssign', 'AssignmentStatement', {}, { target: 'rainDropsTarget', value: 'rainNextRef' })
   b.make('rainDropsTarget', 'ArrayAccess', {}, { array: 'rainDropsArray', index: 'rainDropsIndex' })
   b.ref('rainDropsArray', 'drops')
   b.ref('rainDropsIndex', 'column')
   b.ref('rainNextRef', 'next')
 
-  const columnBody = [
-    'rainHead',
-    'rainX',
-    'rainTailY',
-    'rainNext',
-    pixelSet('rainTailPixel', 'tailY', 'x', 0, 0, 0, 0),
-    pixelSet('rainHeadPixel', 'head', 'x', 60, 255, 120, 255),
-    'rainDropsAssign',
-  ]
+  // Traînée dessinée entièrement à chaque image, du plus sombre à la tête.
+  const columnBody = ['rainHead', 'rainX', 'rainNext']
+  b.make('rainClearY', 'VariableDeclaration', { name: 'clearY', type: intType }, { initializer: 'rainClearYValue' })
+  b.binary('rainClearYValue', '%', 'rainClearYSum', 'rainClearYHeight')
+  b.binary('rainClearYSum', '+', 'rainClearYHead', 'rainClearYOffset')
+  b.ref('rainClearYHead', 'head')
+  b.intValue('rainClearYOffset', screenHeight - trail)
+  b.intValue('rainClearYHeight', screenHeight)
+  columnBody.push('rainClearY', pixelSet('rainClearPixel', 'clearY', 'x', 0, 0, 0, 0))
+  for (let step = trail - 1; step >= 1; step -= 1) {
+    const [red, green, blue, alpha] = dropColors[step] ?? dropColors[0]
+    b.make(`rainY${step}`, 'VariableDeclaration', { name: `y${step}`, type: intType }, { initializer: `rainY${step}Value` })
+    b.binary(`rainY${step}Value`, '%', `rainY${step}Sum`, `rainY${step}Height`)
+    b.binary(`rainY${step}Sum`, '+', `rainY${step}Head`, `rainY${step}Offset`)
+    b.ref(`rainY${step}Head`, 'head')
+    b.intValue(`rainY${step}Offset`, screenHeight - step)
+    b.intValue(`rainY${step}Height`, screenHeight)
+    columnBody.push(`rainY${step}`, pixelSet(`rainPixel${step}`, `y${step}`, 'x', red, green, blue, alpha))
+  }
+  columnBody.push(pixelSet('rainPixel0', 'head', 'x', dropColors[0][0], dropColors[0][1], dropColors[0][2], dropColors[0][3]))
+  columnBody.push('rainDropsAssign')
   b.block('rainColumnBody', columnBody)
   b.make('rainColumnLoop', 'ForStatement', {}, { initializer: 'rainColumn', test: 'rainColumnTest', update: 'rainColumnUpdate', body: 'rainColumnBody' })
 
-  // Une seule image par génération, après toutes les colonnes.
   b.make('rainPresent', 'ExpressionStatement', {}, { expression: 'rainPresentCall' })
   b.call('rainPresentCall', 'rainPresentCallee', [])
   b.make('rainPresentCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'rainPresentImport' } })
@@ -955,7 +959,7 @@ function rain() {
   b.block('rainMainBody', ['rainSeedBody', 'rainGenerationLoop', 'rainPrint'])
 
   return workspace(b.project, [
-    note('rainNote', 'Matrix rain', 'Écran 90×56. Huit colonnes démarrent à une hauteur tirée au hasard ; chaque tête est dessinée en vert vif et le pixel six cases plus haut est effacé, ce qui crée une traînée. $$y \\leftarrow (y + 1) \\bmod 56$$', 0, 620, 700, 240),
+    note('rainNote', 'Matrix rain', 'Écran 90×18. Trois colonnes démarrent à une hauteur tirée au hasard ; chaque image redessine la tête en vert vif et sa traînée de trois pixels, sans état conservé. La séquence est donc exactement périodique et boucle sans raccord. $$y \\leftarrow (y + 1) \\bmod 18$$', 0, 620, 760, 240),
   ])
 }
 

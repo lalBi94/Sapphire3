@@ -22,9 +22,14 @@ test('lecture d’écran : une séquence non périodique ne renvoie aucune péri
   assert.equal(findFrameCycle(frames, 's'), 0)
 })
 
+test('lecture d’écran : une séquence fermée boucle sur toute la séquence', () => {
+  const frames = [frame('s', 1), frame('s', 2), frame('s', 3), frame('s', 1)]
+  assert.equal(findFrameCycle(frames, 's'), 3)
+})
+
 test('lecture d’écran : entrées invalides ou absentes ignorées', () => {
   assert.equal(findFrameCycle(null, 's'), 0)
   assert.equal(findFrameCycle([frame('s', 1)], 's'), 0)
-  assert.equal(findFrameCycle([frame('s', 1), frame('s', 1)], 'missing'), 1)
+  assert.equal(findFrameCycle([frame('s', 1), frame('s', 1)], 'missing'), 0)
   assert.equal(findFrameCycle([frame('s', 1), frame('s', 1)], null), 0)
 })

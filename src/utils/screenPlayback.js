@@ -30,14 +30,14 @@ function sameFrame(frames, screenId, left, right) {
 }
 
 /**
- * Retourne la plus petite période couvrant toute la séquence capturée, ou 0 si elle
- * n'est pas périodique depuis le début. Une période trouvée permet une boucle
- * avant infinie et sans raccord visible.
+ * Retourne la période d'une séquence d'images, ou 0 si elle ne se répète pas.
+ * Une séquence « fermée » (dernière image identique à la première) est traitée comme
+ * une période de `longueur − 1` : la lecture avant boucle alors sans aucun raccord.
  */
 export function findFrameCycle(frames, screenId, maximumPeriod = 240) {
   if (!Array.isArray(frames) || !screenId) return 0
   const length = frames.length
-  if (length < 2) return 0
+  if (length < 3) return 0
   const hashes = frames.map((frame) => frameHash(frame, screenId))
   const limit = Math.min(maximumPeriod, Math.floor(length / 2))
   for (let period = 1; period <= limit; period += 1) {
@@ -53,5 +53,6 @@ export function findFrameCycle(frames, screenId, maximumPeriod = 240) {
     }
     if (confirmed) return period
   }
+  if (hashes[length - 1] === hashes[0] && sameFrame(frames, screenId, length - 1, 0)) return length - 1
   return 0
 }
