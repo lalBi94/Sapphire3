@@ -39,7 +39,7 @@ function note(id, name, text, x, y, width = 400, height = 240) {
 function workspace(project, notes = []) {
   const definition = moduleTypes.module
   const cards = project.modules.map((module, position) => module.screen
-    ? { id: module.id, type: 'screen', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.screen.width, height: moduleTypes.screen.height, screenWidth: module.screen.width, screenHeight: module.screen.height, screenScale: screenDefaults.scale, expandedNodeIds: [] }
+    ? { id: module.id, type: 'screen', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.screen.width, height: moduleTypes.screen.height, screenWidth: module.screen.width, screenHeight: module.screen.height, expandedNodeIds: [] }
     : module.gauge
       ? { id: module.id, type: 'gauge', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.gauge.width, height: moduleTypes.gauge.height, expandedNodeIds: [] }
       : { id: module.id, type: 'module', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: Math.max(definition.width, 520), height: Math.max(definition.height, 420), expandedNodeIds: [] })
@@ -814,7 +814,7 @@ function gameOfLife() {
   ])
   const cards = result.presentation.cards
   const screenCard = cards.find((card) => card.id === 'lifeScreen')
-  if (screenCard) Object.assign(screenCard, { width: 760, height: 540, screenScale: 1 })
+  if (screenCard) Object.assign(screenCard, { width: 760, height: 540 })
   const patternsCard = cards.find((card) => card.id === 'lifePatterns')
   if (patternsCard) patternsCard.x = 820
   const appCard = cards.find((card) => card.id === 'lifeApp')

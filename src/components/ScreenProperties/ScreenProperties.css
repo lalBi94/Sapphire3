@@ -2,12 +2,7 @@
 .screen-properties__section { display: grid; gap: 8px; padding-top: 10px; border-top: 1px solid var(--color-border); }
 .screen-properties__section h3 { margin: 0; color: var(--color-text-muted); font-size: 11px; font-weight: 500; }
 .screen-properties__dimensions { margin: 0; color: var(--color-text); font-family: var(--font-mono); font-size: 11px; }
-.screen-properties__scale { display: flex; align-items: center; gap: 8px; color: var(--color-text-muted); font-size: 11px; }
-.screen-properties__scale span { margin-right: auto; }
-.screen-properties__scale button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 1px solid var(--color-border); border-radius: var(--radius-small); background: var(--color-surface-raised); color: var(--color-text); cursor: pointer; }
-.screen-properties__scale button:hover { background: var(--color-hover); border-color: var(--color-border-hover); }
-.screen-properties__scale button:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
-.screen-properties__scale output { min-width: 42px; text-align: center; color: var(--color-primary); font-family: var(--font-mono); }
+
 .screen-properties__state, .screen-properties__empty { margin: 0; color: var(--color-text-muted); font-size: 11px; line-height: 1.5; }
 .screen-properties__api, .screen-properties__callers { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .screen-properties__api li code { display: block; overflow: hidden; color: var(--color-selection); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }

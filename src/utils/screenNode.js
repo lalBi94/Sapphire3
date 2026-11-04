@@ -4,7 +4,7 @@ import { screenGlobalName } from './logic/screenState.js'
 
 export { screenGlobalName } from './logic/screenState.js'
 
-export const screenDefaults = Object.freeze({ width: 15, height: 9, scale: 1 })
+export const screenDefaults = Object.freeze({ width: 15, height: 9 })
 
 const intType = { kind: 'primitive', name: 'int' }
 const voidType = { kind: 'primitive', name: 'void' }

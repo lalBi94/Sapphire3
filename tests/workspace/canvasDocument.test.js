@@ -244,6 +244,23 @@ test('vue d’écran : conservée à l’aller-retour et refusée si elle est in
   assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)), { message: 'Invalid screen view.' })
 })
 
+test('écran : l’échelle de pixels obsolète n’est plus écrite mais reste relue', () => {
+  const camera = { x: 0, y: 0, zoomLevel: 0 }
+  const source = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'pixelScreens').build()))
+  const text = serializeWorkspace(source.project, source.presentation.cards, camera)
+  assert.equal(JSON.parse(text).presentation.cards.some((entry) => Object.hasOwn(entry, 'screenScale')), false)
+  // Un fichier ancien portant encore une échelle valide reste ouvrable, sans la conserver à l'export.
+  const legacy = JSON.parse(text)
+  for (const entry of legacy.presentation.cards) if (entry.type === 'screen') entry.screenScale = 2
+  const roundTrip = deserializeWorkspace(JSON.stringify(legacy))
+  assert.equal(roundTrip.presentation.cards.filter((entry) => entry.type === 'screen').every((entry) => entry.screenScale === 2), true)
+  assert.equal(JSON.parse(serializeWorkspace(roundTrip.project, roundTrip.presentation.cards, camera)).presentation.cards.some((entry) => Object.hasOwn(entry, 'screenScale')), false)
+  // Une échelle hors bornes reste refusée à la lecture.
+  const invalid = JSON.parse(text)
+  invalid.presentation.cards.find((entry) => entry.type === 'screen').screenScale = 9
+  assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)), { message: 'Cards do not match the logical project.' })
+})
+
 test('jauge : carte conservée à l’aller-retour et métadonnées validées', () => {
   const camera = { x: 0, y: 0, zoomLevel: 0 }
   const source = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'gaugeDemo').build()))

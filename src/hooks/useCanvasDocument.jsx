@@ -28,7 +28,7 @@ export default function useCanvasDocument() {
       const index = Math.max(0, ...document.project.modules.map((module) => Number(module.screen?.index) || 0)) + 1
       const screenName = `${name} ${index}`
       const screen = createScreenModule(id, screenName, index, screenDefaults)
-      dispatch({ type: 'createScreen', card: { id, type, name: screenName, ...position, width: definition.width, height: definition.height, expandedNodeIds: [], screenWidth: screenDefaults.width, screenHeight: screenDefaults.height, screenScale: screenDefaults.scale }, screen })
+      dispatch({ type: 'createScreen', card: { id, type, name: screenName, ...position, width: definition.width, height: definition.height, expandedNodeIds: [], screenWidth: screenDefaults.width, screenHeight: screenDefaults.height }, screen })
       return
     }
     if (type === 'gauge') {

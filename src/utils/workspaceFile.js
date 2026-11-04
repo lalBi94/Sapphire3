@@ -69,7 +69,7 @@ function validatePresentation(project, presentation) {
     if (card.type === 'module'
       ? !modules.has(card.id) || modules.get(card.id).name !== card.name
       : card.type === 'screen'
-        ? !modules.has(card.id) || !modules.get(card.id).screen || !Number.isInteger(card.screenWidth) || !Number.isInteger(card.screenHeight) || card.screenWidth < 1 || card.screenHeight < 1 || card.screenWidth > screenLimits.maximumDimension || card.screenHeight > screenLimits.maximumDimension || !Number.isFinite(card.screenScale) || card.screenScale < 0.25 || card.screenScale > 4
+        ? !modules.has(card.id) || !modules.get(card.id).screen || !Number.isInteger(card.screenWidth) || !Number.isInteger(card.screenHeight) || card.screenWidth < 1 || card.screenHeight < 1 || card.screenWidth > screenLimits.maximumDimension || card.screenHeight > screenLimits.maximumDimension || (card.screenScale !== undefined && (!Number.isFinite(card.screenScale) || card.screenScale < 0.25 || card.screenScale > 4))
         : card.type === 'gauge'
           ? !modules.has(card.id) || !modules.get(card.id).gauge
           : modules.has(card.id) || (card.type === 'comment' && typeof card.text !== 'string') || (card.type === 'image' && (!isEmbeddedImage(card.image) || typeof card.caption !== 'string'))) {
@@ -93,7 +93,8 @@ function validatePresentation(project, presentation) {
 
 // N'écrit l'emoji ou les drapeaux de carte que lorsqu'ils sont définis, pour garder les fichiers habituels inchangés.
 function exportableCard(card, nodes) {
-  const { hidden, locked, emoji, screenView, ...rest } = card
+  // `screenScale` n'est plus produit : l'écran se dimensionne avec la carte, mais reste toléré à la relecture.
+  const { hidden, locked, emoji, screenView, screenScale, ...rest } = card
   return { ...rest, ...(hidden ? { hidden: true } : {}), ...(locked ? { locked: true } : {}), ...(emoji ? { emoji } : {}), ...(screenView && screenView !== 'screen' ? { screenView } : {}), expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) }
 }
 
@@ -131,7 +132,7 @@ export function deserializeWorkspace(text) {
   validateProject(data)
   const definition = moduleTypes.module
   const cards = data.modules.map((module, position) => module.screen
-    ? { id: module.id, type: 'screen', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes.screen.width, height: moduleTypes.screen.height, screenWidth: module.screen.width, screenHeight: module.screen.height, screenScale: 1, expandedNodeIds: [] }
+    ? { id: module.id, type: 'screen', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes.screen.width, height: moduleTypes.screen.height, screenWidth: module.screen.width, screenHeight: module.screen.height, expandedNodeIds: [] }
     : module.gauge
       ? { id: module.id, type: 'gauge', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes.gauge.width, height: moduleTypes.gauge.height, expandedNodeIds: [] }
       : { id: module.id, type: 'module', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: definition.width, height: definition.height, expandedNodeIds: [] })
