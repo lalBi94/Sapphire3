@@ -18,6 +18,32 @@ export function createDebugRecorder(analysis, global, output, uninitialized) {
     return typeof value === 'bigint' ? Number(value) : value
   }
 
+  // Décrit la cible stable d'un pointeur sans conserver l'environnement JavaScript mutable.
+  function pointerPreview(value, environment) {
+    if (!value || typeof value !== 'object' || value.pointer !== true) return null
+    if (value.kind === 'reference') {
+      let targetEnvironment = value.environment
+      while (targetEnvironment && !targetEnvironment.values.has(value.nodeId)) targetEnvironment = targetEnvironment.parent
+      return { kind: 'reference', nodeId: value.nodeId, instanceId: targetEnvironment?.instanceId ?? null, label: value.label, constant: value.constant === true }
+    }
+    if (value.kind === 'element') {
+      let owner = null
+      let current = environment
+      while (current && !owner) {
+        for (const [nodeId, candidate] of current.values) {
+          if (candidate === value.array) { owner = { nodeId, instanceId: current.instanceId ?? null }; break }
+        }
+        current = current.parent
+      }
+      return {
+        kind: 'element', arrayNodeId: owner?.nodeId ?? null, arrayInstanceId: owner?.instanceId ?? null,
+        index: value.index, length: Array.isArray(value.array) ? value.array.length : null,
+        label: value.label, constant: value.constant === true,
+      }
+    }
+    return { kind: 'unknown', label: value.label ?? '' }
+  }
+
   // Présente un élément de tableau comme une case lisible, sans perdre les chaînes.
   function cellValue(value) {
     if (typeof value === 'string') return JSON.stringify(value)
@@ -34,7 +60,8 @@ export function createDebugRecorder(analysis, global, output, uninitialized) {
     const initialized = environment.values.has(symbol.nodeId) && environment.values.get(symbol.nodeId) !== uninitialized
     const value = initialized ? environment.values.get(symbol.nodeId) : undefined
     const array = initialized ? arrayPreview(value) : null
-    return { nodeId: symbol.nodeId, moduleId: symbol.moduleId, name: symbol.name, type: symbol.type, initialized, ...(initialized ? { value: displayValue(value) } : {}), ...(array ? { array } : {}) }
+    const pointer = initialized ? pointerPreview(value, environment) : null
+    return { nodeId: symbol.nodeId, moduleId: symbol.moduleId, name: symbol.name, type: symbol.type, initialized, ...(initialized ? { value: displayValue(value) } : {}), ...(array ? { array } : {}), ...(pointer ? { pointer } : {}) }
   }
 
   // Borne la rétention de l'historique ; l'unique état terminal reste toujours disponible.

@@ -371,6 +371,8 @@ L'analyse est conservatrice : pas de preuve générale sur les valeurs des varia
 
 `createDebugSession(project, {maxSteps?})` prépare une trace déterministe et bornée avec le même interpréteur que `simulateProgram`. Il ne s'agit pas d'un deuxième moteur ni d'une exécution native suspendue : les états sont calculés avant la navigation, puis l'interface ne montre que l'arrêt courant. Le résultat contient `project`, `frames`, `cursor`, `history`, `reachability`, un éventuel `errorCode` empêchant le démarrage et le résultat technique `result` de la simulation. Un échec runtime reste dans le dernier état enregistré et n'est affiché qu'une fois cet arrêt atteint.
 
+Une variable capturée peut porter un champ `pointer` stable : `{kind:'reference', nodeId, instanceId, label, constant}` pour `&variable`, ou `{kind:'element', arrayNodeId, arrayInstanceId, index, length, label, constant}` pour `&tableau[i]`. `instanceId` et `arrayInstanceId` valent `null` pour une cible globale ; aucune référence JavaScript mutable n'est conservée. `buildPointerGraph(index, frame)` dans `src/utils/memorySpace.js` transforme ces champs en portées actives, variables, cases de tableaux, adresses illustratives et arêtes pointeur → cible pour la fenêtre de debug ; les cibles hors des portées actives restent non résolues.
+
 `moveDebugSession(session, action)` retourne une nouvelle session de navigation sans modifier la source, les états ni la session précédente :
 
 - `next` : exécute l'instruction logique courante et s'arrête à la suivante ; entre dans les appels. Les conditions de boucle sont de nouveaux arrêts à chaque évaluation. Les sous-expressions scalaires ne sont pas des « lignes » séparées.

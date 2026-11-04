@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronDown, ChevronUp, CornerUpRight, MemoryStick, Play, RotateCcw, SkipBack, X } from 'lucide-react'
+import { ArrowRight, ChevronDown, ChevronUp, CornerUpRight, MemoryStick, Play, RotateCcw, Share2, SkipBack, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import usePanelFront from '../../hooks/usePanelFront.jsx'
@@ -18,7 +18,7 @@ function MemoryTable({ variables, modules, t }) {
 }
 
 // Affiche uniquement l'instantané courant, dans une fenêtre locale déplaçable et redimensionnable.
-export default function DebugPanel({ session, index, onAction, onClose, memoryOpen = false, onToggleMemory }) {
+export default function DebugPanel({ session, index, onAction, onClose, memoryOpen = false, onToggleMemory, pointerGraphOpen = false, onTogglePointerGraph }) {
   const [geometry, setGeometry] = useState({ x: 16, y: 16, width: 380, height: 500 })
   const [collapsed, setCollapsed] = useState(false)
   const gesture = useRef(null)
@@ -81,6 +81,7 @@ export default function DebugPanel({ session, index, onAction, onClose, memoryOp
     <header className="debug-panel__header" tabIndex={0} aria-label={t('debug.move')} title={t('canvas.moveHint')} onPointerDown={(event) => handleStart(event, 'move')} onPointerMove={handleMove} onPointerUp={handleEnd} onPointerCancel={handleEnd} onLostPointerCapture={handleEnd} onKeyDown={(event) => handleKeyDown(event, 'move')}>
       <h2>{t('debug.title')}</h2>
       <button type="button" className={`debug-panel__memory${memoryOpen ? ' debug-panel__memory--open' : ''}`} aria-pressed={memoryOpen} aria-label={t('memory.open')} title={t('memory.open')} onClick={onToggleMemory}><MemoryStick size={16} strokeWidth={1.75} aria-hidden="true" /></button>
+      <button type="button" className={`debug-panel__pointer${pointerGraphOpen ? ' debug-panel__memory--open' : ''}`} aria-pressed={pointerGraphOpen} aria-label={t('pointerGraph.open')} title={t('pointerGraph.open')} onClick={onTogglePointerGraph}><Share2 size={16} strokeWidth={1.75} aria-hidden="true" /></button>
       <button type="button" className="debug-panel__collapse" aria-expanded={!collapsed} aria-label={t(collapsed ? 'panel.expand' : 'panel.collapse')} title={t(collapsed ? 'panel.expand' : 'panel.collapse')} onClick={() => setCollapsed((current) => !current)}>{collapsed ? <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" /> : <ChevronUp size={16} strokeWidth={1.75} aria-hidden="true" />}</button>
       <button type="button" onClick={onClose} aria-label={t('debug.close')}><X size={16} aria-hidden="true" /></button>
     </header>
