@@ -9,10 +9,10 @@ import './TranspilePanel.css'
 // Affiche le code généré et les diagnostics sans modifier le document source.
 export default function TranspilePanel({ result, exportError, onExport, onClose }) {
   const { t } = useTranslation()
-  const front = usePanelFront()
   const [copyState, setCopyState] = useState(null)
   const target = transpilationLanguages.find((option) => option.id === result?.target)
   const values = { language: target?.name ?? result?.target ?? '', extension: target?.extension ?? '' }
+  const front = usePanelFront({ title: result ? t('transpile.title', values) : null, onClose })
   const copyMessage = copyState?.result === result ? copyState.message : ''
   if (!result) return null
 

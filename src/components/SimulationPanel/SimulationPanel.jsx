@@ -7,7 +7,7 @@ import './SimulationPanel.css'
 // Affiche les sorties et l'erreur éventuelle de la dernière simulation locale, avec pause, reprise et arrêt.
 export default function SimulationPanel({ result, running = false, paused = false, stopped = false, currentStep = 0, free = false, onClose, onPause, onResume, onStop, onToggleFree }) {
   const { t } = useTranslation()
-  const front = usePanelFront()
+  const front = usePanelFront({ title: result ? t('simulation.title') : null, onClose })
   if (!result) return null
   const status = running ? t('simulation.running') : paused ? t('simulation.paused') : stopped ? t('simulation.stopped') : t('simulation.completed')
   // La sortie suit le pas courant, sauf en mode libre, après un arrêt ou quand aucune animation n'est active.

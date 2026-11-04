@@ -32,14 +32,14 @@ function parseValue(type, raw) {
 // Saisit les entrées d'une fonction et présente son résultat, sa sortie et ses variables.
 export default function FunctionPanel({ index, functionNode, result, onRun, onDebug, onClose }) {
   const { t } = useTranslation()
-  const front = usePanelFront()
   const parameters = (functionNode.children.parameters ?? []).map((id) => {
     const node = index.nodes.get(id)
     return { id, name: node?.properties?.name ?? id, type: node?.properties?.type ?? null }
   })
+  const name = functionNode.properties?.name || t('details.block')
+  const front = usePanelFront({ title: t('function.title', { name }), onClose })
   const [inputs, setInputs] = useState(() => parameters.map((parameter) => defaultValue(parameter.type)))
   const unsupported = parameters.some((parameter) => !['boolean', ...textTypes, ...numericTypes].includes(primitiveName(parameter.type)))
-  const name = functionNode.properties?.name || t('details.block')
   const collect = () => parameters.map((parameter, position) => parseValue(parameter.type, inputs[position] ?? ''))
 
   // Met à jour une entrée sans valider la valeur : le moteur reste seul juge.

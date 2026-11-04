@@ -12,7 +12,7 @@ const MAX_RESULTS = 60
 // Recherche de blocs au clavier : champ, liste d'options et saut vers le bloc choisi.
 export default function NodeSearchPanel({ index, cards, selectedId, focusToken, onReveal, onClose }) {
   const { t } = useTranslation()
-  const front = usePanelFront()
+  const front = usePanelFront({ title: t('search.title'), onClose })
   const [term, setTerm] = useState('')
   const [activePosition, setActivePosition] = useState(0)
   const inputRef = useRef(null)

@@ -12,7 +12,7 @@ export default function FloatingPanel({ title, label, onClose, className = '', i
   const [collapsed, setCollapsed] = useState(false)
   const gestureRef = useRef(null)
   const panelRef = useRef(null)
-  const front = usePanelFront()
+  const front = usePanelFront({ title, collapsed, onClose, setCollapsed, arrange })
   const { t } = useTranslation()
 
   // Mesure le panneau dans son canvas avant un geste souris ou clavier.
@@ -84,6 +84,19 @@ export default function FloatingPanel({ title, label, onClose, className = '', i
       if (origin) setGeometry({ x: origin.x, y: origin.y, width: origin.width, height: origin.height })
     }
     setCollapsed((current) => !current)
+  }
+
+  // Replace la fenêtre en cascade depuis la droite, sans dépasser la surface visible.
+  function arrange(index) {
+    const origin = measure(panelRef.current)
+    if (!origin) return
+    const step = 28
+    const width = Math.max(240, Math.min(origin.width, origin.areaWidth - 16))
+    const height = Math.max(180, Math.min(collapsed ? 420 : origin.height, origin.areaHeight - 16))
+    const x = Math.max(8, origin.areaWidth - width - 16 - index * step)
+    const y = Math.min(Math.max(8, origin.areaHeight - height - 8), 16 + index * step)
+    setCollapsed(false)
+    setGeometry({ x, y, width, height })
   }
 
   const style = { ...(geometry ? { left: geometry.x, top: geometry.y, right: 'auto', bottom: 'auto', width: geometry.width, ...(collapsed ? {} : { height: geometry.height }) } : {}), ...(front.zIndex ? { zIndex: front.zIndex } : {}) }

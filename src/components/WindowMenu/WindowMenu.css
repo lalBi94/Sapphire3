@@ -1,0 +1,7 @@
+.window-menu { display: flex; flex-direction: column; }
+.window-menu__list { display: flex; flex-direction: column; gap: 2px; max-height: 40vh; margin: 0; padding: 0; list-style: none; overflow-y: auto; }
+.window-menu__row { display: flex; align-items: center; gap: 2px; }
+.window-menu .window-menu__focus { width: auto; flex: 1 1 auto; min-width: 0; }
+.window-menu__focus span { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.window-menu .window-menu__action { flex: 0 0 auto; justify-content: center; width: 26px; height: 26px; padding: 0; color: var(--color-text-muted); }
+.window-menu .window-menu__action:hover:not(:disabled) { color: var(--color-text); background: var(--color-hover); }

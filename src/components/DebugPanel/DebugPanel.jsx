@@ -22,8 +22,9 @@ export default function DebugPanel({ session, index, onAction, onClose, memoryOp
   const [geometry, setGeometry] = useState({ x: 16, y: 16, width: 380, height: 500 })
   const [collapsed, setCollapsed] = useState(false)
   const gesture = useRef(null)
-  const front = usePanelFront()
+  const panelRef = useRef(null)
   const { t } = useTranslation()
+  const front = usePanelFront({ title: t('debug.title'), collapsed, onClose, setCollapsed, arrange })
   const frame = session.frames[session.cursor]
   const finished = !frame || frame.status !== 'paused'
   const currentNode = index.nodes.get(frame?.nodeId)
@@ -77,7 +78,20 @@ export default function DebugPanel({ session, index, onAction, onClose, memoryOp
     adjust({ x: rect.left - bounds.left, y: rect.top - bounds.top, width: rect.width, height: rect.height }, mode, ...direction, bounds)
   }
 
-  return <aside className={`debug-panel${collapsed ? ' debug-panel--collapsed' : ''}`} data-canvas-ui data-canvas-scroll aria-label={t('debug.title')} style={{ left: geometry.x, top: geometry.y, width: geometry.width, ...(collapsed ? {} : { height: geometry.height }), ...(front.zIndex ? { zIndex: front.zIndex } : {}) }} onPointerDown={(event) => { front.bringToFront(); event.stopPropagation() }} onFocusCapture={front.bringToFront} onKeyDown={(event) => event.stopPropagation()}>
+  // Replace la fenêtre en cascade depuis la droite, sans dépasser la surface visible.
+  function arrange(index) {
+    const bounds = panelRef.current?.offsetParent?.getBoundingClientRect()
+    if (!bounds) return
+    const step = 28
+    const width = Math.max(240, Math.min(geometry.width, bounds.width - 16))
+    const height = Math.max(180, Math.min(collapsed ? 460 : geometry.height, bounds.height - 16))
+    const x = Math.max(8, bounds.width - width - 16 - index * step)
+    const y = Math.min(Math.max(8, bounds.height - height - 8), 16 + index * step)
+    setCollapsed(false)
+    setGeometry({ x, y, width, height })
+  }
+
+  return <aside ref={panelRef} className={`debug-panel${collapsed ? ' debug-panel--collapsed' : ''}`} data-canvas-ui data-canvas-scroll aria-label={t('debug.title')} style={{ left: geometry.x, top: geometry.y, width: geometry.width, ...(collapsed ? {} : { height: geometry.height }), ...(front.zIndex ? { zIndex: front.zIndex } : {}) }} onPointerDown={(event) => { front.bringToFront(); event.stopPropagation() }} onFocusCapture={front.bringToFront} onKeyDown={(event) => event.stopPropagation()}>
     <header className="debug-panel__header" tabIndex={0} aria-label={t('debug.move')} title={t('canvas.moveHint')} onPointerDown={(event) => handleStart(event, 'move')} onPointerMove={handleMove} onPointerUp={handleEnd} onPointerCancel={handleEnd} onLostPointerCapture={handleEnd} onKeyDown={(event) => handleKeyDown(event, 'move')}>
       <h2>{t('debug.title')}</h2>
       <button type="button" className={`debug-panel__memory${memoryOpen ? ' debug-panel__memory--open' : ''}`} aria-pressed={memoryOpen} aria-label={t('memory.open')} title={t('memory.open')} onClick={onToggleMemory}><MemoryStick size={16} strokeWidth={1.75} aria-hidden="true" /></button>

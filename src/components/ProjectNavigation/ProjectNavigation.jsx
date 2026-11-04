@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { Bug, Bookmark, BookmarkPlus, ChevronDown, Clock3, Code2, Download, Eye, EyeOff, FileInput, FileOutput, FilePlus, FolderOpen, LayoutGrid, Library, Maximize2, Palette, Pause, Play, Power, RefreshCw, Save, SaveAll, Search, Settings2, Square, Trash2, VectorSquare, X } from 'lucide-react'
+import { Bug, Bookmark, BookmarkPlus, ChevronDown, Clock3, Code2, Download, Eye, EyeOff, FileInput, FileOutput, FilePlus, FolderOpen, LayoutGrid, Library, Maximize2, Palette, PanelsTopLeft, Pause, Play, Power, RefreshCw, Save, SaveAll, Search, Settings2, Square, Trash2, VectorSquare, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
+import WindowMenu from '../WindowMenu/WindowMenu.jsx'
 import { supportedLanguages } from '../../utils/translations.js'
 import { exampleCategories, exampleSubcategories, examples } from '../../utils/examples.js'
 import { transpilationLanguages } from '../../utils/transpilation/index.js'
@@ -274,6 +275,12 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
               </div>
             })}
             </div>}
+        </div>
+      </details>
+      <details name="workspace-menu" onToggle={handleToggle}>
+        <summary><PanelsTopLeft size={13} aria-hidden="true" />{t('nav.windows')}<ChevronDown size={12} aria-hidden="true" /></summary>
+        <div className="project-navigation__menu">
+          <WindowMenu onFocus={closeMenus} />
         </div>
       </details>
       </>}
