@@ -89,11 +89,11 @@
 .project-navigation button.project-navigation__run-action:hover:not(:disabled) { background: var(--color-hover); color: var(--color-text); }
 .project-navigation__run-toggle { min-width: 24px; min-height: 26px; justify-content: center; }
 .project-navigation__run-menu { left: auto; right: 0; width: 260px; max-height: calc(100dvh - 50px); overflow: auto; }
-/* Signature discrète, tout à droite : logo GitHub et version dans un bouton noir qui s'illumine au survol. */
-.project-navigation button.project-navigation__signature { display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto; height: 24px; padding: 0 9px; border: 1px solid #ffffff1a; border-radius: 999px; background: #000; color: #ffffff73; font-family: var(--font-mono); font-size: 10px; font-weight: 400; letter-spacing: 0.03em; line-height: 1; white-space: nowrap; cursor: pointer; transition: color var(--duration-fast) var(--easing-ui), background-color var(--duration-fast) var(--easing-ui), border-color var(--duration-fast) var(--easing-ui), box-shadow var(--duration-fast) var(--easing-ui); }
+/* Signature discrète, tout à droite : logo GitHub et version dans un bouton noir, sans halo. */
+.project-navigation button.project-navigation__signature { display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto; height: 24px; padding: 0 9px; border: 1px solid #ffffff1a; border-radius: 999px; background: #000; color: #ffffff73; font-family: var(--font-mono); font-size: 10px; font-weight: 400; letter-spacing: 0.03em; line-height: 1; white-space: nowrap; cursor: pointer; transition: color var(--duration-fast) var(--easing-ui), background-color var(--duration-fast) var(--easing-ui), border-color var(--duration-fast) var(--easing-ui); }
 .project-navigation button.project-navigation__signature svg { flex: 0 0 auto; opacity: 0.7; transition: opacity var(--duration-fast) var(--easing-ui); }
 .project-navigation__signature-version { color: inherit; }
-.project-navigation button.project-navigation__signature:hover:not(:disabled) { color: #f7f7fb; background: #121218; border-color: color-mix(in srgb, var(--color-primary) 55%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 28%, transparent), 0 0 12px color-mix(in srgb, var(--color-primary) 32%, transparent); }
+.project-navigation button.project-navigation__signature:hover:not(:disabled) { color: #f7f7fb; background: #121218; border-color: color-mix(in srgb, var(--color-primary) 55%, transparent); }
 .project-navigation button.project-navigation__signature:hover:not(:disabled) svg { opacity: 1; }
 .project-navigation button.project-navigation__signature:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .project-navigation button.project-navigation__presentation-exit { padding: 4px 9px; gap: 5px; border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border)); color: var(--color-primary); }
