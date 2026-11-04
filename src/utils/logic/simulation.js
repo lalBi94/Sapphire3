@@ -3,7 +3,7 @@ import { validateLiteral, convertConstant, evaluateBinary, evaluateUnary } from 
 import { createDebugRecorder } from './debugTrace.js'
 import { satisfiesContract, normalizeContracts } from './contracts.js'
 import { getMathNative } from './mathNatives.js'
-import { readScreenStates } from './screenState.js'
+import { createScreenStateReader, sameScreenStates } from './screenState.js'
 
 // Ajoute un code stable sans introduire de traduction ni de dépendance UI dans le moteur.
 function simulationError(code, message) {
@@ -36,6 +36,10 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   const output = []
   const trace = []
   let steps = 0
+  const screenReader = (project.modules ?? []).some((module) => module.screen) ? createScreenStateReader(project) : null
+  const screenFrames = []
+  const maximumScreenFrames = 240
+  let lastScreens = null
   const breakSignal = Symbol('break')
   const continueSignal = Symbol('continue')
   const uninitialized = Symbol('uninitialized')
@@ -83,6 +87,15 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     if (steps > maxSteps) throw simulationError('SIMULATION_STEP_LIMIT', 'Simulation step limit reached.')
     trace.push(node.id)
     return node
+  }
+
+  // Conserve une image d'écran après une écriture native, sans dupliquer un état identique.
+  function captureScreens() {
+    if (!screenReader || screenFrames.length >= maximumScreenFrames) return
+    const current = screenReader(global.values)
+    if (sameScreenStates(lastScreens, current)) return
+    lastScreens = current
+    screenFrames.push(current)
   }
 
   // Cherche une déclaration dans les environnements lexicaux actifs, sans valeur implicite.
@@ -207,7 +220,9 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       const definition = getMathNative(node.properties?.name)
       if (!definition) throw simulationError('SIMULATION_REFERENCE', 'The math operation cannot be resolved.')
       const args = (node.children?.arguments ?? []).map((id) => valueOf(nodes.get(id), environment))
-      return definition.run(args)
+      const value = definition.run(args)
+      if (definition.id.startsWith('screen')) captureScreens()
+      return value
     }
     if (node.kind === 'ArrayLiteral') {
       return (node.children.elements ?? []).map((id) => valueOf(nodes.get(id), environment))
@@ -444,6 +459,10 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   }
 
   const global = { values: new Map(), parent: null }
+  if (screenReader) {
+    lastScreens = screenReader(global.values)
+    screenFrames.push(lastScreens)
+  }
   const debug = captureDebug ? createDebugRecorder(analysis, global, output, uninitialized) : null
   let lastEnvironment = global
   let lastScopes = []
@@ -465,14 +484,15 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       returnValue: returned === undefined ? null : formatValue(returned),
       steps,
       variables: collectVariables(),
-      screens: readScreenStates(project, global.values),
+      screens: screenReader ? screenReader(global.values) : {},
       contracts: { total: contracts.reduce((count, entry) => count + entry.kinds.length, 0), observations: contractObservations, violations: contractViolations },
       ...(debug ? { debugFrames: debug.frames } : {}),
+      ...(screenReader ? { screenFrames } : {}),
     }
   } catch (error) {
     const errorCode = error?.code ?? 'SIMULATION_FAILED'
     debug?.record(lastInstructionId, lastEnvironment, lastScopes, 'error', errorCode)
-    return { ok: false, output, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, screens: readScreenStates(project, global.values), ...(debug ? { debugFrames: debug.frames } : {}) }
+    return { ok: false, output, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, screens: screenReader ? screenReader(global.values) : {}, ...(debug ? { debugFrames: debug.frames } : {}), ...(screenReader ? { screenFrames } : {}) }
   }
 }
 

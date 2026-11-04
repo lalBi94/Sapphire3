@@ -60,6 +60,7 @@ export default function Canvas() {
   const [fullScreen, setFullScreen] = useState(false)
   const [simulationResult, setSimulationResult] = useState(null)
   const [execution, setExecution] = useState(null)
+  const [screenFrameIndex, setScreenFrameIndex] = useState(0)
   const [debugSession, setDebugSession] = useState(null)
   const [memoryOpen, setMemoryOpen] = useState(false)
   const [pointerGraphOpen, setPointerGraphOpen] = useState(false)
@@ -115,6 +116,21 @@ export default function Canvas() {
     return () => window.clearTimeout(timer)
   }, [execution])
 
+  // Remet la lecture des images d'écran au début de chaque nouvelle simulation.
+  useEffect(() => {
+    setScreenFrameIndex(0)
+  }, [simulationResult])
+
+  // Rejoue en boucle les images d'écran capturées, indépendamment de la trace des nœuds.
+  useEffect(() => {
+    const frames = simulationResult?.screenFrames
+    if (!frames?.length || !execution?.running) return undefined
+    const timer = window.setInterval(() => {
+      setScreenFrameIndex((current) => current >= frames.length - 1 ? 0 : current + 1)
+    }, 110)
+    return () => window.clearInterval(timer)
+  }, [simulationResult, execution?.running])
+
   useEffect(() => {
     if (!flowRun?.running) return undefined
     const timer = window.setTimeout(() => {
@@ -128,8 +144,12 @@ export default function Canvas() {
   }, [flowRun])
 
   const debugFrame = debugSession?.project === document.project ? debugSession.frames[debugSession.cursor] : null
-  // État visuel courant des écrans : frame de debug prioritaire, sinon résultat de simulation.
-  const screenStates = debugFrame?.screens ?? simulationResult?.screens ?? {}
+  // Images d'écran rejouées pendant Run ; une pause ou un arrêt fige l'image courante.
+  const activeScreenFrames = simulationResult?.screenFrames?.length && execution && (execution.running || execution.paused || execution.stopped)
+    ? simulationResult.screenFrames[Math.min(screenFrameIndex, simulationResult.screenFrames.length - 1)]
+    : null
+  // État visuel courant des écrans : frame de debug prioritaire, puis lecture Run, sinon état final.
+  const screenStates = debugFrame?.screens ?? activeScreenFrames ?? simulationResult?.screens ?? {}
   const selectedScreen = selected?.kind === 'module' && document.cards.some((card) => card.id === selected.id && card.type === 'screen')
   // Valeurs des variables et paramètres visibles, limitées à l'arrêt de debug courant.
   const debugValues = useMemo(() => debugFrame ? buildDebugValues(document.index, debugFrame) : null, [document.index, debugFrame])
@@ -386,6 +406,7 @@ export default function Canvas() {
     setFlowRun(null)
     setDebugSession(null)
     const result = simulateProgram(document.project)
+    setScreenFrameIndex(0)
     setSimulationResult(result)
     setExecution(result.ok && result.trace.length > 0 ? { trace: result.trace, index: 0, running: true, paused: false, stopped: false } : null)
   }

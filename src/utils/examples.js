@@ -481,36 +481,55 @@ function pixelScreens() {
   b.project.nodes.push(...one.nodes, ...two.nodes)
   b.useModule('screenPatterns', 'Screen patterns')
 
-  // Ajoute une boucle qui remplit une plage de pixels via la fonction importée d'un écran.
-  function drawLoop(prefix, start, end, importId, red, green, blue) {
-    b.make(`${prefix}Declaration`, 'VariableDeclaration', { name: 'i', type: intType }, { initializer: `${prefix}Start` })
-    b.intValue(`${prefix}Start`, start)
-    b.make(`${prefix}Test`, 'BinaryExpression', { operator: '<' }, { left: `${prefix}Index`, right: `${prefix}End` })
-    b.ref(`${prefix}Index`, 'i')
-    b.intValue(`${prefix}End`, end)
-    b.make(`${prefix}Update`, 'AssignmentStatement', {}, { target: `${prefix}Target`, value: `${prefix}Next` })
-    b.ref(`${prefix}Target`, 'i')
-    b.binary(`${prefix}Next`, '+', `${prefix}Left`, `${prefix}One`)
-    b.ref(`${prefix}Left`, 'i')
+  // Construit l'indice de la traînée : base + signe × max(frame - 1, 0) × pas.
+  function trailIndex(prefix, base, sign, step) {
+    b.binary(`${prefix}Previous`, '-', `${prefix}Frame`, `${prefix}One`)
+    b.ref(`${prefix}Frame`, 'frame')
     b.intValue(`${prefix}One`, 1)
-    b.make(`${prefix}CallStatement`, 'ExpressionStatement', {}, { expression: `${prefix}Call` })
-    b.make(`${prefix}Call`, 'CallExpression', {}, { callee: `${prefix}Callee`, arguments: [`${prefix}Pixel`, `${prefix}Red`, `${prefix}Green`, `${prefix}Blue`, `${prefix}Alpha`] })
-    b.make(`${prefix}Callee`, 'Reference', {}, {}, { target: { kind: 'import', importId: importId } })
-    b.ref(`${prefix}Pixel`, 'i')
+    b.intValue(`${prefix}Zero`, 0)
+    b.make(`${prefix}Clamped`, 'MathCall', { name: 'max' }, { arguments: [`${prefix}Previous`, `${prefix}Zero`] })
+    b.binary(`${prefix}Offset`, '*', `${prefix}Clamped`, `${prefix}Step`)
+    b.intValue(`${prefix}Step`, step)
+    b.intValue(`${prefix}Base`, base)
+    b.binary(`${prefix}Index`, sign > 0 ? '+' : '-', `${prefix}Base`, `${prefix}Offset`)
+    return `${prefix}Index`
+  }
+
+  // Construit l'indice de la tête : base + signe × frame × pas.
+  function headIndex(prefix, base, sign, step) {
+    b.binary(`${prefix}Offset`, '*', `${prefix}Frame`, `${prefix}Step`)
+    b.ref(`${prefix}Frame`, 'frame')
+    b.intValue(`${prefix}Step`, step)
+    b.intValue(`${prefix}Base`, base)
+    b.binary(`${prefix}Index`, sign > 0 ? '+' : '-', `${prefix}Base`, `${prefix}Offset`)
+    return `${prefix}Index`
+  }
+
+  // Ajoute un appel d'écriture de pixel avec ses cinq arguments.
+  function pixelCall(prefix, importId, pixel, red, green, blue, alpha) {
+    b.make(`${prefix}Statement`, 'ExpressionStatement', {}, { expression: `${prefix}Call` })
+    b.call(`${prefix}Call`, `${prefix}Callee`, [pixel, `${prefix}Red`, `${prefix}Green`, `${prefix}Blue`, `${prefix}Alpha`])
+    b.make(`${prefix}Callee`, 'Reference', {}, {}, { target: { kind: 'import', importId } })
     b.intValue(`${prefix}Red`, red)
     b.intValue(`${prefix}Green`, green)
     b.intValue(`${prefix}Blue`, blue)
-    b.intValue(`${prefix}Alpha`, 255)
-    b.block(`${prefix}Body`, [`${prefix}CallStatement`])
-    return b.make(`${prefix}Loop`, 'ForStatement', {}, { initializer: `${prefix}Declaration`, test: `${prefix}Test`, update: `${prefix}Update`, body: `${prefix}Body` })
+    b.intValue(`${prefix}Alpha`, alpha)
+    return `${prefix}Statement`
   }
 
-  b.root('drawOne', 'FunctionDeclaration', { name: 'drawOne', type: voidType }, { parameters: [], body: 'drawOneBody' })
-  b.block('drawOneBody', ['oneLoop'])
-  drawLoop('one', 0, 45, 'setOneImport', 255, 72, 72)
-  b.root('drawTwo', 'FunctionDeclaration', { name: 'drawTwo', type: voidType }, { parameters: [], body: 'drawTwoBody' })
-  b.block('drawTwoBody', ['twoLoop'])
-  drawLoop('two', 45, 90, 'setTwoImport', 72, 144, 255)
+  // Chaque fonction déplace une tête lumineuse et laisse la position précédente en traînée.
+  b.root('drawOne', 'FunctionDeclaration', { name: 'drawOne', type: voidType }, { parameters: ['drawOneFrame'], body: 'drawOneBody' })
+  b.make('drawOneFrame', 'Parameter', { name: 'frame', type: intType })
+  b.block('drawOneBody', [
+    pixelCall('oneTrail', 'setOneImport', trailIndex('oneTrail', 0, 1, 16), 92, 76, 24, 120),
+    pixelCall('oneHead', 'setOneImport', headIndex('oneHead', 0, 1, 16), 255, 213, 71, 255),
+  ])
+  b.root('drawTwo', 'FunctionDeclaration', { name: 'drawTwo', type: voidType }, { parameters: ['drawTwoFrame'], body: 'drawTwoBody' })
+  b.make('drawTwoFrame', 'Parameter', { name: 'frame', type: intType })
+  b.block('drawTwoBody', [
+    pixelCall('twoTrail', 'setTwoImport', trailIndex('twoTrail', 134, -1, 16), 78, 68, 104, 120),
+    pixelCall('twoHead', 'setTwoImport', headIndex('twoHead', 134, -1, 16), 196, 177, 255, 255),
+  ])
   const patterns = b.project.modules.find((module) => module.id === 'screenPatterns')
   patterns.exports.push({ nodeId: 'drawOne', name: 'drawOne' }, { nodeId: 'drawTwo', name: 'drawTwo' })
   const setOne = one.module.exports.find((entry) => entry.name === 'SCREEN_SP3_SET_PIXEL_1')
@@ -519,22 +538,36 @@ function pixelScreens() {
 
   b.useModule('screenApp', 'Screen app')
   b.root('screenMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'screenMainBody' })
-  b.block('screenMainBody', ['drawOneStatement', 'drawTwoStatement', 'screenPrint'])
-  b.make('drawOneStatement', 'ExpressionStatement', {}, { expression: 'drawOneCall' })
-  b.make('drawOneCall', 'CallExpression', {}, { callee: 'drawOneRef', arguments: [] })
-  b.make('drawOneRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'drawOneImport' } })
-  b.make('drawTwoStatement', 'ExpressionStatement', {}, { expression: 'drawTwoCall' })
-  b.make('drawTwoCall', 'CallExpression', {}, { callee: 'drawTwoRef', arguments: [] })
-  b.make('drawTwoRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'drawTwoImport' } })
+  b.block('screenMainBody', ['screenLoop', 'screenPrint'])
+  b.make('screenFrame', 'VariableDeclaration', { name: 'frame', type: intType }, { initializer: 'screenFrameStart' })
+  b.intValue('screenFrameStart', 0)
+  b.make('screenTest', 'BinaryExpression', { operator: '<' }, { left: 'screenFrameIndex', right: 'screenFrameEnd' })
+  b.ref('screenFrameIndex', 'frame')
+  b.intValue('screenFrameEnd', 9)
+  b.make('screenUpdate', 'AssignmentStatement', {}, { target: 'screenFrameTarget', value: 'screenFrameNext' })
+  b.ref('screenFrameTarget', 'frame')
+  b.binary('screenFrameNext', '+', 'screenFrameLeft', 'screenFrameOne')
+  b.ref('screenFrameLeft', 'frame')
+  b.intValue('screenFrameOne', 1)
+  b.make('screenOneStatement', 'ExpressionStatement', {}, { expression: 'screenOneCall' })
+  b.call('screenOneCall', 'screenOneRef', ['screenOneFrame'])
+  b.make('screenOneRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'drawOneImport' } })
+  b.ref('screenOneFrame', 'frame')
+  b.make('screenTwoStatement', 'ExpressionStatement', {}, { expression: 'screenTwoCall' })
+  b.call('screenTwoCall', 'screenTwoRef', ['screenTwoFrame'])
+  b.make('screenTwoRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'drawTwoImport' } })
+  b.ref('screenTwoFrame', 'frame')
+  b.block('screenLoopBody', ['screenOneStatement', 'screenTwoStatement'])
+  b.make('screenLoop', 'ForStatement', {}, { initializer: 'screenFrame', test: 'screenTest', update: 'screenUpdate', body: 'screenLoopBody' })
   b.print('screenPrint', 'screenMessage')
-  b.make('screenMessage', 'Literal', { type: { kind: 'primitive', name: 'string' }, value: 'Screens drawn' })
+  b.make('screenMessage', 'Literal', { type: { kind: 'primitive', name: 'string' }, value: 'Screens moving' })
   const app = b.project.modules.find((module) => module.id === 'screenApp')
   app.imports.push({ id: 'drawOneImport', moduleId: 'screenPatterns', nodeId: 'drawOne', localName: 'drawOne' }, { id: 'drawTwoImport', moduleId: 'screenPatterns', nodeId: 'drawTwo', localName: 'drawTwo' })
 
   return workspace(b.project, [
-    note('screenOneNote', 'Screen one', 'Écran 15×9. drawOne remplit ses 45 premiers pixels en rouge via SCREEN_SP3_SET_PIXEL_1.', 0, 620, 420, 170),
-    note('screenTwoNote', 'Screen two', 'Écran 15×9. drawTwo remplit les 45 pixels suivants en bleu via SCREEN_SP3_SET_PIXEL_2.', 600, 620, 420, 170),
-    note('screenMainNote', 'Two screens', 'main importe drawOne et drawTwo depuis Screen patterns, puis affiche « Screens drawn ». Run met les deux écrans à jour ; Debug permet de suivre chaque pixel.', 1200, 0, 420, 220),
+    note('screenOneNote', 'Screen one', 'Écran 15×9. drawOne(frame) fait avancer une tête jaune sur une diagonale et laisse une traînée sombre derrière elle.', 0, 620, 420, 170),
+    note('screenTwoNote', 'Screen two', 'Écran 15×9. drawTwo(frame) fait avancer une tête violette sur la diagonale inverse, avec sa propre traînée.', 600, 620, 420, 170),
+    note('screenMainNote', 'Two screens', 'main boucle sur 9 images et appelle drawOne puis drawTwo à chaque tour. Run rejoue les images capturées en boucle sur les deux écrans ; Debug permet de suivre chaque écriture.', 1200, 0, 420, 220),
   ])
 }
 

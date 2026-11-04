@@ -19,7 +19,7 @@ const expectedOutput = {
   higherOrder: ['42'],
   maths: ['7', '3', '9', '9'],
   calculus: ['6', '0.3333333333333333'],
-  pixelScreens: ['Screens drawn'],
+  pixelScreens: ['Screens moving'],
 }
 
 test('bibliothèque d’exemples : chaque projet est valide, analysable et s’exécute', () => {
@@ -47,6 +47,11 @@ test('exemple écrans pixel : deux écrans distincts et transpilation refusée',
   const states = Object.values(result.screens)
   assert.equal(states.every((state) => state.width === 15 && state.height === 9), true)
   assert.notDeepEqual(states[0].pixels.slice(0, 8), states[1].pixels.slice(180, 188))
+  assert.ok(result.screenFrames.length > 2)
+  const first = result.screenFrames[0]
+  const last = result.screenFrames[result.screenFrames.length - 1]
+  assert.notDeepEqual(first.screenOne.pixels, last.screenOne.pixels)
+  assert.notDeepEqual(first.screenTwo.pixels, last.screenTwo.pixels)
   assert.equal(transpileProgram(workspace.project).code, 'TRANSPILE_SCREEN_UNSUPPORTED')
 })
 
