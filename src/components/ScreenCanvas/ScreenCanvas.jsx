@@ -25,6 +25,7 @@ export default function ScreenCanvas({ card, state = null, frames = null, screen
   const canvasRef = useRef(null)
   const imageRef = useRef(null)
   const playbackRef = useRef(0)
+  const playbackDirectionRef = useRef(1)
   const framesRef = useRef(null)
   const width = state?.width ?? card.screenWidth ?? 15
   const height = state?.height ?? card.screenHeight ?? 9
@@ -43,6 +44,7 @@ export default function ScreenCanvas({ card, state = null, frames = null, screen
     if (framesRef.current !== frames) {
       framesRef.current = frames
       playbackRef.current = 0
+      playbackDirectionRef.current = 1
     }
     const canvas = canvasRef.current
     if (!canvas || !frames?.length || !screenId) return undefined
@@ -54,7 +56,17 @@ export default function ScreenCanvas({ card, state = null, frames = null, screen
     draw()
     if (!playing) return undefined
     const timer = window.setInterval(() => {
-      playbackRef.current = playbackRef.current >= frames.length - 1 ? 0 : playbackRef.current + 1
+      const last = frames.length - 1
+      if (last <= 0) return
+      let next = playbackRef.current + playbackDirectionRef.current
+      if (next > last) {
+        playbackDirectionRef.current = -1
+        next = last - 1
+      } else if (next < 0) {
+        playbackDirectionRef.current = 1
+        next = 1
+      }
+      playbackRef.current = next
       draw()
     }, 33)
     return () => window.clearInterval(timer)

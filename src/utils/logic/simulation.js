@@ -461,7 +461,8 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   const global = { values: new Map(), parent: null }
   if (screenReader) {
     lastScreens = screenReader(global.values)
-    screenFrames.push(lastScreens)
+    const visible = Object.values(lastScreens).some((screen) => screen.pixels.some((value, index) => index % 4 === 3 && value > 0))
+    if (visible) screenFrames.push(lastScreens)
   }
   const debug = captureDebug ? createDebugRecorder(analysis, global, output, uninitialized) : null
   let lastEnvironment = global
