@@ -567,7 +567,7 @@ function pixelScreens() {
   return workspace(b.project, [
     note('screenOneNote', 'Screen one', 'Écran 15×9. drawOne(frame) fait avancer une tête jaune sur une diagonale et laisse une traînée sombre derrière elle.', 0, 620, 420, 170),
     note('screenTwoNote', 'Screen two', 'Écran 15×9. drawTwo(frame) fait avancer une tête violette sur la diagonale inverse, avec sa propre traînée.', 600, 620, 420, 170),
-    note('screenMainNote', 'Two screens', 'main boucle sur 9 images et appelle drawOne puis drawTwo à chaque tour. Run rejoue les images capturées en boucle sur les deux écrans ; Debug permet de suivre chaque écriture.', 1200, 0, 420, 220),
+    note('screenMainNote', 'Two screens', 'main boucle sur 9 images et appelle drawOne puis drawTwo à chaque tour. Run rejoue les images capturées sur les deux écrans puis conserve la dernière image ; Debug permet de suivre chaque écriture.', 1200, 0, 420, 220),
   ])
 }
 
@@ -747,7 +747,7 @@ function gameOfLife() {
   intLiteral('lifeFrameStart', 1)
   b.binary('lifeTest', '<', 'lifeTestFrame', 'lifeTestEnd')
   frameRef('lifeTestFrame')
-  intLiteral('lifeTestEnd', 3)
+  intLiteral('lifeTestEnd', 8)
   b.make('lifeUpdate', 'AssignmentStatement', {}, { target: 'lifeUpdateTarget', value: 'lifeUpdateValue' })
   frameRef('lifeUpdateTarget')
   b.binary('lifeUpdateValue', '+', 'lifeUpdateFrame', 'lifeUpdateOne')
@@ -770,7 +770,7 @@ function gameOfLife() {
   const result = workspace(b.project, [
     note('lifeScreenNote', 'Game of life', 'Écran 90×56. La hauteur arrondit 90/φ ≈ 55,6. Le planeur, le clignotant et le bloc sont des motifs classiques du jeu de la vie. $$90 \\times \\lfloor 90/\\varphi \\rfloor = 90 \\times 56$$', 0, 580, 760, 220),
     note('lifePatternsNote', 'Classic patterns', 'Le planeur avance d’une cellule par génération en parcourant ses phases ; le clignotant alterne horizontal et vertical ; le bloc reste stable.', 820, 460, 520, 220),
-    note('lifeAppNote', 'Three generations', 'main dessine la génération 0 puis boucle sur les générations 1 et 2. Run rejoue les images en boucle ; Debug permet de suivre chaque pixel.', 1440, 460, 520, 220),
+    note('lifeAppNote', 'Eight generations', 'main dessine la génération 0 puis boucle sur les générations 1 à 7. Run rejoue les images capturées puis conserve la dernière génération ; Debug permet de suivre chaque pixel.', 1440, 460, 520, 220),
   ])
   const cards = result.presentation.cards
   const screenCard = cards.find((card) => card.id === 'lifeScreen')

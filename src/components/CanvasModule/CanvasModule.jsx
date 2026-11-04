@@ -65,7 +65,7 @@ function ModuleEmoji({ emoji, onChange }) {
 }
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, onScreenScaleChange, screenState = null, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, onScreenScaleChange, screenState = null, screenFrames = null, screenPlaying = false, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -368,7 +368,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         </button>}
       </header>
       {definition.hasScreen ? (
-        <div className="canvas-module__content" data-canvas-scroll><ScreenCanvas card={module} state={screenState} readOnly={readOnly} onScale={(scale) => onScreenScaleChange?.(module.id, scale)} /></div>
+        <div className="canvas-module__content" data-canvas-scroll><ScreenCanvas card={module} state={screenState} frames={screenFrames} screenId={module.id} playing={screenPlaying} readOnly={readOnly} onScale={(scale) => onScreenScaleChange?.(module.id, scale)} /></div>
       ) : definition.hasText ? (
         readOnly ? (
           <div className="canvas-module__comment canvas-module__comment--view canvas-module__comment--readonly">

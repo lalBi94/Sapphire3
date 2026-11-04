@@ -3,10 +3,29 @@ import { Minus, Plus } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './ScreenCanvas.css'
 
+// Peint un état d'écran en réutilisant la même ImageData pour éviter une allocation par frame.
+function paintScreen(context, imageRef, state, fallbackWidth, fallbackHeight) {
+  const width = state?.width ?? fallbackWidth
+  const height = state?.height ?? fallbackHeight
+  const pixels = state?.pixels ?? []
+  let image = imageRef.current
+  if (!image || image.width !== width || image.height !== height) {
+    image = context.createImageData(width, height)
+    imageRef.current = image
+  }
+  const data = image.data
+  const length = width * height * 4
+  for (let index = 0; index < length; index += 1) data[index] = pixels[index] ?? 0
+  context.putImageData(image, 0, 0)
+}
+
 // Dessine le tampon RGBA de l'écran dans un canvas, sans allocation de grille DOM.
-export default function ScreenCanvas({ card, state = null, readOnly = false, onScale }) {
+export default function ScreenCanvas({ card, state = null, frames = null, screenId = null, playing = false, readOnly = false, onScale }) {
   const { t } = useTranslation()
   const canvasRef = useRef(null)
+  const imageRef = useRef(null)
+  const playbackRef = useRef(0)
+  const framesRef = useRef(null)
   const width = state?.width ?? card.screenWidth ?? 15
   const height = state?.height ?? card.screenHeight ?? 9
   const pixels = state?.pixels ?? []
@@ -16,18 +35,34 @@ export default function ScreenCanvas({ card, state = null, readOnly = false, onS
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const context = canvas.getContext('2d')
-    context.clearRect(0, 0, width, height)
-    for (let index = 0; index < width * height; index += 1) {
-      const offset = index * 4
-      const red = pixels[offset] ?? 0
-      const green = pixels[offset + 1] ?? 0
-      const blue = pixels[offset + 2] ?? 0
-      const alpha = pixels[offset + 3] ?? 0
-      context.fillStyle = `rgba(${red}, ${green}, ${blue}, ${alpha / 255})`
-      context.fillRect(index % width, Math.floor(index / width), 1, 1)
+    paintScreen(canvas.getContext('2d'), imageRef, state, width, height)
+  }, [state, width, height])
+
+  // Rejoue les images capturées à environ 30 fps directement dans le canvas, sans état React par frame.
+  useEffect(() => {
+    if (framesRef.current !== frames) {
+      framesRef.current = frames
+      playbackRef.current = 0
     }
-  }, [pixels, width, height])
+    const canvas = canvasRef.current
+    if (!canvas || !frames?.length || !screenId) return undefined
+    const context = canvas.getContext('2d')
+    const draw = () => {
+      const frame = frames[Math.min(playbackRef.current, frames.length - 1)]?.[screenId] ?? null
+      if (frame) paintScreen(context, imageRef, frame, width, height)
+    }
+    draw()
+    if (!playing) return undefined
+    const timer = window.setInterval(() => {
+      if (playbackRef.current >= frames.length - 1) {
+        window.clearInterval(timer)
+        return
+      }
+      playbackRef.current += 1
+      draw()
+    }, 33)
+    return () => window.clearInterval(timer)
+  }, [frames, screenId, playing, width, height])
 
   // Modifie uniquement l'échelle de présentation, dans les bornes de la carte.
   function changeScale(delta) {
@@ -47,6 +82,6 @@ export default function ScreenCanvas({ card, state = null, readOnly = false, onS
         <button type="button" aria-label={t('screen.scaleUp')} title={t('screen.scaleUp')} onClick={() => changeScale(0.25)}><Plus size={12} aria-hidden="true" /></button>
       </div>}
     </div>
-    {!state && <p className="screen-canvas__idle">{t('screen.idle')}</p>}
+    {!state && !frames?.length && <p className="screen-canvas__idle">{t('screen.idle')}</p>}
   </div>
 }
