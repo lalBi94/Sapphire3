@@ -252,10 +252,19 @@
   }
 }
 
-/* Le menu de nœuds n'utilise plus l'anneau lumineux : le pseudo-élément est retiré
-   pour éviter tout décalage visuel, le survol passe par un fond dégradé animé. */
-.node-menu-button::before,
-.logic-context-menu__actions button::before,
-.project-navigation__run::before {
+/* Les boutons n'utilisent plus l'anneau animé : le survol repose sur les fonds
+   et bordures stables déjà définis par les composants. Cela évite tout
+   tremblement de rendu pendant le survol, notamment sur Save et Create. */
+:is(
+  .glow-button,
+  .node-menu-button,
+  .node-form button[type='submit'],
+  .project-navigation__run,
+  .project-navigation__confirmation .project-navigation__primary,
+  .transpile-panel__actions button,
+  .logic-context-menu__actions button
+)::before {
   display: none !important;
+  animation: none !important;
+  filter: none !important;
 }
