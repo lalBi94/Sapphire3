@@ -600,7 +600,9 @@ function gameOfLife() {
   constantArray('rule', [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0])
   constantArray('palette', [0, 0, 0, 0, 255, 213, 71, 255])
 
-  // Pulsar 13×13, deux clignotants, un crapaud et quatre still lifes.
+  // Motifs classiques dont les périodes divisent 30 : pulsar (3), pentadécathlon (15),
+  // clignotants et crapauds (2), still lifes (1). La génération 30 égale donc la génération 0,
+  // ce qui permet une boucle avant infinie et sans raccord visible.
   const pulsar = [
     [2, 0], [3, 0], [4, 0], [8, 0], [9, 0], [10, 0],
     [0, 2], [5, 2], [7, 2], [12, 2],
@@ -613,16 +615,40 @@ function gameOfLife() {
     [0, 10], [5, 10], [7, 10], [12, 10],
     [2, 12], [3, 12], [4, 12], [8, 12], [9, 12], [10, 12],
   ]
+  const pentadecathlon = [
+    [2, 0], [7, 0],
+    [0, 1], [1, 1], [3, 1], [4, 1], [5, 1], [6, 1], [8, 1], [9, 1],
+    [2, 2], [7, 2],
+  ]
+  const blinker = [[0, 0], [1, 0], [2, 0]]
+  const toad = [[1, 0], [2, 0], [3, 0], [0, 1], [1, 1], [2, 1]]
+  const block = [[0, 0], [1, 0], [0, 1], [1, 1]]
+  const beehive = [[1, 0], [2, 0], [0, 1], [3, 1], [1, 2], [2, 2]]
+  const tub = [[1, 0], [0, 1], [2, 1], [1, 2]]
+  const boat = [[0, 0], [1, 0], [0, 1], [2, 1], [1, 2]]
+
   const seeds = []
   const add = (baseX, baseY, cells) => { for (const [x, y] of cells) seeds.push([baseX + x, baseY + y]) }
-  add(10, 14, pulsar)
-  add(70, 20, [[0, 0], [1, 0], [2, 0]])
-  add(30, 44, [[0, 0], [1, 0], [2, 0]])
-  add(70, 40, [[1, 0], [2, 0], [3, 0], [0, 1], [1, 1], [2, 1]])
-  add(50, 12, [[0, 0], [1, 0], [0, 1], [1, 1]])
-  add(80, 30, [[0, 0], [1, 0], [0, 1], [1, 1]])
-  add(5, 40, [[1, 0], [2, 0], [0, 1], [3, 1], [1, 2], [2, 2]])
-  add(50, 25, [[1, 0], [2, 0], [0, 1], [3, 1], [1, 2], [2, 2]])
+  add(6, 6, pulsar)
+  add(66, 6, pulsar)
+  add(30, 4, pentadecathlon)
+  add(30, 24, pentadecathlon)
+  add(52, 4, blinker)
+  add(52, 20, blinker)
+  add(76, 26, blinker)
+  add(30, 40, toad)
+  add(60, 40, toad)
+  add(5, 30, block)
+  add(20, 30, block)
+  add(43, 30, block)
+  add(60, 32, block)
+  add(80, 34, block)
+  add(5, 42, beehive)
+  add(21, 44, beehive)
+  add(45, 44, tub)
+  add(72, 44, tub)
+  add(12, 50, boat)
+  add(56, 50, boat)
 
   // Affecte les cellules de départ de la grille.
   const seedStatements = seeds.map(([x, y], index) => {
@@ -634,30 +660,6 @@ function gameOfLife() {
     b.make(`${prefix}Statement`, 'AssignmentStatement', {}, { target: `${prefix}Target`, value: `${prefix}Value` })
     return `${prefix}Statement`
   })
-
-  // Bande d'aléa : les premières lignes reçoivent une cellule vivante ou morte au hasard.
-  // La zone reste séparée des motifs fixes, plus bas.
-  const noiseRows = 5
-  const noiseCells = noiseRows * 90
-  b.make('lifeNoiseIndex', 'VariableDeclaration', { name: 'i', type: intType }, { initializer: 'lifeNoiseStart' })
-  b.intValue('lifeNoiseStart', 0)
-  b.binary('lifeNoiseTest', '<', 'lifeNoiseI', 'lifeNoiseEnd')
-  b.ref('lifeNoiseI', 'i')
-  b.intValue('lifeNoiseEnd', noiseCells)
-  b.make('lifeNoiseUpdate', 'AssignmentStatement', {}, { target: 'lifeNoiseUpdateTarget', value: 'lifeNoiseUpdateValue' })
-  b.ref('lifeNoiseUpdateTarget', 'i')
-  b.binary('lifeNoiseUpdateValue', '+', 'lifeNoiseUpdateI', 'lifeNoiseUpdateOne')
-  b.ref('lifeNoiseUpdateI', 'i')
-  b.intValue('lifeNoiseUpdateOne', 1)
-  b.make('lifeNoiseTarget', 'ArrayAccess', {}, { array: 'lifeNoiseGrid', index: 'lifeNoiseIndexRef' })
-  b.ref('lifeNoiseGrid', 'grid')
-  b.ref('lifeNoiseIndexRef', 'i')
-  b.make('lifeNoiseValue', 'MathCall', { name: 'randomInt' }, { arguments: ['lifeNoiseZero', 'lifeNoiseOne'] })
-  b.intValue('lifeNoiseZero', 0)
-  b.intValue('lifeNoiseOne', 1)
-  b.make('lifeNoiseAssign', 'AssignmentStatement', {}, { target: 'lifeNoiseTarget', value: 'lifeNoiseValue' })
-  b.block('lifeNoiseBody', ['lifeNoiseAssign'])
-  b.make('lifeNoiseLoop', 'ForStatement', {}, { initializer: 'lifeNoiseIndex', test: 'lifeNoiseTest', update: 'lifeNoiseUpdate', body: 'lifeNoiseBody' })
 
   // Appelle les natives génériques de grille.
   function gridCall(id, name, args) {
@@ -706,7 +708,7 @@ function gameOfLife() {
   b.intValue('lifeGenerationStart', 0)
   b.binary('lifeGenerationTest', '<', 'lifeGenerationIndex', 'lifeGenerationEnd')
   b.ref('lifeGenerationIndex', 'generation')
-  b.intValue('lifeGenerationEnd', 36)
+  b.intValue('lifeGenerationEnd', 60)
   b.make('lifeGenerationUpdate', 'AssignmentStatement', {}, { target: 'lifeGenerationTarget', value: 'lifeGenerationNext' })
   b.ref('lifeGenerationTarget', 'generation')
   b.binary('lifeGenerationNext', '+', 'lifeGenerationLeft', 'lifeGenerationOne')
@@ -714,7 +716,7 @@ function gameOfLife() {
   b.intValue('lifeGenerationOne', 1)
   b.block('lifeGenerationBody', ['lifeCountsAssign', 'lifeNextAssign', 'lifeGridAssign', 'lifeBlitStatement', 'lifePresentStatement'])
   b.make('lifeGenerationLoop', 'ForStatement', {}, { initializer: 'lifeGeneration', test: 'lifeGenerationTest', update: 'lifeGenerationUpdate', body: 'lifeGenerationBody' })
-  b.block('runLifeBody', [...seedStatements, 'lifeNoiseLoop', 'lifeGenerationLoop'])
+  b.block('runLifeBody', [...seedStatements, 'lifeGenerationLoop'])
   patterns.exports.push({ nodeId: 'runLife', name: 'runLife' })
 
   b.useModule('lifeApp', 'Life app')
@@ -729,9 +731,9 @@ function gameOfLife() {
   app.imports.push({ id: 'lifeRunImport', moduleId: 'lifePatterns', nodeId: 'runLife', localName: 'runLife' })
 
   const result = workspace(b.project, [
-    note('lifeScreenNote', 'Game of life', 'Écran 90×56. Les règles de Conway sont calculées par convolution et table de transition. Une bande aléatoire occupe le haut, des motifs fixes occupent le bas. $$90 \\times \\lfloor 90/\\varphi \\rfloor = 90 \\times 56$$', 0, 580, 760, 220),
-    note('lifePatternsNote', 'Real Life rules', 'La grille évolue avec arrayConvolve + arrayLookup, puis screenBlit et screenPresent. La bande du haut est tirée avec randomInt : chaque exécution donne une évolution différente.', 820, 460, 520, 220),
-    note('lifeAppNote', '36 generations', 'runLife sème la bande aléatoire et les motifs, puis applique 36 générations. L’UI rejoue les images en aller-retour continu, sans remise à zéro visible.', 1440, 460, 520, 220),
+    note('lifeScreenNote', 'Game of life', 'Écran 90×56. Les règles de Conway sont calculées par convolution et table de transition. Tous les motifs ont une période qui divise 30, donc la boucle est sans raccord. $$90 \\times \\lfloor 90/\\varphi \\rfloor = 90 \\times 56$$', 0, 580, 760, 220),
+    note('lifePatternsNote', 'Real Life rules', 'La grille évolue avec arrayConvolve + arrayLookup, puis screenBlit et screenPresent. Pulsars (3), pentadécathlons (15), clignotants et crapauds (2), still lifes (1) : la période commune est 30.', 820, 460, 520, 220),
+    note('lifeAppNote', 'Infinite loop', 'runLife sème les motifs puis applique 60 générations. L’UI détecte la période 30 et rejoue 30 images en boucle avant, à l’infini et sans remise à zéro visible.', 1440, 460, 520, 220),
   ])
   const cards = result.presentation.cards
   const screenCard = cards.find((card) => card.id === 'lifeScreen')

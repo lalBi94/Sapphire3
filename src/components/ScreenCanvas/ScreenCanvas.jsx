@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
+import { findFrameCycle } from '../../utils/screenPlayback.js'
 import './ScreenCanvas.css'
 
 // Peint un état d'écran en réutilisant la même ImageData pour éviter une allocation par frame.
@@ -26,6 +27,7 @@ export default function ScreenCanvas({ card, state = null, frames = null, screen
   const imageRef = useRef(null)
   const playbackRef = useRef(0)
   const playbackDirectionRef = useRef(1)
+  const cycleRef = useRef(0)
   const framesRef = useRef(null)
   const width = state?.width ?? card.screenWidth ?? 15
   const height = state?.height ?? card.screenHeight ?? 9
@@ -40,11 +42,13 @@ export default function ScreenCanvas({ card, state = null, frames = null, screen
   }, [state, width, height])
 
   // Rejoue les images capturées à environ 30 fps directement dans le canvas, sans état React par frame.
+  // Une période détectée donne une boucle avant infinie et sans raccord ; sinon, aller-retour.
   useEffect(() => {
     if (framesRef.current !== frames) {
       framesRef.current = frames
       playbackRef.current = 0
       playbackDirectionRef.current = 1
+      cycleRef.current = findFrameCycle(frames, screenId)
     }
     const canvas = canvasRef.current
     if (!canvas || !frames?.length || !screenId) return undefined
@@ -56,6 +60,13 @@ export default function ScreenCanvas({ card, state = null, frames = null, screen
     draw()
     if (!playing) return undefined
     const timer = window.setInterval(() => {
+      const cycle = cycleRef.current
+      if (cycle > 1) {
+        // Boucle périodique : on repart à l'image 0 après la dernière image du cycle.
+        playbackRef.current = (playbackRef.current + 1) % cycle
+        draw()
+        return
+      }
       const last = frames.length - 1
       if (last <= 0) return
       let next = playbackRef.current + playbackDirectionRef.current

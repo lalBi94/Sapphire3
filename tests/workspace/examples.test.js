@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process'
 import { examples, exampleCategories } from '../../src/utils/examples.js'
 import { deserializeWorkspace } from '../../src/utils/workspaceFile.js'
 import { analyzeProgram, simulateProgram } from '../../src/utils/logic/index.js'
+import { findFrameCycle } from '../../src/utils/screenPlayback.js'
 import { transpileProgram } from '../../src/utils/transpilation/index.js'
 
 const expectedOutput = {
@@ -56,7 +57,7 @@ test('exemple écrans pixel : deux écrans distincts et transpilation refusée',
   assert.equal(transpileProgram(workspace.project).code, 'TRANSPILE_SCREEN_UNSUPPORTED')
 })
 
-test('exemple jeu de la vie : écran 90×56 et générations animées', () => {
+test('exemple jeu de la vie : écran 90×56, règles de Conway et cycle infini', () => {
   const workspace = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'gameOfLife').build()))
   const screens = workspace.presentation.cards.filter((card) => card.type === 'screen')
   assert.equal(screens.length, 1)
@@ -64,13 +65,16 @@ test('exemple jeu de la vie : écran 90×56 et générations animées', () => {
   assert.equal(screens[0].screenHeight, 56)
   const result = simulateProgram(workspace.project)
   assert.equal(result.ok, true, result.errorCode)
-  assert.equal(result.screenFrames.length, 36)
-  assert.notDeepEqual(result.screenFrames[0].lifeScreen.pixels, result.screenFrames[result.screenFrames.length - 1].lifeScreen.pixels)
+  assert.equal(result.screenFrames.length, 60)
+  // Les motifs ont des périodes qui divisent 30 : la génération 30 égale la génération 0.
+  const cycle = findFrameCycle(result.screenFrames, 'lifeScreen')
+  assert.equal(cycle, 30)
+  assert.deepEqual(result.screenFrames[0].lifeScreen.pixels, result.screenFrames[cycle].lifeScreen.pixels)
   const lits = result.screenFrames.map((frame) => frame.lifeScreen.pixels.filter((value, index) => index % 4 === 3 && value > 0).length)
   assert.ok(lits.every((count) => count > 0))
+  assert.notDeepEqual(result.screenFrames[0].lifeScreen.pixels, result.screenFrames[7].lifeScreen.pixels)
   assert.equal(result.screens.lifeScreen.width, 90)
   assert.equal(result.screens.lifeScreen.height, 56)
-  assert.ok(result.screens.lifeScreen.pixels.some((value, index) => index % 4 !== 3 && value > 0))
   assert.equal(transpileProgram(workspace.project).code, 'TRANSPILE_SCREEN_UNSUPPORTED')
 })
 
