@@ -54,11 +54,7 @@ export default function ScreenCanvas({ card, state = null, frames = null, screen
     draw()
     if (!playing) return undefined
     const timer = window.setInterval(() => {
-      if (playbackRef.current >= frames.length - 1) {
-        window.clearInterval(timer)
-        return
-      }
-      playbackRef.current += 1
+      playbackRef.current = playbackRef.current >= frames.length - 1 ? 0 : playbackRef.current + 1
       draw()
     }, 33)
     return () => window.clearInterval(timer)

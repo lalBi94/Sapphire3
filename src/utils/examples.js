@@ -685,25 +685,35 @@ function gameOfLife() {
 
   patternFunction({ id: 'drawGlider', arrayX: 'gliderX', arrayY: 'gliderY', limit: 5, modulo: 4, shifted: true, shiftDivisor: 1, baseX: 12, baseY: 12, color: [255, 213, 71] })
   patternFunction({ id: 'drawBlinker', arrayX: 'blinkerX', arrayY: 'blinkerY', limit: 3, modulo: 2, shifted: false, baseX: 70, baseY: 20, color: [196, 177, 255] })
+  patternFunction({ id: 'drawBlinkerTwo', arrayX: 'blinkerX', arrayY: 'blinkerY', limit: 3, modulo: 2, shifted: false, baseX: 30, baseY: 44, color: [242, 166, 196] })
 
-  // Dessine un bloc fixe de quatre pixels.
-  b.root('drawBlock', 'FunctionDeclaration', { name: 'drawBlock', type: voidType }, { parameters: [], body: 'drawBlockBody' })
-  const blockStatements = [3670, 3671, 3760, 3761].map((pixel, index) => {
-    const prefix = `block${index}`
+  // Dessine plusieurs still lifes classiques, répartis sur l'écran.
+  b.root('drawStillLife', 'FunctionDeclaration', { name: 'drawStillLife', type: voidType }, { parameters: [], body: 'drawStillLifeBody' })
+  const stillLifeCells = [
+    [70, 40], [71, 40], [70, 41], [71, 41],
+    [60, 5], [61, 5], [60, 6], [61, 6],
+    [80, 30], [81, 30], [80, 31], [81, 31],
+    [51, 10], [52, 10], [50, 11], [53, 11], [51, 12], [52, 12],
+    [11, 40], [12, 40], [10, 41], [13, 41], [11, 42], [12, 42],
+    [76, 45], [75, 46], [77, 46], [76, 47],
+    [20, 5], [21, 5], [20, 6], [22, 6], [21, 7],
+  ]
+  const stillLifeStatements = stillLifeCells.map(([x, y], index) => {
+    const prefix = `still${index}`
     b.make(`${prefix}Statement`, 'ExpressionStatement', {}, { expression: `${prefix}Call` })
     b.call(`${prefix}Call`, `${prefix}Callee`, [`${prefix}Pixel`, `${prefix}Red`, `${prefix}Green`, `${prefix}Blue`, `${prefix}Alpha`])
     b.make(`${prefix}Callee`, 'Reference', {}, {}, { target: { kind: 'import', importId: 'setLifeImport' } })
-    b.intValue(`${prefix}Pixel`, pixel)
+    b.intValue(`${prefix}Pixel`, y * 90 + x)
     b.intValue(`${prefix}Red`, 126)
     b.intValue(`${prefix}Green`, 200)
     b.intValue(`${prefix}Blue`, 255)
     b.intValue(`${prefix}Alpha`, 255)
     return `${prefix}Statement`
   })
-  b.block('drawBlockBody', blockStatements)
+  b.block('drawStillLifeBody', stillLifeStatements)
 
   const patterns = b.project.modules.find((module) => module.id === 'lifePatterns')
-  patterns.exports.push({ nodeId: 'drawGlider', name: 'drawGlider' }, { nodeId: 'drawBlinker', name: 'drawBlinker' }, { nodeId: 'drawBlock', name: 'drawBlock' })
+  patterns.exports.push({ nodeId: 'drawGlider', name: 'drawGlider' }, { nodeId: 'drawBlinker', name: 'drawBlinker' }, { nodeId: 'drawBlinkerTwo', name: 'drawBlinkerTwo' }, { nodeId: 'drawStillLife', name: 'drawStillLife' })
   const setLife = screen.module.exports.find((entry) => entry.name === 'SCREEN_SP3_SET_PIXEL_1')
   patterns.imports.push({ id: 'setLifeImport', moduleId: 'lifeScreen', nodeId: setLife.nodeId, localName: 'setOne' })
 
@@ -741,13 +751,14 @@ function gameOfLife() {
   const lifeBody = [
     importedCall('lifeGliderStart', 'gliderImport', [intLiteral('lifeGliderStartFrame', 0), intLiteral('lifeGliderStartAlpha', 255)]),
     importedCall('lifeBlinkerStart', 'blinkerImport', [intLiteral('lifeBlinkerStartFrame', 0), intLiteral('lifeBlinkerStartAlpha', 255)]),
-    importedCall('lifeBlockStart', 'blockImport', []),
+    importedCall('lifeBlinkerTwoStart', 'blinkerTwoImport', [intLiteral('lifeBlinkerTwoStartFrame', 0), intLiteral('lifeBlinkerTwoStartAlpha', 255)]),
+    importedCall('lifeStillLifeStart', 'stillLifeImport', []),
   ]
   b.make('lifeFrame', 'VariableDeclaration', { name: 'frame', type: intType }, { initializer: 'lifeFrameStart' })
   intLiteral('lifeFrameStart', 1)
   b.binary('lifeTest', '<', 'lifeTestFrame', 'lifeTestEnd')
   frameRef('lifeTestFrame')
-  intLiteral('lifeTestEnd', 8)
+  intLiteral('lifeTestEnd', 7)
   b.make('lifeUpdate', 'AssignmentStatement', {}, { target: 'lifeUpdateTarget', value: 'lifeUpdateValue' })
   frameRef('lifeUpdateTarget')
   b.binary('lifeUpdateValue', '+', 'lifeUpdateFrame', 'lifeUpdateOne')
@@ -758,6 +769,8 @@ function gameOfLife() {
     importedCall('lifeGliderDraw', 'gliderImport', [frameRef('lifeGliderDrawFrame'), intLiteral('lifeGliderDrawAlpha', 255)]),
     importedCall('lifeBlinkerClear', 'blinkerImport', [previousFrame('lifeBlinkerClearPrevious'), intLiteral('lifeBlinkerClearAlpha', 0)]),
     importedCall('lifeBlinkerDraw', 'blinkerImport', [frameRef('lifeBlinkerDrawFrame'), intLiteral('lifeBlinkerDrawAlpha', 255)]),
+    importedCall('lifeBlinkerTwoClear', 'blinkerTwoImport', [previousFrame('lifeBlinkerTwoClearPrevious'), intLiteral('lifeBlinkerTwoClearAlpha', 0)]),
+    importedCall('lifeBlinkerTwoDraw', 'blinkerTwoImport', [frameRef('lifeBlinkerTwoDrawFrame'), intLiteral('lifeBlinkerTwoDrawAlpha', 255)]),
   ]
   b.block('lifeLoopBody', lifeLoopBody)
   b.make('lifeLoop', 'ForStatement', {}, { initializer: 'lifeFrame', test: 'lifeTest', update: 'lifeUpdate', body: 'lifeLoopBody' })
@@ -765,12 +778,12 @@ function gameOfLife() {
   b.make('lifeMessage', 'Literal', { type: { kind: 'primitive', name: 'string' }, value: 'Game of life' })
   b.block('lifeMainBody', [...lifeBody, 'lifeLoop', 'lifePrint'])
   const app = b.project.modules.find((module) => module.id === 'lifeApp')
-  app.imports.push({ id: 'gliderImport', moduleId: 'lifePatterns', nodeId: 'drawGlider', localName: 'drawGlider' }, { id: 'blinkerImport', moduleId: 'lifePatterns', nodeId: 'drawBlinker', localName: 'drawBlinker' }, { id: 'blockImport', moduleId: 'lifePatterns', nodeId: 'drawBlock', localName: 'drawBlock' })
+  app.imports.push({ id: 'gliderImport', moduleId: 'lifePatterns', nodeId: 'drawGlider', localName: 'drawGlider' }, { id: 'blinkerImport', moduleId: 'lifePatterns', nodeId: 'drawBlinker', localName: 'drawBlinker' }, { id: 'blinkerTwoImport', moduleId: 'lifePatterns', nodeId: 'drawBlinkerTwo', localName: 'drawBlinkerTwo' }, { id: 'stillLifeImport', moduleId: 'lifePatterns', nodeId: 'drawStillLife', localName: 'drawStillLife' })
 
   const result = workspace(b.project, [
-    note('lifeScreenNote', 'Game of life', 'Écran 90×56. La hauteur arrondit 90/φ ≈ 55,6. Le planeur, le clignotant et le bloc sont des motifs classiques du jeu de la vie. $$90 \\times \\lfloor 90/\\varphi \\rfloor = 90 \\times 56$$', 0, 580, 760, 220),
-    note('lifePatternsNote', 'Classic patterns', 'Le planeur avance d’une cellule par génération en parcourant ses phases ; le clignotant alterne horizontal et vertical ; le bloc reste stable.', 820, 460, 520, 220),
-    note('lifeAppNote', 'Eight generations', 'main dessine la génération 0 puis boucle sur les générations 1 à 7. Run rejoue les images capturées puis conserve la dernière génération ; Debug permet de suivre chaque pixel.', 1440, 460, 520, 220),
+    note('lifeScreenNote', 'Game of life', 'Écran 90×56. La hauteur arrondit 90/φ ≈ 55,6. Plusieurs still lifes, deux clignotants et un planeur servent de points de départ. $$90 \\times \\lfloor 90/\\varphi \\rfloor = 90 \\times 56$$', 0, 580, 760, 220),
+    note('lifePatternsNote', 'Classic patterns', 'Le planeur avance d’une cellule par génération ; les deux clignotants alternent horizontal et vertical ; les blocs, ruches, baignoire et bateau restent stables.', 820, 460, 520, 220),
+    note('lifeAppNote', 'Seven generations', 'main dessine la génération 0 puis boucle sur les générations 1 à 6. Run rejoue les images en boucle tant que la simulation est active ; la liste d’images reste bornée par le moteur.', 1440, 460, 520, 220),
   ])
   const cards = result.presentation.cards
   const screenCard = cards.find((card) => card.id === 'lifeScreen')
