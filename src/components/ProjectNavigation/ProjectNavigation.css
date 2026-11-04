@@ -73,6 +73,9 @@
 .project-navigation button.project-navigation__signature:hover:not(:disabled) svg { opacity: 1; }
 .project-navigation button.project-navigation__signature:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .project-navigation button.project-navigation__presentation-exit { padding: 4px 9px; gap: 5px; border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border)); color: var(--color-primary); }
+/* Recharge la page : action neutre et discrète, proche de la signature. */
+.project-navigation button.project-navigation__reload { padding: 5px; color: var(--color-text-muted); }
+.project-navigation button.project-navigation__reload:hover:not(:disabled) { background: var(--color-hover); color: var(--color-text); }
 /* Bouton de mise à jour disponible, mis en avant à droite de la barre. */
 .project-navigation button.project-navigation__update { padding: 4px 10px; gap: 5px; border-color: transparent; background: var(--color-primary); color: var(--color-on-primary); font-weight: 600; }
 .project-navigation button.project-navigation__update:hover:not(:disabled) { background: var(--color-primary-hover); color: var(--color-on-primary); }
