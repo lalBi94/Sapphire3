@@ -3,7 +3,7 @@ import { Bug, Bookmark, BookmarkPlus, ChevronDown, Clock3, Code2, Download, Eye,
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
 import { supportedLanguages } from '../../utils/translations.js'
-import { exampleCategories, examples } from '../../utils/examples.js'
+import { exampleCategories, exampleSubcategories, examples } from '../../utils/examples.js'
 import { transpilationLanguages } from '../../utils/transpilation/index.js'
 import { describeBookmark } from '../../utils/logic/index.js'
 import { appVersion } from '../../utils/appInfo.js'
@@ -211,10 +211,31 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
           {exampleCategories.map((category) => {
             const entries = examples.filter((example) => example.category === category.id)
             if (entries.length === 0) return null
-            return <Fragment key={category.id}>
-              <p className="project-navigation__section">{t(category.labelKey)}</p>
-              {entries.map((example) => <button type="button" key={example.id} onClick={() => { closeMenus(); onOpenExample(example.id) }}>{t(example.labelKey)}</button>)}
-            </Fragment>
+            // Regroupe par sous-catégorie ; une catégorie sans sous-catégorie liste ses exemples directement.
+            const groups = []
+            for (const example of entries) {
+              const key = example.subcategory ?? ''
+              let group = groups.find((entry) => entry.key === key)
+              if (!group) { group = { key, items: [] }; groups.push(group) }
+              group.items.push(example)
+            }
+            const nested = groups.some((group) => group.key !== '')
+            const exampleButton = (example) => <button type="button" key={example.id} onClick={() => { closeMenus(); onOpenExample(example.id) }}>{t(example.labelKey)}</button>
+            return <details className="project-navigation__group" key={category.id}>
+              <summary>{t(category.labelKey)}<span className="project-navigation__group-count">{entries.length}</span></summary>
+              <div className="project-navigation__group-body">
+                {nested
+                  ? groups.map((group) => {
+                    const subcategory = exampleSubcategories.find((entry) => entry.id === group.key)
+                    if (!subcategory) return group.items.map(exampleButton)
+                    return <details className="project-navigation__subgroup" key={group.key}>
+                      <summary>{t(subcategory.labelKey)}<span className="project-navigation__group-count">{group.items.length}</span></summary>
+                      <div className="project-navigation__group-body">{group.items.map(exampleButton)}</div>
+                    </details>
+                  })
+                  : entries.map(exampleButton)}
+              </div>
+            </details>
           })}
         </div>
       </details>

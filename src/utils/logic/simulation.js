@@ -37,6 +37,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   const trace = []
   let steps = 0
   const screenReader = (project.modules ?? []).some((module) => module.screen) ? createScreenStateReader(project) : null
+  const usesPresent = (project.nodes ?? []).some((node) => node?.kind === 'MathCall' && node.properties?.name === 'screenPresent')
   const screenFrames = []
   const maximumScreenFrames = 240
   let lastScreens = null
@@ -89,12 +90,16 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     return node
   }
 
-  // Conserve une image d'écran après une écriture native, sans dupliquer un état identique.
+  // Conserve une image d'écran : soit à chaque écriture, soit uniquement sur `screenPresent`
+  // quand le programme marque lui-même ses images. Une séquence n'est jamais ouverte par une
+  // image entièrement vide.
   function captureScreens(force = false) {
     if (!screenReader || screenFrames.length >= maximumScreenFrames) return
     const current = screenReader(global.values)
     if (!force && sameScreenStates(lastScreens, current)) return
     lastScreens = current
+    const blank = Object.values(current).every((screen) => !screen.pixels.some((value, index) => index % 4 === 3 && value > 0))
+    if (blank && screenFrames.length === 0 && !force) return
     screenFrames.push(current)
   }
 
@@ -221,8 +226,10 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       if (!definition) throw simulationError('SIMULATION_REFERENCE', 'The math operation cannot be resolved.')
       const args = (node.children?.arguments ?? []).map((id) => valueOf(nodes.get(id), environment))
       const value = definition.run(args)
+      // Un programme qui présente ses images ne capture que sur `screenPresent` ; sinon
+      // chaque écriture native reste une image, comme avant.
       if (definition.id === 'screenPresent') captureScreens(true)
-      else if (!['screenBlit', 'screenResize'].includes(definition.id) && definition.id.startsWith('screen')) captureScreens(false)
+      else if (!usesPresent && !['screenBlit', 'screenResize'].includes(definition.id) && definition.id.startsWith('screen')) captureScreens(false)
       return value
     }
     if (node.kind === 'ArrayLiteral') {

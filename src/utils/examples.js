@@ -471,103 +471,177 @@ function calculus() {
   return workspace(b.project, [note('calculusNote', 'Calculus', 'Dérivée centrale de x² en 3 : (f(3,5) − f(2,5)) / 1 = 6. Intégrale de Simpson de x² sur [0, 1] : (1/6) × (f(0) + 4f(0,5) + f(1)) = 1/3. $$ \\frac{d}{dx}x^2 = 2x $$ et $$ \\int_0^1 x^2\\,dx = \\frac{1}{3} $$.', 600, 0)])
 }
 
-// Domaines touchés par les exemples : ils pilotent uniquement le regroupement du menu.
-// Deux écrans pixel 15×9 pilotés par les fonctions natives de leur module caché.
+// Deux écrans 30×18 avec chacun un logo 3×3 qui ricoche sur les bords, façon DVD.
 function pixelScreens() {
   const b = builder()
-  const one = createScreenModule('screenOne', 'Screen one', 1)
-  const two = createScreenModule('screenTwo', 'Screen two', 2)
+  const screenWidth = 30
+  const screenHeight = 18
+  const logo = 2
+  const maxX = screenWidth - logo
+  const maxY = screenHeight - logo
+  const one = createScreenModule('screenOne', 'Screen one', 1, { width: screenWidth, height: screenHeight })
+  const two = createScreenModule('screenTwo', 'Screen two', 2, { width: screenWidth, height: screenHeight })
   b.project.modules.push(one.module, two.module)
   b.project.nodes.push(...one.nodes, ...two.nodes)
   b.useModule('screenPatterns', 'Screen patterns')
 
-  // Construit l'indice de la traînée : base + signe × max(frame - 1, 0) × pas.
-  function trailIndex(prefix, base, sign, step) {
-    b.binary(`${prefix}Previous`, '-', `${prefix}Frame`, `${prefix}One`)
-    b.ref(`${prefix}Frame`, 'frame')
-    b.intValue(`${prefix}One`, 1)
-    b.intValue(`${prefix}Zero`, 0)
-    b.make(`${prefix}Clamped`, 'MathCall', { name: 'max' }, { arguments: [`${prefix}Previous`, `${prefix}Zero`] })
-    b.binary(`${prefix}Offset`, '*', `${prefix}Clamped`, `${prefix}Step`)
-    b.intValue(`${prefix}Step`, step)
-    b.intValue(`${prefix}Base`, base)
-    b.binary(`${prefix}Index`, sign > 0 ? '+' : '-', `${prefix}Base`, `${prefix}Offset`)
-    return `${prefix}Index`
+  // Déclare une globale entière avec sa valeur initiale.
+  function globalVariable(id, name, value) {
+    b.root(id, 'VariableDeclaration', { name, type: intType }, { initializer: `${id}Start` })
+    b.intValue(`${id}Start`, value)
   }
 
-  // Construit l'indice de la tête : base + signe × frame × pas.
-  function headIndex(prefix, base, sign, step) {
-    b.binary(`${prefix}Offset`, '*', `${prefix}Frame`, `${prefix}Step`)
-    b.ref(`${prefix}Frame`, 'frame')
-    b.intValue(`${prefix}Step`, step)
-    b.intValue(`${prefix}Base`, base)
-    b.binary(`${prefix}Index`, sign > 0 ? '+' : '-', `${prefix}Base`, `${prefix}Offset`)
-    return `${prefix}Index`
+  // Position et vitesse d'un logo, conservées entre deux images.
+  function logoState(prefix, x, y, dx, dy) {
+    globalVariable(`${prefix}X`, `${prefix}X`, x)
+    globalVariable(`${prefix}Y`, `${prefix}Y`, y)
+    globalVariable(`${prefix}DX`, `${prefix}DX`, dx)
+    globalVariable(`${prefix}DY`, `${prefix}DY`, dy)
   }
 
-  // Ajoute un appel d'écriture de pixel avec ses cinq arguments.
-  function pixelCall(prefix, importId, pixel, red, green, blue, alpha) {
-    b.make(`${prefix}Statement`, 'ExpressionStatement', {}, { expression: `${prefix}Call` })
-    b.call(`${prefix}Call`, `${prefix}Callee`, [pixel, `${prefix}Red`, `${prefix}Green`, `${prefix}Blue`, `${prefix}Alpha`])
-    b.make(`${prefix}Callee`, 'Reference', {}, {}, { target: { kind: 'import', importId } })
-    b.intValue(`${prefix}Red`, red)
-    b.intValue(`${prefix}Green`, green)
-    b.intValue(`${prefix}Blue`, blue)
-    b.intValue(`${prefix}Alpha`, alpha)
-    return `${prefix}Statement`
+  logoState('one', 3, 2, 1, 1)
+  logoState('two', maxX - 3, maxY - 2, -1, -1)
+
+  // Écrit un pixel : index = base + décalage constant dans un tampon 30×18.
+  function pixelSet(id, importId, base, offset, red, green, blue, alpha) {
+    b.make(`${id}Statement`, 'ExpressionStatement', {}, { expression: `${id}Call` })
+    b.call(`${id}Call`, `${id}Callee`, [`${id}Pixel`, `${id}Red`, `${id}Green`, `${id}Blue`, `${id}Alpha`])
+    b.make(`${id}Callee`, 'Reference', {}, {}, { target: { kind: 'import', importId } })
+    b.binary(`${id}Pixel`, '+', `${id}Base`, `${id}Offset`)
+    b.ref(`${id}Base`, base)
+    b.intValue(`${id}Offset`, offset)
+    b.intValue(`${id}Red`, red)
+    b.intValue(`${id}Green`, green)
+    b.intValue(`${id}Blue`, blue)
+    b.intValue(`${id}Alpha`, alpha)
+    return `${id}Statement`
   }
 
-  // Chaque fonction déplace une tête lumineuse et laisse la position précédente en traînée.
-  b.root('drawOne', 'FunctionDeclaration', { name: 'drawOne', type: voidType }, { parameters: ['drawOneFrame'], body: 'drawOneBody' })
-  b.make('drawOneFrame', 'Parameter', { name: 'frame', type: intType })
-  b.block('drawOneBody', [
-    pixelCall('oneTrail', 'setOneImport', trailIndex('oneTrail', 0, 1, 16), 92, 76, 24, 120),
-    pixelCall('oneHead', 'setOneImport', headIndex('oneHead', 0, 1, 16), 255, 213, 71, 255),
-  ])
-  b.root('drawTwo', 'FunctionDeclaration', { name: 'drawTwo', type: voidType }, { parameters: ['drawTwoFrame'], body: 'drawTwoBody' })
-  b.make('drawTwoFrame', 'Parameter', { name: 'frame', type: intType })
-  b.block('drawTwoBody', [
-    pixelCall('twoTrail', 'setTwoImport', trailIndex('twoTrail', 134, -1, 16), 78, 68, 104, 120),
-    pixelCall('twoHead', 'setTwoImport', headIndex('twoHead', 134, -1, 16), 196, 177, 255, 255),
-  ])
+  // Affecte `base = Y × largeur + X`, la position linéaire du coin du logo.
+  function assignBase(prefix) {
+    b.make(`${prefix}BaseAssign`, 'AssignmentStatement', {}, { target: `${prefix}BaseTarget`, value: `${prefix}BaseValue` })
+    b.ref(`${prefix}BaseTarget`, `${prefix}Base`)
+    b.binary(`${prefix}BaseValue`, '+', `${prefix}BaseRow`, `${prefix}BaseX`)
+    b.binary(`${prefix}BaseRow`, '*', `${prefix}BaseY`, `${prefix}BaseWidth`)
+    b.ref(`${prefix}BaseY`, `${prefix}Y`)
+    b.intValue(`${prefix}BaseWidth`, screenWidth)
+    b.ref(`${prefix}BaseX`, `${prefix}X`)
+    return `${prefix}BaseAssign`
+  }
+
+  // Change un axe d'une case, puis inverse la vitesse si un bord est atteint.
+  function advance(prefix, axis, maximum) {
+    const id = `${prefix}${axis}`
+    b.make(`${id}Move`, 'AssignmentStatement', {}, { target: `${id}MoveTarget`, value: `${id}MoveValue` })
+    b.ref(`${id}MoveTarget`, `${prefix}${axis}`)
+    b.binary(`${id}MoveValue`, '+', `${id}MoveLeft`, `${id}MoveRight`)
+    b.ref(`${id}MoveLeft`, `${prefix}${axis}`)
+    b.ref(`${id}MoveRight`, `${prefix}D${axis}`)
+
+    b.binary(`${id}Low`, '<', `${id}LowLeft`, `${id}LowZero`)
+    b.ref(`${id}LowLeft`, `${prefix}${axis}`)
+    b.intValue(`${id}LowZero`, 0)
+    b.make(`${id}LowClamp`, 'AssignmentStatement', {}, { target: `${id}LowClampTarget`, value: `${id}LowZeroValue` })
+    b.ref(`${id}LowClampTarget`, `${prefix}${axis}`)
+    b.intValue(`${id}LowZeroValue`, 0)
+    b.make(`${id}LowFlip`, 'AssignmentStatement', {}, { target: `${id}LowFlipTarget`, value: `${id}LowFlipValue` })
+    b.ref(`${id}LowFlipTarget`, `${prefix}D${axis}`)
+    b.make(`${id}LowFlipValue`, 'UnaryExpression', { operator: '-' }, { operand: `${id}LowFlipOperand` })
+    b.ref(`${id}LowFlipOperand`, `${prefix}D${axis}`)
+    b.block(`${id}LowBody`, [`${id}LowClamp`, `${id}LowFlip`])
+    b.make(`${id}LowIf`, 'IfStatement', {}, { test: `${id}Low`, consequent: `${id}LowBody`, alternate: null })
+
+    b.binary(`${id}High`, '>', `${id}HighLeft`, `${id}HighMaxTest`)
+    b.ref(`${id}HighLeft`, `${prefix}${axis}`)
+    b.intValue(`${id}HighMaxTest`, maximum)
+    b.make(`${id}HighClamp`, 'AssignmentStatement', {}, { target: `${id}HighClampTarget`, value: `${id}HighMaxValue` })
+    b.ref(`${id}HighClampTarget`, `${prefix}${axis}`)
+    b.intValue(`${id}HighMaxValue`, maximum)
+    b.make(`${id}HighFlip`, 'AssignmentStatement', {}, { target: `${id}HighFlipTarget`, value: `${id}HighFlipValue` })
+    b.ref(`${id}HighFlipTarget`, `${prefix}D${axis}`)
+    b.make(`${id}HighFlipValue`, 'UnaryExpression', { operator: '-' }, { operand: `${id}HighFlipOperand` })
+    b.ref(`${id}HighFlipOperand`, `${prefix}D${axis}`)
+    b.block(`${id}HighBody`, [`${id}HighClamp`, `${id}HighFlip`])
+    b.make(`${id}HighIf`, 'IfStatement', {}, { test: `${id}High`, consequent: `${id}HighBody`, alternate: null })
+
+    return [`${id}Move`, `${id}LowIf`, `${id}HighIf`]
+  }
+
+  // Corps d'un logo : base calculée, effacement, avance, rebond, nouvelle base, dessin.
+  function logoBody(prefix, importId, red, green, blue) {
+    const statements = []
+    b.make(`${prefix}Base`, 'VariableDeclaration', { name: `${prefix}Base`, type: intType }, { initializer: `${prefix}BaseInit` })
+    b.binary(`${prefix}BaseInit`, '+', `${prefix}BaseInitRow`, `${prefix}BaseInitX`)
+    b.binary(`${prefix}BaseInitRow`, '*', `${prefix}BaseInitY`, `${prefix}BaseInitWidth`)
+    b.ref(`${prefix}BaseInitY`, `${prefix}Y`)
+    b.intValue(`${prefix}BaseInitWidth`, screenWidth)
+    b.ref(`${prefix}BaseInitX`, `${prefix}X`)
+    statements.push(`${prefix}Base`)
+    for (let row = 0; row < logo; row += 1) {
+      for (let column = 0; column < logo; column += 1) statements.push(pixelSet(`${prefix}Clear${row}${column}`, importId, `${prefix}Base`, row * screenWidth + column, 0, 0, 0, 0))
+    }
+    statements.push(...advance(prefix, 'X', maxX))
+    statements.push(...advance(prefix, 'Y', maxY))
+    statements.push(assignBase(prefix))
+    for (let row = 0; row < logo; row += 1) {
+      for (let column = 0; column < logo; column += 1) statements.push(pixelSet(`${prefix}Draw${row}${column}`, importId, `${prefix}Base`, row * screenWidth + column, red, green, blue, 255))
+    }
+    return statements
+  }
+
+  b.root('bounceOne', 'FunctionDeclaration', { name: 'bounceOne', type: voidType }, { parameters: [], body: 'bounceOneBody' })
+  b.block('bounceOneBody', logoBody('one', 'setOneImport', 255, 213, 71))
+  b.root('bounceTwo', 'FunctionDeclaration', { name: 'bounceTwo', type: voidType }, { parameters: [], body: 'bounceTwoBody' })
+  b.block('bounceTwoBody', logoBody('two', 'setTwoImport', 148, 190, 255))
+
   const patterns = b.project.modules.find((module) => module.id === 'screenPatterns')
-  patterns.exports.push({ nodeId: 'drawOne', name: 'drawOne' }, { nodeId: 'drawTwo', name: 'drawTwo' })
+  patterns.exports.push({ nodeId: 'bounceOne', name: 'bounceOne' }, { nodeId: 'bounceTwo', name: 'bounceTwo' })
   const setOne = one.module.exports.find((entry) => entry.name === 'SCREEN_SP3_SET_PIXEL_1')
   const setTwo = two.module.exports.find((entry) => entry.name === 'SCREEN_SP3_SET_PIXEL_2')
-  patterns.imports.push({ id: 'setOneImport', moduleId: 'screenOne', nodeId: setOne.nodeId, localName: 'setOne' }, { id: 'setTwoImport', moduleId: 'screenTwo', nodeId: setTwo.nodeId, localName: 'setTwo' })
+  const presentOne = one.module.exports.find((entry) => entry.name === 'SCREEN_SP3_PRESENT_1')
+  patterns.imports.push(
+    { id: 'setOneImport', moduleId: 'screenOne', nodeId: setOne.nodeId, localName: 'setOne' },
+    { id: 'setTwoImport', moduleId: 'screenTwo', nodeId: setTwo.nodeId, localName: 'setTwo' },
+  )
 
   b.useModule('screenApp', 'Screen app')
   b.root('screenMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'screenMainBody' })
-  b.block('screenMainBody', ['screenLoop', 'screenPrint'])
+  b.block('screenMainBody', ['screenStartOne', 'screenLoop', 'screenPrint'])
+  // Dessine un premier logo avant la boucle : l'écran n'est jamais vide.
+  b.make('screenStartOne', 'ExpressionStatement', {}, { expression: 'screenStartOneCall' })
+  b.call('screenStartOneCall', 'screenStartOneCallee', [])
+  b.make('screenStartOneCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'bounceOneImport' } })
   b.make('screenFrame', 'VariableDeclaration', { name: 'frame', type: intType }, { initializer: 'screenFrameStart' })
   b.intValue('screenFrameStart', 0)
   b.make('screenTest', 'BinaryExpression', { operator: '<' }, { left: 'screenFrameIndex', right: 'screenFrameEnd' })
   b.ref('screenFrameIndex', 'frame')
-  b.intValue('screenFrameEnd', 9)
+  b.intValue('screenFrameEnd', 20)
   b.make('screenUpdate', 'AssignmentStatement', {}, { target: 'screenFrameTarget', value: 'screenFrameNext' })
   b.ref('screenFrameTarget', 'frame')
   b.binary('screenFrameNext', '+', 'screenFrameLeft', 'screenFrameOne')
   b.ref('screenFrameLeft', 'frame')
   b.intValue('screenFrameOne', 1)
   b.make('screenOneStatement', 'ExpressionStatement', {}, { expression: 'screenOneCall' })
-  b.call('screenOneCall', 'screenOneRef', ['screenOneFrame'])
-  b.make('screenOneRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'drawOneImport' } })
-  b.ref('screenOneFrame', 'frame')
+  b.call('screenOneCall', 'screenOneRef', [])
+  b.make('screenOneRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'bounceOneImport' } })
   b.make('screenTwoStatement', 'ExpressionStatement', {}, { expression: 'screenTwoCall' })
-  b.call('screenTwoCall', 'screenTwoRef', ['screenTwoFrame'])
-  b.make('screenTwoRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'drawTwoImport' } })
-  b.ref('screenTwoFrame', 'frame')
-  b.block('screenLoopBody', ['screenOneStatement', 'screenTwoStatement'])
+  b.call('screenTwoCall', 'screenTwoRef', [])
+  b.make('screenTwoRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'bounceTwoImport' } })
+  // Une seule image par génération : les deux logos sont écrits, puis présentés ensemble.
+  b.make('screenPresentStatement', 'ExpressionStatement', {}, { expression: 'screenPresentCall' })
+  b.call('screenPresentCall', 'screenPresentCallee', [])
+  b.make('screenPresentCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'presentImport' } })
+  b.block('screenLoopBody', ['screenOneStatement', 'screenTwoStatement', 'screenPresentStatement'])
   b.make('screenLoop', 'ForStatement', {}, { initializer: 'screenFrame', test: 'screenTest', update: 'screenUpdate', body: 'screenLoopBody' })
   b.print('screenPrint', 'screenMessage')
-  b.make('screenMessage', 'Literal', { type: { kind: 'primitive', name: 'string' }, value: 'Screens moving' })
+  b.make('screenMessage', 'Literal', { type: { kind: 'primitive', name: 'string' }, value: 'Logos bouncing' })
   const app = b.project.modules.find((module) => module.id === 'screenApp')
-  app.imports.push({ id: 'drawOneImport', moduleId: 'screenPatterns', nodeId: 'drawOne', localName: 'drawOne' }, { id: 'drawTwoImport', moduleId: 'screenPatterns', nodeId: 'drawTwo', localName: 'drawTwo' })
+  app.imports.push({ id: 'bounceOneImport', moduleId: 'screenPatterns', nodeId: 'bounceOne', localName: 'bounceOne' }, { id: 'bounceTwoImport', moduleId: 'screenPatterns', nodeId: 'bounceTwo', localName: 'bounceTwo' }, { id: 'presentImport', moduleId: 'screenOne', nodeId: presentOne.nodeId, localName: 'present' })
 
   return workspace(b.project, [
-    note('screenOneNote', 'Screen one', 'Écran 15×9. drawOne(frame) fait avancer une tête jaune sur une diagonale et laisse une traînée sombre derrière elle.', 0, 620, 420, 170),
-    note('screenTwoNote', 'Screen two', 'Écran 15×9. drawTwo(frame) fait avancer une tête violette sur la diagonale inverse, avec sa propre traînée.', 600, 620, 420, 170),
-    note('screenMainNote', 'Two screens', 'main boucle sur 9 images et appelle drawOne puis drawTwo à chaque tour. Run rejoue les images capturées sur les deux écrans puis conserve la dernière image ; Debug permet de suivre chaque écriture.', 1200, 0, 420, 220),
+    note('screenOneNote', 'Bouncing logo', 'Écran 30×18. bounceOne() fait ricocher un logo jaune 3×3 : il avance d’une case par image et inverse sa vitesse en touchant un bord. $$x \\leftarrow x + v_x,\\quad v_x \\leftarrow -v_x$$', 0, 620, 460, 200),
+    note('screenTwoNote', 'Second logo', 'Écran 30×18. bounceTwo() anime un logo bleu décalé, avec sa propre position et sa propre vitesse.', 620, 620, 460, 200),
+    note('screenMainNote', 'Bouncing logos', 'main dessine un premier logo puis boucle sur 30 images : les deux logos rebondissent en continu. Run rejoue les images en boucle ; Debug permet de suivre chaque écriture.', 0, 0, 460, 200),
   ])
 }
 
@@ -744,6 +818,147 @@ function gameOfLife() {
   if (appCard) appCard.x = 1440
   return result
 }
+// Pluie matricielle : douze colonnes tombent avec une traînée, sur un écran 90×56.
+function rain() {
+  const b = builder()
+  const screenWidth = 90
+  const screenHeight = 56
+  const columns = 8
+  const spacing = 11
+  const trail = 6
+  const generations = 14
+  const screen = createScreenModule('rainScreen', 'Rain screen', 1, { width: screenWidth, height: screenHeight })
+  b.project.modules.push(screen.module)
+  b.project.nodes.push(...screen.nodes)
+  b.useModule('rainApp', 'Rain app')
+
+  const setPixel = screen.module.exports.find((entry) => entry.name === 'SCREEN_SP3_SET_PIXEL_1')
+  const present = screen.module.exports.find((entry) => entry.name === 'SCREEN_SP3_PRESENT_1')
+  const module = b.project.modules.find((entry) => entry.id === 'rainApp')
+  module.imports.push(
+    { id: 'rainSetImport', moduleId: 'rainScreen', nodeId: setPixel.nodeId, localName: 'setOne' },
+    { id: 'rainPresentImport', moduleId: 'rainScreen', nodeId: present.nodeId, localName: 'present' },
+  )
+
+  // Écrit un pixel d'écran : index = y × largeur + x, y et x étant des variables locales.
+  function pixelSet(id, yName, xName, red, green, blue, alpha) {
+    b.make(`${id}Statement`, 'ExpressionStatement', {}, { expression: `${id}Call` })
+    b.call(`${id}Call`, `${id}Callee`, [`${id}Pixel`, `${id}Red`, `${id}Green`, `${id}Blue`, `${id}Alpha`])
+    b.make(`${id}Callee`, 'Reference', {}, {}, { target: { kind: 'import', importId: 'rainSetImport' } })
+    b.binary(`${id}Pixel`, '+', `${id}Row`, `${id}Column`)
+    b.binary(`${id}Row`, '*', `${id}RowY`, `${id}RowWidth`)
+    b.ref(`${id}RowY`, yName)
+    b.intValue(`${id}RowWidth`, screenWidth)
+    b.ref(`${id}Column`, xName)
+    b.intValue(`${id}Red`, red)
+    b.intValue(`${id}Green`, green)
+    b.intValue(`${id}Blue`, blue)
+    b.intValue(`${id}Alpha`, alpha)
+    return `${id}Statement`
+  }
+
+  // Un tableau de positions, une tête de pluie par colonne.
+  b.root('rainDrops', 'VariableDeclaration', { name: 'drops', type: intArrayType }, { initializer: 'rainDropsInit' })
+  b.make('rainDropsInit', 'MathCall', { name: 'arrayFill' }, { arguments: ['rainSize', 'rainZero'] })
+  b.intValue('rainSize', columns)
+  b.intValue('rainZero', 0)
+  // Hauteur de départ tirée au hasard pour chaque colonne, dépliée à la construction.
+  for (let index = 0; index < columns; index += 1) {
+    b.make(`rainSeed${index}`, 'AssignmentStatement', {}, { target: `rainSeed${index}Target`, value: `rainSeed${index}Value` })
+    b.make(`rainSeed${index}Target`, 'ArrayAccess', {}, { array: `rainSeed${index}Array`, index: `rainSeed${index}Index` })
+    b.ref(`rainSeed${index}Array`, 'drops')
+    b.intValue(`rainSeed${index}Index`, index)
+    b.make(`rainSeed${index}Value`, 'MathCall', { name: 'randomInt' }, { arguments: [`rainSeed${index}Min`, `rainSeed${index}Max`] })
+    b.intValue(`rainSeed${index}Min`, 0)
+    b.intValue(`rainSeed${index}Max`, screenHeight - 1)
+  }
+  b.block('rainSeedBody', Array.from({ length: columns }, (_, index) => `rainSeed${index}`))
+
+  b.root('rainMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'rainMainBody' })
+
+  // Boucle des générations.
+  b.make('rainGeneration', 'VariableDeclaration', { name: 'generation', type: intType }, { initializer: 'rainGenerationStart' })
+  b.intValue('rainGenerationStart', 0)
+  b.binary('rainGenerationTest', '<', 'rainGenerationIndex', 'rainGenerationEnd')
+  b.ref('rainGenerationIndex', 'generation')
+  b.intValue('rainGenerationEnd', generations)
+  b.make('rainGenerationUpdate', 'AssignmentStatement', {}, { target: 'rainGenerationTarget', value: 'rainGenerationValue' })
+  b.ref('rainGenerationTarget', 'generation')
+  b.binary('rainGenerationValue', '+', 'rainGenerationLeft', 'rainGenerationOne')
+  b.ref('rainGenerationLeft', 'generation')
+  b.intValue('rainGenerationOne', 1)
+
+  // Boucle des colonnes.
+  b.make('rainColumn', 'VariableDeclaration', { name: 'column', type: intType }, { initializer: 'rainColumnStart' })
+  b.intValue('rainColumnStart', 0)
+  b.binary('rainColumnTest', '<', 'rainColumnIndex', 'rainColumnEnd')
+  b.ref('rainColumnIndex', 'column')
+  b.intValue('rainColumnEnd', columns)
+  b.make('rainColumnUpdate', 'AssignmentStatement', {}, { target: 'rainColumnTarget', value: 'rainColumnValue' })
+  b.ref('rainColumnTarget', 'column')
+  b.binary('rainColumnValue', '+', 'rainColumnLeft', 'rainColumnOne')
+  b.ref('rainColumnLeft', 'column')
+  b.intValue('rainColumnOne', 1)
+
+  // head = drops[column] ; x = column × écart ; queue et suivante dépendent de la hauteur.
+  b.make('rainHead', 'VariableDeclaration', { name: 'head', type: intType }, { initializer: 'rainHeadValue' })
+  b.make('rainHeadValue', 'ArrayAccess', {}, { array: 'rainHeadArray', index: 'rainHeadIndex' })
+  b.ref('rainHeadArray', 'drops')
+  b.ref('rainHeadIndex', 'column')
+
+  b.make('rainX', 'VariableDeclaration', { name: 'x', type: intType }, { initializer: 'rainXValue' })
+  b.binary('rainXValue', '*', 'rainXColumn', 'rainXSpacing')
+  b.ref('rainXColumn', 'column')
+  b.intValue('rainXSpacing', spacing)
+
+  b.make('rainTailY', 'VariableDeclaration', { name: 'tailY', type: intType }, { initializer: 'rainTailValue' })
+  b.binary('rainTailValue', '%', 'rainTailSum', 'rainTailHeight')
+  b.binary('rainTailSum', '+', 'rainTailHead', 'rainTailOffset')
+  b.ref('rainTailHead', 'head')
+  b.intValue('rainTailOffset', screenHeight - trail)
+  b.intValue('rainTailHeight', screenHeight)
+
+  b.make('rainNext', 'VariableDeclaration', { name: 'next', type: intType }, { initializer: 'rainNextValue' })
+  b.binary('rainNextValue', '%', 'rainNextSum', 'rainNextHeight')
+  b.binary('rainNextSum', '+', 'rainNextHead', 'rainNextOne')
+  b.ref('rainNextHead', 'head')
+  b.intValue('rainNextOne', 1)
+  b.intValue('rainNextHeight', screenHeight)
+
+  b.make('rainDropsAssign', 'AssignmentStatement', {}, { target: 'rainDropsTarget', value: 'rainNextRef' })
+  b.make('rainDropsTarget', 'ArrayAccess', {}, { array: 'rainDropsArray', index: 'rainDropsIndex' })
+  b.ref('rainDropsArray', 'drops')
+  b.ref('rainDropsIndex', 'column')
+  b.ref('rainNextRef', 'next')
+
+  const columnBody = [
+    'rainHead',
+    'rainX',
+    'rainTailY',
+    'rainNext',
+    pixelSet('rainTailPixel', 'tailY', 'x', 0, 0, 0, 0),
+    pixelSet('rainHeadPixel', 'head', 'x', 60, 255, 120, 255),
+    'rainDropsAssign',
+  ]
+  b.block('rainColumnBody', columnBody)
+  b.make('rainColumnLoop', 'ForStatement', {}, { initializer: 'rainColumn', test: 'rainColumnTest', update: 'rainColumnUpdate', body: 'rainColumnBody' })
+
+  // Une seule image par génération, après toutes les colonnes.
+  b.make('rainPresent', 'ExpressionStatement', {}, { expression: 'rainPresentCall' })
+  b.call('rainPresentCall', 'rainPresentCallee', [])
+  b.make('rainPresentCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'rainPresentImport' } })
+
+  b.block('rainGenerationBody', ['rainColumnLoop', 'rainPresent'])
+  b.make('rainGenerationLoop', 'ForStatement', {}, { initializer: 'rainGeneration', test: 'rainGenerationTest', update: 'rainGenerationUpdate', body: 'rainGenerationBody' })
+  b.print('rainPrint', 'rainMessage')
+  b.make('rainMessage', 'Literal', { type: { kind: 'primitive', name: 'string' }, value: 'Rain' })
+  b.block('rainMainBody', ['rainSeedBody', 'rainGenerationLoop', 'rainPrint'])
+
+  return workspace(b.project, [
+    note('rainNote', 'Matrix rain', 'Écran 90×56. Huit colonnes démarrent à une hauteur tirée au hasard ; chaque tête est dessinée en vert vif et le pixel six cases plus haut est effacé, ce qui crée une traînée. $$y \\leftarrow (y + 1) \\bmod 56$$', 0, 620, 700, 240),
+  ])
+}
+
 export const exampleCategories = [
   { id: 'algorithms', labelKey: 'examples.category.algorithms' },
   { id: 'arrays', labelKey: 'examples.category.arrays' },
@@ -756,18 +971,28 @@ export const exampleCategories = [
 
 // Catalogue local, ouvrable sans réseau ni fichier externe.
 export const examples = [
-  { id: 'fibonacci', labelKey: 'examples.fibonacci', category: 'algorithms', build: fibonacci },
-  { id: 'sorting', labelKey: 'examples.sorting', category: 'algorithms', build: sorting },
-  { id: 'quickSort', labelKey: 'examples.quickSort', category: 'algorithms', build: quickSort },
-  { id: 'coinChange', labelKey: 'examples.coinChange', category: 'algorithms', build: coinChange },
+  { id: 'fibonacci', labelKey: 'examples.fibonacci', category: 'algorithms', subcategory: 'basics', build: fibonacci },
+  { id: 'sorting', labelKey: 'examples.sorting', category: 'algorithms', subcategory: 'sorting', build: sorting },
+  { id: 'quickSort', labelKey: 'examples.quickSort', category: 'algorithms', subcategory: 'sorting', build: quickSort },
+  { id: 'coinChange', labelKey: 'examples.coinChange', category: 'algorithms', subcategory: 'dynamic', build: coinChange },
   { id: 'arrays', labelKey: 'examples.arrays', category: 'arrays', build: arrays },
-  { id: 'recursion', labelKey: 'examples.recursion', category: 'algorithms', build: recursion },
+  { id: 'recursion', labelKey: 'examples.recursion', category: 'algorithms', subcategory: 'basics', build: recursion },
   { id: 'imports', labelKey: 'examples.imports', category: 'modules', build: imports },
   { id: 'foreach', labelKey: 'examples.forEach', category: 'arrays', build: forEach },
   { id: 'pointers', labelKey: 'examples.pointers', category: 'pointers', build: pointers },
   { id: 'higherOrder', labelKey: 'examples.higherOrder', category: 'functions', build: higherOrder },
   { id: 'maths', labelKey: 'examples.maths', category: 'operations', build: maths },
   { id: 'calculus', labelKey: 'examples.calculus', category: 'operations', build: calculus },
-  { id: 'pixelScreens', labelKey: 'examples.pixelScreens', category: 'screens', build: pixelScreens },
-  { id: 'gameOfLife', labelKey: 'examples.gameOfLife', category: 'screens', build: gameOfLife },
+  { id: 'pixelScreens', labelKey: 'examples.pixelScreens', category: 'screens', subcategory: 'animation', build: pixelScreens },
+  { id: 'rain', labelKey: 'examples.rain', category: 'screens', subcategory: 'animation', build: rain },
+  { id: 'gameOfLife', labelKey: 'examples.gameOfLife', category: 'screens', subcategory: 'automata', build: gameOfLife },
+]
+
+// Sous-catégories facultatives à l'intérieur d'une catégorie du volet Examples.
+export const exampleSubcategories = [
+  { id: 'basics', labelKey: 'examples.sub.basics' },
+  { id: 'sorting', labelKey: 'examples.sub.sorting' },
+  { id: 'dynamic', labelKey: 'examples.sub.dynamic' },
+  { id: 'animation', labelKey: 'examples.sub.animation' },
+  { id: 'automata', labelKey: 'examples.sub.automata' },
 ]
