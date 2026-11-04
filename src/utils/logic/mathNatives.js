@@ -59,6 +59,15 @@ function sliceArray(array, start, end) {
   return array.slice(from, to)
 }
 
+// Crée un tableau d'entiers rempli d'une même valeur, sans consommer un pas par case.
+function fillArray(sizeValue, value) {
+  const size = Number(sizeValue)
+  if (!Number.isSafeInteger(size) || size < 0 || size > 1000000) arrayBounds('The array size is outside its bounds.')
+  const element = Number(value)
+  if (!Number.isInteger(element)) referenceError('The array fill value must be an integer.')
+  return new Array(size).fill(BigInt(element))
+}
+
 // Retourne l'index du premier élément égal, ou -1 sans lever d'erreur.
 function indexOfElement(array, value) {
   if (!Array.isArray(array)) referenceError('The native operation expects an array.')
@@ -280,6 +289,13 @@ export const mathNatives = Object.freeze({
       if (!Array.isArray(value)) referenceError('The native operation expects an array.')
       return [...value].reverse()
     },
+  }),
+  arrayFill: Object.freeze({
+    id: 'arrayFill',
+    group: 'native.arrays',
+    parameters: Object.freeze([intType, intType]),
+    returnType: intArrayType,
+    run: ([size, value]) => fillArray(size, value),
   }),
   arrayConvolve: Object.freeze({
     id: 'arrayConvolve',

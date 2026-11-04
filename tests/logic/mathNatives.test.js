@@ -162,12 +162,15 @@ test('opérations aléatoires : double dans [0, 1) et entier dans une plage incl
   assert.equal(simulateProgram(invalid).errorCode, 'SIMULATION_RANDOM_RANGE')
 })
 
-test('opérations de grille : convolution, table de transition et blit écran', () => {
+test('opérations de grille : remplissage, convolution, table de transition et blit écran', () => {
+  const fill = getMathNative('arrayFill')
   const convolve = getMathNative('arrayConvolve')
   const lookup = getMathNative('arrayLookup')
   const blit = getMathNative('screenBlit')
   const present = getMathNative('screenPresent')
-  assert.ok(convolve && lookup && blit && present)
+  assert.ok(fill && convolve && lookup && blit && present)
+
+  assert.deepEqual(fill.run([4, 7]).map(Number), [7, 7, 7, 7])
 
   const counts = convolve.run([[0, 0, 0, 0, 1, 0, 0, 0, 0], 3, 3, [1, 1, 1, 1, 0, 1, 1, 1, 1], 3, 3])
   assert.deepEqual(counts.map(Number), [1, 1, 1, 1, 0, 1, 1, 1, 1])

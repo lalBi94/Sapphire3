@@ -589,9 +589,9 @@ function gameOfLife() {
     }) })
   }
 
-  // Grille 90×56 initialisée à zéro, plus les buffers de calcul.
+  // Grille 90×56 remplie de zéro par une seule opération, plus les buffers de calcul.
   b.root('lifeGrid', 'VariableDeclaration', { name: 'grid', type: intArrayType }, { initializer: 'lifeGridInit' })
-  b.make('lifeGridInit', 'ArrayCreation', { elementType: intType }, { size: 'lifeGridSize', initializer: 'lifeGridZero' })
+  b.make('lifeGridInit', 'MathCall', { name: 'arrayFill' }, { arguments: ['lifeGridSize', 'lifeGridZero'] })
   b.intValue('lifeGridSize', 90 * 56)
   b.intValue('lifeGridZero', 0)
   b.root('lifeCounts', 'VariableDeclaration', { name: 'counts', type: intArrayType })
@@ -615,11 +615,11 @@ function gameOfLife() {
   ]
   const seeds = []
   const add = (baseX, baseY, cells) => { for (const [x, y] of cells) seeds.push([baseX + x, baseY + y]) }
-  add(10, 10, pulsar)
+  add(10, 14, pulsar)
   add(70, 20, [[0, 0], [1, 0], [2, 0]])
   add(30, 44, [[0, 0], [1, 0], [2, 0]])
   add(70, 40, [[1, 0], [2, 0], [3, 0], [0, 1], [1, 1], [2, 1]])
-  add(50, 5, [[0, 0], [1, 0], [0, 1], [1, 1]])
+  add(50, 12, [[0, 0], [1, 0], [0, 1], [1, 1]])
   add(80, 30, [[0, 0], [1, 0], [0, 1], [1, 1]])
   add(5, 40, [[1, 0], [2, 0], [0, 1], [3, 1], [1, 2], [2, 2]])
   add(50, 25, [[1, 0], [2, 0], [0, 1], [3, 1], [1, 2], [2, 2]])
@@ -634,6 +634,30 @@ function gameOfLife() {
     b.make(`${prefix}Statement`, 'AssignmentStatement', {}, { target: `${prefix}Target`, value: `${prefix}Value` })
     return `${prefix}Statement`
   })
+
+  // Bande d'aléa : les premières lignes reçoivent une cellule vivante ou morte au hasard.
+  // La zone reste séparée des motifs fixes, plus bas.
+  const noiseRows = 5
+  const noiseCells = noiseRows * 90
+  b.make('lifeNoiseIndex', 'VariableDeclaration', { name: 'i', type: intType }, { initializer: 'lifeNoiseStart' })
+  b.intValue('lifeNoiseStart', 0)
+  b.binary('lifeNoiseTest', '<', 'lifeNoiseI', 'lifeNoiseEnd')
+  b.ref('lifeNoiseI', 'i')
+  b.intValue('lifeNoiseEnd', noiseCells)
+  b.make('lifeNoiseUpdate', 'AssignmentStatement', {}, { target: 'lifeNoiseUpdateTarget', value: 'lifeNoiseUpdateValue' })
+  b.ref('lifeNoiseUpdateTarget', 'i')
+  b.binary('lifeNoiseUpdateValue', '+', 'lifeNoiseUpdateI', 'lifeNoiseUpdateOne')
+  b.ref('lifeNoiseUpdateI', 'i')
+  b.intValue('lifeNoiseUpdateOne', 1)
+  b.make('lifeNoiseTarget', 'ArrayAccess', {}, { array: 'lifeNoiseGrid', index: 'lifeNoiseIndexRef' })
+  b.ref('lifeNoiseGrid', 'grid')
+  b.ref('lifeNoiseIndexRef', 'i')
+  b.make('lifeNoiseValue', 'MathCall', { name: 'randomInt' }, { arguments: ['lifeNoiseZero', 'lifeNoiseOne'] })
+  b.intValue('lifeNoiseZero', 0)
+  b.intValue('lifeNoiseOne', 1)
+  b.make('lifeNoiseAssign', 'AssignmentStatement', {}, { target: 'lifeNoiseTarget', value: 'lifeNoiseValue' })
+  b.block('lifeNoiseBody', ['lifeNoiseAssign'])
+  b.make('lifeNoiseLoop', 'ForStatement', {}, { initializer: 'lifeNoiseIndex', test: 'lifeNoiseTest', update: 'lifeNoiseUpdate', body: 'lifeNoiseBody' })
 
   // Appelle les natives génériques de grille.
   function gridCall(id, name, args) {
@@ -682,7 +706,7 @@ function gameOfLife() {
   b.intValue('lifeGenerationStart', 0)
   b.binary('lifeGenerationTest', '<', 'lifeGenerationIndex', 'lifeGenerationEnd')
   b.ref('lifeGenerationIndex', 'generation')
-  b.intValue('lifeGenerationEnd', 72)
+  b.intValue('lifeGenerationEnd', 36)
   b.make('lifeGenerationUpdate', 'AssignmentStatement', {}, { target: 'lifeGenerationTarget', value: 'lifeGenerationNext' })
   b.ref('lifeGenerationTarget', 'generation')
   b.binary('lifeGenerationNext', '+', 'lifeGenerationLeft', 'lifeGenerationOne')
@@ -690,7 +714,7 @@ function gameOfLife() {
   b.intValue('lifeGenerationOne', 1)
   b.block('lifeGenerationBody', ['lifeCountsAssign', 'lifeNextAssign', 'lifeGridAssign', 'lifeBlitStatement', 'lifePresentStatement'])
   b.make('lifeGenerationLoop', 'ForStatement', {}, { initializer: 'lifeGeneration', test: 'lifeGenerationTest', update: 'lifeGenerationUpdate', body: 'lifeGenerationBody' })
-  b.block('runLifeBody', [...seedStatements, 'lifeGenerationLoop'])
+  b.block('runLifeBody', [...seedStatements, 'lifeNoiseLoop', 'lifeGenerationLoop'])
   patterns.exports.push({ nodeId: 'runLife', name: 'runLife' })
 
   b.useModule('lifeApp', 'Life app')
@@ -705,9 +729,9 @@ function gameOfLife() {
   app.imports.push({ id: 'lifeRunImport', moduleId: 'lifePatterns', nodeId: 'runLife', localName: 'runLife' })
 
   const result = workspace(b.project, [
-    note('lifeScreenNote', 'Game of life', 'Écran 90×56. Les règles de Conway sont calculées par convolution et table de transition. Un pulsar, deux clignotants, un crapaud et quatre still lifes servent de départ. $$90 \\times \\lfloor 90/\\varphi \\rfloor = 90 \\times 56$$', 0, 580, 760, 220),
-    note('lifePatternsNote', 'Real Life rules', 'La grille évolue avec arrayConvolve + arrayLookup, puis screenBlit et screenPresent. Les motifs sont isolés et reviennent à leur état initial après six générations.', 820, 460, 520, 220),
-    note('lifeAppNote', '72 generations', 'runLife sème la grille puis applique 72 générations, soit douze cycles de six. L’UI rejoue les images en aller-retour continu, sans remise à zéro visible.', 1440, 460, 520, 220),
+    note('lifeScreenNote', 'Game of life', 'Écran 90×56. Les règles de Conway sont calculées par convolution et table de transition. Une bande aléatoire occupe le haut, des motifs fixes occupent le bas. $$90 \\times \\lfloor 90/\\varphi \\rfloor = 90 \\times 56$$', 0, 580, 760, 220),
+    note('lifePatternsNote', 'Real Life rules', 'La grille évolue avec arrayConvolve + arrayLookup, puis screenBlit et screenPresent. La bande du haut est tirée avec randomInt : chaque exécution donne une évolution différente.', 820, 460, 520, 220),
+    note('lifeAppNote', '36 generations', 'runLife sème la bande aléatoire et les motifs, puis applique 36 générations. L’UI rejoue les images en aller-retour continu, sans remise à zéro visible.', 1440, 460, 520, 220),
   ])
   const cards = result.presentation.cards
   const screenCard = cards.find((card) => card.id === 'lifeScreen')
