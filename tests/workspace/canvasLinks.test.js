@@ -26,9 +26,20 @@ test('couche de liens : le cadre englobre les modules et la marge rend les flèc
   assert.ok(layer.width >= 1420 + 192 && layer.height >= 720 + 192)
 })
 
-test('couche de liens : aucun lien sans carte module visible ne dessine quoi que ce soit', () => {
+test('couche de liens : aucun lien sans carte module ou écran visible ne dessine quoi que ce soit', () => {
   assert.equal(buildLinkLayer(cards, []), null)
   assert.equal(buildLinkLayer(cards, [{ ...link, toId: 'missing' }]), null)
-  assert.equal(buildLinkLayer(cards.filter((card) => card.type !== 'module'), [link]), null)
+  assert.equal(buildLinkLayer(cards.filter((card) => !['module', 'screen'].includes(card.type)), [link]), null)
   assert.equal(buildLinkLayer(undefined, undefined), null)
+})
+
+test('couche de liens : une carte écran participe aux flèches comme son module caché', () => {
+  const screenCards = [
+    { id: 'screenOne', type: 'screen', x: 0, y: 0, width: 240, height: 160 },
+    { id: 'patterns', type: 'module', x: 700, y: 0, width: 520, height: 300 },
+  ]
+  const screenLink = { id: 'screenOne::patterns', fromId: 'screenOne', toId: 'patterns', fromName: 'Screen one', toName: 'Screen patterns', exports: [{ nodeId: 'set', name: 'SCREEN_SP3_SET_PIXEL_1', localName: 'setOne', uses: 2 }] }
+  const layer = buildLinkLayer(screenCards, [screenLink])
+  assert.equal(layer.edges.length, 1)
+  assert.ok(layer.edges[0].x > 0 && layer.edges[0].x < 1220)
 })
