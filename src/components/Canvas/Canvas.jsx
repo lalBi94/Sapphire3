@@ -75,6 +75,7 @@ export default function Canvas() {
   const [breakpoints, setBreakpoints] = useState(() => new Set())
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [navCollapsed, setNavCollapsed] = useState(false)
+  const [presentationMode, setPresentationMode] = useState(false)
   const menuTriggerRef = useRef(null)
   const workspaceRef = useRef(null)
   const groupMoveRef = useRef(null)
@@ -90,7 +91,7 @@ export default function Canvas() {
   const selectedModuleIds = useMemo(() => selectedTargets.filter((target) => target.kind === 'module').map((target) => target.id), [selectedTargets])
   const { camera, zoom, canvasRef, isPanning, handlePointerDown, handlePointerMove, handlePointerEnd, handleKeyDown, handleRecenter, panTo, zoomBy, resetZoom, restoreCamera } = useCanvasPan()
   const files = useWorkspaceFiles({ project: document.project, cards: document.cards, camera, selected, onReplace: handleReplaceWorkspace })
-  const transfers = useNodeTransfers({ project: document.project, index: document.index, selected, selectedNodeIds, workspaceRef, onPaste: document.pasteNode, onMove: document.moveNodes, onDuplicate: document.duplicateNode, onTransferred: handleNodeTransferred })
+  const transfers = useNodeTransfers({ project: document.project, index: document.index, selected, selectedNodeIds, readOnly: presentationMode, workspaceRef, onPaste: document.pasteNode, onMove: document.moveNodes, onDuplicate: document.duplicateNode, onTransferred: handleNodeTransferred })
 
   useEffect(() => {
     setExecution(null)
@@ -236,8 +237,25 @@ export default function Canvas() {
     canvasRef.current?.focus({ preventScroll: true })
   }
 
+  // Bascule le mode présentation : navigation, zoom et exécution restent disponibles.
+  function handleTogglePresentation() {
+    const next = !presentationMode
+    setPresentationMode(next)
+    if (!next) return
+    if (files.pendingImport) files.handleCancelImport()
+    if (files.pendingNew) files.handleCancelNew()
+    setContextMenu(null)
+    setSettingsOpen(false)
+    setBookmarksOpen(false)
+    setTranspilationResult(null)
+    setTranspileExportError(null)
+    menuTriggerRef.current = null
+    transfers.reset()
+  }
+
   // Identifie le nœud le plus proche, puis le module ; les annotations restent hors du moteur.
   function handleContextMenu(event) {
+    if (presentationMode) { event.preventDefault(); return }
     if (event.target.closest('input, textarea')) return
     event.preventDefault()
     if (event.target.closest('[data-canvas-ui], .canvas-status')) return
@@ -262,6 +280,7 @@ export default function Canvas() {
 
   // Ancre le même menu contextuel juste sous le bouton, au clic comme au clavier.
   function handleOpenActions(event, targetId) {
+    if (presentationMode) return
     const bounds = canvasRef.current.getBoundingClientRect()
     const button = event.currentTarget.getBoundingClientRect()
     bringCardToFront(targetId)
@@ -271,6 +290,7 @@ export default function Canvas() {
 
   // Ouvre le même menu logique depuis la barre d’édition pour la cible sélectionnée.
   function handleOpenSelectionMenu() {
+    if (presentationMode) return
     if (!selected || selected.kind !== 'node' && selected.kind !== 'module') return
     bringCardToFront(selected)
     menuTriggerRef.current = null
@@ -771,13 +791,13 @@ export default function Canvas() {
 
   // Branche le registre central sur les handlers existants, sans dupliquer leur logique métier.
   useGlobalKeybinds({
-    'workspace.new': { available: () => !files.busy && !files.pendingImport && !files.pendingNew, run: files.handleNew },
-    'workspace.open': { available: () => !files.busy && !files.pendingImport, run: files.handleOpenSp3 },
+    'workspace.new': { available: () => !presentationMode && !files.busy && !files.pendingImport && !files.pendingNew, run: files.handleNew },
+    'workspace.open': { available: () => !presentationMode && !files.busy && !files.pendingImport, run: files.handleOpenSp3 },
     'workspace.save': { available: () => !files.busy && !files.pendingImport, run: files.handleSave },
-    'edit.undo': { available: () => document.canUndo, run: document.undo },
-    'edit.redo': { available: () => document.canRedo, run: document.redo },
-    'edit.copyNode': { available: () => selected?.kind === 'node' && !window.getSelection()?.toString(), run: () => transfers.copyNode(selected) },
-    'edit.pasteNode': { available: () => Boolean(selected && transfers.hasClipboard), run: () => transfers.pasteNode(selected) },
+    'edit.undo': { available: () => !presentationMode && document.canUndo, run: document.undo },
+    'edit.redo': { available: () => !presentationMode && document.canRedo, run: document.redo },
+    'edit.copyNode': { available: () => !presentationMode && selected?.kind === 'node' && !window.getSelection()?.toString(), run: () => transfers.copyNode(selected) },
+    'edit.pasteNode': { available: () => !presentationMode && Boolean(selected && transfers.hasClipboard), run: () => transfers.pasteNode(selected) },
     'edit.search': { available: () => true, run: search.show },
     'navigation.center': { available: () => true, run: () => handleRecenter(getModulesBounds()) },
     'navigation.zoom100': { available: () => true, run: resetZoom },
@@ -796,6 +816,7 @@ export default function Canvas() {
       minimapVisible={minimapVisible} onToggleMinimap={() => setMinimapVisible((current) => !current)}
       fullScreen={fullScreen} onToggleFullScreen={handleToggleFullScreen} gridVisible={gridVisible} onToggleGrid={() => setGridVisible((current) => !current)} onArrangeModules={handleArrangeModules}
       hiddenCards={hiddenCards} onShowCard={handleShowCard} onShowAllHidden={handleShowAllHidden}
+      presentation={presentationMode} onTogglePresentation={handleTogglePresentation}
       hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onOpenSearch={search.show} onRunSimulation={handleRunSimulation} onRunGraphical={handleRunGraphical} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} selectedFunction={selectedFunction} onOpenFunction={handleOpenFunction} simulationRunning={Boolean(execution?.running)} simulationPaused={Boolean(execution?.paused)} onPauseSimulation={handlePauseExecution} onResumeSimulation={handleResumeExecution} onStopSimulation={handleStopExecution} onOpenRepository={() => openExternal(repositoryUrl)} onOpenSettings={() => setSettingsOpen(true)} onQuit={() => quitApplication()} updateAvailable={appUpdate.update.status === 'available'} updateVersion={appUpdate.update.release?.version ?? ''} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })} onCheckTranspile={getTranspileChecks}
       bookmarks={bookmarks} modules={moduleChoices} canBookmark={bookmarkStatus(selected).can} onSaveBookmark={handleSaveBookmark} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark} onOpenBookmarks={() => setBookmarksOpen(true)} />
     <button type="button" className="canvas-nav-toggle" aria-expanded={!navCollapsed} aria-label={t(navCollapsed ? 'nav.show' : 'nav.hide')} title={t(navCollapsed ? 'nav.show' : 'nav.hide')} onClick={() => setNavCollapsed((current) => !current)}>{navCollapsed ? <ChevronDown size={15} aria-hidden="true" /> : <ChevronUp size={15} aria-hidden="true" />}</button>
@@ -814,15 +835,16 @@ export default function Canvas() {
         onSelect={(event) => handleSelect(card.type === 'module' ? { kind: 'module', id: card.id } : null, { additive: event.ctrlKey || event.metaKey || event.shiftKey })}
         onResize={(id, width, height) => document.updateGeometry(id, { width, height })}
         onMove={handleModuleMove} onMoveStart={handleModuleMoveStart} onMoveEnd={handleModuleMoveEnd}
+        readOnly={presentationMode}
         onRename={document.renameCard} onTextChange={document.updateComment} onImageChange={document.updateImage} onEmojiChange={document.setCardEmoji}
         onToggleLock={handleToggleLock}
         pure={pureIds.modules.has(card.id)}
         pulse={activeModuleId === card.id && executionStep !== null ? executionStep + 1 : null}
         expansionState={document.index.modules.has(card.id) ? getExpansionState(card.id) : null} onToggleExpansion={(id) => handleExpansion(id, getExpansionState(id) !== 'collapse')}>
-        {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} selectedIds={selectedIds} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} onReorder={(id, offset) => document.reorderNode(id, offset)} unusedIds={unusedIds} pureIds={pureIds.functions} breakpoints={breakpoints} onToggleBreakpoint={handleToggleBreakpoint} debugValues={debugValues} genericCalls={genericCalls} dropTarget={transfers.dropTarget} />}
+        {card.type === 'module' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} selectedIds={selectedIds} readOnly={presentationMode} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} onReorder={(id, offset) => document.reorderNode(id, offset)} unusedIds={unusedIds} pureIds={pureIds.functions} breakpoints={breakpoints} onToggleBreakpoint={handleToggleBreakpoint} debugValues={debugValues} genericCalls={genericCalls} dropTarget={transfers.dropTarget} />}
       </CanvasModule>)}
       <CanvasStatus camera={camera} zoom={zoom} hiddenCount={hiddenCards.length} onShowAllHidden={handleShowAllHidden} onRecenter={() => handleRecenter(getModulesBounds())} />
-      {selectedTargets.length > 1 && <SelectionToolbar key={selectedTargets.map((target) => `${target.kind}:${target.id}`).join('|')} count={selectedTargets.length} onDuplicate={handleDuplicateSelection} onDelete={handleDeleteSelection} onClear={() => setSelection([])} />}
+      {selectedTargets.length > 1 && !presentationMode && <SelectionToolbar key={selectedTargets.map((target) => `${target.kind}:${target.id}`).join('|')} count={selectedTargets.length} onDuplicate={handleDuplicateSelection} onDelete={handleDeleteSelection} onClear={() => setSelection([])} />}
       {minimapVisible && <Minimap modules={minimapModules} camera={camera} zoom={zoom} canvasRef={canvasRef} onNavigate={panTo} />}
       {transfers.notice && <div className={`canvas-transfer-status${transfers.notice.error ? ' canvas-transfer-status--error' : ''}`} data-canvas-ui role={transfers.notice.error ? 'alert' : 'status'} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
         <span>{transfers.notice.error ? diagnosticLabel(transfers.notice.error, t) : t(transfers.notice.message)}{transfers.notice.detail && ` · ${diagnosticLabel(transfers.notice.detail, t)}`}</span>
@@ -836,8 +858,8 @@ export default function Canvas() {
       {flowRun && <FlowPanel session={flowRun.session} contextIndex={document.index} step={flowRun.index} running={flowRun.running} paused={flowRun.paused} stopped={flowRun.stopped} onPause={handlePauseFlow} onResume={handleResumeFlow} onStop={handleStopFlow} onClose={() => setFlowRun(null)} />}
       <TranspilePanel result={transpilationResult} exportError={transpileExportError} onExport={handleExportTranspilation} onClose={() => { setTranspilationResult(null); setTranspileExportError(null) }} />
       {search.open && <NodeSearchPanel index={document.index} cards={visibleCards} selectedId={selected?.kind === 'node' ? selected.id : null} focusToken={search.token} onReveal={handleRevealNode} onClose={handleCloseSearch} />}
-      {bookmarksOpen && <BookmarkPanel bookmarks={bookmarks} modules={moduleChoices} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark} onClose={() => setBookmarksOpen(false)} />}
-      {settingsOpen && <SettingsWindow
+      {!presentationMode && bookmarksOpen && <BookmarkPanel bookmarks={bookmarks} modules={moduleChoices} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark} onClose={() => setBookmarksOpen(false)} />}
+      {!presentationMode && settingsOpen && <SettingsWindow
         onClose={() => setSettingsOpen(false)}
         busy={files.busy} pendingImport={files.pendingImport}
         onNew={files.handleNew} onOpenSp3={files.handleOpenSp3} onSave={files.handleSave} onSaveAs={files.saveAs} onImport={files.handleImport} onExportSvg={handleExportSvg}
@@ -847,8 +869,8 @@ export default function Canvas() {
         bookmarks={bookmarks} canBookmark={bookmarkStatus(selected).can} onSaveBookmark={handleSaveBookmark} onOpenBookmarks={() => setBookmarksOpen(true)} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark}
         onOpenRepository={() => openExternal(repositoryUrl)} update={appUpdate.update} onCheckUpdate={() => appUpdate.check()} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })} onQuit={() => quitApplication()} />}
       {nodeGraph && <NodeGraphPanel project={document.project} index={document.index} target={nodeGraph.target} mode={nodeGraph.mode} onSelect={handleSelect} onClose={() => setNodeGraph(null)} />}
-      {selected && <NodeProperties key={document.revision} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onPreviewSymbolRename={document.previewSymbolRename} onApplySymbolRename={document.applySymbolRename} onSelect={handleSelect} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onExport={document.exportFunction} onImport={document.importFunction} onRemoveImport={document.removeImport} onContracts={document.setNodeContracts} onClose={() => setSelection([])} onExportImage={handleExportNodeImage} onExportNodeJson={handleExportNodeJson} mutationError={document.mutationError} />}
-      {contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onHideCard={handleHideCard} onLockCard={handleToggleLock} targetLocked={isCardLocked(contextMenu.targetId?.id)} onExpansion={(id, expand) => { handleExpansion(id, expand); handleCloseMenu(true) }} canToggleExpansion={contextMenu.targetId?.kind === 'module' && (expandableIds.get(contextMenu.targetId.id)?.length ?? 0) > 0} onOpenGraph={handleOpenNodeGraph} onCopy={handleCopyNode} onPaste={transfers.pasteNode} onDuplicate={transfers.duplicateNode} hasClipboard={transfers.hasClipboard} showBookmark={bookmarkStatus(contextMenu.targetId).show} canBookmark={bookmarkStatus(contextMenu.targetId).can} onBookmark={handleBookmarkTarget} onClose={handleCloseMenu} />
+      {!presentationMode && selected && <NodeProperties key={document.revision} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onPreviewSymbolRename={document.previewSymbolRename} onApplySymbolRename={document.applySymbolRename} onSelect={handleSelect} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onExport={document.exportFunction} onImport={document.importFunction} onRemoveImport={document.removeImport} onContracts={document.setNodeContracts} onClose={() => setSelection([])} onExportImage={handleExportNodeImage} onExportNodeJson={handleExportNodeJson} mutationError={document.mutationError} />}
+      {!presentationMode && contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onHideCard={handleHideCard} onLockCard={handleToggleLock} targetLocked={isCardLocked(contextMenu.targetId?.id)} onExpansion={(id, expand) => { handleExpansion(id, expand); handleCloseMenu(true) }} canToggleExpansion={contextMenu.targetId?.kind === 'module' && (expandableIds.get(contextMenu.targetId.id)?.length ?? 0) > 0} onOpenGraph={handleOpenNodeGraph} onCopy={handleCopyNode} onPaste={transfers.pasteNode} onDuplicate={transfers.duplicateNode} hasClipboard={transfers.hasClipboard} showBookmark={bookmarkStatus(contextMenu.targetId).show} canBookmark={bookmarkStatus(contextMenu.targetId).can} onBookmark={handleBookmarkTarget} onClose={handleCloseMenu} />
         : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} onCreate={handleCreateModule} onClose={handleCloseMenu} anchored={contextMenu.anchored} commentId={contextMenu.targetId ? { id: contextMenu.targetId.id, type: contextMenu.targetId.kind } : null} onDeleteComment={handleDeleteComment} onHideCard={handleHideCard} onLockCard={handleToggleLock} commentLocked={isCardLocked(contextMenu.targetId?.id)} />)}
     </main>
     </div>

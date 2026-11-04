@@ -64,7 +64,7 @@ function ModuleEmoji({ emoji, onChange }) {
 }
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, children, selected = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -309,10 +309,10 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
       onKeyDown={(event) => event.stopPropagation()}
       onClick={onSelect}
     >
-      <NodeMenuButton label={name} onOpen={onOpenActions} />
+      {!readOnly && <NodeMenuButton label={name} onOpen={onOpenActions} />}
       {typeof pulse === 'number' && <span key={pulse} className="canvas-module__pulse" aria-hidden="true" />}
       <header className="canvas-module__header">
-        {definition.hasEmoji && <ModuleEmoji emoji={module.emoji ?? ''} onChange={(value) => onEmojiChange(module.id, value)} />}
+        {definition.hasEmoji && !readOnly && <ModuleEmoji emoji={module.emoji ?? ''} onChange={(value) => onEmojiChange(module.id, value)} />}
         <h2>
           {editingName ? (
             <input
@@ -330,14 +330,14 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
               type="button"
               className="canvas-module__move"
               aria-label={t('canvas.move', { name })}
-              title={t(module.locked ? 'canvas.lockedHint' : definition.renamable ? 'canvas.renameHint' : 'canvas.moveHint')}
-              onDoubleClick={handleRenameStart}
-              onPointerDown={handleMoveStart}
-              onPointerMove={handleMove}
-              onPointerUp={handleMoveEnd}
-              onPointerCancel={handleMoveEnd}
-              onLostPointerCapture={handleMoveEnd}
-              onKeyDown={handleMoveKeyDown}
+              title={readOnly ? name : t(module.locked ? 'canvas.lockedHint' : definition.renamable ? 'canvas.renameHint' : 'canvas.moveHint')}
+              onDoubleClick={readOnly ? undefined : handleRenameStart}
+              onPointerDown={readOnly ? undefined : handleMoveStart}
+              onPointerMove={readOnly ? undefined : handleMove}
+              onPointerUp={readOnly ? undefined : handleMoveEnd}
+              onPointerCancel={readOnly ? undefined : handleMoveEnd}
+              onLostPointerCapture={readOnly ? undefined : handleMoveEnd}
+              onKeyDown={readOnly ? undefined : handleMoveKeyDown}
             >
               <span className="canvas-module__marker" aria-hidden="true" />
               <span className="canvas-module__name">{name}</span>
@@ -345,7 +345,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
           )}
         </h2>
         {pure && <span className="canvas-module__pure" title={t('canvas.pureHint')} aria-label={t('canvas.pureHint')}>{t('canvas.pure')}</span>}
-        {module.locked && <button
+        {module.locked && !readOnly && <button
           type="button"
           className="canvas-module__lock"
           aria-label={`${t('canvas.unlock')} ${name}`}
@@ -367,7 +367,11 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         </button>}
       </header>
       {definition.hasText ? (
-        editingComment ? (
+        readOnly ? (
+          <div className="canvas-module__comment canvas-module__comment--view canvas-module__comment--readonly">
+            {module.text ? <CommentText text={module.text} /> : <span className="canvas-module__comment-placeholder">{t('canvas.notePlaceholder')}</span>}
+          </div>
+        ) : editingComment ? (
           <textarea
             className="canvas-module__comment"
             aria-label={t('canvas.text', { name })}
@@ -391,7 +395,12 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
             {module.text ? <CommentText text={module.text} /> : <span className="canvas-module__comment-placeholder">{t('canvas.notePlaceholder')}</span>}
           </div>
         )
-      ) : definition.hasImage ? (
+      ) : definition.hasImage ? readOnly ? (
+        <div className="canvas-module__image-content" data-canvas-scroll>
+          {module.image ? <img className="canvas-module__image" src={module.image} alt={module.caption || name} /> : <span className="canvas-module__image-empty">{t('canvas.empty')}</span>}
+          {module.caption && <p className="canvas-module__caption-view">{module.caption}</p>}
+        </div>
+      ) : (
         <div
           ref={contentRef}
           className={`canvas-module__image-content${module.image ? '' : ' canvas-module__image-content--empty'}${isImageDragOver ? ' canvas-module__image-content--drag-over' : ''}`}
@@ -416,7 +425,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
           <input ref={imageInputRef} className="canvas-module__image-input" type="file" accept="image/*" onChange={handleImageChange} />
         </div>
       ) : <div ref={contentRef} className="canvas-module__content" data-canvas-scroll>{children}</div>}
-      {!module.locked && <button
+      {!module.locked && !readOnly && <button
         className="canvas-module__resize"
         type="button"
         aria-label={t('canvas.resize', { name })}

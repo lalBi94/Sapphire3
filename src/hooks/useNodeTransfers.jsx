@@ -13,7 +13,7 @@ function dropReceiver(element) {
 }
 
 // Gère le presse-papiers local et les gestes de transfert sans persistance ni API native.
-export default function useNodeTransfers({ project, index, selected, selectedNodeIds = [], workspaceRef, onPaste, onMove, onDuplicate, onTransferred }) {
+export default function useNodeTransfers({ project, index, selected, selectedNodeIds = [], readOnly = false, workspaceRef, onPaste, onMove, onDuplicate, onTransferred }) {
   const [clipboard, setClipboard] = useState(null)
   const [notice, setNotice] = useState(null)
   const [dropTarget, setDropTarget] = useState(null)
@@ -52,6 +52,7 @@ export default function useNodeTransfers({ project, index, selected, selectedNod
 
   // Démarre uniquement depuis le titre d'un nœud de cet onglet, jamais depuis un fichier externe.
   function handleDragStart(event) {
+    if (readOnly) { event.preventDefault(); return }
     const heading = event.target.closest('.logic-node__heading')
     if (!heading) return
     const id = heading.closest('[data-source-node]')?.dataset.sourceNode
@@ -78,7 +79,7 @@ export default function useNodeTransfers({ project, index, selected, selectedNod
 
   // Affiche un retour positif ou négatif calculé sur l'ensemble du sous-arbre et de ses références.
   function handleDragOver(event) {
-    if (!dragRef.current) return
+    if (readOnly || !dragRef.current) return
     event.preventDefault()
     const receiver = dropReceiver(event.target)
     const result = receiver ? probe(receiver) : { ok: false, code: 'TRANSFER_INCOMPATIBLE' }
@@ -89,6 +90,7 @@ export default function useNodeTransfers({ project, index, selected, selectedNod
 
   // Revérifie au dépôt ; un aperçu de survol ne vaut jamais autorisation de mutation.
   function handleDrop(event) {
+    if (readOnly) return
     const drag = dragRef.current
     if (!drag) return
     event.preventDefault()

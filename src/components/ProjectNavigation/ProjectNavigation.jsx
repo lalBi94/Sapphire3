@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { Bug, Bookmark, BookmarkPlus, ChevronDown, Clock3, Code2, Download, ExternalLink, Eye, FileInput, FileOutput, FilePlus, FolderOpen, LayoutGrid, Library, Maximize2, Palette, Pause, Play, Power, Save, SaveAll, Search, Settings2, Square, Trash2, VectorSquare, X } from 'lucide-react'
+import { Bug, Bookmark, BookmarkPlus, ChevronDown, Clock3, Code2, Download, ExternalLink, Eye, EyeOff, FileInput, FileOutput, FilePlus, FolderOpen, LayoutGrid, Library, Maximize2, Palette, Pause, Play, Power, Save, SaveAll, Search, Settings2, Square, Trash2, VectorSquare, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
 import { supportedLanguages } from '../../utils/translations.js'
@@ -28,7 +28,7 @@ function ReplaceConfirmation({ titleKey, bodyKey, detail, confirmKey, onConfirm,
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, onArrangeModules, distorted, onToggleDistortion, minimapVisible = true, onToggleMinimap, fullScreen = false, onToggleFullScreen, gridVisible = true, onToggleGrid, hiddenCards = [], onShowCard, onShowAllHidden, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onRunGraphical, onDebugSp3, onTranspile, onCheckTranspile, selectedFunction = null, onOpenFunction, simulationRunning = false, simulationPaused = false, onPauseSimulation, onResumeSimulation, onStopSimulation, onOpenRepository, onOpenSettings, onQuit, updateAvailable = false, updateVersion = '', onInstallUpdate, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark, onOpenBookmarks }) {
+export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, onArrangeModules, distorted, onToggleDistortion, minimapVisible = true, onToggleMinimap, fullScreen = false, onToggleFullScreen, gridVisible = true, onToggleGrid, hiddenCards = [], onShowCard, onShowAllHidden, presentation = false, onTogglePresentation, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onRunGraphical, onDebugSp3, onTranspile, onCheckTranspile, selectedFunction = null, onOpenFunction, simulationRunning = false, simulationPaused = false, onPauseSimulation, onResumeSimulation, onStopSimulation, onOpenRepository, onOpenSettings, onQuit, updateAvailable = false, updateVersion = '', onInstallUpdate, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark, onOpenBookmarks }) {
   const navigationRef = useRef(null)
   const [insertingId, setInsertingId] = useState(null)
   const [transpileChecks, setTranspileChecks] = useState({})
@@ -129,8 +129,15 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
     onRunGraphical()
   }
 
+  // Referme les volets avant de basculer le mode présentation.
+  function handlePresentation() {
+    closeMenus()
+    onTogglePresentation()
+  }
+
   return <>
     <nav ref={navigationRef} className="project-navigation" aria-label={t('nav.aria')} onKeyDown={handleKeyDown}>
+      {!presentation && <>
       <details name="workspace-menu" onToggle={handleToggle}>
         <summary>{t('nav.settings')}<ChevronDown size={12} aria-hidden="true" /></summary>
         <div className="project-navigation__menu">
@@ -162,22 +169,27 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
           {hasSelection && <button type="button" onClick={onOpenSelectionMenu}>{t('nav.addToSelection')}</button>}
         </div>
       </details>
+      </>}
       <details name="workspace-menu" onToggle={handleToggle}>
         <summary>{t('nav.view')}<ChevronDown size={12} aria-hidden="true" /></summary>
         <div className="project-navigation__menu">
+          <p className="project-navigation__section">{t('menu.presentation')}</p>
+          <label className="project-navigation__check"><input type="checkbox" checked={presentation} onChange={handlePresentation} />{t('nav.presentation')}</label>
           <p className="project-navigation__section">{t('nav.zoom')}</p>
           <button type="button" onClick={onZoomIn}>{t('nav.zoomIn')}</button>
           <button type="button" onClick={onZoomOut}>{t('nav.zoomOut')}</button>
           <button type="button" onClick={onZoom100}>{t('nav.zoom100')}</button>
           <button type="button" onClick={onCenter}>{t('nav.center')}</button>
+          {!presentation && <>
           <p className="project-navigation__section">{t('nav.layout')}</p>
           <button type="button" onClick={onArrangeModules}><LayoutGrid size={14} aria-hidden="true" />{t('nav.arrangeModules')}</button>
+          </>}
           <p className="project-navigation__section">{t('menu.display')}</p>
           <label className="project-navigation__check"><input type="checkbox" checked={distorted} onChange={onToggleDistortion} />{t('nav.distortion')}</label>
           <label className="project-navigation__check"><input type="checkbox" checked={minimapVisible} onChange={onToggleMinimap} />{t('nav.minimap')}</label>
           <label className="project-navigation__check"><input type="checkbox" checked={!gridVisible} onChange={onToggleGrid} />{t('nav.hideGrid')}</label>
           <label className="project-navigation__check"><input type="checkbox" checked={fullScreen} onChange={onToggleFullScreen} />{t('nav.fullscreen')}</label>
-          {hiddenCards.length > 0 && <>
+          {!presentation && hiddenCards.length > 0 && <>
             <p className="project-navigation__section">{t('nav.hiddenCards')}</p>
             <div className="project-navigation__hidden-list">{hiddenCards.map((card) => <button type="button" className="project-navigation__hidden-card" key={card.id} aria-label={`${t('canvas.show')} ${card.name}`} title={card.name} onClick={() => onShowCard(card.id)}>
               <Eye size={14} aria-hidden="true" /><span>{card.name}</span>
@@ -186,6 +198,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
           </>}
         </div>
       </details>
+      {!presentation && <>
       <details name="workspace-menu" onToggle={handleToggle}>
         <summary><Palette size={13} aria-hidden="true" />{t('nav.theme')}<ChevronDown size={12} aria-hidden="true" /></summary>
         <div className="project-navigation__menu project-navigation__theme-menu">
@@ -240,8 +253,9 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
             </div>}
         </div>
       </details>
+      </>}
       <div className="project-navigation__run-controls">
-        <details name="workspace-menu" onToggle={handleTranspileToggle}>
+        {!presentation && <details name="workspace-menu" onToggle={handleTranspileToggle}>
           <summary><Code2 size={13} aria-hidden="true" />{t('transpile.button')}<ChevronDown size={12} aria-hidden="true" /></summary>
           <div className="project-navigation__menu">
             <p className="project-navigation__section">{t('transpile.chooseLanguage')}</p>
@@ -252,7 +266,7 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
               return <button type="button" key={option.id} disabled={!option.available} onClick={() => { closeMenus(); onTranspile(option.id) }}><span>{option.name}</span><span className={`project-navigation__chip${chipClass}`}>{chipLabel}</span></button>
             })}
           </div>
-        </details>
+        </details>}
         <button type="button" className={`project-navigation__run${simulationRunning ? ' project-navigation__run--running' : ''}`} title={t('run.simulateSp3')} onClick={() => handleRun()}><Play size={13} fill="currentColor" aria-hidden="true" />{t('nav.run')}</button>
         {simulationRunning && <button type="button" className="project-navigation__run-action" title={t('simulation.pause')} aria-label={t('simulation.pause')} onClick={onPauseSimulation}><Pause size={12} fill="currentColor" aria-hidden="true" />{t('simulation.pause')}</button>}
         {simulationPaused && <button type="button" className="project-navigation__run-action" title={t('simulation.resume')} aria-label={t('simulation.resume')} onClick={onResumeSimulation}><Play size={12} fill="currentColor" aria-hidden="true" />{t('simulation.resume')}</button>}
@@ -280,12 +294,13 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
         <select value={language} onChange={(event) => setLanguage(event.target.value)} aria-label={t('nav.language')}>
           {supportedLanguages.map((option) => <option value={option.id} key={option.id}>{option.label}</option>)}
         </select>      </label>
-      {updateAvailable && <button type="button" className="project-navigation__update" onClick={onInstallUpdate} title={t('update.available', { version: updateVersion })}><Download size={13} aria-hidden="true" />{t('update.now')}</button>}
+      {!presentation && updateAvailable && <button type="button" className="project-navigation__update" onClick={onInstallUpdate} title={t('update.available', { version: updateVersion })}><Download size={13} aria-hidden="true" />{t('update.now')}</button>}
+      {presentation && <button type="button" className="project-navigation__presentation-exit" onClick={handlePresentation} title={t('presentation.exit')}><EyeOff size={13} aria-hidden="true" />{t('presentation.exit')}</button>}
       <span className="project-navigation__version" title={`${t('nav.version')} ${appVersion}`}>v{appVersion}</span>
       <button type="button" className="project-navigation__github" onClick={onOpenRepository} aria-label={t('nav.github')} title={t('nav.github')}><ExternalLink size={13} aria-hidden="true" /></button>
       {error && <div className="project-navigation__error" role="alert"><span>{error}</span><button type="button" aria-label={t('nav.dismiss')} onClick={onDismiss}><X size={14} aria-hidden="true" /></button></div>}
     </nav>
-    {pendingImport && <ReplaceConfirmation titleKey="import.title" bodyKey="import.body" detail={pendingImport.detail ?? pendingImport.path} confirmKey="import.confirm" onConfirm={onConfirmImport} onCancel={onCancelImport} />}
-    {pendingNew && <ReplaceConfirmation titleKey="new.title" bodyKey="new.body" confirmKey="new.confirm" onConfirm={onConfirmNew} onCancel={onCancelNew} />}
+    {!presentation && pendingImport && <ReplaceConfirmation titleKey="import.title" bodyKey="import.body" detail={pendingImport.detail ?? pendingImport.path} confirmKey="import.confirm" onConfirm={onConfirmImport} onCancel={onCancelImport} />}
+    {!presentation && pendingNew && <ReplaceConfirmation titleKey="new.title" bodyKey="new.body" confirmKey="new.confirm" onConfirm={onConfirmNew} onCancel={onCancelNew} />}
   </>
 }

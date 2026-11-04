@@ -67,6 +67,7 @@
 .project-navigation__run-menu { left: auto; right: 0; width: 260px; max-height: calc(100dvh - 50px); overflow: auto; }
 /* Version affichée à droite, puis le lien vers le dépôt GitHub. */
 .project-navigation__version { margin-left: var(--space-control); color: var(--color-text-muted); font-size: 10px; white-space: nowrap; }
+.project-navigation button.project-navigation__presentation-exit { padding: 4px 9px; gap: 5px; border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border)); color: var(--color-primary); }
 .project-navigation__github { padding: 4px; color: var(--color-text-muted); }
 .project-navigation button.project-navigation__github:hover:not(:disabled) { color: var(--color-text); }
 /* Bouton de mise à jour disponible, mis en avant à droite de la barre. */

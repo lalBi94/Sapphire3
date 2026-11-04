@@ -10,7 +10,7 @@ import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 
 // Rend une construction avec ses slots ; les cycles ou liens manquants restent des fragments lisibles.
-export default function LogicNode({ id, index, selectedId, selectedIds = null, activeExecutionId, onSelect, ancestors, expandedIds, onToggle, onOpenActions, dropTarget, onReorder, unusedIds = null, pureIds = null, breakpoints = null, onToggleBreakpoint = null, debugValues = null, genericCalls = null }) {
+export default function LogicNode({ id, index, selectedId, selectedIds = null, readOnly = false, activeExecutionId, onSelect, ancestors, expandedIds, onToggle, onOpenActions, dropTarget, onReorder, unusedIds = null, pureIds = null, breakpoints = null, onToggleBreakpoint = null, debugValues = null, genericCalls = null }) {
   const { t } = useTranslation()
   const node = index.nodes.get(id)
   const schema = node ? getNodeSchema(node.kind) : null
@@ -96,15 +96,15 @@ export default function LogicNode({ id, index, selectedId, selectedIds = null, a
   if (ancestors.includes(id) || ancestors.length >= 60) return <p className="logic-tree__missing">{t('canvas.blockHidden')}</p>
   return (<>
     <section ref={nodeRef} className={`logic-node${selected ? ' logic-node--selected' : ''}${active ? ' logic-node--executing' : ''}${expanded ? '' : ' logic-node--collapsed'}${drop ? ` logic-node--drop-${drop.ok ? 'valid' : 'invalid'}` : ''}`} data-source-node={id} data-group={schema?.group ?? 'incomplete'} aria-current={active ? 'step' : undefined} aria-label={name} onClick={handleSelect} onMouseEnter={showPreview} onMouseLeave={hidePreview} onFocus={showPreview} onBlur={hidePreview}>
-      <NodeMenuButton label={name} onOpen={(event) => onOpenActions(event, { kind: 'node', id })} />
+      {!readOnly && <NodeMenuButton label={name} onOpen={(event) => onOpenActions(event, { kind: 'node', id })} />}
       <div className="logic-node__header">
-        <button type="button" className={`logic-node__breakpoint${breakpoint ? ' logic-node__breakpoint--set' : ''}`} aria-pressed={breakpoint} aria-label={t(breakpoint ? 'canvas.breakpointRemove' : 'canvas.breakpointAdd', { name })} title={t(breakpoint ? 'canvas.breakpointRemove' : 'canvas.breakpointAdd', { name })} onClick={(event) => { event.stopPropagation(); onToggleBreakpoint?.(id) }}>
+        {!readOnly && <button type="button" className={`logic-node__breakpoint${breakpoint ? ' logic-node__breakpoint--set' : ''}`} aria-pressed={breakpoint} aria-label={t(breakpoint ? 'canvas.breakpointRemove' : 'canvas.breakpointAdd', { name })} title={t(breakpoint ? 'canvas.breakpointRemove' : 'canvas.breakpointAdd', { name })} onClick={(event) => { event.stopPropagation(); onToggleBreakpoint?.(id) }}>
           <OctagonMinus size={12} strokeWidth={2} aria-hidden="true" />
-        </button>
+        </button>}
         <button type="button" className="logic-node__toggle" aria-expanded={expanded} aria-label={t(expanded ? 'canvas.collapse' : 'canvas.expand', { name })} onClick={handleToggle}>
           {expanded ? <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" /> : <ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" />}
         </button>
-        <button type="button" className="logic-node__heading" draggable title={debugValue ? undefined : t('transfer.dragHint')} onClick={handleSelect} aria-pressed={selected} onMouseEnter={showValueTip} onMouseLeave={hideValueTip} onFocus={showValueTip} onBlur={hideValueTip}>
+        <button type="button" className="logic-node__heading" draggable={!readOnly} title={readOnly ? undefined : debugValue ? undefined : t('transfer.dragHint')} onClick={handleSelect} aria-pressed={selected} onMouseEnter={showValueTip} onMouseLeave={hideValueTip} onFocus={showValueTip} onBlur={hideValueTip}>
           <span>{kindLabel(node.kind, t)}{node.properties?.name ? ` · ${node.properties.name}` : ''}</span>
           {node.kind === 'FunctionDeclaration' && node.properties?.generic === true && <span className="logic-node__generic" title={t('canvas.genericHint')} aria-label={t('canvas.genericHint')}>{'<T>'}</span>}
           {inferredGeneric && <span className="logic-node__generic-call" title={t('canvas.genericCallHint')}>{`T = ${typeLabel(inferredGeneric, t)}`}</span>}
@@ -113,7 +113,7 @@ export default function LogicNode({ id, index, selectedId, selectedIds = null, a
           {diagnostics.length > 0 && <span className="logic-node__issues" aria-label={t(diagnostics.length === 1 ? 'canvas.issueCountOne' : 'canvas.issueCount', { count: diagnostics.length })}>{diagnostics.length}</span>}
           {unused && <span className="logic-node__unused" title={t(node.kind === 'Parameter' ? 'canvas.unusedParamHint' : 'canvas.unusedHint')} aria-label={t(node.kind === 'Parameter' ? 'canvas.unusedParamHint' : 'canvas.unusedHint')}>{t('canvas.unused')}</span>}
         </button>
-        {order && order.count > 1 && <div className="logic-node__order">
+        {order && order.count > 1 && !readOnly && <div className="logic-node__order">
           <button type="button" className="logic-node__order-button" title={t('canvas.moveUp')} aria-label={t('canvas.moveUp')} disabled={order.position === 0} onClick={(event) => { event.stopPropagation(); onReorder(id, -1) }}><ArrowUp size={13} strokeWidth={2} aria-hidden="true" /></button>
           <button type="button" className="logic-node__order-button" title={t('canvas.moveDown')} aria-label={t('canvas.moveDown')} disabled={order.position === order.count - 1} onClick={(event) => { event.stopPropagation(); onReorder(id, 1) }}><ArrowDown size={13} strokeWidth={2} aria-hidden="true" /></button>
         </div>}
@@ -124,7 +124,7 @@ export default function LogicNode({ id, index, selectedId, selectedIds = null, a
         const children = Array.isArray(value) ? value : value === null || value === undefined ? [] : [value]
         return <div className="logic-node__slot" data-slot={slotName} key={slotName}>
           <span className="logic-node__slot-label">{slotLabel(slotName, t)}{slot.many ? ` [${children.length}]` : ''}</span>
-          {children.length === 0 ? <span className="logic-node__empty">{t(slot.required ? 'canvas.addSomething' : 'canvas.empty')}</span> : children.map((childId, position) => <LogicNode key={`${childId}:${position}`} id={childId} index={index} selectedId={selectedId} selectedIds={selectedIds} activeExecutionId={activeExecutionId} onSelect={onSelect} ancestors={[...ancestors, id]} expandedIds={expandedIds} onToggle={onToggle} onOpenActions={onOpenActions} dropTarget={dropTarget} onReorder={onReorder} unusedIds={unusedIds} pureIds={pureIds} breakpoints={breakpoints} onToggleBreakpoint={onToggleBreakpoint} debugValues={debugValues} genericCalls={genericCalls} />)}
+          {children.length === 0 ? <span className="logic-node__empty">{t(slot.required ? 'canvas.addSomething' : 'canvas.empty')}</span> : children.map((childId, position) => <LogicNode key={`${childId}:${position}`} id={childId} index={index} selectedId={selectedId} selectedIds={selectedIds} readOnly={readOnly} activeExecutionId={activeExecutionId} onSelect={onSelect} ancestors={[...ancestors, id]} expandedIds={expandedIds} onToggle={onToggle} onOpenActions={onOpenActions} dropTarget={dropTarget} onReorder={onReorder} unusedIds={unusedIds} pureIds={pureIds} breakpoints={breakpoints} onToggleBreakpoint={onToggleBreakpoint} debugValues={debugValues} genericCalls={genericCalls} />)}
         </div>
       })}
     </section>
