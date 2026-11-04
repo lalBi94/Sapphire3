@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronsDownUp, ChevronsUpDown, CirclePlus, Code2, Lock, Monitor } from 'lucide-react'
+import { ChevronsDownUp, ChevronsUpDown, Code2, Lock, Monitor, Smile } from 'lucide-react'
 import { minimumModuleSize, moduleTypes } from '../../utils/moduleTypes.js'
 import { isEmbeddedImage } from '../../utils/embeddedImage.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
@@ -52,7 +52,7 @@ function ModuleEmoji({ emoji, onChange }) {
 
   return <>
     <button ref={buttonRef} type="button" className={`canvas-module__emoji${emoji ? ' canvas-module__emoji--set' : ''}`} aria-label={t('module.emojiAdd')} title={t('module.emojiAdd')} onPointerDown={(event) => event.stopPropagation()} onClick={toggle}>
-      {emoji ? <span aria-hidden="true">{emoji}</span> : <CirclePlus size={14} strokeWidth={1.75} aria-hidden="true" />}
+      {emoji ? <span aria-hidden="true">{emoji}</span> : <Smile size={15} strokeWidth={1.75} aria-hidden="true" />}
     </button>
     {open && anchor && createPortal(<div className="module-emoji__popover" role="dialog" aria-label={t('module.emojiPicker')} style={{ left: anchor.left, top: anchor.top }} onPointerDown={(event) => event.stopPropagation()}>
       <div className="module-emoji__grid">{emojiPresets.map((value) => <button type="button" key={value} className="module-emoji__choice" aria-label={value} onClick={() => choose(value)} onPointerDown={(event) => event.stopPropagation()}>{value}</button>)}</div>
