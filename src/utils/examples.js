@@ -105,7 +105,7 @@ function arrays() {
   b.make('bufferCreation', 'ArrayCreation', { elementType: intType }, { size: 'bufferSize', initializer: 'bufferFill' })
   b.intValue('bufferSize', 3); b.intValue('bufferFill', 0)
   b.root('arraysMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'arraysBody' })
-  b.block('arraysBody', ['writeFirst', 'printFirst', 'printSecond'])
+  b.block('arraysBody', ['writeFirst', 'printFirst', 'printSecond', 'printBufferLength'])
   b.make('writeFirst', 'AssignmentStatement', {}, { target: 'firstElement', value: 'seven' })
   b.access('firstElement', 'valuesRefWrite', 'zeroWrite'); b.ref('valuesRefWrite', 'values'); b.intValue('zeroWrite', 0)
   b.intValue('seven', 7)
@@ -113,7 +113,10 @@ function arrays() {
   b.access('readFirst', 'valuesRefRead', 'zeroRead'); b.ref('valuesRefRead', 'values'); b.intValue('zeroRead', 0)
   b.print('printSecond', 'readSecond')
   b.access('readSecond', 'valuesRefSecond', 'oneRead'); b.ref('valuesRefSecond', 'values'); b.intValue('oneRead', 1)
-  return workspace(b.project, [note('arraysNote', 'Arrays', 'values démarre à [2, 4, 6], buffer est une création de 3 cases à 0 ; main écrit values[0] = 7 puis affiche values[0] (7) et values[1] (4).', 600, 0)])
+  // `arrayLength` remplace la taille écrite en dur.
+  b.print('printBufferLength', 'bufferLengthCall')
+  b.make('bufferLengthCall', 'MathCall', { name: 'arrayLength' }, { arguments: ['bufferLengthArray'] }); b.ref('bufferLengthArray', 'buffer')
+  return workspace(b.project, [note('arraysNote', 'Arrays', 'values démarre à [2, 4, 6], buffer est une création de 3 cases à 0 ; main écrit values[0] = 7, affiche values[0] (7) et values[1] (4), puis la taille de buffer par arrayLength (3).', 600, 0)])
 }
 
 // Tri à bulles sur un petit tableau, puis affichage dans l'ordre croissant.
@@ -128,11 +131,18 @@ function sorting() {
   b.make('iDecl', 'VariableDeclaration', { name: 'i', type: intType }, { initializer: 'iStart' }); b.intValue('iStart', 0)
   b.make('tempDecl', 'VariableDeclaration', { name: 'temp', type: intType }, { initializer: 'tempStart' }); b.intValue('tempStart', 0)
   b.make('outerLoop', 'WhileStatement', {}, { test: 'outerTest', body: 'outerBody' })
-  b.binary('outerTest', '<', 'iReadOuter', 'outerBound'); b.ref('iReadOuter', 'i'); b.intValue('outerBound', 3)
+  b.binary('outerTest', '<', 'iReadOuter', 'outerBound'); b.ref('iReadOuter', 'i')
+  // Borne = arrayLength(data) − 1, sans taille écrite en dur.
+  b.make('outerBound', 'BinaryExpression', { operator: '-' }, { left: 'outerBoundLength', right: 'outerBoundOne' })
+  b.make('outerBoundLength', 'MathCall', { name: 'arrayLength' }, { arguments: ['outerBoundArray'] }); b.ref('outerBoundArray', 'data')
+  b.intValue('outerBoundOne', 1)
   b.block('outerBody', ['jDecl', 'innerLoop', 'iStep'])
   b.make('jDecl', 'VariableDeclaration', { name: 'j', type: intType }, { initializer: 'jStart' }); b.intValue('jStart', 0)
   b.make('innerLoop', 'WhileStatement', {}, { test: 'innerTest', body: 'innerBody' })
-  b.binary('innerTest', '<', 'jReadInner', 'innerBound'); b.ref('jReadInner', 'j'); b.intValue('innerBound', 3)
+  b.binary('innerTest', '<', 'jReadInner', 'innerBound'); b.ref('jReadInner', 'j')
+  b.make('innerBound', 'BinaryExpression', { operator: '-' }, { left: 'innerBoundLength', right: 'innerBoundOne' })
+  b.make('innerBoundLength', 'MathCall', { name: 'arrayLength' }, { arguments: ['innerBoundArray'] }); b.ref('innerBoundArray', 'data')
+  b.intValue('innerBoundOne', 1)
   b.block('innerBody', ['compare', 'jStep'])
   b.make('compare', 'IfStatement', {}, { test: 'greater', consequent: 'swapBody', alternate: null })
   b.binary('greater', '>', 'leftRead', 'rightRead')
@@ -154,7 +164,8 @@ function sorting() {
   b.ref('iTarget', 'i'); b.binary('iNext', '+', 'iStepRead', 'oneStepI'); b.ref('iStepRead', 'i'); b.intValue('oneStepI', 1)
   b.make('kDecl', 'VariableDeclaration', { name: 'k', type: intType }, { initializer: 'kStart' }); b.intValue('kStart', 0)
   b.make('printLoop', 'WhileStatement', {}, { test: 'printTest', body: 'printBody' })
-  b.binary('printTest', '<', 'kReadPrint', 'printBound'); b.ref('kReadPrint', 'k'); b.intValue('printBound', 4)
+  b.binary('printTest', '<', 'kReadPrint', 'printBound'); b.ref('kReadPrint', 'k')
+  b.make('printBound', 'MathCall', { name: 'arrayLength' }, { arguments: ['printBoundArray'] }); b.ref('printBoundArray', 'data')
   b.block('printBody', ['printElement', 'kStep'])
   b.print('printElement', 'readElement')
   b.access('readElement', 'dataRefPrint', 'kIndex'); b.ref('dataRefPrint', 'data'); b.ref('kIndex', 'k')
@@ -232,10 +243,15 @@ function quickSort() {
   b.root('quickMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'quickMainBody' })
   b.block('quickMainBody', ['quickCallStatement', 'quickKDecl', 'quickPrintLoop', 'quickReturn'])
   b.make('quickCallStatement', 'ExpressionStatement', {}, { expression: 'quickCall' })
-  b.call('quickCall', 'quickImportRef', ['quickMainData', 'quickZeroCall', 'quickThreeCall']); b.make('quickImportRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'quickSortImport' } }); b.ref('quickMainData', 'data'); b.intValue('quickZeroCall', 0); b.intValue('quickThreeCall', 3)
+  b.call('quickCall', 'quickImportRef', ['quickMainData', 'quickZeroCall', 'quickHighCall']); b.make('quickImportRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'quickSortImport' } }); b.ref('quickMainData', 'data'); b.intValue('quickZeroCall', 0)
+  // Borne haute = arrayLength(data) − 1.
+  b.binary('quickHighCall', '-', 'quickHighLength', 'quickHighOne')
+  b.make('quickHighLength', 'MathCall', { name: 'arrayLength' }, { arguments: ['quickHighArray'] }); b.ref('quickHighArray', 'data')
+  b.intValue('quickHighOne', 1)
   b.make('quickKDecl', 'VariableDeclaration', { name: 'k', type: intType }, { initializer: 'quickKStart' }); b.intValue('quickKStart', 0)
   b.make('quickPrintLoop', 'WhileStatement', {}, { test: 'quickPrintTest', body: 'quickPrintBody' })
-  b.binary('quickPrintTest', '<', 'quickKRead', 'quickPrintBound'); b.ref('quickKRead', 'k'); b.intValue('quickPrintBound', 4)
+  b.binary('quickPrintTest', '<', 'quickKRead', 'quickPrintBound'); b.ref('quickKRead', 'k')
+  b.make('quickPrintBound', 'MathCall', { name: 'arrayLength' }, { arguments: ['quickPrintBoundArray'] }); b.ref('quickPrintBoundArray', 'data')
   b.block('quickPrintBody', ['quickPrintElement', 'quickKStep'])
   b.print('quickPrintElement', 'quickElementRead')
   b.access('quickElementRead', 'quickDataPrint', 'quickKIndex'); b.ref('quickDataPrint', 'data'); b.ref('quickKIndex', 'k')
@@ -244,7 +260,7 @@ function quickSort() {
   b.returnValue('quickReturn', null)
   b.project.modules.find((module) => module.id === 'quickSort').exports.push({ nodeId: 'quickSortFunction', name: 'quickSort' })
   b.project.modules.find((module) => module.id === 'quickApp').imports.push({ id: 'quickSortImport', moduleId: 'quickSort', nodeId: 'quickSortFunction', localName: 'quickSort' })
-  return workspace(b.project, [note('quickSortNote', 'Quick sort', 'La bibliothèque Quick sort exporte swap, partition et quickSort ; l\'application importe quickSort et trie [8, 3, 5, 1] par récursion et partition autour du pivot. Sortie : 1 3 5 8.', 600, 0)])
+  return workspace(b.project, [note('quickSortNote', 'Quick sort', 'La bibliothèque Quick sort exporte swap, partition et quickSort ; l\'application importe quickSort et trie [8, 3, 5, 1] par récursion et partition autour du pivot. Sortie : 1 3 5 8.', 0, 520)])
 }
 
 // Rendu de monnaie multi-module : un jeu canonique de pièces et une fonction gloutonne exportée.
@@ -286,7 +302,7 @@ function coinChange() {
   b.call('coinCall', 'coinImportRef', ['coinAmount', 'coinAppCoins']); b.make('coinImportRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'coinChangeImport' } }); b.intValue('coinAmount', 63); b.ref('coinAppCoins', 'coins')
   b.project.modules.find((module) => module.id === 'coinLib').exports.push({ nodeId: 'coinChangeFunction', name: 'coinChange' })
   b.project.modules.find((module) => module.id === 'coinApp').imports.push({ id: 'coinChangeImport', moduleId: 'coinLib', nodeId: 'coinChangeFunction', localName: 'coinChange' })
-  return workspace(b.project, [note('coinChangeNote', 'Coin change', 'coins = [25, 10, 5, 1] ; coinChange(63) choisit gloutonnement 25 + 25 + 10 + 1 + 1 + 1 et retourne 6 pièces. La bibliothèque Coins exporte la fonction, l\'application l\'importe.', 600, 0)])
+  return workspace(b.project, [note('coinChangeNote', 'Coin change', 'coins = [25, 10, 5, 1] ; coinChange(63) choisit gloutonnement 25 + 25 + 10 + 1 + 1 + 1 et retourne 6 pièces. La bibliothèque Coins exporte la fonction, l\'application l\'importe.', 0, 520)])
 }
 
 // Imports : une fonction carrée exportée par une bibliothèque, importée et appelée ailleurs.
@@ -405,6 +421,15 @@ function maths() {
   b.make('absCall', 'MathCall', { name: 'abs' }, { arguments: ['aRefAbs'] }); b.ref('aRefAbs', 'a')
   b.root('largest', 'VariableDeclaration', { name: 'largest', type: intType }, { initializer: 'maxCall' })
   b.make('maxCall', 'MathCall', { name: 'max' }, { arguments: ['aRefMax', 'bRefMax'] }); b.ref('aRefMax', 'a'); b.ref('bRefMax', 'b')
+  b.root('smallest', 'VariableDeclaration', { name: 'smallest', type: intType }, { initializer: 'minCall' })
+  b.make('minCall', 'MathCall', { name: 'min' }, { arguments: ['aRefMin', 'bRefMin'] }); b.ref('aRefMin', 'a'); b.ref('bRefMin', 'b')
+  // clamp borne une valeur et gcd calcule un PGCD, deux natives entières supplémentaires.
+  b.root('bounded', 'VariableDeclaration', { name: 'bounded', type: intType }, { initializer: 'clampCall' })
+  b.make('clampCall', 'MathCall', { name: 'clamp' }, { arguments: ['tenClamp', 'zeroClamp', 'fiveClamp'] })
+  b.intValue('tenClamp', 10); b.intValue('zeroClamp', 0); b.intValue('fiveClamp', 5)
+  b.root('divisor', 'VariableDeclaration', { name: 'divisor', type: intType }, { initializer: 'gcdCall' })
+  b.make('gcdCall', 'MathCall', { name: 'gcd' }, { arguments: ['twelveGcd', 'eighteenGcd'] })
+  b.intValue('twelveGcd', 12); b.intValue('eighteenGcd', 18)
   b.root('root', 'VariableDeclaration', { name: 'root', type: doubleType }, { initializer: 'sqrtCall' })
   b.make('sqrtCall', 'MathCall', { name: 'sqrt' }, { arguments: ['eightyOne'] })
   b.make('eightyOne', 'Literal', { type: doubleType, value: '81.0' })
@@ -413,12 +438,15 @@ function maths() {
   b.make('threeDouble', 'Literal', { type: doubleType, value: '3.0' })
   b.make('twoDouble', 'Literal', { type: doubleType, value: '2.0' })
   b.root('mathMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'mathBody' })
-  b.block('mathBody', ['printAbs', 'printMax', 'printRoot', 'printPower'])
+  b.block('mathBody', ['printAbs', 'printMax', 'printMin', 'printClamp', 'printGcd', 'printRoot', 'printPower'])
   b.print('printAbs', 'absRead'); b.ref('absRead', 'absolute')
   b.print('printMax', 'maxRead'); b.ref('maxRead', 'largest')
+  b.print('printMin', 'minRead'); b.ref('minRead', 'smallest')
+  b.print('printClamp', 'clampRead'); b.ref('clampRead', 'bounded')
+  b.print('printGcd', 'gcdRead'); b.ref('gcdRead', 'divisor')
   b.print('printRoot', 'rootRead'); b.ref('rootRead', 'root')
   b.print('printPower', 'powerRead'); b.ref('powerRead', 'power')
-  return workspace(b.project, [note('mathNote', 'Native maths', 'Opérations SP3 natives : abs(-7) = 7, max(-7, 3) = 3, sqrt(81) = 9, pow(3, 2) = 9. Une note peut aussi afficher une formule : $$ \\sqrt{81} = 9 $$.', 600, 0)])
+  return workspace(b.project, [note('mathNote', 'Native maths', 'Opérations SP3 natives : abs(-7) = 7, max(-7, 3) = 3, min(-7, 3) = -7, clamp(10, 0, 5) = 5, gcd(12, 18) = 6, sqrt(81) = 9, pow(3, 2) = 9. Une note peut aussi afficher une formule : $$ \\sqrt{81} = 9 $$.', 600, 0)])
 }
 
 // Calcul numérique multi-module : dérivée centrale et intégrale de Simpson pour x².
@@ -471,7 +499,7 @@ function calculus() {
   b.call('integralCall', 'integralImportRef', ['zeroIntegral', 'oneIntegral']); b.make('integralImportRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'integralImport' } }); b.make('zeroIntegral', 'Literal', { type: doubleType, value: '0.0' }); b.make('oneIntegral', 'Literal', { type: doubleType, value: '1.0' })
   b.project.modules.find((module) => module.id === 'calculus').exports.push({ nodeId: 'derivativeFunction', name: 'derivative' }, { nodeId: 'integralFunction', name: 'integral' })
   b.project.modules.find((module) => module.id === 'calculusDemo').imports.push({ id: 'derivativeImport', moduleId: 'calculus', nodeId: 'derivativeFunction', localName: 'derivative' }, { id: 'integralImport', moduleId: 'calculus', nodeId: 'integralFunction', localName: 'integral' })
-  return workspace(b.project, [note('calculusNote', 'Calculus', 'Dérivée centrale de x² en 3 : (f(3,5) − f(2,5)) / 1 = 6. Intégrale de Simpson de x² sur [0, 1] : (1/6) × (f(0) + 4f(0,5) + f(1)) = 1/3. $$ \\frac{d}{dx}x^2 = 2x $$ et $$ \\int_0^1 x^2\\,dx = \\frac{1}{3} $$.', 600, 0)])
+  return workspace(b.project, [note('calculusNote', 'Calculus', 'Dérivée centrale de x² en 3 : (f(3,5) − f(2,5)) / 1 = 6. Intégrale de Simpson de x² sur [0, 1] : (1/6) × (f(0) + 4f(0,5) + f(1)) = 1/3. $$ \\frac{d}{dx}x^2 = 2x $$ et $$ \\int_0^1 x^2\\,dx = \\frac{1}{3} $$.', 0, 520)])
 }
 
 // Deux écrans 30×18 avec chacun un logo 3×3 qui ricoche sur les bords, façon DVD.
@@ -642,9 +670,9 @@ function pixelScreens() {
   app.imports.push({ id: 'bounceOneImport', moduleId: 'screenPatterns', nodeId: 'bounceOne', localName: 'bounceOne' }, { id: 'bounceTwoImport', moduleId: 'screenPatterns', nodeId: 'bounceTwo', localName: 'bounceTwo' }, { id: 'presentImport', moduleId: 'screenOne', nodeId: presentOne.nodeId, localName: 'present' })
 
   return workspace(b.project, [
-    note('screenOneNote', 'Bouncing logo', 'Écran 30×18. bounceOne() fait ricocher un logo jaune 3×3 : il avance d’une case par image et inverse sa vitesse en touchant un bord. $$x \\leftarrow x + v_x,\\quad v_x \\leftarrow -v_x$$', 0, 620, 460, 200),
-    note('screenTwoNote', 'Second logo', 'Écran 30×18. bounceTwo() anime un logo bleu décalé, avec sa propre position et sa propre vitesse.', 620, 620, 460, 200),
-    note('screenMainNote', 'Bouncing logos', 'main dessine un premier logo puis boucle sur 30 images : les deux logos rebondissent en continu. Run rejoue les images en boucle ; Debug permet de suivre chaque écriture.', 0, 0, 460, 200),
+    note('screenOneNote', 'Bouncing logo', 'Écran 30×18. bounceOne() fait ricocher un logo jaune 3×3 : il avance d’une case par image et inverse sa vitesse en touchant un bord. $$x \\leftarrow x + v_x,\\quad v_x \\leftarrow -v_x$$', 0, 980, 460, 200),
+    note('screenTwoNote', 'Second logo', 'Écran 30×18. bounceTwo() anime un logo bleu décalé, avec sa propre position et sa propre vitesse.', 620, 980, 460, 200),
+    note('screenMainNote', 'Bouncing logos', 'main dessine un premier logo puis boucle sur 30 images : les deux logos rebondissent en continu. Run rejoue les images en boucle ; Debug permet de suivre chaque écriture.', 1240, 980, 460, 200),
   ])
 }
 
@@ -1011,45 +1039,107 @@ function gaugeDemo() {
   b.block('gaugeMainBody', ['gaugeReset', 'gaugeLoop', 'gaugePrint'])
 
   return workspace(b.project, [
-    note('gaugeNote', 'Gauge', 'La jauge est pilotée depuis Gauge app : RESET puis cinq ADD_VALUE(20) la remplissent de 0 à 100. Son module caché exporte SET_VALUE, ADD_VALUE, GET_VALUE, GET_MIN, GET_MAX, SET_RANGE et RESET.', 0, 320, 620, 240),
+    note('gaugeNote', 'Gauge', 'La jauge est pilotée depuis Gauge app : RESET puis cinq ADD_VALUE(20) la remplissent de 0 à 100. Son module caché exporte SET_VALUE, ADD_VALUE, GET_VALUE, GET_MIN, GET_MAX, SET_RANGE et RESET.', 0, 520, 620, 240),
   ])
 }
 
+// Programmation dynamique : sac à dos 0/1, table `dp` remplie de droite à gauche.
+function knapsack() {
+  const b = builder()
+  b.useModule('knapsack', 'Knapsack')
+  b.root('knapBest', 'FunctionDeclaration', { name: 'bestValue', type: intType }, { parameters: ['knapWeights', 'knapValues', 'knapCapacity'], body: 'knapBody' })
+  b.make('knapWeights', 'Parameter', { name: 'weights', type: intArrayType })
+  b.make('knapValues', 'Parameter', { name: 'values', type: intArrayType })
+  b.make('knapCapacity', 'Parameter', { name: 'capacity', type: intType })
+  b.block('knapBody', ['knapDp', 'knapI', 'knapOuter', 'knapReturn'])
+  // dp = arrayFill(capacity + 1, 0) : meilleure valeur pour chaque capacité de 0 à capacity.
+  b.make('knapDp', 'VariableDeclaration', { name: 'dp', type: intArrayType }, { initializer: 'knapDpInit' })
+  b.make('knapDpInit', 'MathCall', { name: 'arrayFill' }, { arguments: ['knapCapacityPlus', 'knapZero'] })
+  b.binary('knapCapacityPlus', '+', 'knapCapacityRef', 'knapOne'); b.ref('knapCapacityRef', 'capacity'); b.intValue('knapOne', 1)
+  b.intValue('knapZero', 0)
+  b.make('knapI', 'VariableDeclaration', { name: 'i', type: intType }, { initializer: 'knapIStart' }); b.intValue('knapIStart', 0)
+  b.make('knapOuter', 'WhileStatement', {}, { test: 'knapOuterTest', body: 'knapOuterBody' })
+  b.binary('knapOuterTest', '<', 'knapIRead', 'knapWeightsLength'); b.ref('knapIRead', 'i')
+  b.make('knapWeightsLength', 'MathCall', { name: 'arrayLength' }, { arguments: ['knapWeightsRef'] }); b.ref('knapWeightsRef', 'weights')
+  b.block('knapOuterBody', ['knapC', 'knapInner', 'knapIStep'])
+  b.make('knapC', 'VariableDeclaration', { name: 'c', type: intType }, { initializer: 'knapCStart' }); b.ref('knapCStart', 'capacity')
+  b.make('knapInner', 'WhileStatement', {}, { test: 'knapInnerTest', body: 'knapInnerBody' })
+  // Parcours de la capacité vers le bas : chaque objet n'est utilisé qu'une fois.
+  b.binary('knapInnerTest', '>=', 'knapCRead', 'knapWeightItem'); b.ref('knapCRead', 'c')
+  b.access('knapWeightItem', 'knapWeightsItemArray', 'knapWeightsItemIndex'); b.ref('knapWeightsItemArray', 'weights'); b.ref('knapWeightsItemIndex', 'i')
+  b.block('knapInnerBody', ['knapAssign', 'knapCStep'])
+  b.make('knapAssign', 'AssignmentStatement', {}, { target: 'knapDpTarget', value: 'knapBestCall' })
+  b.access('knapDpTarget', 'knapDpTargetArray', 'knapDpTargetIndex'); b.ref('knapDpTargetArray', 'dp'); b.ref('knapDpTargetIndex', 'c')
+  b.make('knapBestCall', 'MathCall', { name: 'max' }, { arguments: ['knapDpCurrent', 'knapTakeValue'] })
+  b.access('knapDpCurrent', 'knapDpCurrentArray', 'knapDpCurrentIndex'); b.ref('knapDpCurrentArray', 'dp'); b.ref('knapDpCurrentIndex', 'c')
+  b.binary('knapTakeValue', '+', 'knapDpRemaining', 'knapItemValue')
+  b.access('knapDpRemaining', 'knapDpRemainingArray', 'knapDpRemainingIndex'); b.ref('knapDpRemainingArray', 'dp')
+  b.binary('knapDpRemainingIndex', '-', 'knapCRemaining', 'knapWeightRemaining'); b.ref('knapCRemaining', 'c')
+  b.access('knapWeightRemaining', 'knapWeightsRemainingArray', 'knapWeightsRemainingIndex'); b.ref('knapWeightsRemainingArray', 'weights'); b.ref('knapWeightsRemainingIndex', 'i')
+  b.access('knapItemValue', 'knapValuesItemArray', 'knapValuesItemIndex'); b.ref('knapValuesItemArray', 'values'); b.ref('knapValuesItemIndex', 'i')
+  b.make('knapCStep', 'AssignmentStatement', {}, { target: 'knapCTarget', value: 'knapCNext' })
+  b.ref('knapCTarget', 'c'); b.binary('knapCNext', '-', 'knapCStepRead', 'knapCOne'); b.ref('knapCStepRead', 'c'); b.intValue('knapCOne', 1)
+  b.make('knapIStep', 'AssignmentStatement', {}, { target: 'knapITarget', value: 'knapINext' })
+  b.ref('knapITarget', 'i'); b.binary('knapINext', '+', 'knapIStepRead', 'knapIOne'); b.ref('knapIStepRead', 'i'); b.intValue('knapIOne', 1)
+  b.returnValue('knapReturn', 'knapDpFinal')
+  b.access('knapDpFinal', 'knapDpFinalArray', 'knapDpFinalIndex'); b.ref('knapDpFinalArray', 'dp'); b.ref('knapDpFinalIndex', 'capacity')
+
+  b.useModule('knapsackApp', 'Knapsack demo')
+  b.root('knapWeightsData', 'VariableDeclaration', { name: 'weights', type: intArrayType }, { initializer: 'knapWeightsList' })
+  b.make('knapWeightsList', 'ArrayLiteral', { elementType: intType }, { elements: ['knapWeight1', 'knapWeight3', 'knapWeight4', 'knapWeight5'] })
+  b.intValue('knapWeight1', 1); b.intValue('knapWeight3', 3); b.intValue('knapWeight4', 4); b.intValue('knapWeight5', 5)
+  b.root('knapValuesData', 'VariableDeclaration', { name: 'values', type: intArrayType }, { initializer: 'knapValuesList' })
+  b.make('knapValuesList', 'ArrayLiteral', { elementType: intType }, { elements: ['knapValue1', 'knapValue4', 'knapValue5', 'knapValue7'] })
+  b.intValue('knapValue1', 1); b.intValue('knapValue4', 4); b.intValue('knapValue5', 5); b.intValue('knapValue7', 7)
+  b.root('knapMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'knapMainBody' })
+  b.block('knapMainBody', ['knapPrint'])
+  b.print('knapPrint', 'knapCall')
+  b.call('knapCall', 'knapImportRef', ['knapWeightsArg', 'knapValuesArg', 'knapCapacityArg'])
+  b.make('knapImportRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'knapImport' } })
+  b.ref('knapWeightsArg', 'weights'); b.ref('knapValuesArg', 'values'); b.intValue('knapCapacityArg', 7)
+  b.project.modules.find((module) => module.id === 'knapsack').exports.push({ nodeId: 'knapBest', name: 'bestValue' })
+  b.project.modules.find((module) => module.id === 'knapsackApp').imports.push({ id: 'knapImport', moduleId: 'knapsack', nodeId: 'knapBest', localName: 'bestValue' })
+  return workspace(b.project, [note('knapsackNote', 'Knapsack', 'Sac à dos 0/1 par programmation dynamique : `dp[c]` garde la meilleure valeur atteignable avec la capacité `c`. Pour chaque objet, la capacité est parcourue de haut en bas afin de ne le compter qu’une fois. `bestValue([1, 3, 4, 5], [1, 4, 5, 7], 7)` renvoie 9. $$dp[c] \\leftarrow \\max(dp[c],\\; dp[c - w] + v)$$', 0, 520, 620, 240)])
+}
+
+// Trois niveaux de difficulté, du plus simple au plus avancé.
 export const exampleCategories = [
-  { id: 'algorithms', labelKey: 'examples.category.algorithms' },
-  { id: 'arrays', labelKey: 'examples.category.arrays' },
-  { id: 'functions', labelKey: 'examples.category.functions' },
-  { id: 'pointers', labelKey: 'examples.category.pointers' },
-  { id: 'operations', labelKey: 'examples.category.operations' },
-  { id: 'screens', labelKey: 'examples.category.screens' },
-  { id: 'widgets', labelKey: 'examples.category.widgets' },
-  { id: 'modules', labelKey: 'examples.category.modules' },
+  { id: 'simple', labelKey: 'examples.category.simple' },
+  { id: 'medium', labelKey: 'examples.category.medium' },
+  { id: 'hard', labelKey: 'examples.category.hard' },
 ]
 
-// Catalogue local, ouvrable sans réseau ni fichier externe.
+// Catalogue local, ouvrable sans réseau ni fichier externe, classé par difficulté puis par thème.
 export const examples = [
-  { id: 'fibonacci', labelKey: 'examples.fibonacci', category: 'algorithms', subcategory: 'basics', build: fibonacci },
-  { id: 'sorting', labelKey: 'examples.sorting', category: 'algorithms', subcategory: 'sorting', build: sorting },
-  { id: 'quickSort', labelKey: 'examples.quickSort', category: 'algorithms', subcategory: 'sorting', build: quickSort },
-  { id: 'coinChange', labelKey: 'examples.coinChange', category: 'algorithms', subcategory: 'dynamic', build: coinChange },
-  { id: 'arrays', labelKey: 'examples.arrays', category: 'arrays', build: arrays },
-  { id: 'recursion', labelKey: 'examples.recursion', category: 'algorithms', subcategory: 'basics', build: recursion },
-  { id: 'imports', labelKey: 'examples.imports', category: 'modules', build: imports },
-  { id: 'foreach', labelKey: 'examples.forEach', category: 'arrays', build: forEach },
-  { id: 'pointers', labelKey: 'examples.pointers', category: 'pointers', build: pointers },
-  { id: 'higherOrder', labelKey: 'examples.higherOrder', category: 'functions', build: higherOrder },
-  { id: 'maths', labelKey: 'examples.maths', category: 'operations', build: maths },
-  { id: 'calculus', labelKey: 'examples.calculus', category: 'operations', build: calculus },
-  { id: 'pixelScreens', labelKey: 'examples.pixelScreens', category: 'screens', subcategory: 'animation', build: pixelScreens },
-  { id: 'rain', labelKey: 'examples.rain', category: 'screens', subcategory: 'animation', build: rain },
-  { id: 'gameOfLife', labelKey: 'examples.gameOfLife', category: 'screens', subcategory: 'automata', build: gameOfLife },
-  { id: 'gaugeDemo', labelKey: 'examples.gaugeDemo', category: 'widgets', build: gaugeDemo },
+  { id: 'fibonacci', labelKey: 'examples.fibonacci', category: 'simple', subcategory: 'basics', build: fibonacci },
+  { id: 'recursion', labelKey: 'examples.recursion', category: 'simple', subcategory: 'basics', build: recursion },
+  { id: 'arrays', labelKey: 'examples.arrays', category: 'simple', subcategory: 'arrays', build: arrays },
+  { id: 'foreach', labelKey: 'examples.forEach', category: 'simple', subcategory: 'arrays', build: forEach },
+  { id: 'sorting', labelKey: 'examples.sorting', category: 'simple', subcategory: 'sorting', build: sorting },
+  { id: 'maths', labelKey: 'examples.maths', category: 'simple', subcategory: 'operations', build: maths },
+  { id: 'imports', labelKey: 'examples.imports', category: 'simple', subcategory: 'modules', build: imports },
+  { id: 'pointers', labelKey: 'examples.pointers', category: 'medium', subcategory: 'pointers', build: pointers },
+  { id: 'higherOrder', labelKey: 'examples.higherOrder', category: 'medium', subcategory: 'functions', build: higherOrder },
+  { id: 'quickSort', labelKey: 'examples.quickSort', category: 'medium', subcategory: 'sorting', build: quickSort },
+  { id: 'coinChange', labelKey: 'examples.coinChange', category: 'medium', subcategory: 'dynamic', build: coinChange },
+  { id: 'gaugeDemo', labelKey: 'examples.gaugeDemo', category: 'medium', subcategory: 'widgets', build: gaugeDemo },
+  { id: 'pixelScreens', labelKey: 'examples.pixelScreens', category: 'medium', subcategory: 'animation', build: pixelScreens },
+  { id: 'rain', labelKey: 'examples.rain', category: 'medium', subcategory: 'animation', build: rain },
+  { id: 'knapsack', labelKey: 'examples.knapsack', category: 'hard', subcategory: 'dynamic', build: knapsack },
+  { id: 'calculus', labelKey: 'examples.calculus', category: 'hard', subcategory: 'operations', build: calculus },
+  { id: 'gameOfLife', labelKey: 'examples.gameOfLife', category: 'hard', subcategory: 'automata', build: gameOfLife },
 ]
 
 // Sous-catégories facultatives à l'intérieur d'une catégorie du volet Examples.
 export const exampleSubcategories = [
   { id: 'basics', labelKey: 'examples.sub.basics' },
+  { id: 'arrays', labelKey: 'examples.sub.arrays' },
   { id: 'sorting', labelKey: 'examples.sub.sorting' },
+  { id: 'operations', labelKey: 'examples.sub.operations' },
+  { id: 'modules', labelKey: 'examples.sub.modules' },
+  { id: 'pointers', labelKey: 'examples.sub.pointers' },
+  { id: 'functions', labelKey: 'examples.sub.functions' },
+  { id: 'widgets', labelKey: 'examples.sub.widgets' },
   { id: 'dynamic', labelKey: 'examples.sub.dynamic' },
   { id: 'animation', labelKey: 'examples.sub.animation' },
   { id: 'automata', labelKey: 'examples.sub.automata' },

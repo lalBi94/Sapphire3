@@ -12,14 +12,15 @@ const expectedOutput = {
   sorting: ['1', '3', '5', '8'],
   quickSort: ['1', '3', '5', '8'],
   coinChange: ['6'],
-  arrays: ['7', '4'],
+  arrays: ['7', '4', '3'],
   recursion: ['120'],
   imports: ['25'],
   foreach: ['3', '1', '4', '1', '5'],
   pointers: ['3', '8', '8', '3'],
   higherOrder: ['42'],
-  maths: ['7', '3', '9', '9'],
+  maths: ['7', '3', '-7', '5', '6', '9', '9'],
   calculus: ['6', '0.3333333333333333'],
+  knapsack: ['9'],
   pixelScreens: ['Logos bouncing'],
   rain: ['Rain'],
   gameOfLife: ['Game of life'],
@@ -27,7 +28,8 @@ const expectedOutput = {
 }
 
 test('bibliothèque d’exemples : chaque projet est valide, analysable et s’exécute', () => {
-  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'sorting', 'quickSort', 'coinChange', 'arrays', 'recursion', 'imports', 'foreach', 'pointers', 'higherOrder', 'maths', 'calculus', 'pixelScreens', 'rain', 'gameOfLife', 'gaugeDemo'])
+  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'recursion', 'arrays', 'foreach', 'sorting', 'maths', 'imports', 'pointers', 'higherOrder', 'quickSort', 'coinChange', 'gaugeDemo', 'pixelScreens', 'rain', 'knapsack', 'calculus', 'gameOfLife'])
+  assert.deepEqual(exampleCategories.map((category) => category.id), ['simple', 'medium', 'hard'])
   for (const example of examples) {
     assert.ok(exampleCategories.some((category) => category.id === example.category), `${example.id}: catégorie connue`)
     if (example.subcategory) assert.ok(exampleSubcategories.some((subcategory) => subcategory.id === example.subcategory), `${example.id}: sous-catégorie connue`)
@@ -39,6 +41,30 @@ test('bibliothèque d’exemples : chaque projet est valide, analysable et s’e
     const result = simulateProgram(workspace.project)
     assert.equal(result.ok, true, `${example.id}: ${result.errorCode ?? ''}`)
     assert.deepEqual(result.output, expectedOutput[example.id], example.id)
+  }
+})
+
+test('exemple sac à dos : programmation dynamique pilotée par les natives', () => {
+  const workspace = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'knapsack').build()))
+  const analysis = analyzeProgram(workspace.project)
+  assert.deepEqual(analysis.diagnostics, [])
+  const result = simulateProgram(workspace.project)
+  assert.equal(result.ok, true, result.errorCode)
+  // bestValue([1, 3, 4, 5], [1, 4, 5, 7], 7) : objets 3 et 4, valeur 4 + 5.
+  assert.deepEqual(result.output, ['9'])
+})
+
+test('exemples : les annotations Comment ne chevauchent aucune carte', () => {
+  const overlaps = (left, right) => left.x < right.x + right.width && right.x < left.x + left.width && left.y < right.y + right.height && right.y < left.y + left.height
+  for (const example of examples) {
+    const cards = deserializeWorkspace(JSON.stringify(example.build())).presentation.cards
+    const comments = cards.filter((card) => card.type === 'comment')
+    for (const comment of comments) {
+      for (const card of cards) {
+        if (card === comment) continue
+        assert.equal(overlaps(comment, card), false, `${example.id}: ${comment.id} chevauche ${card.id}`)
+      }
+    }
   }
 })
 
