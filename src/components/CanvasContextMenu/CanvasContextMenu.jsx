@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Box, EyeOff, Image, Lock, LockOpen, MessageSquare } from 'lucide-react'
+import { Box, EyeOff, Image, Lock, LockOpen, MessageSquare, Monitor } from 'lucide-react'
 import { moduleTypes } from '../../utils/moduleTypes.js'
 import DeleteAction from '../DeleteAction/DeleteAction.jsx'
 import './CanvasContextMenu.css'
@@ -7,6 +7,7 @@ import { useTranslation } from '../../contexts/LanguageContext.jsx'
 
 const menuIcons = {
   module: Box,
+  screen: Monitor,
   comment: MessageSquare,
   image: Image,
 }

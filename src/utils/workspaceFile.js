@@ -1,6 +1,7 @@
 import { isId, isRecord, sourceFormatVersion, moduleKinds, createProject } from './logic/model.js'
 import { isContractKind } from './logic/contracts.js'
 import { serializeSource } from './logic/serialization.js'
+import { screenLimits } from './logic/mathNatives.js'
 import { moduleTypes, minimumModuleSize } from './moduleTypes.js'
 import { isEmbeddedImage } from './embeddedImage.js'
 
@@ -22,12 +23,15 @@ function validateProject(project) {
     throw workspaceError('Invalid or unsupported logical project format.')
   }
   const moduleIds = new Set()
+  const screenIndices = new Set()
   for (const module of project.modules) {
     if (!isRecord(module) || !isId(module.id) || moduleIds.has(module.id) || module.kind !== moduleKinds.module || !isId(module.name) || !['rootNodeIds', 'imports', 'exports'].every((field) => Array.isArray(module[field]))) {
       throw workspaceError('Invalid module data. Legacy Main modules are not supported.')
     }
     moduleIds.add(module.id)
     if (!module.rootNodeIds.every(validNodeLink)) throw workspaceError('Invalid module root identifiers.')
+    if (module.screen !== undefined && (!isRecord(module.screen) || !Number.isInteger(module.screen.index) || !Number.isInteger(module.screen.width) || !Number.isInteger(module.screen.height) || module.screen.index < 1 || module.screen.width < 1 || module.screen.height < 1 || module.screen.width > screenLimits.maximumDimension || module.screen.height > screenLimits.maximumDimension || screenIndices.has(module.screen.index))) throw workspaceError('Invalid screen module data.')
+    if (module.screen) screenIndices.add(module.screen.index)
   }
   const nodeIds = new Set()
   for (const node of project.nodes) {
@@ -61,7 +65,9 @@ function validatePresentation(project, presentation) {
     }
     if (card.type === 'module'
       ? !modules.has(card.id) || modules.get(card.id).name !== card.name
-      : modules.has(card.id) || (card.type === 'comment' && typeof card.text !== 'string') || (card.type === 'image' && (!isEmbeddedImage(card.image) || typeof card.caption !== 'string'))) {
+      : card.type === 'screen'
+        ? !modules.has(card.id) || !modules.get(card.id).screen || !Number.isInteger(card.screenWidth) || !Number.isInteger(card.screenHeight) || card.screenWidth < 1 || card.screenHeight < 1 || card.screenWidth > screenLimits.maximumDimension || card.screenHeight > screenLimits.maximumDimension || !Number.isFinite(card.screenScale) || card.screenScale < 0.25 || card.screenScale > 4
+        : modules.has(card.id) || (card.type === 'comment' && typeof card.text !== 'string') || (card.type === 'image' && (!isEmbeddedImage(card.image) || typeof card.caption !== 'string'))) {
       throw workspaceError('Cards do not match the logical project.')
     }
     if (!Array.isArray(card.expandedNodeIds) || new Set(card.expandedNodeIds).size !== card.expandedNodeIds.length || card.expandedNodeIds.some((id) => !isId(id) || nodes.get(id)?.moduleId !== card.id || card.type !== 'module')) {
@@ -118,7 +124,9 @@ export function deserializeWorkspace(text) {
   }
   validateProject(data)
   const definition = moduleTypes.module
-  const cards = data.modules.map((module, position) => ({ id: module.id, type: 'module', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: definition.width, height: definition.height, expandedNodeIds: [] }))
+  const cards = data.modules.map((module, position) => module.screen
+    ? { id: module.id, type: 'screen', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes.screen.width, height: moduleTypes.screen.height, screenWidth: module.screen.width, screenHeight: module.screen.height, screenScale: 1, expandedNodeIds: [] }
+    : { id: module.id, type: 'module', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: definition.width, height: definition.height, expandedNodeIds: [] })
   return JSON.parse(serializeWorkspace(data, cards, { x: 0, y: 0, zoomLevel: 0 }))
 }
 

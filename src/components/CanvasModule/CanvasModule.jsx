@@ -4,6 +4,7 @@ import { ChevronsDownUp, ChevronsUpDown, CirclePlus, Lock } from 'lucide-react'
 import { minimumModuleSize, moduleTypes } from '../../utils/moduleTypes.js'
 import { isEmbeddedImage } from '../../utils/embeddedImage.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
+import ScreenCanvas from '../ScreenCanvas/ScreenCanvas.jsx'
 import CommentText from '../CommentText/CommentText.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './CanvasModule.css'
@@ -64,7 +65,7 @@ function ModuleEmoji({ emoji, onChange }) {
 }
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, onScreenScaleChange, screenState = null, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -366,7 +367,9 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
           {expansionState === 'collapse' ? <ChevronsDownUp size={14} strokeWidth={2} aria-hidden="true" /> : <ChevronsUpDown size={14} strokeWidth={2} aria-hidden="true" />}
         </button>}
       </header>
-      {definition.hasText ? (
+      {definition.hasScreen ? (
+        <div className="canvas-module__content" data-canvas-scroll><ScreenCanvas card={module} state={screenState} readOnly={readOnly} onScale={(scale) => onScreenScaleChange?.(module.id, scale)} /></div>
+      ) : definition.hasText ? (
         readOnly ? (
           <div className="canvas-module__comment canvas-module__comment--view canvas-module__comment--readonly">
             {module.text ? <CommentText text={module.text} /> : <span className="canvas-module__comment-placeholder">{t('canvas.notePlaceholder')}</span>}

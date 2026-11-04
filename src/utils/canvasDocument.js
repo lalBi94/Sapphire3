@@ -54,6 +54,11 @@ export function reduceDocument(state, action) {
     const next = { ...state, cards: [...state.cards, card] }
     return card.type === 'module' ? withSource(next, { ...state.project, modules: [...state.project.modules, createModule(card.id, card.name)] }) : next
   }
+  if (action.type === 'createScreen') {
+    const card = action.card
+    if (state.cards.some((entry) => entry.id === card.id)) return state
+    return withSource({ ...state, cards: [...state.cards, card] }, { ...state.project, modules: [...state.project.modules, action.screen.module], nodes: [...state.project.nodes, ...action.screen.nodes] })
+  }
   if (action.type === 'insertBookmark') {
     const result = state.project === action.previousProject
       ? action.prepared
@@ -111,7 +116,7 @@ export function reduceDocument(state, action) {
     const card = state.cards.find((entry) => entry.id === action.id)
     if (!card || !moduleTypes[card.type].renamable || !action.name.trim()) return state
     const next = { ...state, cards: state.cards.map((entry) => entry.id === card.id ? { ...entry, name: action.name } : entry) }
-    return card.type === 'module' ? withSource(next, { ...state.project, modules: state.project.modules.map((module) => module.id === card.id ? { ...module, name: action.name } : module) }) : next
+    return card.type === 'module' || card.type === 'screen' ? withSource(next, { ...state.project, modules: state.project.modules.map((module) => module.id === card.id ? { ...module, name: action.name } : module) }) : next
   }
   if (['insert', 'configure', 'delete', 'reorderNode', 'contracts', 'renameSymbol', 'moduleExport', 'moduleImport', 'moduleImportRemove', 'pasteNode', 'moveNode', 'moveNodes', 'duplicateNode'].includes(action.type)) {
     const result = state.project === action.previousProject ? action.prepared : replaySourceMutation(state, action)

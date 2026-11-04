@@ -192,8 +192,13 @@ Les opérations natives SP3 sont un nœud `MathCall` (nom historique) dont `prop
 | `stringSplit` | `string`, `char` | `string[]` |
 | `stringJoin` | `string[]`, `string` | `string` |
 | `stringIndexOf` | `string`, `string` | `int` |
+| `screenSetPixel` | `int[]`, `int`, `int`, `int`, `int`, `int`, `int`, `int` | `void` |
+| `screenGetPixel` | `int[]`, `int`, `int`, `int`, `int[]` | `void` |
+| `screenResize` | `int[]`, `int`, `int`, `int`, `int` | `int[]` |
 
 `length`, `charAt` et `substring` comptent des **scalaires Unicode**, pas des unités UTF-16 ; l'indice de `substring` est inclusif au début et **exclusif à la fin**. Un indice ou une portion hors bornes arrête l'exécution avec `SIMULATION_STRING_BOUNDS`. `gcd` renvoie toujours une valeur positive, `sign` renvoie `-1`, `0` ou `1`, et `log` est le logarithme népérien. `arrayLength` accepte n'importe quel type d'élément sans l'imposer.
+
+Les opérations `screenSetPixel`, `screenGetPixel` et `screenResize` servent aux modules cachés des cartes **Screen**. Elles manipulent un tampon `int[]` RGBA de `largeur × hauteur × 4`, avec des dimensions bornées à `128 × 128`. `screenSetPixel` écrit quatre composantes entre 0 et 255, `screenGetPixel` écrit la couleur courante dans un tableau de sortie de quatre entiers, et `screenResize` retourne une nouvelle copie redimensionnée. Une dimension ou un indice invalide produit `SIMULATION_SCREEN_BOUNDS`, une composante invalide `SIMULATION_SCREEN_COLOR`. Les modules Screen rendent le programme **non transpilable** (`TRANSPILE_SCREEN_UNSUPPORTED`).
 
 `arraySlice` retourne une **copie** du segment `[start, end)`, sans modifier la source ; des bornes invalides produisent `SIMULATION_ARRAY_BOUNDS`. `arrayConcat` exige deux tableaux du même type d'élément et retourne un nouveau tableau ; `arrayReverse` retourne également un nouveau tableau. `arrayContains` et `arrayIndexOf` comparent les éléments sans conversion (premier index, `-1` si absent). `stringSplit` découpe sur un `char` et **conserve les segments vides** ; `stringJoin` ne convertit aucun élément ; `stringIndexOf` retourne un index en scalaires Unicode ou `-1`. Aucune de ces opérations ne modifie son tableau d'entrée.
 

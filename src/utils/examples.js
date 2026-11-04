@@ -1,4 +1,5 @@
 import { createProject, createModule, createNode } from './logic/index.js'
+import { createScreenModule, screenDefaults } from './screenNode.js'
 import { moduleTypes } from './moduleTypes.js'
 
 const intType = { kind: 'primitive', name: 'int' }
@@ -36,12 +37,9 @@ function note(id, name, text, x, y, width = 400, height = 240) {
 // Ajoute une carte lisible par module et les annotations Comment, sans dépendre de React ni du canvas.
 function workspace(project, notes = []) {
   const definition = moduleTypes.module
-  const cards = project.modules.map((module, position) => ({
-    id: module.id, type: 'module', name: module.name,
-    x: (position % 3) * 600, y: Math.floor(position / 3) * 520,
-    width: Math.max(definition.width, 520), height: Math.max(definition.height, 420),
-    expandedNodeIds: [],
-  }))
+  const cards = project.modules.map((module, position) => module.screen
+    ? { id: module.id, type: 'screen', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.screen.width, height: moduleTypes.screen.height, screenWidth: module.screen.width, screenHeight: module.screen.height, screenScale: screenDefaults.scale, expandedNodeIds: [] }
+    : { id: module.id, type: 'module', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: Math.max(definition.width, 520), height: Math.max(definition.height, 420), expandedNodeIds: [] })
   cards.push(...notes)
   return { application: 'Sapphire 3', workspaceVersion: 1, project, presentation: { cards, camera: { x: 0, y: 0, zoomLevel: 0 }, selected: null } }
 }
@@ -474,12 +472,79 @@ function calculus() {
 }
 
 // Domaines touchés par les exemples : ils pilotent uniquement le regroupement du menu.
+// Deux écrans pixel 15×9 pilotés par les fonctions natives de leur module caché.
+function pixelScreens() {
+  const b = builder()
+  const one = createScreenModule('screenOne', 'Screen one', 1)
+  const two = createScreenModule('screenTwo', 'Screen two', 2)
+  b.project.modules.push(one.module, two.module)
+  b.project.nodes.push(...one.nodes, ...two.nodes)
+  b.useModule('screenPatterns', 'Screen patterns')
+
+  // Ajoute une boucle qui remplit une plage de pixels via la fonction importée d'un écran.
+  function drawLoop(prefix, start, end, importId, red, green, blue) {
+    b.make(`${prefix}Declaration`, 'VariableDeclaration', { name: 'i', type: intType }, { initializer: `${prefix}Start` })
+    b.intValue(`${prefix}Start`, start)
+    b.make(`${prefix}Test`, 'BinaryExpression', { operator: '<' }, { left: `${prefix}Index`, right: `${prefix}End` })
+    b.ref(`${prefix}Index`, 'i')
+    b.intValue(`${prefix}End`, end)
+    b.make(`${prefix}Update`, 'AssignmentStatement', {}, { target: `${prefix}Target`, value: `${prefix}Next` })
+    b.ref(`${prefix}Target`, 'i')
+    b.binary(`${prefix}Next`, '+', `${prefix}Left`, `${prefix}One`)
+    b.ref(`${prefix}Left`, 'i')
+    b.intValue(`${prefix}One`, 1)
+    b.make(`${prefix}CallStatement`, 'ExpressionStatement', {}, { expression: `${prefix}Call` })
+    b.make(`${prefix}Call`, 'CallExpression', {}, { callee: `${prefix}Callee`, arguments: [`${prefix}Pixel`, `${prefix}Red`, `${prefix}Green`, `${prefix}Blue`, `${prefix}Alpha`] })
+    b.make(`${prefix}Callee`, 'Reference', {}, {}, { target: { kind: 'import', importId: importId } })
+    b.ref(`${prefix}Pixel`, 'i')
+    b.intValue(`${prefix}Red`, red)
+    b.intValue(`${prefix}Green`, green)
+    b.intValue(`${prefix}Blue`, blue)
+    b.intValue(`${prefix}Alpha`, 255)
+    b.block(`${prefix}Body`, [`${prefix}CallStatement`])
+    return b.make(`${prefix}Loop`, 'ForStatement', {}, { initializer: `${prefix}Declaration`, test: `${prefix}Test`, update: `${prefix}Update`, body: `${prefix}Body` })
+  }
+
+  b.root('drawOne', 'FunctionDeclaration', { name: 'drawOne', type: voidType }, { parameters: [], body: 'drawOneBody' })
+  b.block('drawOneBody', ['oneLoop'])
+  drawLoop('one', 0, 45, 'setOneImport', 255, 72, 72)
+  b.root('drawTwo', 'FunctionDeclaration', { name: 'drawTwo', type: voidType }, { parameters: [], body: 'drawTwoBody' })
+  b.block('drawTwoBody', ['twoLoop'])
+  drawLoop('two', 45, 90, 'setTwoImport', 72, 144, 255)
+  const patterns = b.project.modules.find((module) => module.id === 'screenPatterns')
+  patterns.exports.push({ nodeId: 'drawOne', name: 'drawOne' }, { nodeId: 'drawTwo', name: 'drawTwo' })
+  const setOne = one.module.exports.find((entry) => entry.name === 'SCREEN_SP3_SET_PIXEL_1')
+  const setTwo = two.module.exports.find((entry) => entry.name === 'SCREEN_SP3_SET_PIXEL_2')
+  patterns.imports.push({ id: 'setOneImport', moduleId: 'screenOne', nodeId: setOne.nodeId, localName: 'setOne' }, { id: 'setTwoImport', moduleId: 'screenTwo', nodeId: setTwo.nodeId, localName: 'setTwo' })
+
+  b.useModule('screenApp', 'Screen app')
+  b.root('screenMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'screenMainBody' })
+  b.block('screenMainBody', ['drawOneStatement', 'drawTwoStatement', 'screenPrint'])
+  b.make('drawOneStatement', 'ExpressionStatement', {}, { expression: 'drawOneCall' })
+  b.make('drawOneCall', 'CallExpression', {}, { callee: 'drawOneRef', arguments: [] })
+  b.make('drawOneRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'drawOneImport' } })
+  b.make('drawTwoStatement', 'ExpressionStatement', {}, { expression: 'drawTwoCall' })
+  b.make('drawTwoCall', 'CallExpression', {}, { callee: 'drawTwoRef', arguments: [] })
+  b.make('drawTwoRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'drawTwoImport' } })
+  b.print('screenPrint', 'screenMessage')
+  b.make('screenMessage', 'Literal', { type: { kind: 'primitive', name: 'string' }, value: 'Screens drawn' })
+  const app = b.project.modules.find((module) => module.id === 'screenApp')
+  app.imports.push({ id: 'drawOneImport', moduleId: 'screenPatterns', nodeId: 'drawOne', localName: 'drawOne' }, { id: 'drawTwoImport', moduleId: 'screenPatterns', nodeId: 'drawTwo', localName: 'drawTwo' })
+
+  return workspace(b.project, [
+    note('screenOneNote', 'Screen one', 'Écran 15×9. drawOne remplit ses 45 premiers pixels en rouge via SCREEN_SP3_SET_PIXEL_1.', 0, 620, 420, 170),
+    note('screenTwoNote', 'Screen two', 'Écran 15×9. drawTwo remplit les 45 pixels suivants en bleu via SCREEN_SP3_SET_PIXEL_2.', 600, 620, 420, 170),
+    note('screenMainNote', 'Two screens', 'main importe drawOne et drawTwo depuis Screen patterns, puis affiche « Screens drawn ». Run met les deux écrans à jour ; Debug permet de suivre chaque pixel.', 1200, 0, 420, 220),
+  ])
+}
+
 export const exampleCategories = [
   { id: 'algorithms', labelKey: 'examples.category.algorithms' },
   { id: 'arrays', labelKey: 'examples.category.arrays' },
   { id: 'functions', labelKey: 'examples.category.functions' },
   { id: 'pointers', labelKey: 'examples.category.pointers' },
   { id: 'operations', labelKey: 'examples.category.operations' },
+  { id: 'screens', labelKey: 'examples.category.screens' },
   { id: 'modules', labelKey: 'examples.category.modules' },
 ]
 
@@ -497,4 +562,5 @@ export const examples = [
   { id: 'higherOrder', labelKey: 'examples.higherOrder', category: 'functions', build: higherOrder },
   { id: 'maths', labelKey: 'examples.maths', category: 'operations', build: maths },
   { id: 'calculus', labelKey: 'examples.calculus', category: 'operations', build: calculus },
+  { id: 'pixelScreens', labelKey: 'examples.pixelScreens', category: 'screens', build: pixelScreens },
 ]

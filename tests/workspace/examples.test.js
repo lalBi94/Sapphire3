@@ -19,10 +19,11 @@ const expectedOutput = {
   higherOrder: ['42'],
   maths: ['7', '3', '9', '9'],
   calculus: ['6', '0.3333333333333333'],
+  pixelScreens: ['Screens drawn'],
 }
 
 test('bibliothèque d’exemples : chaque projet est valide, analysable et s’exécute', () => {
-  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'sorting', 'quickSort', 'coinChange', 'arrays', 'recursion', 'imports', 'foreach', 'pointers', 'higherOrder', 'maths', 'calculus'])
+  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'sorting', 'quickSort', 'coinChange', 'arrays', 'recursion', 'imports', 'foreach', 'pointers', 'higherOrder', 'maths', 'calculus', 'pixelScreens'])
   for (const example of examples) {
     assert.ok(exampleCategories.some((category) => category.id === example.category), `${example.id}: catégorie connue`)
     const workspace = deserializeWorkspace(JSON.stringify(example.build()))
@@ -34,6 +35,19 @@ test('bibliothèque d’exemples : chaque projet est valide, analysable et s’e
     assert.equal(result.ok, true, `${example.id}: ${result.errorCode ?? ''}`)
     assert.deepEqual(result.output, expectedOutput[example.id], example.id)
   }
+})
+
+test('exemple écrans pixel : deux écrans distincts et transpilation refusée', () => {
+  const workspace = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'pixelScreens').build()))
+  const screens = workspace.presentation.cards.filter((card) => card.type === 'screen')
+  assert.equal(screens.length, 2)
+  const result = simulateProgram(workspace.project)
+  assert.equal(result.ok, true, result.errorCode)
+  assert.equal(Object.keys(result.screens).length, 2)
+  const states = Object.values(result.screens)
+  assert.equal(states.every((state) => state.width === 15 && state.height === 9), true)
+  assert.notDeepEqual(states[0].pixels.slice(0, 8), states[1].pixels.slice(180, 188))
+  assert.equal(transpileProgram(workspace.project).code, 'TRANSPILE_SCREEN_UNSUPPORTED')
 })
 
 test('exemples multi-modules algorithmiques et mathématiques : JavaScript et Python reproduisent la simulation', () => {

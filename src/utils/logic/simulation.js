@@ -3,6 +3,7 @@ import { validateLiteral, convertConstant, evaluateBinary, evaluateUnary } from 
 import { createDebugRecorder } from './debugTrace.js'
 import { satisfiesContract, normalizeContracts } from './contracts.js'
 import { getMathNative } from './mathNatives.js'
+import { readScreenStates } from './screenState.js'
 
 // Ajoute un code stable sans introduire de traduction ni de dépendance UI dans le moteur.
 function simulationError(code, message) {
@@ -464,13 +465,14 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       returnValue: returned === undefined ? null : formatValue(returned),
       steps,
       variables: collectVariables(),
+      screens: readScreenStates(project, global.values),
       contracts: { total: contracts.reduce((count, entry) => count + entry.kinds.length, 0), observations: contractObservations, violations: contractViolations },
       ...(debug ? { debugFrames: debug.frames } : {}),
     }
   } catch (error) {
     const errorCode = error?.code ?? 'SIMULATION_FAILED'
     debug?.record(lastInstructionId, lastEnvironment, lastScopes, 'error', errorCode)
-    return { ok: false, output, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, ...(debug ? { debugFrames: debug.frames } : {}) }
+    return { ok: false, output, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, screens: readScreenStates(project, global.values), ...(debug ? { debugFrames: debug.frames } : {}) }
   }
 }
 

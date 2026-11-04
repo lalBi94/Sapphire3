@@ -5,11 +5,14 @@ const doubleType = primitiveType('double')
 const stringType = primitiveType('string')
 const charType = primitiveType('char')
 const booleanType = primitiveType('boolean')
+const voidType = primitiveType('void')
 // Paramètre générique `T[]` : n'importe quel tableau, sans imposer le type des éléments.
 const arrayParameterType = Object.freeze({ kind: 'array', elementType: null })
 // Paramètre d'élément lié au premier tableau : `T` doit être le type d'élément de `T[]`.
 const arrayElementParameterType = Object.freeze({ kind: 'arrayElement', arrayIndex: 0 })
 const stringArrayType = Object.freeze({ kind: 'array', elementType: stringType })
+const intArrayType = Object.freeze({ kind: 'array', elementType: intType })
+export const screenLimits = Object.freeze({ maximumDimension: 128 })
 
 // Refuse un résultat non fini : le modèle numérique strict n'admet ni NaN ni infini.
 function finite(value) {
@@ -60,6 +63,41 @@ function sliceArray(array, start, end) {
 function indexOfElement(array, value) {
   if (!Array.isArray(array)) referenceError('The native operation expects an array.')
   return BigInt(array.indexOf(value))
+}
+
+// Refuse une dimension d'écran hors limites avec un code stable.
+function screenBounds(message) {
+  const error = new Error(message)
+  error.code = 'SIMULATION_SCREEN_BOUNDS'
+  throw error
+}
+
+// Refuse une composante de couleur hors de 0..255 avec un code stable.
+function screenColor(value) {
+  const color = Number(value)
+  if (!Number.isInteger(color) || color < 0 || color > 255) {
+    const error = new Error('A screen color component must be between 0 and 255.')
+    error.code = 'SIMULATION_SCREEN_COLOR'
+    throw error
+  }
+  return color
+}
+
+// Valide les dimensions et le tampon d'un écran, puis retourne des index sûrs.
+function screenBuffer(pixels, width, height) {
+  if (!Array.isArray(pixels)) referenceError('The screen expects a pixel array.')
+  const w = Number(width)
+  const h = Number(height)
+  if (!Number.isInteger(w) || !Number.isInteger(h) || w < 1 || h < 1 || w > screenLimits.maximumDimension || h > screenLimits.maximumDimension) screenBounds('The screen dimensions are outside their bounds.')
+  if (pixels.length < w * h * 4) screenBounds('The screen pixel buffer is too small.')
+  return { width: w, height: h }
+}
+
+// Vérifie l'indice d'un pixel et retourne sa position dans le tampon RGBA.
+function screenPixelIndex(index, width, height) {
+  const position = Number(index)
+  if (!Number.isInteger(position) || position < 0 || position >= width * height) screenBounds('The screen pixel index is outside its bounds.')
+  return position * 4
 }
 
 // Compte les scalaires Unicode avant une position UTF-16.
@@ -186,6 +224,56 @@ export const mathNatives = Object.freeze({
     parameters: Object.freeze([stringType, stringType]),
     returnType: intType,
     run: ([value, search]) => unicodeIndexOf(value, search),
+  }),
+  screenSetPixel: Object.freeze({
+    id: 'screenSetPixel',
+    group: 'native.screen',
+    parameters: Object.freeze([intArrayType, intType, intType, intType, intType, intType, intType, intType]),
+    returnType: voidType,
+    run: ([pixels, width, height, index, red, green, blue, alpha]) => {
+      const dimensions = screenBuffer(pixels, width, height)
+      const position = screenPixelIndex(index, dimensions.width, dimensions.height)
+      pixels[position] = BigInt(screenColor(red))
+      pixels[position + 1] = BigInt(screenColor(green))
+      pixels[position + 2] = BigInt(screenColor(blue))
+      pixels[position + 3] = BigInt(screenColor(alpha))
+    },
+  }),
+  screenGetPixel: Object.freeze({
+    id: 'screenGetPixel',
+    group: 'native.screen',
+    parameters: Object.freeze([intArrayType, intType, intType, intType, intArrayType]),
+    returnType: voidType,
+    run: ([pixels, width, height, index, output]) => {
+      const dimensions = screenBuffer(pixels, width, height)
+      const position = screenPixelIndex(index, dimensions.width, dimensions.height)
+      if (!Array.isArray(output) || output.length < 4) screenBounds('The output array must contain four elements.')
+      output[0] = pixels[position]
+      output[1] = pixels[position + 1]
+      output[2] = pixels[position + 2]
+      output[3] = pixels[position + 3]
+    },
+  }),
+  screenResize: Object.freeze({
+    id: 'screenResize',
+    group: 'native.screen',
+    parameters: Object.freeze([intArrayType, intType, intType, intType, intType]),
+    returnType: intArrayType,
+    run: ([pixels, width, height, newWidth, newHeight]) => {
+      const current = screenBuffer(pixels, width, height)
+      const nextWidth = Number(newWidth)
+      const nextHeight = Number(newHeight)
+      if (!Number.isInteger(nextWidth) || !Number.isInteger(nextHeight) || nextWidth < 1 || nextHeight < 1 || nextWidth > screenLimits.maximumDimension || nextHeight > screenLimits.maximumDimension) screenBounds('The screen dimensions are outside their bounds.')
+      const nextPixels = new Array(nextWidth * nextHeight * 4).fill(0n)
+      for (let y = 0; y < Math.min(current.height, nextHeight); y += 1) {
+        for (let x = 0; x < Math.min(current.width, nextWidth); x += 1) {
+          const from = (y * current.width + x) * 4
+          const to = (y * nextWidth + x) * 4
+          for (let component = 0; component < 4; component += 1) nextPixels[to + component] = pixels[from + component] ?? 0n
+        }
+      }
+      return nextPixels
+    },
   }),
   arrayLength: Object.freeze({
     id: 'arrayLength',
