@@ -61,6 +61,7 @@ export default function Canvas() {
   const [fullScreen, setFullScreen] = useState(false)
   const [simulationResult, setSimulationResult] = useState(null)
   const [execution, setExecution] = useState(null)
+  const [executionFree, setExecutionFree] = useState(false)
   const [debugSession, setDebugSession] = useState(null)
   const [memoryOpen, setMemoryOpen] = useState(false)
   const [pointerGraphOpen, setPointerGraphOpen] = useState(false)
@@ -393,6 +394,7 @@ export default function Canvas() {
     setDebugSession(null)
     const result = simulateProgram(document.project)
     setSimulationResult(result)
+    setExecutionFree(false)
     setExecution(result.ok && result.trace.length > 0 ? { trace: result.trace, index: 0, running: true, paused: false, stopped: false } : null)
   }
 
@@ -429,6 +431,11 @@ export default function Canvas() {
   // Reprend l'animation là où elle s'était arrêtée.
   function handleResumeExecution() {
     setExecution((current) => current?.paused ? { ...current, running: true, paused: false } : current)
+  }
+
+  // Détache la sortie de la cadence des pas : elle s'affiche immédiatement, comme avant.
+  function handleToggleExecutionFree() {
+    setExecutionFree((current) => !current)
   }
 
   // Interrompt une simulation en cours d'animation sans effacer sa sortie déjà produite.
@@ -866,7 +873,7 @@ export default function Canvas() {
         <span>{transfers.notice.error ? diagnosticLabel(transfers.notice.error, t) : t(transfers.notice.message)}{transfers.notice.detail && ` · ${diagnosticLabel(transfers.notice.detail, t)}`}</span>
         <button type="button" aria-label={t('nav.dismiss')} onClick={transfers.dismiss}><X size={14} aria-hidden="true" /></button>
       </div>}
-      <SimulationPanel result={simulationResult} running={Boolean(execution?.running)} paused={Boolean(execution?.paused)} stopped={Boolean(execution?.stopped)} currentStep={execution ? execution.index + 1 : 0} onPause={handlePauseExecution} onResume={handleResumeExecution} onStop={handleStopExecution} onClose={() => { setSimulationResult(null); setExecution(null) }} />
+      <SimulationPanel result={simulationResult} running={Boolean(execution?.running)} paused={Boolean(execution?.paused)} stopped={Boolean(execution?.stopped)} currentStep={execution ? execution.index + 1 : 0} free={executionFree} onToggleFree={handleToggleExecutionFree} onPause={handlePauseExecution} onResume={handleResumeExecution} onStop={handleStopExecution} onClose={() => { setSimulationResult(null); setExecution(null); setExecutionFree(false) }} />
       {functionNode && <FunctionPanel key={`${functionTarget}:${functionSignature}`} index={document.index} functionNode={functionNode} result={functionResult?.functionId === functionTarget ? functionResult.result : null} onRun={handleRunFunction} onDebug={handleDebugFunction} onClose={handleCloseFunction} />}
       {debugSession?.project === document.project && <DebugPanel session={debugSession} index={document.index} onAction={handleDebugAction} onClose={() => setDebugSession(null)} memoryOpen={memoryOpen} onToggleMemory={() => { setMemoryOpen((current) => !current); setPointerGraphOpen(false) }} pointerGraphOpen={pointerGraphOpen} onTogglePointerGraph={() => { setPointerGraphOpen((current) => !current); setMemoryOpen(false) }} />}
       {debugSession?.project === document.project && memoryOpen && <MemoryPanel index={document.index} frame={debugFrame} reachability={debugSession.reachability} onClose={() => setMemoryOpen(false)} />}

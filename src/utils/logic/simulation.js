@@ -34,6 +34,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   // Cible explicite (exécuter une fonction choisie) ou, par défaut, le point d'entrée du projet.
   const target = functionId ? nodes.get(functionId) : entry
   const output = []
+  const outputSteps = []
   const trace = []
   let steps = 0
   const screenReader = (project.modules ?? []).some((module) => module.screen) ? createScreenStateReader(project) : null
@@ -331,6 +332,8 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     }
     if (node.kind === 'PrintStatement') {
       output.push(formatValue(valueOf(nodes.get(node.children.value), environment)))
+      // Position dans la trace au moment de l'affichage : l'UI révèle la sortie au rythme des pas.
+      outputSteps.push(trace.length)
       return
     }
     if (node.kind === 'ForEachStatement') {
@@ -488,6 +491,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     return {
       ok: true,
       output,
+      outputSteps,
       trace,
       result: typeof returned === 'bigint' ? Number(returned) : returned,
       returnValue: returned === undefined ? null : formatValue(returned),
@@ -501,7 +505,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   } catch (error) {
     const errorCode = error?.code ?? 'SIMULATION_FAILED'
     debug?.record(lastInstructionId, lastEnvironment, lastScopes, 'error', errorCode)
-    return { ok: false, output, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, screens: screenReader ? screenReader(global.values) : {}, ...(debug ? { debugFrames: debug.frames } : {}), ...(screenReader ? { screenFrames } : {}) }
+    return { ok: false, output, outputSteps, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, screens: screenReader ? screenReader(global.values) : {}, ...(debug ? { debugFrames: debug.frames } : {}), ...(screenReader ? { screenFrames } : {}) }
   }
 }
 

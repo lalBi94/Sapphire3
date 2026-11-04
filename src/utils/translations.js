@@ -612,6 +612,8 @@ const messages = {
   'simulation.pause': ['Pause', 'Pause', '暂停', 'Pausar', 'إيقاف مؤقت', '一時停止', 'पॉज़', 'Пауза'],
   'simulation.resume': ['Resume', 'Reprendre', '继续', 'Reanudar', 'استئناف', '再開', 'फिर शुरू करें', 'Продолжить'],
   'simulation.stop': ['Stop', 'Arrêter', '停止', 'Detener', 'إيقاف', '停止', 'रोकें', 'Остановить'],
+  'simulation.free': ['Free run', 'Libérer', '自由运行', 'Liberar', 'تحرير', '自由実行', 'मुक्त चलाएँ', 'Освободить'],
+  'simulation.freeHint': ['Release the run from the step cadence: the output appears immediately.', 'Libérer la simulation de la cadence des pas : la sortie apparaît immédiatement.', '让运行脱离步进节奏：输出立即显示。', 'Liberar la ejecución de la cadencia de pasos: la salida aparece de inmediato.', 'تحرير التشغيل من إيقاع الخطوات: تظهر المخرجات فورًا.', 'ステップのリズムから実行を解放し、出力をすぐに表示します。', 'चरण की गति से रन मुक्त करें: आउटपुट तुरंत दिखेगा।', 'Освободить запуск от ритма шагов: вывод появится сразу.'],
   'simulation.running': ['Running', 'En cours', '运行中', 'En curso', 'قيد التشغيل', '実行中', 'चल रहा है', 'Выполняется'],
   'simulation.steps': ['steps', 'étapes', '步骤', 'pasos', 'خطوات', 'ステップ', 'चरण', 'шагов'],
   'simulation.step': ['step', 'étape', '步骤', 'paso', 'خطوة', 'ステップ', 'चरण', 'шаг'],
