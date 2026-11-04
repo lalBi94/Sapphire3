@@ -41,6 +41,8 @@
 .logic-node__order-button:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
 .logic-node__order-button:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .logic-node__heading { flex: 1; min-width: 0; display: flex; justify-content: space-between; gap: 8px; padding: 0; border: 0; background: transparent; color: var(--color-text); text-align: left; font: inherit; font-size: 11px; cursor: pointer; overflow-wrap: anywhere; }
+/* Les déclarations de fonction portent la police de titre, pour repérer les entrées du module. */
+.logic-node[data-group='function'] > .logic-node__header .logic-node__heading { font-family: var(--font-display); font-weight: 500; }
 .logic-node__heading:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 3px; }
 .logic-node__issues { flex: 0 0 auto; color: var(--color-diagnostic); }
 .logic-node__unused { flex: 0 0 auto; padding: 1px 4px; border: 1px solid var(--color-diagnostic); border-radius: var(--radius-small); color: var(--color-diagnostic); font-size: 9px; white-space: nowrap; }

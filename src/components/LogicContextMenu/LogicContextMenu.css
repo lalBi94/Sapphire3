@@ -4,9 +4,9 @@
 .logic-context-menu { cursor: grab; touch-action: none; }
 .logic-context-menu:active { cursor: grabbing; }
 .logic-context-menu__actions { min-width: 0; min-height: 0; overflow-y: auto; padding-inline: var(--space-control); padding-block-end: var(--space-control); }
-.logic-context-menu__title { color: var(--color-text-muted); padding: 9px; font-size: 11px; }
+.logic-context-menu__title { color: var(--color-text-muted); padding: 9px; font-family: var(--font-display); font-size: 11px; font-weight: 500; }
 /* Bande de catégorie pliable : collante et pleine largeur, le chevron indique l'état. */
-.logic-context-menu__actions button.logic-context-menu__group { position: sticky; top: 0; z-index: 1; gap: 4px; margin-inline: calc(-1 * var(--space-control)); padding-inline: calc(9px + var(--space-control)); border-radius: 0; background: var(--surface-floating); color: var(--color-text); font-weight: 600; cursor: pointer; }
+.logic-context-menu__actions button.logic-context-menu__group { position: sticky; top: 0; z-index: 1; gap: 4px; margin-inline: calc(-1 * var(--space-control)); padding-inline: calc(9px + var(--space-control)); border-radius: 0; background: var(--surface-floating); color: var(--color-text); font-family: var(--font-display); font-weight: 600; cursor: pointer; }
 .logic-context-menu__actions button.logic-context-menu__group svg { flex: 0 0 auto; color: var(--color-text-muted); }
 /* Sous-catégorie : décalée et plus discrète que sa catégorie parente. */
 .logic-context-menu__actions button.logic-context-menu__group[data-depth]:not([data-depth='0']) { padding-inline-start: calc(23px + var(--space-control)); color: var(--color-text-muted); font-size: 11px; font-weight: 500; }

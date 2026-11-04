@@ -168,6 +168,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: var(--font-display);
+  font-weight: 600;
 }
 
 .canvas-module__name-input {
@@ -181,6 +183,7 @@
   background: var(--color-input);
   color: var(--color-text);
   font: inherit;
+  font-family: var(--font-display);
   outline-offset: 1px;
   user-select: text;
 }

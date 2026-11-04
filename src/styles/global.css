@@ -1,3 +1,4 @@
+@import './fonts.css';
 @import './tokens.css';
 @import './interactions.css';
 
@@ -7,6 +8,26 @@
   background: var(--color-surface);
   color-scheme: dark;
   font-synthesis: none;
+  /* Les opérateurs des langages restent affichés tels quels, sans ligatures de code. */
+  font-feature-settings: 'calt' 0;
+}
+
+/* Titres et intitulés de sections : Space Grotesk tranche avec le texte courant. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+legend {
+  font-family: var(--font-display);
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family: var(--font-mono);
 }
 
 * {
