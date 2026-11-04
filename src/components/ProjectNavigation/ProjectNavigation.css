@@ -12,23 +12,30 @@
 /* Sous-catégorie de menu : libellé discret, avec un séparateur au-dessus de chaque groupe sauf le premier. */
 .project-navigation__section { color: var(--color-text-muted); font-family: var(--font-display); font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
 .project-navigation__section:not(:first-child) { margin-top: var(--space-control); padding-top: var(--space-control); border-top: 1px solid var(--color-border); }
-/* Volet Examples : catégories et sous-catégories pliables, stables au survol et à l'ouverture. */
+/* Volet Examples : catégories et sous-catégories pliables, dans l'esprit des autres volets. */
 .project-navigation .project-navigation__group { margin: 0; }
 .project-navigation .project-navigation__group > summary,
-.project-navigation .project-navigation__subgroup > summary { display: flex; align-items: center; gap: var(--space-control); box-sizing: border-box; width: 100%; min-width: 0; border-radius: var(--radius-control); text-decoration: none; text-underline-offset: 0; }
-.project-navigation .project-navigation__group > summary { padding: 8px; color: var(--color-text); font-size: 11px; font-weight: 600; }
-.project-navigation .project-navigation__subgroup > summary { padding: 6px 8px; border-radius: var(--radius-small); color: var(--color-text-muted); font-size: 10px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; }
+.project-navigation .project-navigation__subgroup > summary { display: flex; align-items: center; gap: 6px; box-sizing: border-box; width: 100%; min-width: 0; padding: 7px 8px; border-radius: var(--radius-small); text-decoration: none; text-underline-offset: 0; }
+.project-navigation .project-navigation__group > summary { color: var(--color-text); font-size: 11px; font-weight: 600; }
+.project-navigation .project-navigation__subgroup > summary { color: var(--color-text-muted); font-size: 10px; font-weight: 600; }
+.project-navigation .project-navigation__group > summary svg,
+.project-navigation .project-navigation__subgroup > summary svg { flex: 0 0 auto; color: var(--color-text-muted); transition: transform var(--duration-fast) var(--easing-ui); }
+.project-navigation .project-navigation__group[open] > summary svg,
+.project-navigation .project-navigation__subgroup[open] > summary svg { transform: rotate(180deg); }
 .project-navigation .project-navigation__group[open] > summary,
 .project-navigation .project-navigation__subgroup[open] > summary { text-decoration: none; }
 .project-navigation .project-navigation__group > summary::-webkit-details-marker,
 .project-navigation .project-navigation__subgroup > summary::-webkit-details-marker { display: none; }
 .project-navigation__group-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Le corps n'écrase pas le repli natif : `display` n'est posé que lorsque le groupe est ouvert. */
-.project-navigation__group-body { flex-direction: column; min-width: 0; margin-inline-start: 8px; padding-inline-start: 6px; border-inline-start: 1px solid var(--color-border); }
+.project-navigation__group-body { flex-direction: column; min-width: 0; }
+.project-navigation .project-navigation__subgroup > .project-navigation__group-body { margin-inline-start: 8px; }
 .project-navigation .project-navigation__group[open] > .project-navigation__group-body,
 .project-navigation .project-navigation__subgroup[open] > .project-navigation__group-body { display: flex; }
 .project-navigation__group-body button { width: 100%; text-align: left; }
-.project-navigation__group-count { flex: 0 0 auto; margin-inline-start: auto; padding: 0 6px; border-radius: 999px; background: var(--color-hover); color: var(--color-text-muted); font-size: 9px; font-weight: 500; line-height: 15px; }
+.project-navigation .project-navigation__group > summary + .project-navigation__group-body,
+.project-navigation .project-navigation__subgroup > summary + .project-navigation__group-body { margin-top: 2px; }
+.project-navigation__group-count { flex: 0 0 auto; margin-inline-start: auto; padding-inline-start: var(--space-control); color: var(--color-text-muted); font-size: 9px; font-weight: 500; }
+.project-navigation .project-navigation__group + .project-navigation__group { margin-top: var(--space-small); padding-top: var(--space-small); border-top: 1px solid var(--color-border); }
 /* Chip d'état d'une cible de transpilation, aligné à droite du nom de langage. */
 .project-navigation__chip { margin-left: auto; padding: 0 7px; border-radius: 999px; font-size: 9px; line-height: 15px; white-space: nowrap; border: 1px solid var(--color-border); color: var(--color-text-muted); }
 .project-navigation__chip--available { color: var(--color-pure); border-color: color-mix(in srgb, var(--color-pure) 50%, transparent); background: color-mix(in srgb, var(--color-pure) 14%, transparent); }

@@ -224,14 +224,14 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
             const nested = groups.some((group) => group.key !== '')
             const exampleButton = (example) => <button type="button" key={example.id} onClick={() => { closeMenus(); onOpenExample(example.id) }}>{t(example.labelKey)}</button>
             return <details className="project-navigation__group" key={category.id}>
-              <summary><span className="project-navigation__group-label">{t(category.labelKey)}</span><span className="project-navigation__group-count">{entries.length}</span></summary>
+              <summary><ChevronDown size={12} aria-hidden="true" /><span className="project-navigation__group-label">{t(category.labelKey)}</span><span className="project-navigation__group-count">{entries.length}</span></summary>
               <div className="project-navigation__group-body">
                 {nested
                   ? groups.map((group) => {
                     const subcategory = exampleSubcategories.find((entry) => entry.id === group.key)
                     if (!subcategory) return group.items.map(exampleButton)
                     return <details className="project-navigation__subgroup" key={group.key}>
-                      <summary><span className="project-navigation__group-label">{t(subcategory.labelKey)}</span><span className="project-navigation__group-count">{group.items.length}</span></summary>
+                      <summary><ChevronDown size={11} aria-hidden="true" /><span className="project-navigation__group-label">{t(subcategory.labelKey)}</span><span className="project-navigation__group-count">{group.items.length}</span></summary>
                       <div className="project-navigation__group-body">{group.items.map(exampleButton)}</div>
                     </details>
                   })
