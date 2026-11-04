@@ -44,9 +44,11 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
   }, [])
 
   // Garde un seul volet ouvert, y compris dans les moteurs sans prise en charge de details[name].
+  // Les groupes imbriqués du volet Examples déclenchent aussi un événement : ils sont ignorés.
   function handleToggle(event) {
+    if (event.target !== event.currentTarget) return
     if (!event.currentTarget.open) return
-    for (const menu of navigationRef.current.querySelectorAll('details')) {
+    for (const menu of navigationRef.current.querySelectorAll('details[name="workspace-menu"]')) {
       if (menu !== event.currentTarget) menu.open = false
     }
   }
@@ -222,14 +224,14 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
             const nested = groups.some((group) => group.key !== '')
             const exampleButton = (example) => <button type="button" key={example.id} onClick={() => { closeMenus(); onOpenExample(example.id) }}>{t(example.labelKey)}</button>
             return <details className="project-navigation__group" key={category.id}>
-              <summary>{t(category.labelKey)}<span className="project-navigation__group-count">{entries.length}</span></summary>
+              <summary><span className="project-navigation__group-label">{t(category.labelKey)}</span><span className="project-navigation__group-count">{entries.length}</span></summary>
               <div className="project-navigation__group-body">
                 {nested
                   ? groups.map((group) => {
                     const subcategory = exampleSubcategories.find((entry) => entry.id === group.key)
                     if (!subcategory) return group.items.map(exampleButton)
                     return <details className="project-navigation__subgroup" key={group.key}>
-                      <summary>{t(subcategory.labelKey)}<span className="project-navigation__group-count">{group.items.length}</span></summary>
+                      <summary><span className="project-navigation__group-label">{t(subcategory.labelKey)}</span><span className="project-navigation__group-count">{group.items.length}</span></summary>
                       <div className="project-navigation__group-body">{group.items.map(exampleButton)}</div>
                     </details>
                   })
