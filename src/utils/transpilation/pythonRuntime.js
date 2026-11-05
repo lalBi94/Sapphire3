@@ -141,6 +141,8 @@ def sapphirePointer(target, index, constant, label):
 def sapphireElementPointer(array, index, constant):
     if not isinstance(array, list):
         raise RuntimeError("SIMULATION_REFERENCE")
+    if not isinstance(index, int) or isinstance(index, bool) or index < 0 or index >= len(array):
+        raise RuntimeError("SIMULATION_ARRAY_BOUNDS")
     return _SapphirePointer(array, index, constant, "&[" + str(index) + "]")
 
 def sapphireDeref(pointer):
