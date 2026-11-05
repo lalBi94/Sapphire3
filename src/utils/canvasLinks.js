@@ -33,10 +33,10 @@ function curveOf(from, to) {
 /**
  * Construit la couche graphique des liens intermodules en coordonnées monde.
  * Retourne null sans lien ni carte à afficher, et ignore un lien dont un module
- * n'a pas de carte visible. Une carte écran ou jauge représente son module caché.
+ * n'a pas de carte visible. Une carte écran, jauge ou LED représente son module caché.
  */
 export function buildLinkLayer(cards, links) {
-  const boxes = new Map((Array.isArray(cards) ? cards : []).filter((card) => ['module', 'screen', 'gauge'].includes(card?.type)).map((card) => [card.id, card]))
+  const boxes = new Map((Array.isArray(cards) ? cards : []).filter((card) => ['module', 'screen', 'gauge', 'led'].includes(card?.type)).map((card) => [card.id, card]))
   const edges = (Array.isArray(links) ? links : [])
     .filter((link) => boxes.has(link?.fromId) && boxes.has(link?.toId))
     .map((link) => ({ link, ...curveOf(boxes.get(link.fromId), boxes.get(link.toId)) }))

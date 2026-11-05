@@ -280,6 +280,22 @@ test('vue de jauge : conservée à l’aller-retour et refusée si elle est inco
   assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)), { message: 'Invalid gauge view.' })
 })
 
+test('vue de LED : conservée à l’aller-retour et refusée si elle est inconnue', () => {
+  const camera = { x: 0, y: 0, zoomLevel: 0 }
+  const source = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'signalLab').build()))
+  const cards = source.presentation.cards.map((entry) => entry.type === 'led' ? { ...entry, ledView: 'code' } : entry)
+  const text = serializeWorkspace(source.project, cards, camera)
+  assert.match(text, /"ledView":\s*"code"/)
+  const roundTrip = deserializeWorkspace(text)
+  assert.deepEqual(roundTrip.presentation.cards.filter((entry) => entry.type === 'led').map((entry) => entry.ledView), ['code'])
+  // Le voyant par défaut n'alourdit pas le fichier.
+  const plain = JSON.parse(serializeWorkspace(source.project, source.presentation.cards, camera))
+  assert.equal(plain.presentation.cards.some((entry) => Object.hasOwn(entry, 'ledView')), false)
+  const invalid = JSON.parse(text)
+  invalid.presentation.cards.find((entry) => entry.type === 'led').ledView = 'lamp'
+  assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)), { message: 'Invalid LED view.' })
+})
+
 test('écran : l’échelle de pixels obsolète n’est plus écrite mais reste relue', () => {
   const camera = { x: 0, y: 0, zoomLevel: 0 }
   const source = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'pixelScreens').build()))

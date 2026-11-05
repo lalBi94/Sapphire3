@@ -54,3 +54,14 @@ test('couche de liens : une carte jauge participe aux flèches comme son module 
   assert.equal(layer.edges.length, 1)
   assert.ok(layer.edges[0].x > 0 && layer.edges[0].x < 1220)
 })
+
+test('couche de liens : une carte LED participe aux flèches comme son module caché', () => {
+  const ledCards = [
+    { id: 'alarm', type: 'led', x: 0, y: 0, width: 220, height: 170 },
+    { id: 'lab', type: 'module', x: 700, y: 0, width: 520, height: 420 },
+  ]
+  const ledLink = { id: 'alarm::lab', fromId: 'alarm', toId: 'lab', fromName: 'Alarm', toName: 'Signal lab', exports: [{ nodeId: 'set', name: 'LED_SP3_SET_VALUE_1', localName: 'setAlarm', uses: 1 }] }
+  const layer = buildLinkLayer(ledCards, [ledLink])
+  assert.equal(layer.edges.length, 1)
+  assert.ok(layer.edges[0].x > 0 && layer.edges[0].x < 1220)
+})

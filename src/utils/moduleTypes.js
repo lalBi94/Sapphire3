@@ -17,3 +17,6 @@ export const screenViews = ['screen', 'code']
 
 // Vues possibles d'une carte jauge : l'aperçu de la jauge, ou le code de son module caché.
 export const gaugeViews = ['gauge', 'code']
+
+// Vues possibles d'une carte LED : le voyant, ou le code de son module caché.
+export const ledViews = ['led', 'code']

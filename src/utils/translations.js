@@ -380,6 +380,8 @@ const messages = {
   'screen.viewCode': ['Show the module code', 'Afficher le code du module', '显示模块代码', 'Mostrar el código del módulo', 'عرض كود الوحدة', 'モジュールのコードを表示', 'मॉड्यूल कोड दिखाएँ', 'Показать код модуля'],
   'gauge.viewGauge': ['Show the gauge', 'Afficher la jauge', '显示仪表', 'Mostrar el medidor', 'عرض المقياس', 'ゲージを表示', 'गेज दिखाएँ', 'Показать индикатор'],
   'gauge.viewCode': ['Show the module code', 'Afficher le code du module', '显示模块代码', 'Mostrar el código del módulo', 'عرض كود الوحدة', 'モジュールのコードを表示', 'मॉड्यूल कोड दिखाएँ', 'Показать код модуля'],
+  'led.viewLed': ['Show the LED', 'Afficher la LED', '显示 LED', 'Mostrar el LED', 'عرض مؤشر LED', 'LED を表示', 'LED दिखाएँ', 'Показать индикатор'],
+  'led.viewCode': ['Show the module code', 'Afficher le code du module', '显示模块代码', 'Mostrar el código del módulo', 'عرض كود الوحدة', 'モジュールのコードを表示', 'मॉड्यूल कोड दिखाएँ', 'Показать код модуля'],
   'canvas.block': ['block', 'le bloc', '块', 'el bloque', 'الكتلة', 'ブロック', 'ब्लॉक', 'блок'],
   'card.module': ['Module', 'Module', '模块', 'Módulo', 'وحدة', 'モジュール', 'मॉड्यूल', 'Модуль'],
   'card.screen': ['Screen', 'Écran', '屏幕', 'Pantalla', 'شاشة', '画面', 'स्क्रीन', 'Экран'],

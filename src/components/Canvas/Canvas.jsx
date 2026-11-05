@@ -896,6 +896,7 @@ export default function Canvas() {
         onMove={handleModuleMove} onMoveStart={handleModuleMoveStart} onMoveEnd={handleModuleMoveEnd}
         onScreenViewChange={(id, screenView) => document.updateGeometry(id, { screenView })}
         onGaugeViewChange={(id, gaugeView) => document.updateGeometry(id, { gaugeView })}
+        onLedViewChange={(id, ledView) => document.updateGeometry(id, { ledView })}
         screenState={screenPlayback ? null : screenStates[card.id] ?? null}
         screenFrames={screenPlayback ? simulationResult.screenFrames : null}
         screenPlaying={screenPlayback && Boolean(execution?.running)}
