@@ -48,10 +48,14 @@ test('bibliothèque d’exemples : chaque projet est valide, analysable et s’e
   }
 })
 
-// Rejoue Rover survey avec un tirage imposé et relève la case colorée de l'artefact.
-function roverArtifactPosition(randomValue) {
+// Rejoue Rover survey avec un générateur reproductible et relève la case colorée de l'artefact.
+function roverArtifactPosition(seed) {
   const originalRandom = Math.random
-  Math.random = () => randomValue
+  let state = seed
+  Math.random = () => {
+    state = (state * 1103515245 + 12345) % 2147483648
+    return state / 2147483648
+  }
   try {
     const workspace = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'roverSurvey').build()))
     const result = simulateProgram(workspace.project)
@@ -71,14 +75,16 @@ function roverArtifactPosition(randomValue) {
 }
 
 test('exemple Rover survey : la position de l’artefact est tirée à chaque exécution', () => {
-  const first = roverArtifactPosition(0.2)
-  const second = roverArtifactPosition(0.6)
-  assert.equal(first, 148)
-  assert.equal(second, 248)
+  const first = roverArtifactPosition(1)
+  const second = roverArtifactPosition(2)
   assert.notEqual(first, second)
   for (const index of [first, second]) {
-    assert.ok(index % 48 >= 2 && index % 48 <= 11, 'artefact dans la zone dégagée en x')
-    assert.ok(Math.floor(index / 48) >= 2 && Math.floor(index / 48) <= 7, 'artefact dans la zone dégagée en y')
+    assert.notEqual(index, null)
+    const x = index % 48
+    const y = Math.floor(index / 48)
+    const horizontal = x >= 2 && x <= 23 && y >= 3 && y <= 5
+    const vertical = x >= 2 && x <= 5 && y >= 3 && y <= 17
+    assert.ok(horizontal || vertical, 'artefact dans un couloir dégagé')
   }
 })
 
