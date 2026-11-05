@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import LogicNode from './LogicNode.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './LogicTree.css'
@@ -84,7 +84,8 @@ function LogicTree({ module, index, selectedId, selectedIds = null, readOnly = f
   }, [module, index, expandedNodeIds, onExpandedChange])
 
   const forcedIds = executionExpandedNodeIds.filter((id) => !executionCollapsed.has(id))
-  const expandedIds = new Set([...expandedNodeIds, ...(activeExecutionId ? forcedIds : [])])
+  // Identité stable tant que le pliage ne change pas : les nœuds mémoïsés peuvent la comparer.
+  const expandedIds = useMemo(() => new Set([...expandedNodeIds, ...(activeExecutionId ? forcedIds : [])]), [expandedNodeIds, activeExecutionId, executionExpandedNodeIds, executionCollapsed])
 
   // Mémorise seulement les nœuds explicitement dépliés, sans toucher à la source logique.
   // Un nœud déplié automatiquement par la simulation se replie pour de bon et n'est pas ré-ouvert par la suite.

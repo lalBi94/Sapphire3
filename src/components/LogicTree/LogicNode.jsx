@@ -18,6 +18,7 @@ function LogicNode({ id, index, selectedId, selectedIds = null, readOnly = false
   const selected = selectedIds ? selectedIds.has(id) : selectedId === id
   const slots = Object.entries(schema?.slots ?? {})
   const expanded = expandedIds.has(id)
+  const hasChildren = Boolean(node) && Object.values(node.children ?? {}).some((value) => Array.isArray(value) ? value.length > 0 : Boolean(value))
   const name = node?.properties?.name || kindLabel(node?.kind ?? '', t)
   const summary = node ? nodeSummary(node, index, schema, t) : ''
   const nodeRef = useRef(null)
@@ -32,7 +33,7 @@ function LogicNode({ id, index, selectedId, selectedIds = null, readOnly = false
   const [preview, setPreview] = useState(null)
   const [valueTip, setValueTip] = useState(null)
   // Un nœud replié qui contient vraiment quelque chose peut montrer un aperçu au survol.
-  const previewable = Boolean(node) && !expanded && Object.values(node.children ?? {}).some((value) => Array.isArray(value) ? value.length > 0 : Boolean(value))
+  const previewable = hasChildren && !expanded
 
   useEffect(() => {
     if (active) scrollNodeIntoCard(nodeRef.current, 'nearest')
@@ -101,9 +102,9 @@ function LogicNode({ id, index, selectedId, selectedIds = null, readOnly = false
         {!readOnly && <button type="button" className={`logic-node__breakpoint${breakpoint ? ' logic-node__breakpoint--set' : ''}`} aria-pressed={breakpoint} aria-label={t(breakpoint ? 'canvas.breakpointRemove' : 'canvas.breakpointAdd', { name })} title={t(breakpoint ? 'canvas.breakpointRemove' : 'canvas.breakpointAdd', { name })} onClick={(event) => { event.stopPropagation(); onToggleBreakpoint?.(id) }}>
           <OctagonMinus size={12} strokeWidth={2} aria-hidden="true" />
         </button>}
-        <button type="button" className="logic-node__toggle" aria-expanded={expanded} aria-label={t(expanded ? 'canvas.collapse' : 'canvas.expand', { name })} onClick={handleToggle}>
+        {hasChildren ? <button type="button" className="logic-node__toggle" aria-expanded={expanded} aria-label={t(expanded ? 'canvas.collapse' : 'canvas.expand', { name })} onClick={handleToggle}>
           {expanded ? <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" /> : <ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" />}
-        </button>
+        </button> : <span className="logic-node__toggle-spacer" aria-hidden="true" />}
         <button type="button" className="logic-node__heading" draggable={!readOnly} title={readOnly ? undefined : debugValue ? undefined : t('transfer.dragHint')} onClick={handleSelect} aria-pressed={selected} onMouseEnter={showValueTip} onMouseLeave={hideValueTip} onFocus={showValueTip} onBlur={hideValueTip}>
           <span>{kindLabel(node.kind, t)}{node.properties?.name ? ` · ${node.properties.name}` : ''}</span>
           {node.kind === 'FunctionDeclaration' && node.properties?.generic === true && <span className="logic-node__generic" title={t('canvas.genericHint')} aria-label={t('canvas.genericHint')}>{'<T>'}</span>}
@@ -163,7 +164,8 @@ function sameAncestors(previous, next) {
 function sameNodeProps(previous, next) {
   if (previous.id !== next.id || previous.index !== next.index || previous.readOnly !== next.readOnly) return false
   if (isSelected(previous) !== isSelected(next)) return false
-  if (previous.expandedIds.has(previous.id) !== next.expandedIds.has(next.id)) return false
+  // Toute modification du pliage peut concerner un descendant : les ancêtres doivent aussi se re-rendre.
+  if (previous.expandedIds !== next.expandedIds) return false
   if ((previous.activeExecutionId === previous.id) !== (next.activeExecutionId === next.id)) return false
   if (isDropTarget(previous) !== isDropTarget(next)) return false
   if ((previous.onReorder == null) !== (next.onReorder == null)) return false

@@ -26,6 +26,7 @@
 .logic-node--collapsed { padding: 8px 10px; }
 .logic-node__header { display: flex; align-items: flex-start; gap: 4px; min-width: 0; padding-right: 24px; }
 .logic-node__toggle { display: grid; place-items: center; flex: 0 0 auto; width: 16px; height: 16px; padding: 0; border: 0; background: transparent; color: var(--color-text-muted); cursor: pointer; }
+.logic-node__toggle-spacer { flex: 0 0 auto; width: 16px; height: 16px; }
 .logic-node__toggle:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .logic-node__toggle:hover, .logic-node__heading:hover { color: var(--color-selection); }
 /* Point d'arrêt : petit panneau stop éteint, allumé lorsqu'il est posé. */
