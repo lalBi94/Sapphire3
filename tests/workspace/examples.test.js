@@ -82,9 +82,9 @@ test('exemple Rover survey : la position de l’artefact est tirée à chaque ex
     assert.notEqual(index, null)
     const x = index % 48
     const y = Math.floor(index / 48)
-    const horizontal = x >= 2 && x <= 23 && y >= 3 && y <= 5
-    const vertical = x >= 2 && x <= 5 && y >= 3 && y <= 17
-    assert.ok(horizontal || vertical, 'artefact dans un couloir dégagé')
+    const top = x >= 2 && x <= 38 && y >= 3 && y <= 5
+    const bottom = x >= 2 && x <= 38 && y >= 15 && y <= 17
+    assert.ok(top || bottom, 'artefact dans la bande haute ou basse')
   }
 })
 
