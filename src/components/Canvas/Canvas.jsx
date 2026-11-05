@@ -460,7 +460,7 @@ export default function Canvas() {
     const epoch = simulationEpochRef.current
     screenRerunRef.current = { at: now, inFlight: true }
     try {
-      const result = await runSimulation(document.project)
+      const result = await runSimulation(document.project, { screenOnly: true })
       if (epoch !== simulationEpochRef.current || !result.ok || !result.screenFrames?.length) return
       setSimulationResult((current) => current ? {
         ...current,
