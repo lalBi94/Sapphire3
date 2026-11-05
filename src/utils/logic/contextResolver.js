@@ -1,6 +1,6 @@
 import { isId, isRecord } from './model.js'
 import { getNodeSchema, moduleRootSlot, acceptsNodeKind } from './nodeSchema.js'
-import { primitiveType, isArrayType, functionType } from './primitives.js'
+import { primitiveType, isArrayType, functionType, typeFromRecord } from './primitives.js'
 import { getMathNative } from './mathNatives.js'
 
 // Indexe la source et les résultats déjà calculés, sans reconstruire d'AST à l'ouverture du menu.
@@ -100,14 +100,14 @@ export function resolveContext(project, targetId, slotName, suppliedIndex = null
   if (slotName !== undefined && !slot) return { ok: false, code: 'SLOT_NOT_FOUND', index, target, record, slots }
   const context = { isModuleRoot: target.kind === 'module', functionId: null, loopDepth: 0, parameterList: false }
   for (const node of path) {
-    if (node.kind === 'FunctionDeclaration') { context.functionId = node.id; context.loopDepth = 0 }
+    if (node.kind === 'FunctionDeclaration' || node.kind === 'LambdaExpression') { context.functionId = node.id; context.loopDepth = 0 }
     if (['WhileStatement', 'ForStatement'].includes(node.kind)) context.loopDepth += 1
   }
-  context.parameterList = record.kind === 'FunctionDeclaration' && slot?.name === 'parameters'
+  context.parameterList = ['FunctionDeclaration', 'LambdaExpression'].includes(record.kind) && slot?.name === 'parameters'
   let scopeId = target.kind === 'module'
     ? [...index.scopes.values()].find((scope) => scope.moduleId === moduleId && scope.parentId === null)?.id ?? null
     : index.nodeScopes.get(target.id) ?? null
-  if (record.kind === 'FunctionDeclaration') scopeId = [...index.scopes.values()].find((scope) => scope.ownerNodeId === record.id)?.id ?? scopeId
+  if (record.kind === 'FunctionDeclaration' || record.kind === 'LambdaExpression') scopeId = [...index.scopes.values()].find((scope) => scope.ownerNodeId === record.id)?.id ?? scopeId
   const expectedType = getExpectedType(record, slot?.name, path, index)
   return { ok: true, index, target, record, moduleId, path, slots, slot, context, scopeId, expectedType }
 }
@@ -118,8 +118,12 @@ function getExpectedType(record, slot, path, index) {
   if (slot === 'test' && ['IfStatement', 'WhileStatement', 'ForStatement'].includes(record.kind)) return primitiveType('boolean')
   if (slot === 'initializer' && ['VariableDeclaration', 'ConstantDeclaration'].includes(record.kind)) return index.nodeTypes.get(record.id) ?? null
   if (record.kind === 'ReturnStatement' && slot === 'argument') {
-    const owner = [...path].reverse().find((node) => node.kind === 'FunctionDeclaration')
+    const owner = [...path].reverse().find((node) => node.kind === 'FunctionDeclaration' || node.kind === 'LambdaExpression')
     return index.nodeTypes.get(owner?.id)?.returnType ?? null
+  }
+  if (record.kind === 'LambdaExpression' && slot === 'body') {
+    const type = typeFromRecord(record.properties?.type)
+    return type?.name === 'void' ? null : type
   }
   if (record.kind === 'AssignmentStatement' && slot === 'value') return index.nodeTypes.get(record.children?.target) ?? null
   if (record.kind === 'CallExpression' && slot === 'arguments') {

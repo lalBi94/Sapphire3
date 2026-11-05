@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Plus, Save, Trash2 } from 'lucide-react'
 import { getNodeSchema, binaryOperators, unaryOperators, primitiveType, getCallableSymbols, sameType, isArrayType, mathNatives, containsGeneric, declaredTypeParameters, typeFromRecord, maximumTypeParameters } from '../../utils/logic/index.js'
-import { initialNodeForm, nodeConfiguration, emptyExpression, typeFromName, typeNameFromType, accessedArrayType, arrayIndexType, integerTypeNames, expressionOperators } from './nodeConfiguration.js'
+import { initialNodeForm, nodeConfiguration, emptyExpression, typeFromName, typeNameFromType, typeFromForm, accessedArrayType, arrayIndexType, integerTypeNames, expressionOperators } from './nodeConfiguration.js'
 import NodeTypeInput from './NodeTypeInput.jsx'
 import NodeValueInput from './NodeValueInput.jsx'
 import ExpressionInput from './ExpressionInput.jsx'
@@ -29,7 +29,7 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
 
   const schema = getNodeSchema(kind)
   const symbols = getCallableSymbols(context)
-  const type = form.typeName === '@alias' ? initialNode?.properties.type : typeFromName(form.typeName)
+  const type = form.typeName === '@alias' ? initialNode?.properties.type : typeFromForm(form.typeName, form.functionTypeBuilder)
   const resolvedName = form.typeName === '@alias' ? context.index.nodeTypes.get(initialNode?.id)?.name : form.typeName
   const isNew = !initialNode
   const required = !form.allowIncomplete
@@ -49,14 +49,17 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
   const accessTargetType = isNew && kind === 'ArrayAccess' ? accessedArrayType(context.expectedType) : null
   // Signatures existantes proposées comme annotation de variable, constante ou paramètre.
   const declaredFunctionType = initialNode ? context.index.nodeTypes.get(initialNode.id) : null
+  // Une signature déjà écrite sur le nœud (retour de fonction ou de lambda) reste sélectionnable.
+  const declaredTypeRecord = initialNode?.properties?.type?.kind === 'function' ? initialNode.properties.type : null
   // Une contrainte de fonction déjà enregistrée reste proposée même sans symbole correspondant.
   const constraintTypes = kind === 'FunctionDeclaration' && Array.isArray(initialNode?.properties?.typeParameters)
     ? initialNode.properties.typeParameters.map((parameter) => typeFromRecord(parameter.constraint)).filter((candidate) => candidate?.kind === 'function')
     : []
   const functionTypes = []
-  if (['VariableDeclaration', 'ConstantDeclaration', 'Parameter', 'FunctionDeclaration'].includes(kind)) {
+  if (['VariableDeclaration', 'ConstantDeclaration', 'Parameter', 'FunctionDeclaration', 'LambdaExpression'].includes(kind)) {
     const seen = new Set()
-    for (const candidate of [declaredFunctionType, ...constraintTypes, ...symbols.map((symbol) => symbol.type)]) {
+    const lambdaTypes = [...context.index.nodes.values()].filter((node) => node.kind === 'LambdaExpression').map((node) => context.index.nodeTypes.get(node.id)).filter(Boolean)
+    for (const candidate of [declaredFunctionType, declaredTypeRecord, ...constraintTypes, ...lambdaTypes, ...symbols.map((symbol) => symbol.type)]) {
       if (candidate?.kind !== 'function' || containsGeneric(candidate)) continue
       const value = typeNameFromType(candidate)
       if (!value || seen.has(value)) continue
@@ -100,10 +103,16 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
     change('typeParameters', [...form.typeParameters, { name, constraintName: '' }])
   }
 
+  // Modifie une partie de la signature de fonction construite dans le formulaire.
+  function changeFunctionType(field, value) {
+    setForm((current) => ({ ...current, functionTypeBuilder: { ...current.functionTypeBuilder, [field]: value } }))
+    setError(null)
+  }
+
   // Les erreurs du moteur restent structurées ; l'interface affiche une explication courte.
   function handleSubmit(event) {
     event.preventDefault()
-    if (required && ((schema.named && !form.name.trim()) || (isNew && kind === 'FunctionDeclaration' && form.parameters.some((parameter) => !parameter.name.trim() || !parameter.typeName)) || (kind === 'FunctionDeclaration' && form.typeParameters.some((parameter) => !parameter.name.trim())) || (isNew && kind === 'ForEachStatement' && (!form.forEachArrayId || !form.forEachCallbackId)))) {
+    if (required && ((schema.named && !form.name.trim()) || (isNew && ['FunctionDeclaration', 'LambdaExpression'].includes(kind) && form.parameters.some((parameter) => !parameter.name.trim() || !parameter.typeName)) || (kind === 'FunctionDeclaration' && form.typeParameters.some((parameter) => !parameter.name.trim())) || (form.typeName === '@function:new' && (form.functionTypeBuilder.parameters.some((parameter) => !parameter.typeName) || !form.functionTypeBuilder.returnTypeName)) || (isNew && kind === 'ForEachStatement' && (!form.forEachArrayId || !form.forEachCallbackId)))) {
       setError({ key: kind === 'ForEachStatement' ? 'form.forEachRequired' : 'form.saveHint' })
       return
     }
@@ -116,7 +125,17 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
   return (
     <form className="node-form" onSubmit={handleSubmit}>
       {schema.named && showName && <label>{t('form.name')}<input aria-label={t('form.name')} value={form.name} onChange={(event) => change('name', event.target.value)} required={required} autoComplete="off" /></label>}
-      {(schema.declaresType || isNew && kind === 'PrintStatement') && <NodeTypeInput label={kind === 'FunctionDeclaration' ? t('form.returnType') : t('form.type')} value={form.typeName} onChange={(value) => change('typeName', value)} required={required} allowVoid={kind === 'FunctionDeclaration'} allowArray={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement') || (kind === 'FunctionDeclaration' && formGenerics.length > 0)} allowPointer={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement')} allowFunction={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind)} genericNames={['FunctionDeclaration', 'Parameter'].includes(kind) ? formGenerics : []} functionTypes={functionTypes} alias={initialNode?.properties.type?.kind === 'named'} />}
+      {(schema.declaresType || isNew && kind === 'PrintStatement') && <NodeTypeInput label={['FunctionDeclaration', 'LambdaExpression'].includes(kind) ? t('form.returnType') : t('form.type')} value={form.typeName} onChange={(value) => change('typeName', value)} required={required} allowVoid={['FunctionDeclaration', 'LambdaExpression'].includes(kind)} allowArray={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement') || (kind === 'FunctionDeclaration' && formGenerics.length > 0)} allowPointer={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement')} allowFunction={['VariableDeclaration', 'ConstantDeclaration', 'Parameter', 'FunctionDeclaration', 'LambdaExpression'].includes(kind)} allowNewFunctionType={['VariableDeclaration', 'ConstantDeclaration', 'Parameter', 'FunctionDeclaration', 'LambdaExpression'].includes(kind)} genericNames={['FunctionDeclaration', 'Parameter'].includes(kind) ? formGenerics : []} functionTypes={functionTypes} alias={initialNode?.properties.type?.kind === 'named'} />}
+      {form.typeName === '@function:new' && <fieldset>
+        <legend>{t('form.functionSignature')}</legend>
+        {form.functionTypeBuilder.parameters.map((parameter, index) => <div className="node-form__parameter" key={index}>
+          <NodeTypeInput label={t('form.parameterType', { number: index + 1 })} value={parameter.typeName} required={required} allowArray allowPointer allowFunction functionTypes={functionTypes} onChange={(value) => changeFunctionType('parameters', form.functionTypeBuilder.parameters.map((entry, position) => position === index ? { ...entry, typeName: value } : entry))} />
+          <button type="button" onClick={() => changeFunctionType('parameters', form.functionTypeBuilder.parameters.filter((_, position) => position !== index))}><Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.removeInput')}</button>
+        </div>)}
+        <button type="button" onClick={() => changeFunctionType('parameters', [...form.functionTypeBuilder.parameters, { typeName: '' }])}><Plus size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.addInput')}</button>
+        <NodeTypeInput label={t('form.returnType')} value={form.functionTypeBuilder.returnTypeName} required={required} allowVoid allowFunction functionTypes={functionTypes} onChange={(value) => changeFunctionType('returnTypeName', value)} />
+        <InfoHint text={t('form.functionSignatureHint')} />
+      </fieldset>}
       {['ArrayLiteral', 'ArrayCreation'].includes(kind) && (arrayElementType
         ? <p className="node-form__hint">{t('form.arrayElementsOfType', { type: arrayElementType.name })}</p>
         : <NodeTypeInput label={t('field.elementType')} value={form.elementTypeName} onChange={(value) => change('elementTypeName', value)} required={required} />)}
@@ -159,7 +178,7 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
       {isNew && ['IfStatement', 'WhileStatement', 'ForStatement'].includes(kind) && <ExpressionInput label={t('form.condition')} value={form.condition} onChange={(value) => change('condition', value)} type={primitiveType('boolean')} symbols={symbols} required={kind !== 'ForStatement' && required} allowIncomplete={form.allowIncomplete} />}
       {isNew && kind === 'PrintStatement' && <ExpressionInput label={t('form.value')} value={form.expression} onChange={(value) => change('expression', value)} type={type} symbols={symbols} required={required} allowIncomplete={form.allowIncomplete} />}
       {isNew && kind === 'ExpressionStatement' && <ExpressionInput label={t('slot.expression')} value={form.expression} onChange={(value) => change('expression', value)} type={null} symbols={symbols} required={required} allowIncomplete={form.allowIncomplete} allowAnyType />}
-      {isNew && kind === 'FunctionDeclaration' && <fieldset><legend>{t('form.parameters')}</legend>
+      {isNew && ['FunctionDeclaration', 'LambdaExpression'].includes(kind) && <fieldset><legend>{t('form.parameters')}</legend>
         {form.parameters.map((parameter, index) => <div className="node-form__parameter" key={index}>
           <label>{t('form.parameterName', { number: index + 1 })}<input aria-label={t('form.parameterName', { number: index + 1 })} value={parameter.name} required={required} onChange={(event) => change('parameters', form.parameters.map((entry, position) => position === index ? { ...entry, name: event.target.value } : entry))} /></label>
           <NodeTypeInput label={t('form.parameterType', { number: index + 1 })} value={parameter.typeName} required={required} allowArray allowPointer allowFunction genericNames={formGenerics} functionTypes={functionTypes} onChange={(value) => change('parameters', form.parameters.map((entry, position) => position === index ? { ...entry, typeName: value } : entry))} />
@@ -167,6 +186,10 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
         </div>)}
         <button type="button" onClick={() => change('parameters', [...form.parameters, { name: '', typeName: '' }])}><Plus size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.addInput')}</button>
       </fieldset>}
+      {isNew && kind === 'LambdaExpression' && <>
+        <ExpressionInput label={t('form.lambdaBody')} value={form.expression} onChange={(value) => change('expression', value)} type={type?.name === 'void' ? null : type} symbols={symbols} required={required} allowIncomplete={form.allowIncomplete} allowAnyType={!type || type.name === 'void'} />
+        <InfoHint text={t('form.lambdaHint')} />
+      </>}
       {kind === 'ArrayLiteral' && (isNew ? <fieldset><legend>{t('slot.elements')}</legend>
         {form.arrayElements.map((element, index) => <div className="node-form__parameter" key={index}>
           <ExpressionInput label={t('expression.element', { number: index + 1 })} value={element} onChange={(value) => change('arrayElements', form.arrayElements.map((entry, position) => position === index ? value : entry))} type={primitiveType(form.elementTypeName)} symbols={symbols} required={false} allowIncomplete={form.allowIncomplete} />

@@ -15,6 +15,7 @@ export const nodeSchema = Object.freeze({
   VariableDeclaration: { category: 'declaration', group: 'variable', named: true, declaresType: true, slots: { initializer: { ...expression, required: false } } },
   ConstantDeclaration: { category: 'declaration', group: 'variable', named: true, declaresType: true, slots: { initializer: expression } },
   FunctionDeclaration: { category: 'declaration', group: 'function', named: true, declaresType: true, slots: { parameters: { kinds: ['Parameter'], many: true, required: true }, body: block } },
+  LambdaExpression: { category: 'expression', group: 'function', declaresType: true, slots: { parameters: { kinds: ['Parameter'], many: true, required: true }, body: expression } },
   Parameter: { category: 'parameter', group: 'parameter', named: true, declaresType: true, slots: {} },
   TypeDeclaration: { category: 'declaration', group: 'type', named: true, declaresType: true, slots: {} },
   Block: { category: 'statement', group: 'block', slots: { statements: { categories: ['statement', 'declaration'], many: true, required: true } } },

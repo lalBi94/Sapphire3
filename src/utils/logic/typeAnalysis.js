@@ -107,7 +107,7 @@ export function analyzeTypes(semantic, projectId) {
     } else {
       report(codes.invalidType, 'Type non autorisé ou annotation malformée.', node, 'properties.type')
     }
-    if (type?.name === 'void' && node.kind !== 'FunctionDeclaration') {
+    if (type?.name === 'void' && node.kind !== 'FunctionDeclaration' && node.kind !== 'LambdaExpression') {
       report(codes.voidNotAllowed, 'void est réservé au retour d’une fonction.', node, 'properties.type')
       type = null
     }
@@ -119,8 +119,8 @@ export function analyzeTypes(semantic, projectId) {
       report(codes.invalidType, 'Un type pointeur n’est autorisé que pour une variable, une constante ou un paramètre.', node, 'properties.type')
       type = null
     }
-    if (type?.kind === 'function' && !['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(node.kind)) {
-      report(codes.invalidType, 'Un type fonction n’est autorisé que pour une variable, une constante ou un paramètre.', node, 'properties.type')
+    if (type?.kind === 'function' && !['VariableDeclaration', 'ConstantDeclaration', 'Parameter', 'FunctionDeclaration', 'LambdaExpression'].includes(node.kind)) {
+      report(codes.invalidType, 'Un type fonction n’est autorisé que pour une variable, une constante, un paramètre ou le retour d’une fonction.', node, 'properties.type')
       type = null
     }
     annotationActive.delete(node.sourceId)
@@ -161,6 +161,11 @@ export function analyzeTypes(semantic, projectId) {
     if (!binary && operator === '&') {
       if (!operands[0] || !['Reference', 'ArrayAccess'].includes(operands[0].kind)) {
         report(codes.illegalPlacement, 'L’adresse ne peut être prise que sur une variable ou un élément de tableau.', node, 'children.operand')
+        return null
+      }
+      const addressedSymbol = operands[0].kind === 'Reference' ? referenceSymbols.get(operands[0].sourceId) : null
+      if (addressedSymbol?.kind === 'Parameter' && nodes.get(contexts.get(addressedSymbol.nodeId)?.functionId)?.kind === 'LambdaExpression') {
+        report(codes.illegalPlacement, 'L’adresse d’un paramètre de lambda n’est pas prise en charge.', node, 'children.operand')
         return null
       }
       return pointerType(types[0])
@@ -207,6 +212,19 @@ export function analyzeTypes(semantic, projectId) {
     const parameters = node.children.parameters.map((parameter) => parameter.kind === 'Parameter' ? annotation(parameter) : null)
     if (!returnType || parameters.some((type) => !type)) return null
     return { kind: 'function', parameters, returnType }
+  }
+
+  // Une lambda publie sa signature concrète après contrôle de son corps et de ses paramètres.
+  function lambda(node) {
+    const returnType = annotation(node)
+    const parameters = (node.children.parameters ?? []).map((parameter) => parameter.kind === 'Parameter' ? annotation(parameter) : null)
+    if (!returnType || parameters.some((type) => !type)) return null
+    const body = child(node, 'body')
+    const bodyType = body ? resolve(body.sourceId) : null
+    if (bodyType && returnType.name !== 'void' && !sameType(returnType, bodyType)) {
+      report(codes.typeMismatch, 'Le résultat de la lambda doit avoir le type de retour déclaré.', node, 'children.body')
+    }
+    return functionType(parameters, returnType)
   }
 
   // Résout une référence puis propage seulement les valeurs d'initialiseurs constants prouvées.
@@ -460,6 +478,7 @@ export function analyzeTypes(semantic, projectId) {
     active.add(nodeId)
     let type = null
     if (getNodeSchema(node.kind)?.named) type = declaration(node)
+    else if (node.kind === 'LambdaExpression') type = lambda(node)
     else if (node.kind === 'Literal') {
       const declared = annotation(node)
       if (declared && acceptConstant(validateLiteral(declared.name, node.properties.value), node)) type = declared

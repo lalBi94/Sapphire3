@@ -71,8 +71,8 @@ export function buildSemanticModel(ast) {
     const placementIssue = getPlacementIssue(node.kind, context)
     if (placementIssue) report(codes.illegalPlacement, placementIssue, node.moduleId, node.sourceId)
 
-    if (node.kind === 'FunctionDeclaration') {
-      const inner = addScope(`function:${node.sourceId}`, node.moduleId, node.sourceId, scopeId)
+    if (node.kind === 'FunctionDeclaration' || node.kind === 'LambdaExpression') {
+      const inner = addScope(`${node.kind === 'LambdaExpression' ? 'lambda' : 'function'}:${node.sourceId}`, node.moduleId, node.sourceId, scopeId)
       for (const parameter of node.children.parameters ?? []) collect(parameter, inner, { functionId: node.sourceId, loopDepth: 0, parameterList: true })
       collect(node.children.body, inner, { functionId: node.sourceId, loopDepth: 0 }, true)
       return

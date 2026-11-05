@@ -1,4 +1,4 @@
-import { primitiveType, primitiveDefinitions, arrayType, isArrayType, isValidElementType, pointerType, isPointerType, pointerPointee, isValidPointee, typeFromRecord, getNodeSchema, binaryOperators, unaryOperators, acceptsOperand, sameType, genericType, containsGeneric, declaredTypeParameters, isTypeParameterName } from '../../utils/logic/index.js'
+import { primitiveType, primitiveDefinitions, arrayType, isArrayType, isValidElementType, pointerType, isPointerType, pointerPointee, isValidPointee, typeFromRecord, getNodeSchema, binaryOperators, unaryOperators, acceptsOperand, sameType, genericType, containsGeneric, declaredTypeParameters, isTypeParameterName, functionType } from '../../utils/logic/index.js'
 
 // Types entiers proposés pour l'index d'un accès à un élément de tableau ; une seule liste partagée par les formulaires.
 export const integerTypeNames = Object.freeze(Object.keys(primitiveDefinitions).filter((name) => acceptsOperand('integer', primitiveType(name))))
@@ -45,6 +45,13 @@ export function typeNameFromType(type) {
   }
   if (type.kind === 'function') return `@function:${JSON.stringify(type)}`
   return ''
+}
+
+// Résout le type choisi, y compris une signature de fonction construite dans le formulaire.
+export function typeFromForm(typeName, functionTypeBuilder) {
+  if (typeName !== '@function:new') return typeFromName(typeName)
+  const parameters = (functionTypeBuilder?.parameters ?? []).map((entry) => typeFromName(entry.typeName))
+  return functionType(parameters, typeFromName(functionTypeBuilder?.returnTypeName))
 }
 
 // Filtre les opérations par leur résultat attendu, depuis les règles du moteur.
@@ -101,7 +108,9 @@ export function initialNodeForm(kind, node, expectedType, symbols, preset = null
   const declared = properties.type
   const typeName = declared?.kind === 'named' ? '@alias'
     : declared ? typeNameFromType(declared)
-    : (kind === 'Literal' || kind === 'CastExpression') && expectedType?.kind === 'primitive' ? expectedType.name : ''
+    : (kind === 'Literal' || kind === 'CastExpression') && expectedType?.kind === 'primitive' ? expectedType.name
+    : kind === 'LambdaExpression' && expectedType?.kind === 'function' ? typeNameFromType(expectedType.returnType)
+    : ''
   // Le type d'élément d'un tableau est imposé par le slot attendu à la création, sinon librement choisi.
   // Pour un accès par index, le slot attendu donne le type de l'élément lu, donc le tableau visé est son type tableau.
   const arrayElementTypeName = isArrayType(expectedType) && ['ArrayLiteral', 'ArrayCreation'].includes(kind) ? expectedType.elementType.name
@@ -112,10 +121,13 @@ export function initialNodeForm(kind, node, expectedType, symbols, preset = null
     operator: properties.operator ?? '', value: properties.value === undefined ? '' : Object.is(properties.value, -0) ? '-0' : String(properties.value),
     empty: properties.type?.name === 'string' && properties.value === '', symbolId: symbol?.id ?? (target ? '@unresolved' : ''),
     initializer: emptyExpression(), condition: emptyExpression(), expression: emptyExpression(),
-    parameters: [], entryPoint: properties.entryPoint === true, allowIncomplete: false,
+    parameters: kind === 'LambdaExpression' && expectedType?.kind === 'function'
+      ? expectedType.parameters.map((parameter) => ({ name: '', typeName: typeNameFromType(parameter) }))
+      : [], entryPoint: properties.entryPoint === true, allowIncomplete: false,
     typeParameters: kind === 'FunctionDeclaration'
       ? declaredTypeParameters(node).map((parameter) => ({ name: parameter.name, constraintName: parameter.constraint ? typeNameFromType(typeFromRecord(parameter.constraint)) : '' }))
       : [],
+    functionTypeBuilder: { parameters: [{ typeName: '' }], returnTypeName: '' },
     elementTypeName: arrayElementTypeName, arraySize: emptyExpression(), arrayFill: emptyExpression(), arrayElements: [],
     accessArray: emptyExpression(), accessIndex: emptyExpression(), indexTypeName: 'int',
     mathName: kind === 'MathCall' ? properties.name ?? preset?.name ?? '' : '',
@@ -178,7 +190,7 @@ export function nodeConfiguration(kind, form, symbols, initialNode = null) {
   const schema = getNodeSchema(kind)
   const properties = { ...initialNode?.properties }
   const references = { ...initialNode?.references }
-  const type = form.typeName === '@alias' ? initialNode?.properties.type : typeFromName(form.typeName)
+  const type = form.typeName === '@alias' ? initialNode?.properties.type : typeFromForm(form.typeName, form.functionTypeBuilder)
   if (schema.named) properties.name = initialNode && form.name === initialNode.properties.name ? form.name : form.name.trim()
   if (kind === 'FunctionDeclaration') {
     if (form.entryPoint) properties.entryPoint = true
@@ -234,9 +246,11 @@ export function nodeConfiguration(kind, form, symbols, initialNode = null) {
   if (kind === 'PrintStatement') children.value = expressionDraft(form.expression, type, symbols)
   // Une instruction d'expression n'impose aucun type : un appel, y compris de procédure, ou une lecture.
   if (kind === 'ExpressionStatement') children.expression = expressionDraft(form.expression, null, symbols)
-  if (kind === 'FunctionDeclaration') {
+  if (kind === 'FunctionDeclaration' || kind === 'LambdaExpression') {
     children.parameters = form.parameters.map((parameter) => ({ kind: 'Parameter', properties: { name: parameter.name.trim(), ...(typeFromName(parameter.typeName) ? { type: typeFromName(parameter.typeName) } : {}) } }))
-    children.body = emptyBlock()
+    children.body = kind === 'LambdaExpression'
+      ? expressionDraft(form.expression, type?.name === 'void' ? null : type, symbols) ?? { kind: 'Hole' }
+      : emptyBlock()
   }
   if (kind === 'CallExpression') {
     const symbol = symbols.find((entry) => entry.id === form.symbolId)

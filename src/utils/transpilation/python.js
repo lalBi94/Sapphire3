@@ -135,6 +135,10 @@ export function generatePython(analysis, { selection = null } = {}) {
       return `sapphireUnary(${JSON.stringify(operator)}, ${expression(child(node, 'operand'))}, ${JSON.stringify(typeByNode.get(node.sourceId)?.name)})`
     }
     if (node.kind === 'CallExpression') return `${expression(child(node, 'callee'))}(${(node.children.arguments ?? []).map(expression).join(', ')})`
+    if (node.kind === 'LambdaExpression') {
+      const parameters = (node.children.parameters ?? []).map((parameter) => reserveDeclaration(parameter))
+      return `(lambda ${parameters.join(', ')}: ${expression(child(node, 'body'))})`
+    }
     if (node.kind === 'CastExpression') {
       const argument = expression(child(node, 'argument'))
       const target = typeByNode.get(node.sourceId)?.name

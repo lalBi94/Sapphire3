@@ -232,11 +232,16 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       return target === types.get(node.children.argument)?.name ? value : checked(convertConstant(value, target))
     }
     if (node.kind === 'CallExpression') {
-      // Le callee est évalué comme une valeur : fonction déclarée ou variable de type fonction.
+      // Le callee est évalué comme une valeur : fonction déclarée, lambda ou variable de type fonction.
       const callee = valueOf(nodes.get(node.children.callee), environment)
+      const args = (node.children.arguments ?? []).map((id) => valueOf(nodes.get(id), environment))
+      if (callee?.lambdaValue === true) return executeLambda(callee.lambda, callee.environment, args)
       const target = callee?.functionValue === true ? functions.get(callee.nodeId) : null
       if (!target) throw simulationError('SIMULATION_REFERENCE', 'The called function cannot be resolved.')
-      return executeFunction(target, (node.children.arguments ?? []).map((id) => valueOf(nodes.get(id), environment)))
+      return executeFunction(target, args)
+    }
+    if (node.kind === 'LambdaExpression') {
+      return { lambdaValue: true, nodeId: node.id, lambda: node, environment, label: 'fn <lambda>' }
     }
     // Opération mathématique native : déterministe et sans effet de bord.
     if (node.kind === 'MathCall') {
@@ -357,14 +362,17 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       const array = valueOf(nodes.get(node.children.array), environment)
       if (!Array.isArray(array)) throw simulationError('SIMULATION_REFERENCE', 'ForEach expects an array.')
       const callback = valueOf(nodes.get(node.children.callback), environment)
-      const target = callback?.functionValue === true ? functions.get(callback.nodeId) : null
-      if (!target) throw simulationError('SIMULATION_REFERENCE', 'ForEach expects a function callback.')
       // La copie fige les éléments visités même si le rappel modifie le tableau d'origine.
       const snapshot = [...array]
       for (const element of snapshot) {
         step(node)
         observe(node, environment)
-        executeFunction(target, [element])
+        if (callback?.lambdaValue === true) executeLambda(callback.lambda, callback.environment, [element])
+        else {
+          const target = callback?.functionValue === true ? functions.get(callback.nodeId) : null
+          if (!target) throw simulationError('SIMULATION_REFERENCE', 'ForEach expects a function callback.')
+          executeFunction(target, [element])
+        }
       }
       return
     }
@@ -465,6 +473,24 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     }
   }
 
+  // Isole chaque appel de lambda dans son environnement capturé, sans copier les liaisons.
+  function executeLambda(lambda, captured, args) {
+    callDepth += 1
+    if (callDepth > 200) throw simulationError('SIMULATION_CALL_LIMIT', 'Simulation call depth limit reached.')
+    const current = environment(captured, `lambda:${lambda.id}`, lambda.id)
+    if (callDepth === 1) functionScope = current
+    activeScopes.push(current)
+    for (const [index, parameterId] of (lambda.children.parameters ?? []).entries()) current.values.set(parameterId, args[index])
+    try {
+      observe(lambda, current)
+      const body = nodes.get(lambda.children.body)
+      return body ? valueOf(body, current) : undefined
+    } finally {
+      activeScopes.pop()
+      callDepth -= 1
+    }
+  }
+
   // Isole chaque appel du contexte de l'appelant et borne la récursion avant la pile JavaScript.
   function executeFunction(node, args) {
     callDepth += 1
@@ -550,6 +576,7 @@ function typeText(type) {
 function formatValue(value) {
   if (value && typeof value === 'object' && value.pointer === true) return value.label
   if (value && typeof value === 'object' && value.functionValue === true) return value.label
+  if (value && typeof value === 'object' && value.lambdaValue === true) return value.label
   if (value === undefined) return 'undefined'
   if (typeof value === 'boolean') return value ? 'true' : 'false'
   if (typeof value === 'symbol') return 'uninitialized'

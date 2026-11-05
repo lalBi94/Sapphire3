@@ -141,9 +141,12 @@ export function isValidParameterType(type, depth = 0) {
   return false
 }
 
-// Vérifie si un type peut être un retour de fonction : un primitif, void compris.
-export function isValidReturnType(type) {
-  return type?.kind === 'primitive' && Boolean(getPrimitive(type.name))
+// Vérifie si un type peut être un retour de fonction : un primitif (void compris) ou une signature concrète.
+export function isValidReturnType(type, depth = 0) {
+  if (!type || depth > 12) return false
+  if (type.kind === 'primitive') return Boolean(getPrimitive(type.name))
+  if (type.kind !== 'function' || !Array.isArray(type.parameters)) return false
+  return type.parameters.every((parameter) => isValidParameterType(parameter, depth + 1)) && isValidReturnType(type.returnType, depth + 1)
 }
 
 // Crée un type fonction structurel, ou null si un paramètre ou le retour est invalide.

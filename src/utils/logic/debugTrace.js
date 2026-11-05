@@ -18,6 +18,7 @@ export function createDebugRecorder(analysis, global, output, uninitialized) {
   function displayValue(value) {
     if (value && typeof value === 'object' && value.pointer === true) return value.label
     if (value && typeof value === 'object' && value.functionValue === true) return value.label
+    if (value && typeof value === 'object' && value.lambdaValue === true) return value.label
     if (typeof value === 'symbol') return 'uninitialized'
     if (Array.isArray(value)) {
       const shown = value.slice(0, 8).map((element) => displayValue(element)).join(', ')

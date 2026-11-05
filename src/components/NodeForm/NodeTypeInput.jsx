@@ -2,7 +2,7 @@ import { primitiveDefinitions } from '../../utils/logic/index.js'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 
 // Réutilise le catalogue statique sans reconstruire une liste de types dans l'interface.
-export default function NodeTypeInput({ label, value, onChange, required, allowVoid = false, allowArray = false, allowPointer = false, allowFunction = false, genericNames = [], functionTypes = [], alias = false, emptyLabel = null }) {
+export default function NodeTypeInput({ label, value, onChange, required, allowVoid = false, allowArray = false, allowPointer = false, allowFunction = false, allowNewFunctionType = false, genericNames = [], functionTypes = [], alias = false, emptyLabel = null }) {
   const { t } = useTranslation()
   const scalars = Object.entries(primitiveDefinitions).filter(([, type]) => allowVoid || type.category !== 'void')
   const elements = Object.entries(primitiveDefinitions).filter(([, type]) => type.category !== 'void')
@@ -21,6 +21,7 @@ export default function NodeTypeInput({ label, value, onChange, required, allowV
         {allowFunction && functionTypes.length > 0 && <optgroup label={t('form.functionType')}>
           {functionTypes.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}
         </optgroup>}
+        {allowNewFunctionType && <option value="@function:new">{t('form.newFunctionType')}</option>}
       </select>
     </label>
   )

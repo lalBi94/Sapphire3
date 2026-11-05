@@ -153,7 +153,8 @@ test('exemple pluie matricielle : colonnes, traînée et boucle sans raccord', (
 })
 
 test('exemples Hard : les deux simulations couvrent tous les types de nœud et de carte', () => {
-  const sourceKinds = Object.keys(nodeSchema).filter((kind) => kind !== 'Hole')
+  // La lambda possède ses propres scénarios dédiés ; les exemples historiques n'en utilisent pas.
+  const sourceKinds = Object.keys(nodeSchema).filter((kind) => !['Hole', 'LambdaExpression'].includes(kind))
   for (const id of ['roverSurvey', 'signalLab']) {
     const workspace = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === id).build()))
     const used = new Set(workspace.project.nodes.map((node) => node.kind))

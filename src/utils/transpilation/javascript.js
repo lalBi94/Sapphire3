@@ -135,6 +135,10 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
     if (node.kind === 'CallExpression') {
       return `${expression(child(node, 'callee'))}(${(node.children.arguments ?? []).map(expression).join(', ')})`
     }
+    if (node.kind === 'LambdaExpression') {
+      const parameters = (node.children.parameters ?? []).map((parameter) => reserveDeclaration(parameter))
+      return `((${parameters.join(', ')}) => ${expression(child(node, 'body'))})`
+    }
     if (node.kind === 'CastExpression') {
       const target = typeByNode.get(node.sourceId)?.name
       const argument = expression(child(node, 'argument'))
