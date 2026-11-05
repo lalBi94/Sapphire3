@@ -46,9 +46,13 @@ function workspace(project, notes = []) {
       ? { id: module.id, type: 'gauge', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.gauge.width, height: moduleTypes.gauge.height, expandedNodeIds: [] }
       : module.progress
         ? { id: module.id, type: 'progress', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.progress.width, height: moduleTypes.progress.height, expandedNodeIds: [] }
-        : module.led
-          ? { id: module.id, type: 'led', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.led.width, height: moduleTypes.led.height, expandedNodeIds: [] }
-          : { id: module.id, type: 'module', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: Math.max(definition.width, 520), height: Math.max(definition.height, 420), expandedNodeIds: [] })
+        : module.heatmap
+          ? { id: module.id, type: 'heatmap', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.heatmap.width, height: moduleTypes.heatmap.height, expandedNodeIds: [] }
+        : module.barChart
+          ? { id: module.id, type: 'barChart', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.barChart.width, height: moduleTypes.barChart.height, expandedNodeIds: [] }
+          : module.led
+            ? { id: module.id, type: 'led', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.led.width, height: moduleTypes.led.height, expandedNodeIds: [] }
+            : { id: module.id, type: 'module', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: Math.max(definition.width, 520), height: Math.max(definition.height, 420), expandedNodeIds: [] })
   cards.push(...notes)
   return { application: 'Sapphire 3', workspaceVersion: workspaceFileVersion, project, presentation: { cards, camera: { x: 0, y: 0, zoomLevel: 0 }, selected: null } }
 }

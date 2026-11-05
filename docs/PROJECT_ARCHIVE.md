@@ -2,6 +2,14 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## BarChart et Heatmap — 6 novembre 2026
+
+- BarChart : globale `int[]`, API `SET_VALUE`, `SET_DATA`, `CLEAR`, barres signées avec ligne zéro, dégradé et halo du thème ; états Run/Debug copiés, synchronisation avec Screen quand présent. Affichage limité aux 64 premières valeurs ; le tableau logique n'est pas tronqué.
+- Heatmap : grille fixe 12×8 par défaut (dimensions source 1..32), API `SET_CELL(x, y, value)` et `CLEAR`, contrôle de chacun des axes ; `CLEAR` conserve les dimensions. Rendu CSS à couleur primaire, intensité proportionnelle à la magnitude. Pas de palette, d'horloge ni d'images à 24 fps, même en présence d'un Screen.
+- Cartes adossées aux modules ordinaires : création, renommage, sélection, cadrage, mini-carte, liens et bascules aperçu/code. Les vues `barChartView` et `heatmapView` sont persistées seulement pour `code` ; validation des indices, des dimensions, des cartes orphelines et des vues. Aucun nouveau nœud logique, aucune dépendance, aucun Sparkline ajouté.
+- `pnpm test` : **487 tests réussis** (+22 : 9 BarChart, 7 Heatmap, 6 workspace/liens). Couverture des erreurs de bornes, valeurs signées/vides, snapshots sans tableaux mutables, Run/Debug, CLEAR, source seule, undo/redo, coexistence avec Screen sans frames Heatmap, refus de transpilation et traductions en huit langues. `pnpm build` réussi (avertissement habituel des chunks >500 kB), `git diff --check` réussi.
+- Navigateur (`pnpm dev:web --port 5199`) : création depuis le menu des deux cartes, vue code affichant les quatre racines BarChart et les trois racines Heatmap avec les signatures attendues. Vérification isolée des composants avec six barres signées et une grille 12×8 d'intensités ; gradient, halo, ligne zéro et variation de couleur visibles. Aucune erreur applicative console. Les tests moteur valident Run/Debug ; aucune campagne Run interactive complète ni vérification dans Neutralinojs pour cet incrément. Aucun paquet ou release publié.
+
 ## Distribution Windows alpha 0.1.0 — 31 octobre 2026
 
 - `package.json` passe à `0.1.0-alpha.1` et expose `pnpm dist:win` (`scripts/build-windows.mjs`). Le script lit la version du paquet, génère `build/production/neutralino.config.json` sans modifier la configuration de développement, compile Vite, supprime `dist/verify/`, refuse sources maps/fixtures `.sp3`/dossiers de développement, construit `resources.neu` et les binaires avec la CLI Neutralinojs 11.8.0, prépare le dossier portable et compresse son contenu sans dossier parent.

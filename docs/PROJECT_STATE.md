@@ -2,6 +2,8 @@
 
 ## Présentation et périmètre
 
+- Cartes **BarChart** et **Heatmap** : modules cachés ordinaires, sans nouveau type logique, création par menu, bascule aperçu/code persistée, liens de dépendance et suivi Run/Debug. BarChart utilise un `int[]`, `SET_VALUE(index, value)`, `SET_DATA(values)` et `CLEAR()` (zéros, longueur conservée), avec barres signées, dégradé/halo du thème et au plus 64 valeurs affichées. Heatmap utilise un `int[]` en grille fixe 12×8 par défaut (dimensions source 1..32), `SET_CELL(x, y, value)` et `CLEAR()` ; l'intensité est la magnitude relative à la plus grande cellule, du fond à la couleur primaire du thème. **Aucune lecture à 24 fps pour Heatmap**, même avec un Screen ; elle suit seulement le pas de Run/Debug. Les deux restent exclus de la transpilation et de l'export SVG comme les widgets précédents. Aucun Sparkline ni exemple supplémentaire n'a été ajouté. Vérifications détaillées dans `docs/PROJECT_ARCHIVE.md` ; pas de nouvelle vérification native Neutralinojs.
+
 - Application desktop Windows : React 19, Vite 8, JavaScript/JSX, CSS, pnpm et Neutralinojs 6.10.0.
 - Nom de travail repris du dossier : Sapphire 3.
 - Direction produit : programmation visuelle fidèle aux concepts du code, AST indépendant des langages et futures traductions vers des langages cibles. Modèle objet évoqué, non défini.
@@ -173,7 +175,10 @@
 | `src/utils/logic/nodeTransfer.js`, `tests/logic/nodeTransfer.test.js` | Capture, copie, duplication et déplacement purs ; compatibilité du receveur, remappage, portées et conservation des références |
 | `src/utils/logic/selectionActions.js`, `tests/logic/selectionActions.test.js` | Opérations groupées pures : suppression atomique de nœuds/modules, duplication avec remappage des identifiants et déplacement de plusieurs nœuds vers un destinataire |
 | `src/utils/logic/placement.js` | Restrictions lexicales partagées entre validateur et suggestions |
-| `src/utils/moduleTypes.js` | Cartes Module/Screen/Gauge/ProgressBar/LED/Comment/Image, clés de libellés, capacités (dont `hasEmoji` du Module, `hasScreen`, `hasGauge`, `hasProgress` et `hasLed`) et dimensions ; vues possibles d'un écran (`screenViews`), d'une jauge (`gaugeViews`), d'une barre (`progressViews`) et d'une LED (`ledViews`) |
+| `src/utils/moduleTypes.js` | Registre des cartes Module/Screen/Gauge/ProgressBar/BarChart/Heatmap/LED/Comment/Image : clés, capacités, dimensions et vues ; `logicalCardTypes` distingue les cartes de modules des annotations |
+| `src/utils/barChartNode.js`, `src/utils/heatmapNode.js` | Modules cachés ordinaires des graphiques à barres et grilles thermiques ; fonctions exportées typées, sans nouveaux nœuds |
+| `src/utils/logic/barChartState.js`, `heatmapState.js` | Lecteurs purs d'instantanés de tableaux, noms stables, dimensions et limites ; Run/Debug, pas de frames écran pour Heatmap |
+| `src/components/BarChartCard/BarChartCard.jsx`, `BarChartCard.css`, `src/components/HeatmapCard/HeatmapCard.jsx`, `HeatmapCard.css` | Barres signées avec dégradé et halo ; grille thermique de couleur primaire, sans minuterie |
 | `src/utils/gaugeNode.js` | Construction du module caché d'une jauge : globales `VALUE`/`MIN`/`MAX` et fonctions d'API exportées |
 | `src/utils/logic/gaugeState.js` | Lecture pure de l'état des jauges (valeur, minimum, maximum) depuis les globales d'une exécution |
 | `src/components/GaugeCard/GaugeCard.jsx`, `GaugeCard.css` | Anneau gradué, dégradé du thème, halo, valeur et bornes d'une carte jauge ; lecture synchronisée à 24 fps sur `screenFrameGauges` pendant les images d'écran |
@@ -211,7 +216,7 @@
 | `src/utils/flowGraph.js` | Graphe simplifié des fonctions atteignables et de leurs appels directs, avec positions en colonnes et liens récursifs signalés |
 | `src/utils/logic/moduleInterface.js` | Exports/imports purs des fonctions de module, candidats, imports inutilisés et validations sans React |
 | `src/utils/logic/moduleLinks.js`, `tests/logic/moduleLinks.test.js` | Liens intermodules agrégés depuis les références résolues vers des imports réellement utilisés |
-| `src/utils/canvasLinks.js`, `tests/workspace/canvasLinks.test.js` | Géométrie pure des courbes en coordonnées monde, cadre de couche et marge ; cartes Module, Screen, Gauge, ProgressBar et LED traitées comme leurs modules cachés |
+| `src/utils/canvasLinks.js`, `tests/workspace/canvasLinks.test.js` | Géométrie pure des courbes en coordonnées monde, cadre de couche et marge ; toutes les cartes de `logicalCardTypes` traitées comme leurs modules cachés |
 | `src/components/CanvasLinks/CanvasLinks.jsx`, `.css` | Flèches courbes orientées exportateur → récepteur sous les cartes, infobulle au survol listant les exportations utilisées |
 | `src/utils/logic/reachability.js` | Graphe d'appels et exclusions de contrôle conservatrices, distincts des chemins simplement non parcourus |
 | `src/utils/logic/nodeGraphs.js`, `tests/logic/nodeGraphs.test.js` | Dépendances/appels ciblés et CFG structurés purs, sans exécution, avec tests des branches et transferts de boucle |

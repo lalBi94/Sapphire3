@@ -1,4 +1,4 @@
-import { moduleTypes } from './moduleTypes.js'
+import { logicalCardTypes, moduleTypes } from './moduleTypes.js'
 import { createProject, createModule, analyzeProgram, createContextIndex, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol, deleteSourceTargets, duplicateSourceTargets, moveSourceNodes } from './logic/index.js'
 
 // Recalcule les dérivés uniquement quand la source logique change.
@@ -75,6 +75,16 @@ export function reduceDocument(state, action) {
     if (state.cards.some((entry) => entry.id === card.id)) return state
     return withSource({ ...state, cards: [...state.cards, card] }, { ...state.project, modules: [...state.project.modules, action.progress.module], nodes: [...state.project.nodes, ...action.progress.nodes] })
   }
+  if (action.type === 'createHeatmap') {
+    const card = action.card
+    if (state.cards.some((entry) => entry.id === card.id)) return state
+    return withSource({ ...state, cards: [...state.cards, card] }, { ...state.project, modules: [...state.project.modules, action.heatmap.module], nodes: [...state.project.nodes, ...action.heatmap.nodes] })
+  }
+  if (action.type === 'createBarChart') {
+    const card = action.card
+    if (state.cards.some((entry) => entry.id === card.id)) return state
+    return withSource({ ...state, cards: [...state.cards, card] }, { ...state.project, modules: [...state.project.modules, action.barChart.module], nodes: [...state.project.nodes, ...action.barChart.nodes] })
+  }
   if (action.type === 'insertBookmark') {
     const result = state.project === action.previousProject
       ? action.prepared
@@ -132,7 +142,7 @@ export function reduceDocument(state, action) {
     const card = state.cards.find((entry) => entry.id === action.id)
     if (!card || !moduleTypes[card.type].renamable || !action.name.trim()) return state
     const next = { ...state, cards: state.cards.map((entry) => entry.id === card.id ? { ...entry, name: action.name } : entry) }
-    return card.type === 'module' || card.type === 'screen' || card.type === 'gauge' || card.type === 'progress' ? withSource(next, { ...state.project, modules: state.project.modules.map((module) => module.id === card.id ? { ...module, name: action.name } : module) }) : next
+    return logicalCardTypes.includes(card.type) ? withSource(next, { ...state.project, modules: state.project.modules.map((module) => module.id === card.id ? { ...module, name: action.name } : module) }) : next
   }
   if (['insert', 'configure', 'delete', 'reorderNode', 'contracts', 'renameSymbol', 'moduleExport', 'moduleImport', 'moduleImportRemove', 'pasteNode', 'moveNode', 'moveNodes', 'duplicateNode'].includes(action.type)) {
     const result = state.project === action.previousProject ? action.prepared : replaySourceMutation(state, action)

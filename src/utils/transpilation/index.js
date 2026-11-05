@@ -37,6 +37,28 @@ function hasProgress(source) {
   return Array.isArray(source?.modules) && source.modules.some((module) => module?.progress)
 }
 
+// Un graphique à barres SP3 est un widget d'interface : même refus explicite qu'une jauge.
+function hasBarChart(source) {
+  return Array.isArray(source?.modules) && source.modules.some((module) => module?.barChart)
+}
+
+// Produit le refus stable opposé à toute transpilation contenant un graphique à barres.
+function barChartFailure(source, target, analysis = null) {
+  return {
+    ok: false,
+    target,
+    code: 'TRANSPILE_BAR_CHART_UNSUPPORTED',
+    diagnostics: [{ code: 'TRANSPILE_BAR_CHART_UNSUPPORTED', severity: 'error', message: 'Un graphique à barres SP3 rend le programme non transpilable.', location: { projectId: source?.id ?? null, moduleId: null, nodeId: null, field: null } }],
+    ...(analysis ? { analysis } : {}),
+  }
+}
+
+// Signale qu'une grille thermique n'a pas de rendu portable dans les cibles texte.
+function heatmapFailure(source, target, analysis) {
+  const code = 'TRANSPILE_HEATMAP_UNSUPPORTED'
+  return { ok: false, target, code, diagnostics: [{ code, severity: 'error', message: 'Une Heatmap SP3 rend le programme non transpilable.', location: { projectId: source?.id ?? null, moduleId: null, nodeId: null, field: null } }], analysis }
+}
+
 // Produit le refus stable opposé à toute transpilation contenant une barre de progression.
 function progressFailure(source, target, analysis = null) {
   return {
@@ -76,6 +98,8 @@ export function transpileSelection(source, selection, { target = 'javascript', a
   if (hasScreen(source)) return screenFailure(source, target, analysis)
   if (hasGauge(source)) return gaugeFailure(source, target, analysis)
   if (hasProgress(source)) return progressFailure(source, target, analysis)
+  if (hasBarChart(source)) return barChartFailure(source, target, analysis)
+  if (Array.isArray(source?.modules) && source.modules.some((module) => module?.heatmap)) return heatmapFailure(source, target, analysis)
   if (hasLed(source)) return ledFailure(source, target, analysis)
   return backends[target](analysis, { selection })
 }
@@ -91,6 +115,8 @@ export function transpileProgram(source, options = {}) {
   if (hasScreen(source)) return screenFailure(source, target, analysis)
   if (hasGauge(source)) return gaugeFailure(source, target, analysis)
   if (hasProgress(source)) return progressFailure(source, target, analysis)
+  if (hasBarChart(source)) return barChartFailure(source, target, analysis)
+  if (Array.isArray(source?.modules) && source.modules.some((module) => module?.heatmap)) return heatmapFailure(source, target, analysis)
   if (hasLed(source)) return ledFailure(source, target, analysis)
   if (hasBlockingDiagnostics(analysis.diagnostics)) return { ok: false, target, code: '', diagnostics: analysis.diagnostics, analysis }
   options.onProgress?.({ phase: 'generate', target, current: 1, total: 1 })

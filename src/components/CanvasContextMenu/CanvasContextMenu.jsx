@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Activity, Box, EyeOff, Gauge, Image, Lightbulb, Lock, LockOpen, MessageSquare, Monitor } from 'lucide-react'
+import { Activity, Box, ChartColumn, EyeOff, Gauge, Image, Lightbulb, Lock, LockOpen, MessageSquare, Monitor } from 'lucide-react'
 import { moduleTypes } from '../../utils/moduleTypes.js'
 import DeleteAction from '../DeleteAction/DeleteAction.jsx'
 import './CanvasContextMenu.css'
@@ -10,6 +10,8 @@ const menuIcons = {
   screen: Monitor,
   gauge: Gauge,
   progress: Activity,
+  barChart: ChartColumn,
+  heatmap: Monitor,
   led: Lightbulb,
   comment: MessageSquare,
   image: Image,

@@ -2,7 +2,8 @@ import { isId, isRecord, sourceFormatVersion, moduleKinds, createProject } from 
 import { isContract } from './logic/contracts.js'
 import { serializeSource } from './logic/serialization.js'
 import { screenLimits } from './logic/mathNatives.js'
-import { gaugeViews, ledViews, moduleTypes, minimumModuleSize, progressViews, screenViews } from './moduleTypes.js'
+import { barChartViews, heatmapViews, logicalCardTypes, gaugeViews, ledViews, moduleTypes, minimumModuleSize, progressViews, screenViews } from './moduleTypes.js'
+import { heatmapMaximumDimension } from './logic/heatmapState.js'
 import { isEmbeddedImage } from './embeddedImage.js'
 
 export const workspaceFileVersion = 2
@@ -71,6 +72,8 @@ function validateProject(project) {
   const screenIndices = new Set()
   const gaugeIndices = new Set()
   const progressIndices = new Set()
+  const barChartIndices = new Set()
+  const heatmapIndices = new Set()
   const ledIndices = new Set()
   for (const module of project.modules) {
     if (!isRecord(module) || !isId(module.id) || moduleIds.has(module.id) || module.kind !== moduleKinds.module || !isId(module.name) || !['rootNodeIds', 'imports', 'exports'].every((field) => Array.isArray(module[field]))) {
@@ -84,6 +87,10 @@ function validateProject(project) {
     if (module.gauge) gaugeIndices.add(module.gauge.index)
     if (module.progress !== undefined && (!isRecord(module.progress) || !Number.isInteger(module.progress.index) || module.progress.index < 1 || !Number.isFinite(module.progress.min) || !Number.isFinite(module.progress.max) || module.progress.max <= module.progress.min || progressIndices.has(module.progress.index))) throw workspaceError('Invalid progress module data.')
     if (module.progress) progressIndices.add(module.progress.index)
+    if (module.barChart !== undefined && (!isRecord(module.barChart) || !Number.isInteger(module.barChart.index) || module.barChart.index < 1 || barChartIndices.has(module.barChart.index))) throw workspaceError('Invalid bar chart module data.')
+    if (module.barChart) barChartIndices.add(module.barChart.index)
+    if (module.heatmap !== undefined && (!isRecord(module.heatmap) || !Number.isInteger(module.heatmap.index) || module.heatmap.index < 1 || heatmapIndices.has(module.heatmap.index) || !['width', 'height'].every((key) => Number.isInteger(module.heatmap[key]) && module.heatmap[key] > 0 && module.heatmap[key] <= heatmapMaximumDimension))) throw workspaceError('Invalid heatmap module data.')
+    if (module.heatmap) heatmapIndices.add(module.heatmap.index)
     if (module.led !== undefined && (!isRecord(module.led) || !Number.isInteger(module.led.index) || module.led.index < 1 || ledIndices.has(module.led.index))) throw workspaceError('Invalid LED module data.')
     if (module.led) ledIndices.add(module.led.index)
   }
@@ -125,12 +132,16 @@ function validatePresentation(project, presentation) {
           ? !modules.has(card.id) || !modules.get(card.id).gauge
           : card.type === 'progress'
             ? !modules.has(card.id) || !modules.get(card.id).progress
-            : card.type === 'led'
-              ? !modules.has(card.id) || !modules.get(card.id).led
-              : modules.has(card.id) || (card.type === 'comment' && typeof card.text !== 'string') || (card.type === 'image' && (!isEmbeddedImage(card.image) || typeof card.caption !== 'string'))) {
+            : card.type === 'barChart'
+              ? !modules.has(card.id) || !modules.get(card.id).barChart
+              : card.type === 'heatmap'
+                ? !modules.has(card.id) || !modules.get(card.id).heatmap
+                : card.type === 'led'
+                  ? !modules.has(card.id) || !modules.get(card.id).led
+                  : modules.has(card.id) || (card.type === 'comment' && typeof card.text !== 'string') || (card.type === 'image' && (!isEmbeddedImage(card.image) || typeof card.caption !== 'string'))) {
       throw workspaceError('Cards do not match the logical project.')
     }
-    if (!Array.isArray(card.expandedNodeIds) || new Set(card.expandedNodeIds).size !== card.expandedNodeIds.length || card.expandedNodeIds.some((id) => !isId(id) || nodes.get(id)?.moduleId !== card.id || !['module', 'screen', 'gauge', 'progress', 'led'].includes(card.type))) {
+    if (!Array.isArray(card.expandedNodeIds) || new Set(card.expandedNodeIds).size !== card.expandedNodeIds.length || card.expandedNodeIds.some((id) => !isId(id) || nodes.get(id)?.moduleId !== card.id || !logicalCardTypes.includes(card.type))) {
       throw workspaceError('Invalid expanded node data.')
     }
     if (card.hidden !== undefined && typeof card.hidden !== 'boolean') throw workspaceError('Invalid card visibility.')
@@ -139,6 +150,8 @@ function validatePresentation(project, presentation) {
     if (card.screenView !== undefined && !screenViews.includes(card.screenView)) throw workspaceError('Invalid screen view.')
     if (card.gaugeView !== undefined && !gaugeViews.includes(card.gaugeView)) throw workspaceError('Invalid gauge view.')
     if (card.progressView !== undefined && !progressViews.includes(card.progressView)) throw workspaceError('Invalid progress view.')
+    if (card.barChartView !== undefined && !barChartViews.includes(card.barChartView)) throw workspaceError('Invalid bar chart view.')
+    if (card.heatmapView !== undefined && !heatmapViews.includes(card.heatmapView)) throw workspaceError('Invalid heatmap view.')
     if (card.ledView !== undefined && !ledViews.includes(card.ledView)) throw workspaceError('Invalid LED view.')
     ids.add(card.id)
   }
@@ -152,8 +165,8 @@ function validatePresentation(project, presentation) {
 // N'écrit l'emoji ou les drapeaux de carte que lorsqu'ils sont définis, pour garder les fichiers habituels inchangés.
 function exportableCard(card, nodes) {
   // `screenScale` n'est plus produit : l'écran se dimensionne avec la carte, mais reste toléré à la relecture.
-  const { hidden, locked, emoji, screenView, gaugeView, progressView, ledView, screenScale, ...rest } = card
-  return { ...rest, ...(hidden ? { hidden: true } : {}), ...(locked ? { locked: true } : {}), ...(emoji ? { emoji } : {}), ...(screenView && screenView !== 'screen' ? { screenView } : {}), ...(gaugeView && gaugeView !== 'gauge' ? { gaugeView } : {}), ...(progressView && progressView !== 'progress' ? { progressView } : {}), ...(ledView && ledView !== 'led' ? { ledView } : {}), expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) }
+  const { hidden, locked, emoji, screenView, gaugeView, progressView, barChartView, heatmapView, ledView, screenScale, ...rest } = card
+  return { ...rest, ...(hidden ? { hidden: true } : {}), ...(locked ? { locked: true } : {}), ...(emoji ? { emoji } : {}), ...(screenView && screenView !== 'screen' ? { screenView } : {}), ...(gaugeView && gaugeView !== 'gauge' ? { gaugeView } : {}), ...(progressView && progressView !== 'progress' ? { progressView } : {}), ...(barChartView && barChartView !== 'barChart' ? { barChartView } : {}), ...(heatmapView && heatmapView !== 'heatmap' ? { heatmapView } : {}), ...(ledView && ledView !== 'led' ? { ledView } : {}), expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) }
 }
 
 // Produit le même instantané JSON versionné pour les extensions .sp3 et .json.
@@ -196,9 +209,13 @@ export function deserializeWorkspace(text) {
       ? { id: module.id, type: 'gauge', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes.gauge.width, height: moduleTypes.gauge.height, expandedNodeIds: [] }
       : module.progress
         ? { id: module.id, type: 'progress', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes.progress.width, height: moduleTypes.progress.height, expandedNodeIds: [] }
-        : module.led
-          ? { id: module.id, type: 'led', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes.led.width, height: moduleTypes.led.height, expandedNodeIds: [] }
-          : { id: module.id, type: 'module', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: definition.width, height: definition.height, expandedNodeIds: [] })
+        : module.heatmap
+          ? { id: module.id, type: 'heatmap', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes.heatmap.width, height: moduleTypes.heatmap.height, expandedNodeIds: [] }
+        : module.barChart
+          ? { id: module.id, type: 'barChart', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes.barChart.width, height: moduleTypes.barChart.height, expandedNodeIds: [] }
+          : module.led
+            ? { id: module.id, type: 'led', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes.led.width, height: moduleTypes.led.height, expandedNodeIds: [] }
+            : { id: module.id, type: 'module', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: definition.width, height: definition.height, expandedNodeIds: [] })
   return JSON.parse(serializeWorkspace(data, cards, { x: 0, y: 0, zoomLevel: 0 }))
 }
 

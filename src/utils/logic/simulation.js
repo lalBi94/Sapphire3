@@ -7,6 +7,8 @@ import { createScreenStateReader, sameScreenStates } from './screenState.js'
 import { createGaugeStateReader } from './gaugeState.js'
 import { createLedStateReader } from './ledState.js'
 import { createProgressStateReader } from './progressState.js'
+import { createBarChartStateReader } from './barChartState.js'
+import { createHeatmapStateReader } from './heatmapState.js'
 import { moduleInitializationOrder } from './moduleInitialization.js'
 
 // Ajoute un code stable sans introduire de traduction ni de dépendance UI dans le moteur.
@@ -53,11 +55,18 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   // Barres de progression : même suivi par pas que les jauges.
   const progressReader = (project.modules ?? []).some((module) => module.progress) ? createProgressStateReader(project) : null
   const progressFrames = []
+  // Graphiques à barres : même suivi par pas que les jauges.
+  const barChartReader = (project.modules ?? []).some((module) => module.barChart) ? createBarChartStateReader(project) : null
+  const barChartFrames = []
+  // Grilles thermiques : instantanés par pas uniquement, jamais par image d'écran.
+  const heatmapReader = (project.modules ?? []).some((module) => module.heatmap) ? createHeatmapStateReader(project) : null
+  const heatmapFrames = []
   const screenFrames = []
   // États de jauge et de LED alignés sur les images d'écran, pour les animer au même rythme.
   const screenFrameGauges = []
   const screenFrameLeds = []
   const screenFrameProgresses = []
+  const screenFrameBarCharts = []
   const maximumScreenFrames = 240
   let lastScreens = null
   const breakSignal = Symbol('break')
@@ -110,6 +119,8 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     if (gaugeReader && gaugeFrames.length < maximumGaugeFrames) gaugeFrames.push(gaugeReader(global.values))
     if (ledReader && ledFrames.length < maximumGaugeFrames) ledFrames.push(ledReader(global.values))
     if (progressReader && progressFrames.length < maximumGaugeFrames) progressFrames.push(progressReader(global.values))
+    if (barChartReader && barChartFrames.length < maximumGaugeFrames) barChartFrames.push(barChartReader(global.values))
+    if (heatmapReader && heatmapFrames.length < maximumGaugeFrames) heatmapFrames.push(heatmapReader(global.values))
     return node
   }
 
@@ -127,6 +138,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     if (gaugeReader) screenFrameGauges.push(gaugeReader(global.values))
     if (ledReader) screenFrameLeds.push(ledReader(global.values))
     if (progressReader) screenFrameProgresses.push(progressReader(global.values))
+    if (barChartReader) screenFrameBarCharts.push(barChartReader(global.values))
   }
 
   // Cherche une déclaration dans les environnements lexicaux actifs, sans valeur implicite.
@@ -529,6 +541,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       if (gaugeReader) screenFrameGauges.push(gaugeReader(global.values))
       if (ledReader) screenFrameLeds.push(ledReader(global.values))
       if (progressReader) screenFrameProgresses.push(progressReader(global.values))
+      if (barChartReader) screenFrameBarCharts.push(barChartReader(global.values))
     }
   }
   const debug = captureDebug ? createDebugRecorder(analysis, global, output, uninitialized) : null
@@ -557,20 +570,25 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       gauges: gaugeReader ? gaugeReader(global.values) : {},
       leds: ledReader ? ledReader(global.values) : {},
       progresses: progressReader ? progressReader(global.values) : {},
+      barCharts: barChartReader ? barChartReader(global.values) : {},
+      heatmaps: heatmapReader ? heatmapReader(global.values) : {},
+      ...(heatmapReader ? { heatmapFrames } : {}),
       contracts: { total: contracts.reduce((count, entry) => count + entry.entries.length, 0), observations: contractObservations, violations: contractViolations },
       ...(debug ? { debugFrames: debug.frames } : {}),
       ...(screenReader ? { screenFrames } : {}),
       ...(screenFrameGauges.length ? { screenFrameGauges } : {}),
       ...(screenFrameLeds.length ? { screenFrameLeds } : {}),
       ...(screenFrameProgresses.length ? { screenFrameProgresses } : {}),
+      ...(screenFrameBarCharts.length ? { screenFrameBarCharts } : {}),
       ...(gaugeReader ? { gaugeFrames } : {}),
       ...(ledReader ? { ledFrames } : {}),
       ...(progressReader ? { progressFrames } : {}),
+      ...(barChartReader ? { barChartFrames } : {}),
     }
   } catch (error) {
     const errorCode = error?.code ?? 'SIMULATION_FAILED'
     debug?.record(lastInstructionId, lastEnvironment, lastScopes, 'error', errorCode)
-    return { ok: false, output, outputSteps, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, screens: screenReader ? screenReader(global.values) : {}, gauges: gaugeReader ? gaugeReader(global.values) : {}, leds: ledReader ? ledReader(global.values) : {}, progresses: progressReader ? progressReader(global.values) : {}, ...(debug ? { debugFrames: debug.frames } : {}), ...(screenReader ? { screenFrames } : {}), ...(screenFrameGauges.length ? { screenFrameGauges } : {}), ...(screenFrameLeds.length ? { screenFrameLeds } : {}), ...(screenFrameProgresses.length ? { screenFrameProgresses } : {}), ...(gaugeReader ? { gaugeFrames } : {}), ...(ledReader ? { ledFrames } : {}), ...(progressReader ? { progressFrames } : {}) }
+    return { ok: false, output, outputSteps, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, screens: screenReader ? screenReader(global.values) : {}, gauges: gaugeReader ? gaugeReader(global.values) : {}, leds: ledReader ? ledReader(global.values) : {}, progresses: progressReader ? progressReader(global.values) : {}, barCharts: barChartReader ? barChartReader(global.values) : {}, heatmaps: heatmapReader ? heatmapReader(global.values) : {}, ...(heatmapReader ? { heatmapFrames } : {}), ...(debug ? { debugFrames: debug.frames } : {}), ...(screenReader ? { screenFrames } : {}), ...(screenFrameGauges.length ? { screenFrameGauges } : {}), ...(screenFrameLeds.length ? { screenFrameLeds } : {}), ...(screenFrameProgresses.length ? { screenFrameProgresses } : {}), ...(screenFrameBarCharts.length ? { screenFrameBarCharts } : {}), ...(gaugeReader ? { gaugeFrames } : {}), ...(ledReader ? { ledFrames } : {}), ...(progressReader ? { progressFrames } : {}), ...(barChartReader ? { barChartFrames } : {}) }
   }
 }
 
