@@ -21,6 +21,7 @@ export function createProgressStateReader(project) {
     if (!(values instanceof Map)) return {}
     const states = {}
     for (const bar of bars) {
+      if ([bar.valueNodeId, bar.minNodeId, bar.maxNodeId].some((id) => !['number', 'bigint'].includes(typeof values.get(id)))) continue
       const value = Number(values.get(bar.valueNodeId))
       const min = Number(values.get(bar.minNodeId))
       const max = Number(values.get(bar.maxNodeId))

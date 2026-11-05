@@ -237,7 +237,7 @@ Entiers signés/non signés de 16/32 bits, flottants IEEE 754 de 32/64 bits ;
 sont numériques explicites, avec troncature ou arrondi et contrôle des bornes.
 
 \textbf{Vérifications exécutées :} \code{pnpm test}, runner natif Node :
-\textbf{456 tests réussis, 0 échec}. Couverture de la construction de l'AST,
+\textbf{495 tests réussis, 0 échec}. Couverture de la construction de l'AST,
 des portées et références, du typage et des tableaux, des pointeurs et de
 l'écriture à travers eux, des types fonction et références de fonction, des
 génériques avancés et des lambdas/fermetures, des bornes et arrondis numériques,
@@ -267,6 +267,14 @@ anonyme s'exécute dans un environnement dont le parent est son environnement de
 création ; une fermeture retournée garde ainsi ses variables après la sortie de
 la fonction englobante. L'interface déporte simulation, debug, transpilation et
 vérifications dans un Web Worker avec progression et annulation immédiate.
+
+Les cartes Screen, Gauge, LED, ProgressBar, BarChart et Heatmap sont adossées à
+des modules ordinaires, sans nouvelle construction logique. BarChart affiche
+un \code{int[]} et exporte \code{SET\_VALUE}, \code{SET\_DATA}, \code{CLEAR}.
+Heatmap conserve une grille fixe de valeurs entières et exporte
+\code{SET\_CELL(x,y,value)} et \code{CLEAR}. Sa couleur d'intensité suit le
+thème et les pas de Run/Debug, sans lecture d'images à 24 fps. Les vues aperçu/code
+sont persistées ; ces widgets restent exclus des cibles de transpilation.
 
 Les contrats \code{positive}, \code{nonNegative} et \code{nonEmpty} sont
 évalués après chaque instruction ; leurs violations sont signalées sans

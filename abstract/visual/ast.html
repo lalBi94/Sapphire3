@@ -66,12 +66,13 @@
           <h3>Le moteur est pur</h3>
           <p><code>src/utils/logic/</code> n'importe ni React, ni DOM, ni Neutralinojs. Les fonctions ne modifient
           pas leurs entrées&nbsp;; elles renvoient de nouvelles sources et des résultats dérivés. Il est testé seul,
-          par 456 tests Node et Python sans dépendance de test.</p>
+          par 495 tests Node et Python sans dépendance de test.</p>
         </div>
         <div class="card">
           <h3>Périmètre volontairement borné</h3>
           <p>Pas de classes, pas de structures, pas de sous-modules, pas de surcharge, pas d'inférence de
-          secours. La généricité se limite à un paramètre <code>T</code> par fonction, sans contrainte. Une
+          secours. La généricité accepte plusieurs paramètres de type et des contraintes exactes, sans
+          génériques locaux ni tableaux imbriqués. Une
           direction objet est évoquée, aucun contrat n'est décidé&nbsp;: rien de tout cela n'est simulé dans le
           format.</p>
         </div>

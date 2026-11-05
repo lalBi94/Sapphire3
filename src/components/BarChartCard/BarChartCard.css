@@ -10,3 +10,7 @@
 .bar-chart-card__bar--negative { border-radius: 1px 1px 3px 3px; background: linear-gradient(0deg, var(--color-selection), var(--color-primary) 58%, var(--color-node-condition)); }
 .bar-chart-card__empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--color-text-muted); font-family: var(--font-mono); font-size: 13px; }
 .bar-chart-card__meta { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: var(--color-text-muted); font-family: var(--font-mono); font-size: 10px; font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bar-chart-card__bar { transition: none; }
+}

@@ -238,8 +238,8 @@ test('exemple jeu de la vie : écran 90×56, règles de Conway et cycle infini',
   assert.equal(transpileProgram(workspace.project).code, 'TRANSPILE_SCREEN_UNSUPPORTED')
 })
 
-test('exemples multi-modules algorithmiques et mathématiques : JavaScript et Python reproduisent la simulation', () => {
-  for (const id of ['quickSort', 'coinChange', 'calculus']) {
+test('les douze exemples transpilables : JavaScript et Python reproduisent la simulation', () => {
+  for (const id of ['fibonacci', 'recursion', 'arrays', 'foreach', 'sorting', 'maths', 'imports', 'pointers', 'higherOrder', 'quickSort', 'coinChange', 'calculus']) {
     const project = examples.find((example) => example.id === id).build().project
     const expected = simulateProgram(project).output.map((line) => `${line}\n`).join('')
     const javascript = transpileProgram(project)

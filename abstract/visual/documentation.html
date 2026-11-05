@@ -58,8 +58,8 @@
         <span class="tag">Navigation</span>
       </div>
       <p>
-        L'application tient dans une seule fenêtre sans barres figées&nbsp;: un canvas infini et un volet
-        d'actions, replié en permanence sur le côté. Le quadrillage est discret, courbé vers les bords et
+        L'application tient dans une seule fenêtre&nbsp;: un canvas infini et une barre supérieure repliable
+        regroupant les actions. La capture ci-dessous montre l'ancien volet latéral. Le quadrillage est discret, courbé vers les bords et
         assombri en périphérie, ce qui rend le déplacement lisible sans borner le document.
       </p>
       <figure class="shot" data-shot="01-canvas-vide">
@@ -68,7 +68,7 @@
             <img src="assets/shots/01-canvas-vide.png" alt="Canvas vide de Sapphire 3 avec son quadrillage courbé, le volet de navigation à gauche et le statut en bas." width="1600" height="900">
           </div>
           <ol class="notes">
-            <li data-marker="navigation">Le volet unique&nbsp;: fichiers récents, import/export, édition (annuler, rétablir), affichage, thème, réglages et simulation. Tout le reste se passe sur le canvas.</li>
+            <li data-marker="navigation">Ancien volet de navigation de la capture&nbsp;: ces commandes sont aujourd'hui regroupées dans la barre supérieure (fichiers, édition, affichage, thèmes, exemples, favoris, fenêtres et exécution).</li>
             <li data-marker="commandes">Les commandes de vue — agrandir, réduire, recentrer, zoom 100&nbsp;% — sont collées au statut pour rester atteignables sans déplacer la main.</li>
             <li data-marker="statut">Statut du document&nbsp;: modules, nœuds et diagnostics à jour. Il change dès qu'une construction est ajoutée ou retirée.</li>
             <li data-marker="grille">Le repère lui-même est une donnée d'affichage : les lignes sont courbées aux bords, la grille peut être mise droite pour aligner des cartes.</li>
@@ -908,7 +908,7 @@
           <tr><td>Sorties du simulateur</td><td>Une seule capacité&nbsp;: <code>Afficher</code>. Pas de saisie interactive, pas d'effet natif, pas de réseau, pas de journal persistant.</td></tr>
           <tr><td>Exécution</td><td>Uniquement sur action explicite&nbsp;; le débogueur, la mémoire abstraite et la simulation graphique simplifiée sont des options distinctes de Run.</td></tr>
           <tr><td>Langages cibles</td><td>JavaScript et Python opérationnels. C/C++ et Java désactivés&nbsp;— aucune promesse de génération.</td></tr>
-          <tr><td>Cartes spéciales</td><td>Screen, Gauge et LED adossées à des modules cachés normaux&nbsp;: aperçu ou code, lecture des images à 24 fps, flèches de dépendance.</td></tr>
+          <tr><td>Cartes spéciales</td><td>Screen, Gauge, ProgressBar, BarChart, Heatmap et LED adossées à des modules cachés normaux&nbsp;: aperçu ou code et flèches de dépendance. BarChart expose <code>SET_VALUE</code>, <code>SET_DATA</code>, <code>CLEAR</code> sur un <code>int[]</code>. Heatmap est une grille fixe (12×8 par défaut) avec <code>SET_CELL(x, y, value)</code> et <code>CLEAR</code>&nbsp;: intensité simple du thème, pas de lecture à 24 fps, seulement le suivi Run/Debug.</td></tr>
           <tr><td>Contrats</td><td>Contraintes vérifiables sur variables, constantes et paramètres, filtrées par type déclaré et signalées pendant Run.</td></tr>
           <tr><td>Analyse</td><td>Conservatrice&nbsp;: aucune preuve générale sur les valeurs, les comparaisons numériques, les dépendances globales ou la terminaison.</td></tr>
           <tr><td>Modèle objet</td><td>Évoqué comme direction, aucun contrat décidé. Pas de classes ni de structures dans le modèle source actuel&nbsp;; <code>TypeDeclaration</code> est un alias transparent.</td></tr>

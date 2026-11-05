@@ -301,6 +301,10 @@ export default function Canvas() {
       cursor = parent ? parent.id : null
     }
     document.setExpandedNodes(moduleId, [...expanded])
+    // Le résultat recherché doit être visible même si sa carte montrait son aperçu graphique.
+    if (card.type !== 'module' && logicalCardTypes.includes(card.type)) {
+      document.updateGeometry(moduleId, { [`${card.type}View`]: 'code' })
+    }
     handleSelect({ kind: 'node', id: nodeId })
     // Une recherche doit révéler les instructions même si la vue était sémantiquement repliée.
     restoreCamera({ x: card.x + card.width / 2, y: card.y + card.height / 2, zoomLevel: Math.max(camera.zoomLevel, semanticSearchZoomLevel) })
@@ -529,9 +533,13 @@ export default function Canvas() {
           screens: result.screens,
           gauges: result.gauges,
           leds: result.leds,
+          progresses: result.progresses,
+          barCharts: result.barCharts,
           screenFrames: result.screenFrames,
           screenFrameGauges: result.screenFrameGauges ?? [],
           screenFrameLeds: result.screenFrameLeds ?? [],
+          screenFrameProgresses: result.screenFrameProgresses ?? [],
+          screenFrameBarCharts: result.screenFrameBarCharts ?? [],
         } : current)
       })
     } catch {

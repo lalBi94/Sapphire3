@@ -2,6 +2,31 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Check-up conservateur — 6 novembre 2026
+
+### État de départ et corrections
+
+- Répertoire de travail propre au départ, dernier commit `31be94c` ; aucune modification étrangère effacée. Base : **487 tests réussis** et build réussi avant correction. Aucun ajout de dépendance, changement de format ou refonte visuelle.
+- Lecteurs Gauge/ProgressBar : `Number(Symbol('uninitialized'))` reproduisait un `TypeError` quand le code éditable laissait une globale non initialisée. Les lecteurs attendent maintenant une valeur numérique runtime avant conversion ; aucune valeur de secours inventée. Huit tests de régression couvrent les données absentes/invalides, la simulation de globales non initialisées et le partage des instantanés.
+- Debug : les quatre lecteurs de widgets inchangés conservaient le nouvel objet intermédiaire au lieu de l'objet partagé ; les frames identiques successives pouvaient donc retenir plusieurs tableaux sans changement. Les états Gauge, LED, ProgressBar et BarChart gardent maintenant la même identité jusqu'à une vraie modification (comme Heatmap).
+- Recherche : atteindre un bloc d'un module graphique dépliait ses ancêtres sans quitter l'aperçu. La recherche passe maintenant cette carte en vue code avant de révéler le bloc, sans mutation logique.
+- Relance d'une séquence Screen non périodique : la réponse worker contenait ProgressBar/BarChart, mais le canvas ne reprenait que Gauge/LED. Les états finaux et séries alignées des deux nouveaux widgets sont maintenant transmis à la lecture suivante. Heatmap reste hors de cette lecture à 24 fps.
+- Texte du menu Run corrigé : seule la partie débogage graphique reste indisponible, pas la simulation graphique simplifiée. Catalogue huit langues conservé. Les transitions CSS de ProgressBar/BarChart respectent désormais `prefers-reduced-motion`, sans changement de DA.
+
+### Vérifications exécutées
+
+- `pnpm test` : **495 tests réussis, zéro échec**. La comparaison simulation/code généré couvre désormais les **douze** exemples transpilables : Fibonacci, Recursion, Arrays, For each, Sorting, Native maths, Imports, Pointers, Higher-order function, Quick sort, Coin change et Calculus ; chaque sortie est comparée après exécution réelle avec Node et Python.
+- `pnpm build` réussi ; avertissement connu du bundle principal >500 kB, sans modification opportuniste du découpage. `git diff --check` réussi. Audit statique : aucune référence CSS sans définition trouvée, aucun lien local cassé dans les trois pages HTML de l'abstract.
+- Dans le navigateur, appels réels à `engineRunner` et à son Web Worker sur **les vingt exemples** : sérialisation/relecture, simulation réussie et Debug jusqu'à `completed` pour chacun. Les deux cibles sont disponibles pour les douze exemples non graphiques et bloquées comme prévu pour les huit projets avec widgets. Annulation effective (`ENGINE_CANCELLED`), puis worker neuf et nouveau Run Fibonacci donnant `55`.
+- Parcours UI sur un document de test web : ouverture de Fibonacci avec confirmation ; Run, pause à un pas stable et sortie Free run `55` ; Debug, Next (arrêt 2), Back (arrêt 1), Continue jusqu'à la fin (534 arrêts, sortie `55`). Création d'une ProgressBar, recherche de `PROGRESS_SP3_SET_VALUE_1` depuis l'aperçu révélant bien la vue code ; Ctrl+Z retire la carte et Ctrl+Y la restaure.
+- Six thèmes appliqués via leurs commandes UI : variables de couleur et polices présentes, pas de débordement horizontal observé à la largeur du navigateur. Huit langues basculées via le sélecteur, direction `rtl` pour l'arabe et `ltr` pour les sept autres ; aucun débordement horizontal observé. Paramètres ouverts et capture visuelle contrôlée : DA sombre, verre, arrondis, typographie et accents conservés. Retour au thème Sapphire et à l'anglais. Aucune erreur console applicative.
+- `AGENTS.md` complété seulement pour les cartes BarChart/Heatmap déjà demandées ; README, mémoire et abstract réconciliés (widgets, multi-génériques, navigation supérieure, disponibilité graphique, updater et points d'arrêt). `pnpm docs:ast` réussi : PDF **7 pages**, sans avertissement de débordement.
+
+### Limites de cet audit
+
+- Les tests de fichiers couvrent écriture atomique, erreurs, récupération, migration et sauvegardes via clients simulés. **Aucune nouvelle vérification manuelle des dialogues/sauvegardes dans Neutralinojs**, pour ne pas rouvrir ni réécrire le dernier projet personnel. Ni installation d'update ni publication de release déclenchée.
+- Pas de garantie d'absence de tout bug, de campagne tactile ni de test sur d'autres OS. La compilation ne remplace pas une validation native ; les captures de l'abstract restent celles de leur campagne historique, explicitement présentées comme telles. Les limites existantes (widgets non transpilables, export SVG sans cartes graphiques, affichage BarChart borné) ne sont pas étendues silencieusement.
+
 ## BarChart et Heatmap — 6 novembre 2026
 
 - BarChart : globale `int[]`, API `SET_VALUE`, `SET_DATA`, `CLEAR`, barres signées avec ligne zéro, dégradé et halo du thème ; états Run/Debug copiés, synchronisation avec Screen quand présent. Affichage limité aux 64 premières valeurs ; le tableau logique n'est pas tronqué.

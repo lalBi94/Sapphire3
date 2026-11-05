@@ -169,10 +169,10 @@ export function createDebugRecorder(analysis, global, output, uninitialized) {
     const frameLeds = ledsChanged ? leds : previousLeds
     const frameProgresses = progressesChanged ? progresses : previousProgresses
     const frameBarCharts = barChartsChanged ? barCharts : previousBarCharts
-    previousGauges = gauges
-    previousLeds = leds
-    previousProgresses = progresses
-    previousBarCharts = barCharts
+    previousGauges = frameGauges
+    previousLeds = frameLeds
+    previousProgresses = frameProgresses
+    previousBarCharts = frameBarCharts
     if (gaugesChanged) retained.units += Object.keys(gauges).length * 3
     if (ledsChanged) retained.units += Object.keys(leds).length
     if (progressesChanged) retained.units += Object.keys(progresses).length * 3

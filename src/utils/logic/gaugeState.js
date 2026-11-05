@@ -21,6 +21,7 @@ export function createGaugeStateReader(project) {
     if (!(values instanceof Map)) return {}
     const states = {}
     for (const gauge of gauges) {
+      if ([gauge.valueNodeId, gauge.minNodeId, gauge.maxNodeId].some((id) => !['number', 'bigint'].includes(typeof values.get(id)))) continue
       const value = Number(values.get(gauge.valueNodeId))
       const min = Number(values.get(gauge.minNodeId))
       const max = Number(values.get(gauge.maxNodeId))
