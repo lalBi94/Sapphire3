@@ -17,6 +17,24 @@ function stopBefore(frames, start, end, breakpoints) {
   return end
 }
 
+// Reconstruit l'état des écrans d'un arrêt depuis l'image de base et les pixels modifiés.
+export function resolveDebugScreens(frames, index) {
+  if (!Array.isArray(frames) || !Number.isInteger(index) || index < 0 || index >= frames.length) return {}
+  let baseIndex = index
+  while (baseIndex >= 0 && !frames[baseIndex].screenBase) baseIndex -= 1
+  if (baseIndex < 0) return {}
+  const screens = {}
+  for (const [id, screen] of Object.entries(frames[baseIndex].screenBase)) screens[id] = { ...screen, pixels: screen.pixels.slice() }
+  for (let cursor = baseIndex + 1; cursor <= index; cursor += 1) {
+    for (const patch of frames[cursor].screenPatch ?? []) {
+      const screen = screens[patch.id]
+      if (!screen) continue
+      for (let offset = 0; offset < patch.indices.length; offset += 1) screen.pixels[patch.indices[offset]] = patch.values[offset]
+    }
+  }
+  return screens
+}
+
 // Prépare une trace bornée sans mutation source ; le debug démarre toujours sur le premier arrêt.
 export function createDebugSession(project, options = {}) {
   const breakpoints = breakpointSet(options.breakpoints)

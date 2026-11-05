@@ -1,6 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { analyzeProgram, analyzeReachability, createDebugSession, moveDebugSession, simulateProgram, createProject, createModule, createNode } from '../../src/utils/logic/index.js'
+import { analyzeProgram, analyzeReachability, createDebugSession, moveDebugSession, resolveDebugScreens, simulateProgram, createProject, createModule, createNode } from '../../src/utils/logic/index.js'
+import { examples } from '../../src/utils/examples.js'
+import { deserializeWorkspace } from '../../src/utils/workspaceFile.js'
 import { debugFixture } from './fixtures.js'
 
 const int = { kind: 'primitive', name: 'int' }
@@ -166,6 +168,20 @@ test('limites : boucle vide bornée, historique mémoire borné et arrêts termi
   assert.ok(session.frames.length < 10000)
   assert.equal(session.frames.at(-1).status, 'error')
   assert.equal(simulateProgram(project).errorCode, 'SIMULATION_STEP_LIMIT')
+})
+
+test('debug écran : historique compact, reconstruction et grosse simulation', () => {
+  const workspace = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'roverSurvey').build()))
+  const session = createDebugSession(workspace.project, { maxSteps: 3000 })
+  assert.ok(session.frames.length > 100)
+  assert.notEqual(session.frames.at(-1)?.errorCode, 'DEBUG_HISTORY_LIMIT')
+  assert.equal(session.frames.some((frame) => frame.screens), false)
+  assert.ok(session.frames.some((frame) => frame.screenBase))
+  assert.ok(session.frames.some((frame) => frame.screenPatch))
+  const last = resolveDebugScreens(session.frames, session.frames.length - 1)
+  assert.equal(last.roverScreen.width, 48)
+  assert.equal(last.roverScreen.height, 18)
+  assert.equal(last.roverScreen.pixels.length, 48 * 18 * 4)
 })
 
 test('for : activations de corps distinctes, initialiseur visible dans la boucle seulement et sorties réversibles', () => {

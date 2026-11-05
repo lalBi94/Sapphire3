@@ -26,7 +26,7 @@ import ProjectNavigation from '../ProjectNavigation/ProjectNavigation.jsx'
 import useWorkspaceFiles from '../../hooks/useWorkspaceFiles.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { diagnosticLabel, nodeLine } from '../LogicTree/logicLabels.js'
-import { moveDebugSession, getModuleLinks, getUnusedDeclarationIds, getPureIds, captureBookmark, captureSourceNode } from '../../utils/logic/index.js'
+import { moveDebugSession, resolveDebugScreens, getModuleLinks, getUnusedDeclarationIds, getPureIds, captureBookmark, captureSourceNode } from '../../utils/logic/index.js'
 import { runDebugSession, runSimulation } from '../../services/simulationRunner.js'
 import { transpileProgram } from '../../utils/transpilation/index.js'
 import { transpilationLanguages } from '../../utils/transpilation/languages.js'
@@ -151,7 +151,8 @@ export default function Canvas() {
   const debugFrame = debugSession?.project === document.project ? debugSession.frames[debugSession.cursor] : null
   const screenPlayback = Boolean(!debugFrame && simulationResult?.screenFrames?.length && execution && (execution.running || execution.paused || execution.stopped))
   // État visuel courant des écrans : frame de debug prioritaire, sinon état final.
-  const screenStates = debugFrame?.screens ?? simulationResult?.screens ?? {}
+  const debugScreens = useMemo(() => debugSession?.project === document.project ? resolveDebugScreens(debugSession.frames, debugSession.cursor) : null, [debugSession, document.project])
+  const screenStates = debugScreens ?? simulationResult?.screens ?? {}
   // Jauges : un état par pas, aligné sur la trace affichée ; la frame de debug reste prioritaire.
   const gaugeStates = debugFrame?.gauges
     ?? (execution ? simulationResult?.gaugeFrames?.[Math.min(execution.index, (simulationResult?.gaugeFrames?.length ?? 1) - 1)] : null)
