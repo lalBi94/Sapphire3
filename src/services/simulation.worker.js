@@ -1,9 +1,14 @@
-import { simulateProgram } from '../utils/logic/index.js'
+import { createDebugSession, simulateProgram } from '../utils/logic/index.js'
 
 // Exécute une simulation hors du fil principal et renvoie un résultat sérialisable.
 self.onmessage = (event) => {
-  const { id, project, options } = event.data ?? {}
+  const { id, action = 'simulate', project, options } = event.data ?? {}
   try {
+    if (action === 'debug') {
+      const { project: _project, result: _result, ...session } = createDebugSession(project, options)
+      self.postMessage({ id, session })
+      return
+    }
     const result = simulateProgram(project, options)
     // Une relance de lecture d'écran n'a pas besoin de la trace ni des états par pas.
     if (options?.screenOnly) {

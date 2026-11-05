@@ -1,4 +1,4 @@
-import { simulateProgram } from '../utils/logic/index.js'
+import { createDebugSession, simulateProgram } from '../utils/logic/index.js'
 
 let worker = null
 let nextRequestId = 0
@@ -14,7 +14,7 @@ function ensureWorker() {
     if (!request) return
     pending.delete(event.data.id)
     if (event.data?.error) request.reject(new Error(event.data.error.message))
-    else request.resolve(event.data.result)
+    else request.resolve(event.data.session ?? event.data.result)
   }
   worker.onerror = (event) => {
     const failure = new Error(event?.message || 'The simulation worker failed.')
@@ -26,20 +26,30 @@ function ensureWorker() {
   return worker
 }
 
-// Lance une simulation hors du fil principal, sans bloquer le rendu React.
-export function runSimulation(project, options = {}) {
+// Envoie une demande au worker et attend son résultat sérialisé.
+function request(action, project, options) {
   const target = ensureWorker()
-  if (!target) return Promise.resolve(simulateProgram(project, options))
+  if (!target) return Promise.resolve(action === 'debug' ? createDebugSession(project, options) : simulateProgram(project, options))
   return new Promise((resolve, reject) => {
     const id = ++nextRequestId
     pending.set(id, { resolve, reject })
     try {
-      target.postMessage({ id, project, options })
+      target.postMessage({ id, action, project, options })
     } catch (error) {
       pending.delete(id)
       reject(error)
     }
   })
+}
+
+// Lance une simulation hors du fil principal, sans bloquer le rendu React.
+export function runSimulation(project, options = {}) {
+  return request('simulate', project, options)
+}
+
+// Prépare une session de debug hors du fil principal, sans bloquer le rendu React.
+export function runDebugSession(project, options = {}) {
+  return request('debug', project, options)
 }
 
 // Libère le worker lors d'un rechargement à chaud du module.

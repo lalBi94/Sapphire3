@@ -26,8 +26,8 @@ import ProjectNavigation from '../ProjectNavigation/ProjectNavigation.jsx'
 import useWorkspaceFiles from '../../hooks/useWorkspaceFiles.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { diagnosticLabel, nodeLine } from '../LogicTree/logicLabels.js'
-import { createDebugSession, moveDebugSession, getModuleLinks, getUnusedDeclarationIds, getPureIds, captureBookmark, captureSourceNode } from '../../utils/logic/index.js'
-import { runSimulation } from '../../services/simulationRunner.js'
+import { moveDebugSession, getModuleLinks, getUnusedDeclarationIds, getPureIds, captureBookmark, captureSourceNode } from '../../utils/logic/index.js'
+import { runDebugSession, runSimulation } from '../../services/simulationRunner.js'
 import { transpileProgram } from '../../utils/transpilation/index.js'
 import { transpilationLanguages } from '../../utils/transpilation/languages.js'
 import { exportWorkspaceFile } from '../../services/workspaceFiles.js'
@@ -485,13 +485,19 @@ export default function Canvas() {
   }
 
   // Ouvre la simulation graphique simplifiée sur la trace du moteur, sans code mort.
-  function handleRunGraphical() {
+  async function handleRunGraphical() {
+    const epoch = ++simulationEpochRef.current
     setExecution(null)
     setSimulationResult(null)
     setDebugSession(null)
     setContextMenu(null)
-    const session = createDebugSession(document.project)
-    setFlowRun({ session, index: 0, running: session.frames.length > 1, paused: false, stopped: false })
+    try {
+      const session = await runDebugSession(document.project)
+      if (epoch !== simulationEpochRef.current) return
+      setFlowRun({ session: { ...session, project: document.project }, index: 0, running: session.frames.length > 1, paused: false, stopped: false })
+    } catch {
+      if (epoch === simulationEpochRef.current) setFlowRun(null)
+    }
   }
 
   // Met le flux graphique en pause sans perdre l'image courante.
@@ -535,12 +541,19 @@ export default function Canvas() {
   }
 
   // Prépare les arrêts réversibles après l'analyse d'accessibilité, sans changer le workspace.
-  function handleDebugSp3() {
+  async function handleDebugSp3() {
+    const epoch = ++simulationEpochRef.current
     setExecution(null)
     setSimulationResult(null)
     setFlowRun(null)
     setContextMenu(null)
-    setDebugSession(createDebugSession(document.project, { breakpoints }))
+    try {
+      const session = await runDebugSession(document.project, { breakpoints })
+      if (epoch !== simulationEpochRef.current) return
+      setDebugSession({ ...session, project: document.project, breakpoints })
+    } catch {
+      if (epoch === simulationEpochRef.current) setDebugSession(null)
+    }
   }
 
   // Génère le JavaScript uniquement après analyse du document courant.
@@ -642,14 +655,23 @@ export default function Canvas() {
   }
 
   // Ouvre une session de debug sur la fonction choisie, sans modifier la source.
-  function handleDebugFunction(args) {
+  async function handleDebugFunction(args) {
     if (!functionTarget) return
+    const token = ++functionRunTokenRef.current
+    const epoch = ++simulationEpochRef.current
+    const functionId = functionTarget
     setExecution(null)
     setSimulationResult(null)
     setFlowRun(null)
     setContextMenu(null)
     setFunctionResult(null)
-    setDebugSession(createDebugSession(document.project, { functionId: functionTarget, args, breakpoints }))
+    try {
+      const session = await runDebugSession(document.project, { functionId, args, breakpoints })
+      if (token !== functionRunTokenRef.current || epoch !== simulationEpochRef.current) return
+      setDebugSession({ ...session, project: document.project, breakpoints })
+    } catch {
+      if (token === functionRunTokenRef.current && epoch === simulationEpochRef.current) setDebugSession(null)
+    }
   }
 
   // Ferme le panneau d'exécution de fonction.
