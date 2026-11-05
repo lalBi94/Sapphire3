@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { startTransition, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp, X } from 'lucide-react'
 import CanvasGrid from '../CanvasGrid/CanvasGrid.jsx'
 import useCanvasPan from '../../hooks/useCanvasPan.jsx'
@@ -443,12 +443,16 @@ export default function Canvas() {
     try {
       const result = await runSimulation(document.project)
       if (epoch !== simulationEpochRef.current) return
-      setSimulationResult(result)
-      setExecution(result.ok && result.trace.length > 0 ? { trace: result.trace, index: 0, running: true, paused: false, stopped: false } : null)
+      startTransition(() => {
+        setSimulationResult(result)
+        setExecution(result.ok && result.trace.length > 0 ? { trace: result.trace, index: 0, running: true, paused: false, stopped: false } : null)
+      })
     } catch (error) {
       if (epoch !== simulationEpochRef.current) return
-      setSimulationResult({ ok: false, output: [], outputSteps: [], trace: [], errorCode: 'SIMULATION_FAILED', error: error?.message ?? '' })
-      setExecution(null)
+      startTransition(() => {
+        setSimulationResult({ ok: false, output: [], outputSteps: [], trace: [], errorCode: 'SIMULATION_FAILED', error: error?.message ?? '' })
+        setExecution(null)
+      })
     }
   }
 
@@ -462,15 +466,17 @@ export default function Canvas() {
     try {
       const result = await runSimulation(document.project, { screenOnly: true })
       if (epoch !== simulationEpochRef.current || !result.ok || !result.screenFrames?.length) return
-      setSimulationResult((current) => current ? {
-        ...current,
-        screens: result.screens,
-        gauges: result.gauges,
-        leds: result.leds,
-        screenFrames: result.screenFrames,
-        screenFrameGauges: result.screenFrameGauges ?? [],
-        screenFrameLeds: result.screenFrameLeds ?? [],
-      } : current)
+      startTransition(() => {
+        setSimulationResult((current) => current ? {
+          ...current,
+          screens: result.screens,
+          gauges: result.gauges,
+          leds: result.leds,
+          screenFrames: result.screenFrames,
+          screenFrameGauges: result.screenFrameGauges ?? [],
+          screenFrameLeds: result.screenFrameLeds ?? [],
+        } : current)
+      })
     } catch {
       // Conserve les images précédentes si la relance échoue.
     } finally {
@@ -628,10 +634,10 @@ export default function Canvas() {
     try {
       const result = await runSimulation(document.project, { functionId, args })
       if (token !== functionRunTokenRef.current || epoch !== simulationEpochRef.current) return
-      setFunctionResult({ functionId, result })
+      startTransition(() => setFunctionResult({ functionId, result }))
     } catch (error) {
       if (token !== functionRunTokenRef.current || epoch !== simulationEpochRef.current) return
-      setFunctionResult({ functionId, result: { ok: false, output: [], outputSteps: [], trace: [], errorCode: 'SIMULATION_FAILED', error: error?.message ?? '' } })
+      startTransition(() => setFunctionResult({ functionId, result: { ok: false, output: [], outputSteps: [], trace: [], errorCode: 'SIMULATION_FAILED', error: error?.message ?? '' } }))
     }
   }
 

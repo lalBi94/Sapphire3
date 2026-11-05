@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, memo, useState } from 'react'
 import { ChevronRight, Copy, FileJson, Image as ImageIcon, X } from 'lucide-react'
 import { resolveContext, getNodeSchema, contractKindsForType, createContract, contractLabel, getContractDefinition, deletionImpact } from '../../utils/logic/index.js'
 import { diagnosticLabel, kindLabel, nodeSummary, slotLabel, typeLabel } from '../LogicTree/logicLabels.js'
@@ -49,9 +49,26 @@ function HierarchyNode({ id, index, selected, onSelect, ancestors = [] }) {
       <span><strong>{hierarchyLabel(node, t)}</strong>{summary && <small>{summary}</small>}</span>
       {childIds.length > 0 && <small>{childIds.length}</small>}
     </button>
-    {childIds.length > 0 && <ul>{childIds.map((childId, position) => <HierarchyNode key={`${childId}:${position}`} id={childId} index={index} selected={selected} onSelect={onSelect} ancestors={[...ancestors, id]} />)}</ul>}
+    {childIds.length > 0 && <ul>{childIds.map((childId, position) => <HierarchyNodeMemo key={`${childId}:${position}`} id={childId} index={index} selected={selected} onSelect={onSelect} ancestors={[...ancestors, id]} />)}</ul>}
   </li>
 }
+
+// Compare les ancêtres sans dépendre de l'identité du tableau recréé à chaque rendu.
+function sameAncestors(previous = [], next = []) {
+  if (previous.length !== next.length) return false
+  for (let position = 0; position < previous.length; position += 1) if (previous[position] !== next[position]) return false
+  return true
+}
+
+// Ne re-rend un élément de la hiérarchie que si sa propre sélection ou sa structure change.
+function sameHierarchyNode(previous, next) {
+  if (previous.id !== next.id || previous.index !== next.index || !sameAncestors(previous.ancestors, next.ancestors)) return false
+  const wasSelected = previous.selected?.kind === 'node' && previous.selected.id === previous.id
+  const isSelected = next.selected?.kind === 'node' && next.selected.id === next.id
+  return wasSelected === isSelected
+}
+
+const HierarchyNodeMemo = memo(HierarchyNode, sameHierarchyNode)
 
 // Affiche tous les modules et leurs blocs sous forme compacte et navigable.
 function ProjectHierarchy({ project, index, selected, onSelect, t }) {
@@ -61,10 +78,17 @@ function ProjectHierarchy({ project, index, selected, onSelect, t }) {
       <button type="button" className={`node-properties__hierarchy-item node-properties__hierarchy-module${selected?.kind === 'module' && selected.id === module.id ? ' node-properties__hierarchy-item--selected' : ''}`} aria-current={selected?.kind === 'module' && selected.id === module.id ? 'true' : undefined} onClick={() => onSelect({ kind: 'module', id: module.id })}>
         <span>{module.name}</span>{module.rootNodeIds.length > 0 && <small>{module.rootNodeIds.length}</small>}
       </button>
-      {module.rootNodeIds.length > 0 && <ul>{module.rootNodeIds.map((id, position) => <HierarchyNode key={`${id}:${position}`} id={id} index={index} selected={selected} onSelect={onSelect} />)}</ul>}
+      {module.rootNodeIds.length > 0 && <ul>{module.rootNodeIds.map((id, position) => <HierarchyNodeMemo key={`${id}:${position}`} id={id} index={index} selected={selected} onSelect={onSelect} />)}</ul>}
     </li>)}</ul>}
   </section>
 }
+
+// Compare la hiérarchie sans dépendre des callbacks recréés à chaque rendu du canvas.
+function sameHierarchyProps(previous, next) {
+  return previous.project === next.project && previous.index === next.index && previous.selected === next.selected && previous.t === next.t
+}
+
+const ProjectHierarchyMemo = memo(ProjectHierarchy, sameHierarchyProps)
 
 // Affiche les propriétés et l'extrait de code dans le cadre flottant commun aux analyses.
 export default function NodeProperties({ selected, project, index, onConfigure, onRename, onPreviewSymbolRename, onApplySymbolRename, onSelect, onDelete, onDeleteModule, onExport, onImport, onRemoveImport, onContracts, onClose, onExportImage, onExportNodeJson, mutationError }) {
@@ -203,6 +227,6 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
     {mutationError && <p role="alert">{diagnosticLabel(mutationError, t)}</p>}
     {diagnostics.length === 0 ? <p>{t('details.noIssues')}</p> : <ul className="node-properties__diagnostics">{diagnostics.map((entry, position) => <li key={position}><strong>{diagnosticLabel(entry.code, t)}</strong>{entry.location.field && <small>{slotLabel(entry.location.field, t)}</small>}</li>)}</ul>}
     {context.ok && record && <div className="node-properties__danger"><DeleteAction key={`${selected.kind}:${record.id}`} targetId={record.id} kind={selected.kind} onDelete={selected.kind === 'module' ? onDeleteModule : onDelete} onPreview={selected.kind === 'node' ? () => deletionImpact(project, { kind: 'node', id: record.id }, { analysis: index.analysis, index }) : undefined} /></div>}
-    <ProjectHierarchy project={project} index={index} selected={selected} onSelect={onSelect} t={t} />
+    <ProjectHierarchyMemo project={project} index={index} selected={selected} onSelect={onSelect} t={t} />
   </FloatingPanel>
 }
