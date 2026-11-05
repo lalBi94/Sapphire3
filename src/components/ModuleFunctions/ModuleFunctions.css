@@ -1,0 +1,11 @@
+.module-functions { display: grid; gap: 6px; padding: 2px; }
+.module-functions__count { margin: 0 0 2px; color: var(--color-text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+.module-functions__empty { margin: 0; padding: 8px; border: 1px dashed var(--color-border); border-radius: var(--radius-control); color: var(--color-text-muted); font-size: 12px; }
+.module-functions__row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 8px; width: 100%; padding: 7px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); color: var(--color-text); background: var(--color-anthracite); text-align: left; cursor: pointer; }
+.module-functions__row:hover { border-color: var(--color-border-hover); background: var(--color-hover); }
+.module-functions__row:focus-visible { outline: 2px solid var(--color-focus); }
+.module-functions__row--selected { border-color: var(--color-selection); background: color-mix(in srgb, var(--color-selection) 12%, var(--color-surface)); }
+.module-functions__name { overflow: hidden; font-family: var(--font-mono); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.module-functions__signature { overflow: hidden; color: var(--color-text-muted); font-family: var(--font-mono); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.module-functions__badge { grid-column: 1 / -1; width: fit-content; padding: 1px 5px; border: 1px solid var(--color-border); border-radius: var(--radius-small); color: var(--color-text-muted); font-size: 9px; }
+.module-functions__badge--pure { color: var(--color-pure); border-color: color-mix(in srgb, var(--color-pure) 50%, transparent); }

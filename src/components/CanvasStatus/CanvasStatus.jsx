@@ -12,7 +12,7 @@ function formatValue(value, maximumFractionDigits = 1) {
 }
 
 // Présente la position du milieu de la vue, le raccourci pour rouvrir les cartes masquées et le retour à l'origine.
-export default function CanvasStatus({ camera, zoom, hiddenCount = 0, onShowAllHidden, onRecenter }) {
+export default function CanvasStatus({ camera, zoom, semanticLevel = 'detail', hiddenCount = 0, onShowAllHidden, onRecenter }) {
   const { t } = useTranslation()
   const hiddenLabel = hiddenCount === 0 ? null : hiddenCount === 1 ? t('canvas.hiddenOne') : t('canvas.hiddenCount', { count: hiddenCount })
   return (
@@ -29,6 +29,7 @@ export default function CanvasStatus({ camera, zoom, hiddenCount = 0, onShowAllH
       <span className="canvas-status__zoom" aria-label={t('nav.zoom')}>
         {formatValue(zoom * 100)} %
       </span>
+      <span className="canvas-status__semantic" title={t('canvas.semanticHint')}>{t(`canvas.semantic.${semanticLevel}`)}</span>
       {hiddenLabel && <button type="button" className="canvas-status__hidden" onClick={onShowAllHidden} title={t('canvas.showAll')} aria-label={`${t('canvas.showAll')} · ${hiddenLabel}`}>
         <EyeOff size={16} strokeWidth={1.75} aria-hidden="true" />
         <span>{hiddenLabel}</span>

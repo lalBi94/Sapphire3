@@ -67,7 +67,7 @@ function ModuleEmoji({ emoji, onChange }) {
 }
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -95,7 +95,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
 
   // Agrandit après insertion et dépliage ; un redimensionnement manuel suspend cet ajustement jusqu'à la prochaine insertion.
   useLayoutEffect(() => {
-    if (!fitRequest || manuallySizedRef.current === fitRequest || !contentRef.current) return
+    if (!fitRequest || semanticLevel !== 'detail' || manuallySizedRef.current === fitRequest || !contentRef.current) return
     const content = contentRef.current
     const width = Math.max(module.width, 520, Math.ceil(content.scrollWidth + 2))
     if (width > module.width) {
@@ -104,7 +104,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
     }
     const height = Math.max(module.height, Math.ceil(content.scrollHeight + 42))
     if (height > module.height) onResize(module.id, width, height)
-  }, [fitRequest, children, module.id, module.width, module.height, onResize])
+  }, [fitRequest, semanticLevel, children, module.id, module.width, module.height, onResize])
 
   const definition = moduleTypes[module.type]
   const name = module.name || t(definition.labelKey)
@@ -116,6 +116,9 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
   const ledView = module.ledView === 'code' ? 'code' : 'led'
   // La bascule d'en-tête promet l'action inverse de l'état actuel du pliage.
   const expansionLabel = t(expansionState === 'collapse' ? 'canvas.collapseAll' : 'canvas.expandAll')
+  // Le zoom sémantique remplace les instructions par les fonctions, puis masque le contenu au niveau modules.
+  const structuredContent = semanticLevel === 'functions' ? functionsView : semanticLevel === 'detail' ? children : null
+  const contentVisible = semanticLevel !== 'modules'
 
   // Ouvre un brouillon de titre sans modifier le nom tant qu'il n'est pas validé.
   function handleRenameStart() {
@@ -306,6 +309,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
       data-source-module={definition.hasText || definition.hasImage ? undefined : module.id}
       data-card-id={module.id}
       data-card-type={module.type}
+      data-semantic-level={semanticLevel}
       style={{
         left: `calc(50% + ${(module.x - camera.x) * zoom}px)`,
         top: `calc(50% + ${(module.y - camera.y) * zoom}px)`,
@@ -354,7 +358,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
           )}
         </h2>
         {pure && <span className="canvas-module__pure" title={t('canvas.pureHint')} aria-label={t('canvas.pureHint')}>{t('canvas.pure')}</span>}
-        {definition.hasScreen && !readOnly && <button
+        {definition.hasScreen && semanticLevel !== 'modules' && !readOnly && <button
           type="button"
           className="canvas-module__view"
           aria-label={t(screenView === 'code' ? 'screen.viewScreen' : 'screen.viewCode')}
@@ -365,7 +369,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         >
           {screenView === 'code' ? <Monitor size={13} strokeWidth={2} aria-hidden="true" /> : <Code2 size={13} strokeWidth={2} aria-hidden="true" />}
         </button>}
-        {definition.hasGauge && !readOnly && <button
+        {definition.hasGauge && semanticLevel !== 'modules' && !readOnly && <button
           type="button"
           className="canvas-module__view"
           aria-label={t(gaugeView === 'code' ? 'gauge.viewGauge' : 'gauge.viewCode')}
@@ -376,7 +380,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         >
           {gaugeView === 'code' ? <Gauge size={13} strokeWidth={2} aria-hidden="true" /> : <Code2 size={13} strokeWidth={2} aria-hidden="true" />}
         </button>}
-        {definition.hasLed && !readOnly && <button
+        {definition.hasLed && semanticLevel !== 'modules' && !readOnly && <button
           type="button"
           className="canvas-module__view"
           aria-label={t(ledView === 'code' ? 'led.viewLed' : 'led.viewCode')}
@@ -397,7 +401,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         >
           <Lock size={13} strokeWidth={2} aria-hidden="true" />
         </button>}
-        {expansionState && <button
+        {semanticLevel === 'detail' && expansionState && <button
           type="button"
           className="canvas-module__expansion"
           aria-label={`${expansionLabel} · ${name}`}
@@ -410,21 +414,27 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
       </header>
       {definition.hasLed ? (
         <div className="canvas-module__content" data-canvas-scroll>
-          {ledView === 'code'
-            ? (deferContent ? null : children)
-            : <LedCard card={module} state={ledState} frames={ledFrames} playing={ledPlaying} />}
+          {!contentVisible
+            ? null
+            : ledView === 'code'
+              ? (deferContent ? null : structuredContent)
+              : <LedCard card={module} state={ledState} frames={ledFrames} playing={ledPlaying} />}
         </div>
       ) : definition.hasGauge ? (
         <div className="canvas-module__content" data-canvas-scroll>
-          {gaugeView === 'code'
-            ? (deferContent ? null : children)
-            : <GaugeCard card={module} state={gaugeState} frames={gaugeFrames} playing={gaugePlaying} />}
+          {!contentVisible
+            ? null
+            : gaugeView === 'code'
+              ? (deferContent ? null : structuredContent)
+              : <GaugeCard card={module} state={gaugeState} frames={gaugeFrames} playing={gaugePlaying} />}
         </div>
       ) : definition.hasScreen ? (
         <div className="canvas-module__content" data-canvas-scroll>
-          {screenView === 'code'
-            ? children
-            : <ScreenCanvas card={module} state={screenState} frames={screenFrames} screenId={module.id} playing={screenPlaying} onSequenceEnd={onScreenSequenceEnd} />}
+          {!contentVisible
+            ? null
+            : screenView === 'code'
+              ? structuredContent
+              : <ScreenCanvas card={module} state={screenState} frames={screenFrames} screenId={module.id} playing={screenPlaying} onSequenceEnd={onScreenSequenceEnd} />}
         </div>
       ) : definition.hasText ? (
         readOnly ? (
@@ -484,7 +494,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
           </label>
           <input ref={imageInputRef} className="canvas-module__image-input" type="file" accept="image/*" onChange={handleImageChange} />
         </div>
-      ) : <div ref={contentRef} className="canvas-module__content" data-canvas-scroll>{deferContent ? null : children}</div>}
+      ) : <div ref={contentRef} className="canvas-module__content" data-canvas-scroll>{semanticLevel === 'detail' && deferContent ? null : structuredContent}</div>}
       {!module.locked && !readOnly && <button
         className="canvas-module__resize"
         type="button"

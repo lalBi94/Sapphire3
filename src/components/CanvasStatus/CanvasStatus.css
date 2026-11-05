@@ -34,6 +34,14 @@
   color: var(--color-primary);
 }
 
+.canvas-status__semantic {
+  padding: 3px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
 .canvas-status button {
   display: grid;
   place-items: center;

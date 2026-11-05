@@ -8,6 +8,8 @@ import useNodeSearch from '../../hooks/useNodeSearch.jsx'
 import useGlobalKeybinds from '../../hooks/useGlobalKeybinds.jsx'
 import useAppUpdate from '../../hooks/useAppUpdate.jsx'
 import CanvasStatus from '../CanvasStatus/CanvasStatus.jsx'
+import ModuleFunctions from '../ModuleFunctions/ModuleFunctions.jsx'
+import { semanticZoomLevel, semanticDetailZoomLevel } from '../../utils/semanticZoom.js'
 import Minimap from '../Minimap/Minimap.jsx'
 import CanvasContextMenu from '../CanvasContextMenu/CanvasContextMenu.jsx'
 import CanvasModule from '../CanvasModule/CanvasModule.jsx'
@@ -180,6 +182,9 @@ export default function Canvas() {
   const selectedScreenCallers = selectedScreenCard ? moduleLinks.filter((link) => link.fromId === selectedScreenCard.id) : []
   // Une carte masquée reste dans le document et le fichier ; elle n'est simplement pas montée.
   const visibleCards = useMemo(() => document.cards.filter((card) => !card.hidden), [document.cards])
+  // Le zoom sémantique retire d'abord les annotations, puis remplace les instructions par les fonctions.
+  const semanticLevel = useMemo(() => semanticZoomLevel(zoom), [zoom])
+  const semanticCards = useMemo(() => semanticLevel === 'detail' ? visibleCards : visibleCards.filter((card) => !['comment', 'image'].includes(card.type)), [visibleCards, semanticLevel])
   // Contenu monté seulement pour les cartes proches de la vue, la sélection, la carte active et l'insertion en cours.
   const renderableCards = useMemo(() => {
     const ids = new Set(selectedModuleIds)
@@ -287,7 +292,8 @@ export default function Canvas() {
     }
     document.setExpandedNodes(moduleId, [...expanded])
     handleSelect({ kind: 'node', id: nodeId })
-    restoreCamera({ x: card.x + card.width / 2, y: card.y + card.height / 2, zoomLevel: camera.zoomLevel })
+    // Une recherche doit révéler les instructions même si la vue était sémantiquement repliée.
+    restoreCamera({ x: card.x + card.width / 2, y: card.y + card.height / 2, zoomLevel: Math.max(camera.zoomLevel, semanticDetailZoomLevel) })
     setRevealTarget({ nodeId, token: crypto.randomUUID() })
   }
 
@@ -1035,7 +1041,9 @@ export default function Canvas() {
       onDragStart={transfers.handleDragStart} onDragOver={transfers.handleDragOver} onDrop={transfers.handleDrop} onDragEnd={transfers.handleDragEnd}>
       <CanvasGrid camera={camera} zoom={zoom} distorted={distorted} gridVisible={gridVisible} />
       <CanvasLinks cards={visibleCards} links={moduleLinks} camera={camera} zoom={zoom} />
-      {visibleCards.map((card) => <CanvasModule key={`${document.revision}:${card.id}`} module={card} camera={camera} zoom={zoom}
+      {semanticCards.map((card) => <CanvasModule key={`${document.revision}:${card.id}`} module={card} camera={camera} zoom={zoom}
+        semanticLevel={semanticLevel}
+        functionsView={semanticLevel === 'functions' && document.index.modules.has(card.id) ? <ModuleFunctions module={document.index.modules.get(card.id)} index={document.index} pureIds={pureIds.functions} selectedIds={selectedIds} onSelect={handleSelect} /> : null}
         dropState={transfers.dropTarget?.kind === 'module' && transfers.dropTarget.id === card.id ? transfers.dropTarget.ok ? 'valid' : 'invalid' : undefined}
         zIndex={activeCardId === card.id ? 2 : 1}
         onActivate={() => bringCardToFront({ kind: card.type, id: card.id })}
@@ -1065,9 +1073,9 @@ export default function Canvas() {
         pure={!['screen', 'gauge', 'led'].includes(card.type) && pureIds.modules.has(card.id)}
         pulse={activeModuleId === card.id && executionStep !== null ? executionStep + 1 : null}
         expansionState={['module', 'screen'].includes(card.type) && document.index.modules.has(card.id) ? getExpansionState(card.id) : null} onToggleExpansion={(id) => handleExpansion(id, getExpansionState(id) !== 'collapse')}>
-        {document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} selectedIds={selectedIds} readOnly={presentationMode} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} onReorder={(id, offset) => document.reorderNode(id, offset)} unusedIds={unusedIds} pureIds={pureIds.functions} breakpoints={breakpoints} onToggleBreakpoint={handleToggleBreakpoint} debugValues={debugValues} genericCalls={genericCalls} dropTarget={transfers.dropTarget} />}
+        {semanticLevel === 'detail' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} selectedIds={selectedIds} readOnly={presentationMode} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} onReorder={(id, offset) => document.reorderNode(id, offset)} unusedIds={unusedIds} pureIds={pureIds.functions} breakpoints={breakpoints} onToggleBreakpoint={handleToggleBreakpoint} debugValues={debugValues} genericCalls={genericCalls} dropTarget={transfers.dropTarget} />}
       </CanvasModule>)}
-      <CanvasStatus camera={camera} zoom={zoom} hiddenCount={hiddenCards.length} onShowAllHidden={handleShowAllHidden} onRecenter={() => handleRecenter(getModulesBounds())} />
+      <CanvasStatus camera={camera} zoom={zoom} semanticLevel={semanticLevel} hiddenCount={hiddenCards.length} onShowAllHidden={handleShowAllHidden} onRecenter={() => handleRecenter(getModulesBounds())} />
       {engineWork && <div className="canvas-engine-status" data-canvas-ui role="status" onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
         <div className="canvas-engine-status__body">
           <span>{engineLabel}{enginePercent !== null ? ` · ${enginePercent} %` : ''}</span>
