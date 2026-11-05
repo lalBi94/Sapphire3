@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, OctagonMinus } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { getNodeSchema } from '../../utils/logic/index.js'
 import { scrollNodeIntoCard } from '../../utils/cardScroll.js'
@@ -10,7 +10,7 @@ import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 
 // Rend une construction avec ses slots ; les cycles ou liens manquants restent des fragments lisibles.
-export default function LogicNode({ id, index, selectedId, selectedIds = null, readOnly = false, activeExecutionId, onSelect, ancestors, expandedIds, onToggle, onOpenActions, dropTarget, onReorder, unusedIds = null, pureIds = null, breakpoints = null, onToggleBreakpoint = null, debugValues = null, genericCalls = null }) {
+function LogicNode({ id, index, selectedId, selectedIds = null, readOnly = false, activeExecutionId, onSelect, ancestors, expandedIds, onToggle, onOpenActions, dropTarget, onReorder, unusedIds = null, pureIds = null, breakpoints = null, onToggleBreakpoint = null, debugValues = null, genericCalls = null }) {
   const { t } = useTranslation()
   const node = index.nodes.get(id)
   const schema = node ? getNodeSchema(node.kind) : null
@@ -124,7 +124,7 @@ export default function LogicNode({ id, index, selectedId, selectedIds = null, r
         const children = Array.isArray(value) ? value : value === null || value === undefined ? [] : [value]
         return <div className="logic-node__slot" data-slot={slotName} key={slotName}>
           <span className="logic-node__slot-label">{slotLabel(slotName, t)}{slot.many ? ` [${children.length}]` : ''}</span>
-          {children.length === 0 ? <span className="logic-node__empty">{t(slot.required ? 'canvas.addSomething' : 'canvas.empty')}</span> : children.map((childId, position) => <LogicNode key={`${childId}:${position}`} id={childId} index={index} selectedId={selectedId} selectedIds={selectedIds} readOnly={readOnly} activeExecutionId={activeExecutionId} onSelect={onSelect} ancestors={[...ancestors, id]} expandedIds={expandedIds} onToggle={onToggle} onOpenActions={onOpenActions} dropTarget={dropTarget} onReorder={onReorder} unusedIds={unusedIds} pureIds={pureIds} breakpoints={breakpoints} onToggleBreakpoint={onToggleBreakpoint} debugValues={debugValues} genericCalls={genericCalls} />)}
+          {children.length === 0 ? <span className="logic-node__empty">{t(slot.required ? 'canvas.addSomething' : 'canvas.empty')}</span> : children.map((childId, position) => <LogicNodeMemo key={`${childId}:${position}`} id={childId} index={index} selectedId={selectedId} selectedIds={selectedIds} readOnly={readOnly} activeExecutionId={activeExecutionId} onSelect={onSelect} ancestors={[...ancestors, id]} expandedIds={expandedIds} onToggle={onToggle} onOpenActions={onOpenActions} dropTarget={dropTarget} onReorder={onReorder} unusedIds={unusedIds} pureIds={pureIds} breakpoints={breakpoints} onToggleBreakpoint={onToggleBreakpoint} debugValues={debugValues} genericCalls={genericCalls} />)}
         </div>
       })}
     </section>
@@ -141,3 +141,37 @@ export default function LogicNode({ id, index, selectedId, selectedIds = null, r
   </>
   )
 }
+
+// Détermine si ce nœud est sélectionné, y compris dans une sélection multiple.
+function isSelected(props) {
+  return props.selectedIds ? props.selectedIds.has(props.id) : props.selectedId === props.id
+}
+
+// Détermine si le nœud reçoit le dépôt courant.
+function isDropTarget(props) {
+  return props.dropTarget?.kind === 'node' && props.dropTarget.id === props.id
+}
+
+// Compare les ancêtres sans dépendre de l'identité du tableau recréé à chaque rendu.
+function sameAncestors(previous, next) {
+  if (previous.length !== next.length) return false
+  for (let position = 0; position < previous.length; position += 1) if (previous[position] !== next[position]) return false
+  return true
+}
+
+// Ne re-rend un nœud que si son état visible change réellement.
+function sameNodeProps(previous, next) {
+  if (previous.id !== next.id || previous.index !== next.index || previous.readOnly !== next.readOnly) return false
+  if (isSelected(previous) !== isSelected(next)) return false
+  if (previous.expandedIds.has(previous.id) !== next.expandedIds.has(next.id)) return false
+  if ((previous.activeExecutionId === previous.id) !== (next.activeExecutionId === next.id)) return false
+  if (isDropTarget(previous) !== isDropTarget(next)) return false
+  if ((previous.onReorder == null) !== (next.onReorder == null)) return false
+  if (previous.unusedIds !== next.unusedIds || previous.pureIds !== next.pureIds || previous.breakpoints !== next.breakpoints) return false
+  if ((previous.onToggleBreakpoint == null) !== (next.onToggleBreakpoint == null)) return false
+  if (previous.debugValues !== next.debugValues || previous.genericCalls !== next.genericCalls) return false
+  return sameAncestors(previous.ancestors, next.ancestors)
+}
+
+const LogicNodeMemo = memo(LogicNode, sameNodeProps)
+export default LogicNodeMemo

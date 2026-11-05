@@ -1,19 +1,56 @@
-import { useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import LogicNode from './LogicNode.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './LogicTree.css'
 
-// Rassemble les nœuds du module pour repérer ceux réellement ajoutés entre deux rendus.
+// Rassemble les nœuds du module sans reparcourir tout le projet.
 function moduleNodeIds(module, index) {
-  const ids = new Set()
-  for (const node of index.nodes.values()) {
-    if (node.moduleId === module.id) ids.add(node.id)
-  }
-  return ids
+  return new Set(index.nodeIdsByModule?.get(module.id) ?? [])
+}
+
+// Détermine si la sélection contient un nœud de ce module.
+function hasSelectedNode(props) {
+  if (props.selectedId && props.index.nodes.get(props.selectedId)?.moduleId === props.module.id) return true
+  if (!props.selectedIds) return false
+  for (const id of props.selectedIds) if (props.index.nodes.get(id)?.moduleId === props.module.id) return true
+  return false
+}
+
+// Détermine si le nœud exécuté appartient à ce module.
+function hasActiveNode(props) {
+  return Boolean(props.activeExecutionId) && props.index.nodes.get(props.activeExecutionId)?.moduleId === props.module.id
+}
+
+// Signature du dépôt pertinent pour ce module, sans comparer l'objet global.
+function dropSignature(props) {
+  const drop = props.dropTarget
+  if (drop?.kind !== 'node' || props.index.nodes.get(drop.id)?.moduleId !== props.module.id) return ''
+  return `${drop.id}:${drop.ok ? 'ok' : 'no'}`
+}
+
+// Compare le contenu de deux listes d'identifiants d'exécution.
+function sameIds(previous, next) {
+  if (previous.length !== next.length) return false
+  for (let position = 0; position < previous.length; position += 1) if (previous[position] !== next[position]) return false
+  return true
+}
+
+// Ne re-rend un arbre que si ce qui le concerne a changé, pas à chaque déplacement de caméra.
+function sameTreeProps(previous, next) {
+  if (previous.module !== next.module || previous.index !== next.index || previous.readOnly !== next.readOnly) return false
+  if (previous.expandedNodeIds !== next.expandedNodeIds) return false
+  if (!sameIds(previous.executionExpandedNodeIds, next.executionExpandedNodeIds)) return false
+  if (hasSelectedNode(previous) !== hasSelectedNode(next)) return false
+  if (hasActiveNode(previous) !== hasActiveNode(next)) return false
+  if ((hasActiveNode(previous) || hasActiveNode(next)) && previous.executionSession !== next.executionSession) return false
+  if (dropSignature(previous) !== dropSignature(next)) return false
+  if (previous.unusedIds !== next.unusedIds || previous.pureIds !== next.pureIds || previous.breakpoints !== next.breakpoints) return false
+  if (previous.debugValues !== next.debugValues || previous.genericCalls !== next.genericCalls) return false
+  return (previous.onReorder == null) === (next.onReorder == null)
 }
 
 // Parcourt les racines source dans leur ordre ; les nœuds sont pliés tant qu'ils ne sont pas dépliés.
-export default function LogicTree({ module, index, selectedId, selectedIds = null, readOnly = false, onSelect, expandedNodeIds, onExpandedChange, onOpenActions, onReorder, activeExecutionId = null, executionExpandedNodeIds = [], executionSession = null, unusedIds = null, pureIds = null, breakpoints = null, onToggleBreakpoint = null, debugValues = null, genericCalls = null, dropTarget }) {
+function LogicTree({ module, index, selectedId, selectedIds = null, readOnly = false, onSelect, expandedNodeIds, onExpandedChange, onOpenActions, onReorder, activeExecutionId = null, executionExpandedNodeIds = [], executionSession = null, unusedIds = null, pureIds = null, breakpoints = null, onToggleBreakpoint = null, debugValues = null, genericCalls = null, dropTarget }) {
   const knownIds = useRef(null)
   // Nœuds repliés à la main malgré le dépli automatique de la simulation en cours.
   const [executionCollapsed, setExecutionCollapsed] = useState(() => new Set())
@@ -76,3 +113,5 @@ export default function LogicTree({ module, index, selectedId, selectedIds = nul
     </div>
   )
 }
+
+export default memo(LogicTree, sameTreeProps)

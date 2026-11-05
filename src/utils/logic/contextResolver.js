@@ -9,6 +9,7 @@ export function createContextIndex(project, analysis = null) {
   const nodes = new Map()
   const parents = new Map()
   const duplicates = new Set()
+  const nodeIdsByModule = new Map()
   for (const module of Array.isArray(project?.modules) ? project.modules : []) {
     if (!isRecord(module) || !isId(module.id)) continue
     if (modules.has(module.id)) duplicates.add(`module:${module.id}`)
@@ -18,6 +19,12 @@ export function createContextIndex(project, analysis = null) {
     if (!isRecord(node) || !isId(node.id)) continue
     if (nodes.has(node.id)) duplicates.add(`node:${node.id}`)
     else nodes.set(node.id, node)
+    // Liste compacte par module, pour les arbres sans reparcourir tout le projet.
+    if (isId(node.moduleId)) {
+      const list = nodeIdsByModule.get(node.moduleId)
+      if (list) list.push(node.id)
+      else nodeIdsByModule.set(node.moduleId, [node.id])
+    }
   }
 
   // Conserve toutes les parentés pour détecter les contextes ambigus au lieu d'en choisir un.
@@ -36,7 +43,7 @@ export function createContextIndex(project, analysis = null) {
     }
   }
   return {
-    project, analysis, modules, nodes, parents, duplicates,
+    project, analysis, modules, nodes, parents, duplicates, nodeIdsByModule,
     nodeTypes: new Map((analysis?.semantic.nodeTypes ?? []).map((entry) => [entry.nodeId, entry.type])),
     nodeScopes: new Map((analysis?.semantic.nodeScopes ?? []).map((entry) => [entry.nodeId, entry.scopeId])),
     scopes: new Map((analysis?.semantic.scopes ?? []).map((scope) => [scope.id, scope])),

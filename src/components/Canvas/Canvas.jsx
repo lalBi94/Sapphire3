@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp, X } from 'lucide-react'
 import CanvasGrid from '../CanvasGrid/CanvasGrid.jsx'
 import useCanvasPan from '../../hooks/useCanvasPan.jsx'
@@ -55,6 +55,7 @@ export default function Canvas() {
   const [selection, setSelection] = useState([])
   const [activeCardId, setActiveCardId] = useState(null)
   const [growthRequest, setGrowthRequest] = useState({ moduleId: null, revision: 0 })
+  const [canvasSize, setCanvasSize] = useState(() => ({ width: typeof window === 'undefined' ? 0 : window.innerWidth, height: typeof window === 'undefined' ? 0 : window.innerHeight }))
   const [distorted, setDistorted] = useState(true)
   const [minimapVisible, setMinimapVisible] = useState(true)
   const [gridVisible, setGridVisible] = useState(true)
@@ -93,6 +94,17 @@ export default function Canvas() {
   const hasScreenSelection = useMemo(() => selectedTargets.some((target) => target.kind === 'module' && document.cards.some((card) => card.id === target.id && ['screen', 'gauge'].includes(card.type))), [selectedTargets, document.cards])
   const selectedModuleIds = useMemo(() => selectedTargets.filter((target) => target.kind === 'module').map((target) => target.id), [selectedTargets])
   const { camera, zoom, canvasRef, isPanning, handlePointerDown, handlePointerMove, handlePointerEnd, handleKeyDown, handleRecenter, panTo, zoomBy, resetZoom, restoreCamera } = useCanvasPan()
+  // Suit la surface réelle du canvas pour ne monter que le contenu des cartes visibles.
+  useLayoutEffect(() => {
+    const element = canvasRef.current
+    if (!element) return undefined
+    const measure = () => setCanvasSize((current) => current.width === element.clientWidth && current.height === element.clientHeight ? current : { width: element.clientWidth, height: element.clientHeight })
+    measure()
+    if (typeof ResizeObserver === 'undefined') return undefined
+    const observer = new ResizeObserver(measure)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [canvasRef])
   const files = useWorkspaceFiles({ project: document.project, cards: document.cards, camera, selected, onReplace: handleReplaceWorkspace })
   const transfers = useNodeTransfers({ project: document.project, index: document.index, selected, selectedNodeIds, readOnly: presentationMode, workspaceRef, onPaste: document.pasteNode, onMove: document.moveNodes, onDuplicate: document.duplicateNode, onTransferred: handleNodeTransferred })
 
@@ -154,6 +166,25 @@ export default function Canvas() {
   const selectedScreenCallers = selectedScreenCard ? moduleLinks.filter((link) => link.fromId === selectedScreenCard.id) : []
   // Une carte masquée reste dans le document et le fichier ; elle n'est simplement pas montée.
   const visibleCards = useMemo(() => document.cards.filter((card) => !card.hidden), [document.cards])
+  // Contenu monté seulement pour les cartes proches de la vue, la sélection, la carte active et l'insertion en cours.
+  const renderableCards = useMemo(() => {
+    const ids = new Set(selectedModuleIds)
+    if (activeCardId) ids.add(activeCardId)
+    if (growthRequest.moduleId && growthRequest.documentRevision === document.revision) ids.add(growthRequest.moduleId)
+    if (canvasSize.width === 0 || canvasSize.height === 0) {
+      for (const card of visibleCards) ids.add(card.id)
+      return ids
+    }
+    const margin = 240
+    const halfWidth = canvasSize.width / 2
+    const halfHeight = canvasSize.height / 2
+    for (const card of visibleCards) {
+      const left = halfWidth + (card.x - camera.x) * zoom
+      const top = halfHeight + (card.y - camera.y) * zoom
+      if (left < canvasSize.width + margin && left + card.width * zoom > -margin && top < canvasSize.height + margin && top + card.height * zoom > -margin) ids.add(card.id)
+    }
+    return ids
+  }, [visibleCards, selectedModuleIds, activeCardId, growthRequest, document.revision, canvasSize, camera.x, camera.y, zoom])
   const hiddenCards = useMemo(() => document.cards.filter((card) => card.hidden), [document.cards])
   // La mini-carte ne montre que les modules visibles, comme le cadre de recentrage.
   const minimapModules = useMemo(() => visibleCards.filter((card) => card.type === 'module' || card.type === 'screen' || card.type === 'gauge').map(({ id, x, y, width, height }) => ({ id, x, y, width, height })), [visibleCards])
@@ -853,6 +884,7 @@ export default function Canvas() {
         zIndex={activeCardId === card.id ? 2 : 1}
         onActivate={() => bringCardToFront({ kind: card.type, id: card.id })}
         fitRequest={growthRequest.documentRevision === document.revision && growthRequest.moduleId === card.id ? growthRequest.revision : 0}
+        deferContent={!renderableCards.has(card.id)}
         onOpenActions={(event) => handleOpenActions(event, { kind: card.type === 'screen' ? 'module' : card.type, id: card.id })}
         selected={selectedIds.has(card.id)}
         onSelect={(event) => handleSelect(card.type === 'module' || card.type === 'screen' ? { kind: 'module', id: card.id } : null, { additive: event.ctrlKey || event.metaKey || event.shiftKey })}
