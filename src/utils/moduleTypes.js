@@ -13,3 +13,6 @@ export const minimumModuleSize = { width: 180, height: 120 }
 
 // Vues possibles d'une carte écran : l'écran lui-même, ou le code de son module caché.
 export const screenViews = ['screen', 'code']
+
+// Vues possibles d'une carte jauge : l'aperçu de la jauge, ou le code de son module caché.
+export const gaugeViews = ['gauge', 'code']

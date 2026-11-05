@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronsDownUp, ChevronsUpDown, Code2, Lock, Monitor, Smile } from 'lucide-react'
+import { ChevronsDownUp, ChevronsUpDown, Code2, Gauge, Lock, Monitor, Smile } from 'lucide-react'
 import { minimumModuleSize, moduleTypes } from '../../utils/moduleTypes.js'
 import { isEmbeddedImage } from '../../utils/embeddedImage.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
@@ -66,7 +66,7 @@ function ModuleEmoji({ emoji, onChange }) {
 }
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, gaugeState = null, gaugeFrames = null, gaugePlaying = false, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -109,6 +109,8 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
   const name = module.name || t(definition.labelKey)
   // Une carte écran montre son écran par défaut, ou le code de son module caché.
   const screenView = module.screenView === 'code' ? 'code' : 'screen'
+  // Une carte jauge montre son aperçu par défaut, ou le code de son module caché.
+  const gaugeView = module.gaugeView === 'code' ? 'code' : 'gauge'
   // La bascule d'en-tête promet l'action inverse de l'état actuel du pliage.
   const expansionLabel = t(expansionState === 'collapse' ? 'canvas.collapseAll' : 'canvas.expandAll')
 
@@ -360,6 +362,17 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         >
           {screenView === 'code' ? <Monitor size={13} strokeWidth={2} aria-hidden="true" /> : <Code2 size={13} strokeWidth={2} aria-hidden="true" />}
         </button>}
+        {definition.hasGauge && !readOnly && <button
+          type="button"
+          className="canvas-module__view"
+          aria-label={t(gaugeView === 'code' ? 'gauge.viewGauge' : 'gauge.viewCode')}
+          aria-pressed={gaugeView === 'code'}
+          title={t(gaugeView === 'code' ? 'gauge.viewGauge' : 'gauge.viewCode')}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => { event.stopPropagation(); onGaugeViewChange?.(module.id, gaugeView === 'code' ? 'gauge' : 'code') }}
+        >
+          {gaugeView === 'code' ? <Gauge size={13} strokeWidth={2} aria-hidden="true" /> : <Code2 size={13} strokeWidth={2} aria-hidden="true" />}
+        </button>}
         {module.locked && !readOnly && <button
           type="button"
           className="canvas-module__lock"
@@ -382,7 +395,11 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         </button>}
       </header>
       {definition.hasGauge ? (
-        <div className="canvas-module__content" data-canvas-scroll><GaugeCard card={module} state={gaugeState} frames={gaugeFrames} playing={gaugePlaying} /></div>
+        <div className="canvas-module__content" data-canvas-scroll>
+          {gaugeView === 'code'
+            ? (deferContent ? null : children)
+            : <GaugeCard card={module} state={gaugeState} frames={gaugeFrames} playing={gaugePlaying} />}
+        </div>
       ) : definition.hasScreen ? (
         <div className="canvas-module__content" data-canvas-scroll>
           {screenView === 'code'

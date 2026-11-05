@@ -2,7 +2,7 @@ import { isId, isRecord, sourceFormatVersion, moduleKinds, createProject } from 
 import { isContractKind } from './logic/contracts.js'
 import { serializeSource } from './logic/serialization.js'
 import { screenLimits } from './logic/mathNatives.js'
-import { moduleTypes, minimumModuleSize, screenViews } from './moduleTypes.js'
+import { gaugeViews, moduleTypes, minimumModuleSize, screenViews } from './moduleTypes.js'
 import { isEmbeddedImage } from './embeddedImage.js'
 
 export const workspaceFileVersion = 1
@@ -82,6 +82,7 @@ function validatePresentation(project, presentation) {
     if (card.locked !== undefined && typeof card.locked !== 'boolean') throw workspaceError('Invalid card lock.')
     if (card.emoji !== undefined && (typeof card.emoji !== 'string' || card.emoji.length > 16)) throw workspaceError('Invalid card emoji.')
     if (card.screenView !== undefined && !screenViews.includes(card.screenView)) throw workspaceError('Invalid screen view.')
+    if (card.gaugeView !== undefined && !gaugeViews.includes(card.gaugeView)) throw workspaceError('Invalid gauge view.')
     ids.add(card.id)
   }
   if (project.modules.some((module) => !ids.has(module.id))) throw workspaceError('A module is missing its visual card.')
@@ -94,8 +95,8 @@ function validatePresentation(project, presentation) {
 // N'écrit l'emoji ou les drapeaux de carte que lorsqu'ils sont définis, pour garder les fichiers habituels inchangés.
 function exportableCard(card, nodes) {
   // `screenScale` n'est plus produit : l'écran se dimensionne avec la carte, mais reste toléré à la relecture.
-  const { hidden, locked, emoji, screenView, screenScale, ...rest } = card
-  return { ...rest, ...(hidden ? { hidden: true } : {}), ...(locked ? { locked: true } : {}), ...(emoji ? { emoji } : {}), ...(screenView && screenView !== 'screen' ? { screenView } : {}), expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) }
+  const { hidden, locked, emoji, screenView, gaugeView, screenScale, ...rest } = card
+  return { ...rest, ...(hidden ? { hidden: true } : {}), ...(locked ? { locked: true } : {}), ...(emoji ? { emoji } : {}), ...(screenView && screenView !== 'screen' ? { screenView } : {}), ...(gaugeView && gaugeView !== 'gauge' ? { gaugeView } : {}), expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) }
 }
 
 // Produit le même instantané JSON versionné pour les extensions .sp3 et .json.

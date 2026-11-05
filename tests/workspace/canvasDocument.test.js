@@ -244,6 +244,22 @@ test('vue d’écran : conservée à l’aller-retour et refusée si elle est in
   assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)), { message: 'Invalid screen view.' })
 })
 
+test('vue de jauge : conservée à l’aller-retour et refusée si elle est inconnue', () => {
+  const camera = { x: 0, y: 0, zoomLevel: 0 }
+  const source = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'gaugeDemo').build()))
+  const cards = source.presentation.cards.map((entry) => entry.type === 'gauge' ? { ...entry, gaugeView: 'code' } : entry)
+  const text = serializeWorkspace(source.project, cards, camera)
+  assert.match(text, /"gaugeView":\s*"code"/)
+  const roundTrip = deserializeWorkspace(text)
+  assert.deepEqual(roundTrip.presentation.cards.filter((entry) => entry.type === 'gauge').map((entry) => entry.gaugeView), ['code'])
+  // L'aperçu par défaut n'alourdit pas le fichier.
+  const plain = JSON.parse(serializeWorkspace(source.project, source.presentation.cards, camera))
+  assert.equal(plain.presentation.cards.some((entry) => Object.hasOwn(entry, 'gaugeView')), false)
+  const invalid = JSON.parse(text)
+  invalid.presentation.cards.find((entry) => entry.type === 'gauge').gaugeView = 'preview'
+  assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)), { message: 'Invalid gauge view.' })
+})
+
 test('écran : l’échelle de pixels obsolète n’est plus écrite mais reste relue', () => {
   const camera = { x: 0, y: 0, zoomLevel: 0 }
   const source = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'pixelScreens').build()))
