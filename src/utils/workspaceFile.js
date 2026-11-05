@@ -25,6 +25,7 @@ function validateProject(project) {
   const moduleIds = new Set()
   const screenIndices = new Set()
   const gaugeIndices = new Set()
+  const ledIndices = new Set()
   for (const module of project.modules) {
     if (!isRecord(module) || !isId(module.id) || moduleIds.has(module.id) || module.kind !== moduleKinds.module || !isId(module.name) || !['rootNodeIds', 'imports', 'exports'].every((field) => Array.isArray(module[field]))) {
       throw workspaceError('Invalid module data. Legacy Main modules are not supported.')
@@ -35,6 +36,8 @@ function validateProject(project) {
     if (module.screen) screenIndices.add(module.screen.index)
     if (module.gauge !== undefined && (!isRecord(module.gauge) || !Number.isInteger(module.gauge.index) || module.gauge.index < 1 || !Number.isFinite(module.gauge.min) || !Number.isFinite(module.gauge.max) || module.gauge.max <= module.gauge.min || gaugeIndices.has(module.gauge.index))) throw workspaceError('Invalid gauge module data.')
     if (module.gauge) gaugeIndices.add(module.gauge.index)
+    if (module.led !== undefined && (!isRecord(module.led) || !Number.isInteger(module.led.index) || module.led.index < 1 || ledIndices.has(module.led.index))) throw workspaceError('Invalid LED module data.')
+    if (module.led) ledIndices.add(module.led.index)
   }
   const nodeIds = new Set()
   for (const node of project.nodes) {
@@ -72,10 +75,12 @@ function validatePresentation(project, presentation) {
         ? !modules.has(card.id) || !modules.get(card.id).screen || !Number.isInteger(card.screenWidth) || !Number.isInteger(card.screenHeight) || card.screenWidth < 1 || card.screenHeight < 1 || card.screenWidth > screenLimits.maximumDimension || card.screenHeight > screenLimits.maximumDimension || (card.screenScale !== undefined && (!Number.isFinite(card.screenScale) || card.screenScale < 0.25 || card.screenScale > 4))
         : card.type === 'gauge'
           ? !modules.has(card.id) || !modules.get(card.id).gauge
-          : modules.has(card.id) || (card.type === 'comment' && typeof card.text !== 'string') || (card.type === 'image' && (!isEmbeddedImage(card.image) || typeof card.caption !== 'string'))) {
+          : card.type === 'led'
+            ? !modules.has(card.id) || !modules.get(card.id).led
+            : modules.has(card.id) || (card.type === 'comment' && typeof card.text !== 'string') || (card.type === 'image' && (!isEmbeddedImage(card.image) || typeof card.caption !== 'string'))) {
       throw workspaceError('Cards do not match the logical project.')
     }
-    if (!Array.isArray(card.expandedNodeIds) || new Set(card.expandedNodeIds).size !== card.expandedNodeIds.length || card.expandedNodeIds.some((id) => !isId(id) || nodes.get(id)?.moduleId !== card.id || !['module', 'screen', 'gauge'].includes(card.type))) {
+    if (!Array.isArray(card.expandedNodeIds) || new Set(card.expandedNodeIds).size !== card.expandedNodeIds.length || card.expandedNodeIds.some((id) => !isId(id) || nodes.get(id)?.moduleId !== card.id || !['module', 'screen', 'gauge', 'led'].includes(card.type))) {
       throw workspaceError('Invalid expanded node data.')
     }
     if (card.hidden !== undefined && typeof card.hidden !== 'boolean') throw workspaceError('Invalid card visibility.')
@@ -136,7 +141,9 @@ export function deserializeWorkspace(text) {
     ? { id: module.id, type: 'screen', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes.screen.width, height: moduleTypes.screen.height, screenWidth: module.screen.width, screenHeight: module.screen.height, expandedNodeIds: [] }
     : module.gauge
       ? { id: module.id, type: 'gauge', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes.gauge.width, height: moduleTypes.gauge.height, expandedNodeIds: [] }
-      : { id: module.id, type: 'module', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: definition.width, height: definition.height, expandedNodeIds: [] })
+      : module.led
+        ? { id: module.id, type: 'led', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes.led.width, height: moduleTypes.led.height, expandedNodeIds: [] }
+        : { id: module.id, type: 'module', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: definition.width, height: definition.height, expandedNodeIds: [] })
   return JSON.parse(serializeWorkspace(data, cards, { x: 0, y: 0, zoomLevel: 0 }))
 }
 

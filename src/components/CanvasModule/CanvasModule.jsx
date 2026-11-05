@@ -6,6 +6,7 @@ import { isEmbeddedImage } from '../../utils/embeddedImage.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
 import ScreenCanvas from '../ScreenCanvas/ScreenCanvas.jsx'
 import GaugeCard from '../GaugeCard/GaugeCard.jsx'
+import LedCard from '../LedCard/LedCard.jsx'
 import CommentText from '../CommentText/CommentText.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './CanvasModule.css'
@@ -66,7 +67,7 @@ function ModuleEmoji({ emoji, onChange }) {
 }
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, gaugeState = null, gaugeFrames = null, gaugePlaying = false, ledState = null, onGaugeViewChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -394,7 +395,9 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
           {expansionState === 'collapse' ? <ChevronsDownUp size={14} strokeWidth={2} aria-hidden="true" /> : <ChevronsUpDown size={14} strokeWidth={2} aria-hidden="true" />}
         </button>}
       </header>
-      {definition.hasGauge ? (
+      {definition.hasLed ? (
+        <div className="canvas-module__content" data-canvas-scroll><LedCard card={module} state={ledState} /></div>
+      ) : definition.hasGauge ? (
         <div className="canvas-module__content" data-canvas-scroll>
           {gaugeView === 'code'
             ? (deferContent ? null : children)

@@ -1,6 +1,7 @@
 // Capture les états scalaires sans conserver de Map mutable dans les instantanés publics.
 import { readScreenStates } from './screenState.js'
 import { readGaugeStates } from './gaugeState.js'
+import { readLedStates } from './ledState.js'
 
 export function createDebugRecorder(analysis, global, output, uninitialized) {
   const frames = []
@@ -80,10 +81,11 @@ export function createDebugRecorder(analysis, global, output, uninitialized) {
       + [...globals, ...localScopes.flatMap((scope) => scope.variables)].reduce((total, variable) => total + (variable.array?.cells.length ?? 0), 0)
     const screens = readScreenStates(analysis.source, global.values)
     const gauges = readGaugeStates(analysis.source, global.values)
+    const leds = readLedStates(analysis.source, global.values)
     const screenCount = Object.values(screens).reduce((total, screen) => total + screen.pixels.length, 0)
     if (status === 'paused' && entries + count + screenCount > 200000) throw Object.assign(new Error('Debug history memory limit reached.'), { code: 'DEBUG_HISTORY_LIMIT' })
     entries += count + screenCount
-    frames.push({ nodeId, status, errorCode, scopeIds: activeScopes.map((scope) => scope.instanceId), callStack: activeScopes.filter((scope) => scope.scopeId.startsWith('function:')).map((scope) => ({ instanceId: scope.instanceId, nodeId: scope.nodeId })), globals, localScopes, output: [...output], screens, gauges })
+    frames.push({ nodeId, status, errorCode, scopeIds: activeScopes.map((scope) => scope.instanceId), callStack: activeScopes.filter((scope) => scope.scopeId.startsWith('function:')).map((scope) => ({ instanceId: scope.instanceId, nodeId: scope.nodeId })), globals, localScopes, output: [...output], screens, gauges, leds })
   }
 
   return { frames, record }

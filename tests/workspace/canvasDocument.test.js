@@ -3,7 +3,8 @@ import assert from 'node:assert/strict'
 import { initialDocument, reduceDocument, reduceHistory } from '../../src/utils/canvasDocument.js'
 import { serializeWorkspace, deserializeWorkspace, emptyWorkspace } from '../../src/utils/workspaceFile.js'
 import { examples } from '../../src/utils/examples.js'
-import { createModule, captureSourceNode, pasteSourceNode, duplicateSourceNode, moveSourceNode, deleteSourceNodes, insertSourceNodes, createNode, captureBookmark, insertBookmark } from '../../src/utils/logic/index.js'
+import { createModule, createProject, captureSourceNode, pasteSourceNode, duplicateSourceNode, moveSourceNode, deleteSourceNodes, insertSourceNodes, createNode, captureBookmark, insertBookmark } from '../../src/utils/logic/index.js'
+import { createLedModule } from '../../src/utils/ledNode.js'
 import { debugFixture, node, intType } from '../logic/fixtures.js'
 
 // Fournit une carte valide sans dépendre des identifiants aléatoires du hook React.
@@ -242,6 +243,25 @@ test('vue d’écran : conservée à l’aller-retour et refusée si elle est in
   const screenCard = invalid.presentation.cards.find((entry) => entry.type === 'screen')
   screenCard.screenView = 'pixels'
   assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)), { message: 'Invalid screen view.' })
+})
+
+test('LED : carte conservée à l’aller-retour et métadonnées validées', () => {
+  const camera = { x: 0, y: 0, zoomLevel: 0 }
+  const led = createLedModule('led1', 'LED 1', 1, { value: false })
+  const project = createProject('p')
+  project.modules.push(led.module)
+  project.nodes.push(...led.nodes)
+  const cards = [{ id: 'led1', type: 'led', name: 'LED 1', x: 0, y: 0, width: 220, height: 170, expandedNodeIds: [] }]
+  const text = serializeWorkspace(project, cards, camera)
+  const roundTrip = deserializeWorkspace(text)
+  assert.deepEqual(roundTrip.presentation.cards.filter((entry) => entry.type === 'led').map((entry) => entry.name), ['LED 1'])
+  assert.deepEqual(roundTrip.project.modules.find((module) => module.id === 'led1').led, { index: 1 })
+  const invalidIndex = JSON.parse(text)
+  invalidIndex.project.modules[0].led.index = 0
+  assert.throws(() => deserializeWorkspace(JSON.stringify(invalidIndex)), { message: 'Invalid LED module data.' })
+  const invalidCard = JSON.parse(text)
+  invalidCard.presentation.cards[0].id = 'missing'
+  assert.throws(() => deserializeWorkspace(JSON.stringify(invalidCard)), { message: 'Cards do not match the logical project.' })
 })
 
 test('vue de jauge : conservée à l’aller-retour et refusée si elle est inconnue', () => {

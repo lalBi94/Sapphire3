@@ -59,7 +59,12 @@ export function reduceDocument(state, action) {
     if (state.cards.some((entry) => entry.id === card.id)) return state
     return withSource({ ...state, cards: [...state.cards, card] }, { ...state.project, modules: [...state.project.modules, action.screen.module], nodes: [...state.project.nodes, ...action.screen.nodes] })
   }
-  // Une jauge suit exactement la même mécanique : carte de présentation + module caché normal.
+  // Une LED suit exactement la même mécanique : carte de présentation + module caché normal.
+  if (action.type === 'createLed') {
+    const card = action.card
+    if (state.cards.some((entry) => entry.id === card.id)) return state
+    return withSource({ ...state, cards: [...state.cards, card] }, { ...state.project, modules: [...state.project.modules, action.led.module], nodes: [...state.project.nodes, ...action.led.nodes] })
+  }
   if (action.type === 'createGauge') {
     const card = action.card
     if (state.cards.some((entry) => entry.id === card.id)) return state

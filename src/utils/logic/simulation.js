@@ -5,6 +5,7 @@ import { satisfiesContract, normalizeContracts } from './contracts.js'
 import { getMathNative } from './mathNatives.js'
 import { createScreenStateReader, sameScreenStates } from './screenState.js'
 import { createGaugeStateReader } from './gaugeState.js'
+import { createLedStateReader } from './ledState.js'
 
 // Ajoute un code stable sans introduire de traduction ni de dépendance UI dans le moteur.
 function simulationError(code, message) {
@@ -44,6 +45,9 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   const gaugeReader = (project.modules ?? []).some((module) => module.gauge) ? createGaugeStateReader(project) : null
   const gaugeFrames = []
   const maximumGaugeFrames = 8000
+  // LED : un état booléen par pas pour suivre le focus de nœud.
+  const ledReader = (project.modules ?? []).some((module) => module.led) ? createLedStateReader(project) : null
+  const ledFrames = []
   const screenFrames = []
   // États de jauge alignés sur les images d'écran, pour animer la jauge au même rythme.
   const screenFrameGauges = []
@@ -96,6 +100,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     if (steps > maxSteps) throw simulationError('SIMULATION_STEP_LIMIT', 'Simulation step limit reached.')
     trace.push(node.id)
     if (gaugeReader && gaugeFrames.length < maximumGaugeFrames) gaugeFrames.push(gaugeReader(global.values))
+    if (ledReader && ledFrames.length < maximumGaugeFrames) ledFrames.push(ledReader(global.values))
     return node
   }
 
@@ -511,16 +516,18 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       variables: collectVariables(),
       screens: screenReader ? screenReader(global.values) : {},
       gauges: gaugeReader ? gaugeReader(global.values) : {},
+      leds: ledReader ? ledReader(global.values) : {},
       contracts: { total: contracts.reduce((count, entry) => count + entry.kinds.length, 0), observations: contractObservations, violations: contractViolations },
       ...(debug ? { debugFrames: debug.frames } : {}),
       ...(screenReader ? { screenFrames } : {}),
       ...(screenFrameGauges.length ? { screenFrameGauges } : {}),
       ...(gaugeReader ? { gaugeFrames } : {}),
+      ...(ledReader ? { ledFrames } : {}),
     }
   } catch (error) {
     const errorCode = error?.code ?? 'SIMULATION_FAILED'
     debug?.record(lastInstructionId, lastEnvironment, lastScopes, 'error', errorCode)
-    return { ok: false, output, outputSteps, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, screens: screenReader ? screenReader(global.values) : {}, gauges: gaugeReader ? gaugeReader(global.values) : {}, ...(debug ? { debugFrames: debug.frames } : {}), ...(screenReader ? { screenFrames } : {}), ...(screenFrameGauges.length ? { screenFrameGauges } : {}), ...(gaugeReader ? { gaugeFrames } : {}) }
+    return { ok: false, output, outputSteps, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, screens: screenReader ? screenReader(global.values) : {}, gauges: gaugeReader ? gaugeReader(global.values) : {}, leds: ledReader ? ledReader(global.values) : {}, ...(debug ? { debugFrames: debug.frames } : {}), ...(screenReader ? { screenFrames } : {}), ...(screenFrameGauges.length ? { screenFrameGauges } : {}), ...(gaugeReader ? { gaugeFrames } : {}), ...(ledReader ? { ledFrames } : {}) }
   }
 }
 

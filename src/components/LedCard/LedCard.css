@@ -1,0 +1,29 @@
+.led-card { display: grid; place-items: center; height: 100%; min-height: 0; padding: 12px; }
+.led-card__lamp {
+  width: clamp(36px, 42%, 84px);
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--color-border) 90%, transparent);
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 30%, color-mix(in srgb, var(--color-surface-raised) 92%, white), var(--color-surface));
+  box-shadow: inset 0 2px 8px rgb(0 0 0 / 45%), 0 1px 2px rgb(0 0 0 / 30%);
+  transition: background var(--duration-fast) var(--easing-ui), box-shadow var(--duration-fast) var(--easing-ui), border-color var(--duration-fast) var(--easing-ui);
+}
+
+/* Allumée : dégradé du thème, cœur clair et halo extérieur. */
+.led-card--on .led-card__lamp {
+  border-color: color-mix(in srgb, var(--color-primary) 70%, transparent);
+  background: radial-gradient(circle at 36% 30%, color-mix(in srgb, white 55%, var(--color-primary)), var(--color-primary) 55%, color-mix(in srgb, var(--color-selection) 55%, var(--color-primary)));
+  box-shadow:
+    0 0 10px color-mix(in srgb, var(--color-primary) 65%, transparent),
+    0 0 26px color-mix(in srgb, var(--color-selection) 38%, transparent),
+    inset 0 0 10px color-mix(in srgb, white 30%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .led-card__lamp { transition: none; }
+}
+
+/* Contraste renforcé : pas de halo, couleur pleine et bordure nette. */
+@media (prefers-contrast: more), (forced-colors: active) {
+  .led-card--on .led-card__lamp { background: var(--color-primary); box-shadow: none; border-color: currentColor; }
+}

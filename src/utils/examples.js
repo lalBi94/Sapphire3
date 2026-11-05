@@ -42,7 +42,9 @@ function workspace(project, notes = []) {
     ? { id: module.id, type: 'screen', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.screen.width, height: moduleTypes.screen.height, screenWidth: module.screen.width, screenHeight: module.screen.height, expandedNodeIds: [] }
     : module.gauge
       ? { id: module.id, type: 'gauge', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.gauge.width, height: moduleTypes.gauge.height, expandedNodeIds: [] }
-      : { id: module.id, type: 'module', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: Math.max(definition.width, 520), height: Math.max(definition.height, 420), expandedNodeIds: [] })
+      : module.led
+        ? { id: module.id, type: 'led', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.led.width, height: moduleTypes.led.height, expandedNodeIds: [] }
+        : { id: module.id, type: 'module', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: Math.max(definition.width, 520), height: Math.max(definition.height, 420), expandedNodeIds: [] })
   cards.push(...notes)
   return { application: 'Sapphire 3', workspaceVersion: 1, project, presentation: { cards, camera: { x: 0, y: 0, zoomLevel: 0 }, selected: null } }
 }
