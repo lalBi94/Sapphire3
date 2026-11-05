@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { writeWorkspaceFile, writeRecoveryFile, readRecoveryFile, clearRecoveryFile } from '../../src/services/workspaceFiles.js'
+import { writeWorkspaceFile, writeWorkspaceFileWithBackup, writeRecoveryFile, readRecoveryFile, clearRecoveryFile } from '../../src/services/workspaceFiles.js'
 
 const path = 'C:\\workspace\\note.sp3'
 
@@ -19,6 +19,7 @@ function createFilesystem(initialFiles = {}, failures = {}) {
     },
     async readFile(target) {
       calls.push(['readFile', target])
+      if (failures.readFile) throw Object.assign(new Error('read failed'), { code: 'NE_FS_FILRDERR' })
       if (!files.has(target)) throw Object.assign(new Error('missing'), { code: 'NE_FS_NOPATHE' })
       return files.get(target)
     },
@@ -191,4 +192,46 @@ test('relit puis efface la copie de récupération', async () => {
   assert.equal(filesystem.files.has(target), false)
   await clearRecoveryFile(client)
   assert.equal(await readRecoveryFile(client), null)
+})
+
+// Produit le chemin d'une génération de sauvegarde à côté du fichier de test.
+function backupPath(generation) {
+  return `C:\\workspace\\note.backup-${generation}.sp3`
+}
+
+test('sauvegardes de secours : trois versions précédentes tournent sans bloquer l’écriture', async () => {
+  const filesystem = createFilesystem()
+  const client = createClient(filesystem)
+  const first = await writeWorkspaceFileWithBackup(path, 'v1', client)
+  assert.equal(first.path, path)
+  assert.equal(first.backupError, null)
+  assert.equal(filesystem.files.has(backupPath(1)), false, 'aucune sauvegarde pour un fichier neuf')
+
+  await writeWorkspaceFileWithBackup(path, 'v2', client)
+  assert.equal(filesystem.files.get(backupPath(1)), 'v1')
+
+  await writeWorkspaceFileWithBackup(path, 'v3', client)
+  assert.equal(filesystem.files.get(backupPath(1)), 'v2')
+  assert.equal(filesystem.files.get(backupPath(2)), 'v1')
+
+  await writeWorkspaceFileWithBackup(path, 'v4', client)
+  assert.equal(filesystem.files.get(backupPath(1)), 'v3')
+  assert.equal(filesystem.files.get(backupPath(2)), 'v2')
+  assert.equal(filesystem.files.get(backupPath(3)), 'v1')
+
+  await writeWorkspaceFileWithBackup(path, 'v5', client)
+  assert.equal(filesystem.files.get(path), 'v5')
+  assert.equal(filesystem.files.get(backupPath(1)), 'v4')
+  assert.equal(filesystem.files.get(backupPath(2)), 'v3')
+  assert.equal(filesystem.files.get(backupPath(3)), 'v2')
+  assert.equal(filesystem.files.has(backupPath(4)), false)
+})
+
+test('sauvegardes de secours : un échec de copie laisse l’enregistrement réussir', async () => {
+  const filesystem = createFilesystem({ [path]: 'ancien' }, { readFile: true })
+  const client = createClient(filesystem)
+  const saved = await writeWorkspaceFileWithBackup(path, 'nouveau', client)
+  assert.equal(saved.path, path)
+  assert.equal(saved.backupError?.code, 'NE_FS_FILRDERR')
+  assert.equal(filesystem.files.get(path), 'nouveau')
 })

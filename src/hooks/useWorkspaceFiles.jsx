@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { serializeWorkspace, deserializeWorkspace, emptyWorkspace } from '../utils/workspaceFile.js'
-import { exportWorkspaceFile, exportBinaryFile, importWorkspaceFile, readWorkspaceFile, writeWorkspaceFile, readRecoveryFile, writeRecoveryFile, clearRecoveryFile } from '../services/workspaceFiles.js'
+import { exportWorkspaceFile, exportBinaryFile, importWorkspaceFile, readWorkspaceFile, writeWorkspaceFile, writeWorkspaceFileWithBackup, readRecoveryFile, writeRecoveryFile, clearRecoveryFile } from '../services/workspaceFiles.js'
 import { useTranslation } from '../contexts/LanguageContext.jsx'
 import { readPreference, writePreference, hydratePreferences } from '../services/preferences.js'
 import { examples } from '../utils/examples.js'
@@ -157,10 +157,11 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
       setMessage('')
       try {
         const text = serializeWorkspace(project, cards, camera, selected)
-        await writeWorkspaceFile(currentPath, text)
+        const saved = await writeWorkspaceFileWithBackup(currentPath, text)
         lastSavedText.current = text
         await discardRecovery()
         setMessage('files.saved')
+        if (saved.backupError) setError({ prefix: 'errors.couldNotBackup', failure: saved.backupError })
       } catch (failure) {
         setError({ prefix: 'errors.couldNotSave', failure })
       } finally {

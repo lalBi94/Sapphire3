@@ -5,7 +5,52 @@ import { screenLimits } from './logic/mathNatives.js'
 import { gaugeViews, ledViews, moduleTypes, minimumModuleSize, screenViews } from './moduleTypes.js'
 import { isEmbeddedImage } from './embeddedImage.js'
 
-export const workspaceFileVersion = 1
+export const workspaceFileVersion = 2
+
+// Migrations versionnées : chaque entrée transforme la version N vers N+1 sans perdre de données.
+// La version 1 reste lisible ; les champs historiques sont normalisés avant la validation finale.
+const workspaceMigrations = new Map([
+  [1, (data) => {
+    const project = isRecord(data.project) ? data.project : null
+    const nodes = project && Array.isArray(project.nodes)
+      ? project.nodes.map((node) => {
+        if (!isRecord(node) || node.kind !== 'FunctionDeclaration' || !isRecord(node.properties)) return node
+        const properties = { ...node.properties }
+        if (properties.generic === true && !Array.isArray(properties.typeParameters)) properties.typeParameters = [{ name: 'T' }]
+        delete properties.generic
+        return { ...node, properties }
+      })
+      : null
+    const presentation = isRecord(data.presentation) ? data.presentation : null
+    const cards = presentation && Array.isArray(presentation.cards)
+      ? presentation.cards.map((card) => {
+        if (!isRecord(card) || !Object.hasOwn(card, 'screenScale')) return card
+        const { screenScale: _screenScale, ...rest } = card
+        return rest
+      })
+      : null
+    return {
+      ...data,
+      workspaceVersion: 2,
+      ...(project && nodes ? { project: { ...project, nodes } } : {}),
+      ...(presentation && cards ? { presentation: { ...presentation, cards } } : {}),
+    }
+  }],
+])
+
+// Applique les migrations dans l'ordre jusqu'à la version courante, sans inventer de version de secours.
+function migrateWorkspace(data) {
+  let current = data
+  let version = current.workspaceVersion
+  while (version < workspaceFileVersion) {
+    const migrate = workspaceMigrations.get(version)
+    if (!migrate) throw workspaceError('Unsupported Sapphire workspace version.', 'WORKSPACE_VERSION_UNSUPPORTED')
+    current = migrate(current)
+    if (current.workspaceVersion !== version + 1) throw workspaceError('The workspace migration did not advance the version.', 'WORKSPACE_VERSION_UNSUPPORTED')
+    version += 1
+  }
+  return current
+}
 
 // Conserve le message technique pour les tests et expose un code stable à l'interface traduite.
 function workspaceError(message, code = 'WORKSPACE_INVALID') {
@@ -130,11 +175,12 @@ export function deserializeWorkspace(text) {
   }
   if (!isRecord(data)) throw workspaceError('The selected file must contain a workspace or logical project.')
   if (Object.hasOwn(data, 'workspaceVersion')) {
-    if (data.application !== 'Sapphire 3' || data.workspaceVersion !== workspaceFileVersion) throw workspaceError('Unsupported Sapphire workspace version.', 'WORKSPACE_VERSION_UNSUPPORTED')
-    validateProject(data.project)
-    validatePresentation(data.project, data.presentation)
-    if (serializeSource(data).json === null) throw workspaceError('The file contains unsupported JSON values.', 'WORKSPACE_NOT_SERIALIZABLE')
-    return data
+    if (data.application !== 'Sapphire 3' || !Number.isInteger(data.workspaceVersion) || data.workspaceVersion < 1 || data.workspaceVersion > workspaceFileVersion) throw workspaceError('Unsupported Sapphire workspace version.', 'WORKSPACE_VERSION_UNSUPPORTED')
+    const migrated = migrateWorkspace(data)
+    validateProject(migrated.project)
+    validatePresentation(migrated.project, migrated.presentation)
+    if (serializeSource(migrated).json === null) throw workspaceError('The file contains unsupported JSON values.', 'WORKSPACE_NOT_SERIALIZABLE')
+    return migrated
   }
   validateProject(data)
   const definition = moduleTypes.module

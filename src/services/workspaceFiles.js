@@ -123,6 +123,64 @@ export async function writeWorkspaceFile(path, text, client = null) {
   return writeResult.path
 }
 
+const backupGenerations = 3
+
+// Construit le nom d'une génération de sauvegarde à côté du fichier, en gardant l'extension .sp3.
+function backupPath(path, generation) {
+  return `${path.replace(/\.sp3$/i, '')}.backup-${generation}.sp3`
+}
+
+// Ignore seulement l'absence d'un fichier pendant la rotation des sauvegardes.
+async function removeIfPresent(filesystem, target) {
+  try {
+    await filesystem.remove(target)
+  } catch (error) {
+    if (error?.code !== 'NE_FS_NOPATHE') throw error
+  }
+}
+
+// Déplace une génération existante ; une génération absente n'interrompt pas la rotation.
+async function moveIfPresent(filesystem, source, destination) {
+  try {
+    await filesystem.move(source, destination)
+  } catch (error) {
+    if (error?.code !== 'NE_FS_NOPATHE') throw error
+  }
+}
+
+// Fait tourner jusqu'à trois copies du contenu précédent, sans jamais bloquer l'écriture du fichier courant.
+async function createBackup(filesystem, path) {
+  let info
+  try {
+    info = await filesystem.getStats(path)
+  } catch (error) {
+    return error?.code === 'NE_FS_NOPATHE' ? null : error
+  }
+  if (!info?.isFile || info.size > maximumFileSize) return null
+  try {
+    const text = await filesystem.readFile(path)
+    await removeIfPresent(filesystem, backupPath(path, backupGenerations))
+    for (let generation = backupGenerations - 1; generation >= 1; generation -= 1) {
+      await moveIfPresent(filesystem, backupPath(path, generation), backupPath(path, generation + 1))
+    }
+    const result = await atomicWriteFile(filesystem, backupPath(path, 1), text)
+    return result.ok ? null : fileError(result.code, result.values)
+  } catch (error) {
+    return error?.code ? error : fileError('BACKUP_FAILED')
+  }
+}
+
+// Écrit un workspace en conservant le contenu précédent ; une sauvegarde impossible n'annule pas l'enregistrement.
+export async function writeWorkspaceFileWithBackup(path, text, client = null) {
+  const extension = client?.extension || 'sp3'
+  if (typeof path !== 'string' || !path.toLowerCase().endsWith(`.${extension}`)) throw fileError('FILE_EXTENSION_INVALID', { extension })
+  if (new TextEncoder().encode(text).length > maximumFileSize) throw fileError('FILE_TOO_LARGE')
+  const target = client || await getClient()
+  const backupError = await createBackup(target.filesystem, path)
+  const written = await writeWorkspaceFile(path, text, target)
+  return { path: written, backupError }
+}
+
 // Ne lit que le fichier choisi avec les extensions autorisees ; une annulation ne modifie pas le document.
 export async function importWorkspaceFile(extensions = ['sp3', 'json'], language = 'en') {
   const { os, filesystem } = await getClient()

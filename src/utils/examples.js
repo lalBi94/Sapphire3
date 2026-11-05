@@ -3,6 +3,7 @@ import { createScreenModule, screenDefaults } from './screenNode.js'
 import { createGaugeModule, gaugeDefaults } from './gaugeNode.js'
 import { createLedModule, ledDefaults } from './ledNode.js'
 import { moduleTypes } from './moduleTypes.js'
+import { workspaceFileVersion } from './workspaceFile.js'
 
 const intType = { kind: 'primitive', name: 'int' }
 const doubleType = { kind: 'primitive', name: 'double' }
@@ -47,7 +48,7 @@ function workspace(project, notes = []) {
         ? { id: module.id, type: 'led', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.led.width, height: moduleTypes.led.height, expandedNodeIds: [] }
         : { id: module.id, type: 'module', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: Math.max(definition.width, 520), height: Math.max(definition.height, 420), expandedNodeIds: [] })
   cards.push(...notes)
-  return { application: 'Sapphire 3', workspaceVersion: 1, project, presentation: { cards, camera: { x: 0, y: 0, zoomLevel: 0 }, selected: null } }
+  return { application: 'Sapphire 3', workspaceVersion: workspaceFileVersion, project, presentation: { cards, camera: { x: 0, y: 0, zoomLevel: 0 }, selected: null } }
 }
 
 // Fibonacci récursif : le point d'entrée affiche fib(10).
