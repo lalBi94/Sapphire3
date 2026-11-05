@@ -96,6 +96,7 @@
 | Chemin | Responsabilité |
 | --- | --- |
 | `package.json`, `pnpm-lock.yaml` | Dépendances et commandes du socle |
+| `.github/workflows/ci.yml` | CI GitHub Actions sur chaque pull request : installation verrouillée, contrôles de qualité, tests Node/Python et build Vite |
 | `pnpm-workspace.yaml` | Désactivation explicite de trois scripts transitifs de la CLI |
 | `index.html`, `src/main.jsx` | Point d'entrée HTML et montage React |
 | `src/pages/App.jsx` | Assemblage de l'unique page |
@@ -269,7 +270,7 @@ Scripts dans `package.json` :
 - `pnpm dist:win` génère `build/release/Sapphire3-<version>-windows.zip` depuis `package.json` (actuellement `Sapphire3-0.1.0-beta.2-windows.zip`), avec configuration Neutralinojs de production séparée : inspecteur et journalisation désactivés, aucun serveur Vite, source maps ni fixtures de développement. La configuration de développement n'est pas modifiée.
 - Le ZIP contient `Sapphire3.exe`, `resources.neu`, `VERSION.txt`, `CREDITS.md`, `LIRE-MOI.txt`, `README.txt` et `licenses/`. Aucune installation de Node.js n'est requise à l'exécution.
 - WebView2 requis sous Windows. Autres OS non vérifiés.
-- Tests du moteur configurés avec Node ; pas de lint ni suite d'interactions UI automatisée configurés.
+- Tests du moteur configurés avec Node ; pas de lint ni suite d'interactions UI automatisée configurés. La **CI GitHub Actions** (`.github/workflows/ci.yml`) s'exécute sur chaque **pull request** : installation verrouillée, contrôle des espaces, marqueurs de conflit et tests focalisés, `pnpm test` (Node et Python) puis `pnpm build`. Aucun secret ni droit d'écriture n'est demandé.
 - `pnpm preview` n'a pas été exécuté séparément.
 - Le « dézoom infini » reste soumis aux nombres JavaScript : les changements créant une échelle nulle ou une position non finie sont ignorés. Aucun seuil minimal de confort n'est imposé. Pas de zoom tactile par pincement.
 - L'autosauvegarde réécrit le fichier `.sp3` associé ou, pour un document jamais enregistré non vierge, une copie de récupération dans le répertoire de données persistant ; un document vierge n'écrit rien. Après une première sauvegarde, chaque modification est réécrite dans le fichier et celui-ci est rouvert au lancement. La transpilation reste manuelle et ne modifie jamais la source.
