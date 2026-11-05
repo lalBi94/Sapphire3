@@ -1,5 +1,7 @@
 # PROJECT_ARCHIVE.md — Sapphire 3
 
+> Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
+
 ## Distribution Windows alpha 0.1.0 — 31 octobre 2026
 
 - `package.json` passe à `0.1.0-alpha.1` et expose `pnpm dist:win` (`scripts/build-windows.mjs`). Le script lit la version du paquet, génère `build/production/neutralino.config.json` sans modifier la configuration de développement, compile Vite, supprime `dist/verify/`, refuse sources maps/fixtures `.sp3`/dossiers de développement, construit `resources.neu` et les binaires avec la CLI Neutralinojs 11.8.0, prépare le dossier portable et compresse son contenu sans dossier parent.

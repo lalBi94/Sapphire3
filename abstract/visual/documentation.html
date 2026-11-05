@@ -844,8 +844,9 @@
         <span class="tag">Persistance</span>
       </div>
       <p>
-        Le document est un fichier choisi par l'utilisateur, jamais un répertoire imposé et jamais écrit en
-        arrière-plan. Trois voies, toutes explicites&nbsp;: ouvrir, enregistrer, importer ou exporter.
+        Le document est un fichier choisi par l'utilisateur, jamais un répertoire imposé. Il est écrit à la demande,
+        puis réécrit automatiquement dans ce même fichier après chaque modification. Trois voies explicites&nbsp;:
+        ouvrir, enregistrer, importer ou exporter.
       </p>
       <ul>
         <li>Une enveloppe <em>workspace</em> versionnée contient le document logique et les informations de
@@ -860,7 +861,7 @@
       </ul>
       <div class="notes-soft">
         <p style="margin:0">
-          Un document sans chemin (.sp3 non encore écrit) reste en mémoire jusqu'à sa première enregistrer&nbsp;; une fois
+          Un document sans chemin (.sp3 non encore écrit) reste en mémoire jusqu'à sa première sauvegarde&nbsp;; une fois
           le fichier créé, chaque modification y est réécrite automatiquement (retard de 500&nbsp;ms) et le même fichier est
           rouvert au prochain lancement.
         </p>
@@ -881,6 +882,8 @@
           <tr><td>Sorties du simulateur</td><td>Une seule capacité&nbsp;: <code>Afficher</code>. Pas de saisie interactive, pas d'effet natif, pas de réseau, pas de journal persistant.</td></tr>
           <tr><td>Exécution</td><td>Uniquement sur action explicite&nbsp;; le débogueur, la mémoire abstraite et la simulation graphique simplifiée sont des options distinctes de Run.</td></tr>
           <tr><td>Langages cibles</td><td>JavaScript et Python opérationnels. C/C++ et Java désactivés&nbsp;— aucune promesse de génération.</td></tr>
+          <tr><td>Cartes spéciales</td><td>Screen, Gauge et LED adossées à des modules cachés normaux&nbsp;: aperçu ou code, lecture des images à 24 fps, flèches de dépendance.</td></tr>
+          <tr><td>Contrats</td><td>Contraintes vérifiables sur variables, constantes et paramètres, filtrées par type déclaré et signalées pendant Run.</td></tr>
           <tr><td>Analyse</td><td>Conservatrice&nbsp;: aucune preuve générale sur les valeurs, les comparaisons numériques, les dépendances globales ou la terminaison.</td></tr>
           <tr><td>Modèle objet</td><td>Évoqué comme direction, aucun contrat décidé. Pas de classes ni de structures dans le modèle source actuel&nbsp;; <code>TypeDeclaration</code> est un alias transparent.</td></tr>
           <tr><td>Sous-modules</td><td>Absents&nbsp;: la hiérarchie des portées lexicales ne doit pas être confondue avec un rangement de modules.</td></tr>
