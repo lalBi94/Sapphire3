@@ -56,8 +56,26 @@ const nativeJavaScript = Object.freeze({
 
 // Produit le code JavaScript d'un programme Sapphire déjà analysé.
 export function generateJavaScript(analysis, { selection = null } = {}) {
-  const context = createGenerationContext(analysis, { selection, reservedWords, allowDollar: true, runtimeNames: ['sapphireNumeric', 'sapphireChecked', 'sapphireRead', 'sapphireUninitialized', 'sapphireArray', 'sapphireElement', 'sapphireWrite', 'sapphireForEach', 'sapphireFinite', 'sapphireIntegerAbs', 'sapphireIntegerMin', 'sapphireIntegerMax', 'sapphireClamp', 'sapphireSign', 'sapphireGcd', 'sapphireRandomInt', 'sapphireLerp', 'sapphireCharAt', 'sapphireSubstring', 'sapphireArraySlice', 'sapphireArrayIndexOf', 'sapphireStringIndexOf', 'console', 'Math', 'Number', 'BigInt', 'Object', 'Error', 'Array'] })
-  const { ast, diagnostics, typeByNode, generatedNames, reserveDeclaration, referenceName, entryName } = context
+  const context = createGenerationContext(analysis, { selection, reservedWords, allowDollar: true, runtimeNames: ['sapphireNumeric', 'sapphireChecked', 'sapphireRead', 'sapphireUninitialized', 'sapphireArray', 'sapphireElement', 'sapphireWrite', 'sapphirePointer', 'sapphireElementPointer', 'sapphireDeref', 'sapphireDerefWrite', 'sapphirePointerEqual', 'sapphireForEach', 'sapphireFinite', 'sapphireIntegerAbs', 'sapphireIntegerMin', 'sapphireIntegerMax', 'sapphireClamp', 'sapphireSign', 'sapphireGcd', 'sapphireRandomInt', 'sapphireLerp', 'sapphireCharAt', 'sapphireSubstring', 'sapphireArraySlice', 'sapphireArrayIndexOf', 'sapphireStringIndexOf', 'console', 'Math', 'Number', 'BigInt', 'Object', 'Error', 'Array'] })
+  const { ast, nodes, diagnostics, typeByNode, generatedNames, reserveDeclaration, reserveSyntheticName, referenceName, entryName } = context
+  const referenceSymbols = analysis.semantic.index.referenceSymbols
+  const symbolByNode = analysis.semantic.index.symbolByNode
+  // Repère les variables et paramètres dont l'adresse est prise, pour leur donner une identité stable.
+  const addressedSymbols = new Set()
+  for (const node of nodes.values()) {
+    if (node.kind !== 'UnaryExpression' || node.properties?.operator !== '&') continue
+    const operand = child(node, 'operand')
+    if (operand?.kind !== 'Reference') continue
+    const symbol = referenceSymbols.get(operand.sourceId)
+    if (symbol) addressedSymbols.add(symbol.id)
+  }
+  const addressTokens = new Map()
+  for (const node of nodes.values()) {
+    if (!['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(node.kind)) continue
+    const symbol = symbolByNode.get(node.sourceId)
+    if (!symbol || !addressedSymbols.has(symbol.id)) continue
+    addressTokens.set(symbol.id, reserveSyntheticName(`sapphireAddress_${reserveDeclaration(node)}`))
+  }
 
   // Génère une expression en conservant la structure et les opérateurs de l'AST.
   function expression(node) {
@@ -78,13 +96,37 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
       const left = expression(child(node, 'left'))
       const right = expression(child(node, 'right'))
       if (['and', 'or'].includes(node.properties.operator)) return `(${left} ${operator} ${right})`
-      const operandType = typeByNode.get(child(node, 'left')?.sourceId)?.name
+      const leftType = typeByNode.get(child(node, 'left')?.sourceId)
+      if (['==', '!='].includes(node.properties.operator) && leftType?.kind === 'pointer') {
+        const equality = `sapphirePointerEqual(${left}, ${right})`
+        return node.properties.operator === '!=' ? `(!${equality})` : equality
+      }
+      const operandType = leftType?.name
       return `sapphireChecked(sapphireNumeric.evaluateBinary(${JSON.stringify(node.properties.operator)}, ${left}, ${right}, ${JSON.stringify(operandType)}))`
     }
     if (node.kind === 'UnaryExpression') {
       const operator = node.properties.operator
-      if (operator === '&' || operator === '*') {
-        diagnostics.push(createDiagnostic('TRANSPILE_EXPRESSION_UNSUPPORTED', `Opérateur ${operator} (pointeur) non pris en charge par le backend JavaScript.`, node.location))
+      if (operator === '*') return `sapphireDeref(${expression(child(node, 'operand'))})`
+      if (operator === '&') {
+        const operand = child(node, 'operand')
+        if (operand?.kind === 'Reference') {
+          const symbol = referenceSymbols.get(operand.sourceId)
+          const name = referenceName(operand)
+          const token = symbol ? addressTokens.get(symbol.id) : null
+          if (!token) {
+            diagnostics.push(createDiagnostic('TRANSPILE_EXPRESSION_UNSUPPORTED', 'Adresse d’une variable non résolue.', node.location))
+            return 'undefined'
+          }
+          const constant = symbol?.kind === 'ConstantDeclaration'
+          const label = symbol?.name ?? name
+          return `sapphirePointer(${token}, undefined, () => sapphireRead(${name}), (sapphireValue) => { ${name} = sapphireValue; }, ${constant ? 'true' : 'false'}, ${JSON.stringify(`&${label}`)})`
+        }
+        if (operand?.kind === 'ArrayAccess') {
+          const arraySymbol = child(operand, 'array')?.kind === 'Reference' ? referenceSymbols.get(child(operand, 'array').sourceId) : null
+          return `sapphireElementPointer(${expression(child(operand, 'array'))}, ${expression(child(operand, 'index'))}, ${arraySymbol?.kind === 'ConstantDeclaration' ? 'true' : 'false'})`
+        }
+        if (operand?.kind === 'UnaryExpression' && operand.properties.operator === '*') return expression(child(operand, 'operand'))
+        diagnostics.push(createDiagnostic('TRANSPILE_EXPRESSION_UNSUPPORTED', 'Adresse d’une expression non prise en charge.', node.location))
         return 'undefined'
       }
       return `sapphireChecked(sapphireNumeric.evaluateUnary(${JSON.stringify(operator)}, ${expression(child(node, 'operand'))}, ${JSON.stringify(typeByNode.get(node.sourceId)?.name)}))`
@@ -119,11 +161,18 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
   }
 
   // Diffère les initialiseurs globaux et marque explicitement les variables sans valeur.
-  function declaration(node, indent, initialize = true) {
+  function declaration(node, indent, initialize = true, inline = false) {
     const keyword = initialize && node.kind === 'ConstantDeclaration' ? 'const' : 'let'
     const name = generatedNames.get(node.sourceId) ?? reserveDeclaration(node)
     const initializer = child(node, 'initializer')
-    return `${indent}${keyword} ${name} = ${initialize && initializer ? expression(initializer) : 'sapphireUninitialized'};`
+    const value = initialize && initializer ? expression(initializer) : 'sapphireUninitialized'
+    const symbol = symbolByNode.get(node.sourceId)
+    const token = symbol ? addressTokens.get(symbol.id) : null
+    const line = `${keyword} ${name} = ${value}`
+    if (!token) return `${indent}${line};`
+    // Une déclaration de boucle for doit rester sur une seule ligne.
+    if (inline) return `${indent}${line}, ${token} = {};`
+    return `${indent}${line};\n${indent}const ${token} = {};`
   }
 
   // Génère un bloc avec indentation stable et sans introduire de syntaxe implicite.
@@ -146,6 +195,7 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
     if (node.kind === 'AssignmentStatement') {
       const target = child(node, 'target')
       const value = expression(child(node, 'value'))
+      if (target?.kind === 'UnaryExpression' && target.properties.operator === '*') return `${indent}sapphireDerefWrite(${expression(child(target, 'operand'))}, ${value});`
       if (target?.kind === 'ArrayAccess') return `${indent}sapphireWrite(${expression(child(target, 'array'))}, ${expression(child(target, 'index'))}, ${value});`
       return `${indent}${referenceName(target)} = ${value};`
     }
@@ -166,7 +216,9 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
       const initializer = child(node, 'initializer')
       const update = child(node, 'update')
       const initCode = initializer
-        ? statementCode(initializer, 0).trim().replace(/;$/, '')
+        ? ['VariableDeclaration', 'ConstantDeclaration'].includes(initializer.kind)
+          ? declaration(initializer, '', true, true).trim().replace(/;$/, '')
+          : statementCode(initializer, 0).trim().replace(/;$/, '')
         : ''
       const updateCode = update ? (update.kind === 'AssignmentStatement' ? statementCode(update, 0).trim().replace(/;$/, '') : expression(update)) : ''
       const test = child(node, 'test')
@@ -181,9 +233,16 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
   // Génère une fonction avec ses paramètres et son corps lexical.
   function functionCode(node) {
     const name = generatedNames.get(node.sourceId) ?? reserveDeclaration(node)
-    const parameters = (node.children.parameters ?? []).map((parameter) => reserveDeclaration(parameter))
+    const parameterNodes = node.children.parameters ?? []
+    const parameters = parameterNodes.map((parameter) => reserveDeclaration(parameter))
+    const tokens = parameterNodes.map((parameter) => {
+      const symbol = symbolByNode.get(parameter.sourceId)
+      const token = symbol ? addressTokens.get(symbol.id) : null
+      return token ? `  const ${token} = {};` : null
+    }).filter(Boolean)
     const body = block(child(node, 'body'), 1)
-    return `function ${name}(${parameters.join(', ')}) ${body}`
+    const prepared = tokens.length ? body.replace('{\n', `{\n${tokens.join('\n')}\n`) : body
+    return `function ${name}(${parameters.join(', ')}) ${prepared}`
   }
 
   const preview = generateSelection(context, { functionCode, statementCode, expression })
@@ -214,6 +273,11 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
     'function sapphireArray(length) { if (typeof length !== "number" && typeof length !== "bigint" || !Number.isInteger(Number(length)) || Number(length) < 0) throw new Error("SIMULATION_ARRAY_BOUNDS"); return Number(length); }',
     'function sapphireElement(array, index) { if (!Array.isArray(array)) throw new Error("SIMULATION_REFERENCE"); if (index < 0 || index >= array.length) throw new Error("SIMULATION_ARRAY_BOUNDS"); const value = array[index]; if (value === sapphireUninitialized) throw new Error("SIMULATION_UNINITIALIZED"); return value; }',
     'function sapphireWrite(array, index, value) { if (!Array.isArray(array)) throw new Error("SIMULATION_REFERENCE"); if (index < 0 || index >= array.length) throw new Error("SIMULATION_ARRAY_BOUNDS"); array[index] = value; }',
+    'function sapphirePointer(target, index, read, write, constant, label) { return { __sapphirePointer: true, target, index, read, write, constant, label, toString() { return label; } }; }',
+    'function sapphireElementPointer(array, index, constant) { if (!Array.isArray(array)) throw new Error("SIMULATION_REFERENCE"); const position = Number(index); if (!Number.isInteger(position) || position < 0 || position >= array.length) throw new Error("SIMULATION_ARRAY_BOUNDS"); return sapphirePointer(array, position, () => sapphireElement(array, position), value => sapphireWrite(array, position, value), constant, "&[" + position + "]"); }',
+    'function sapphireDeref(pointer) { if (!pointer || pointer.__sapphirePointer !== true) throw new Error("SIMULATION_REFERENCE"); return sapphireRead(pointer.read()); }',
+    'function sapphireDerefWrite(pointer, value) { if (!pointer || pointer.__sapphirePointer !== true) throw new Error("SIMULATION_REFERENCE"); if (pointer.constant) throw new Error("SIMULATION_CONST_IMMUTABLE"); pointer.write(value); }',
+    'function sapphirePointerEqual(left, right) { return Boolean(left && right && left.__sapphirePointer === true && right.__sapphirePointer === true && left.target === right.target && left.index === right.index); }',
     'function sapphireForEach(array, callback) { if (!Array.isArray(array)) throw new Error("SIMULATION_REFERENCE"); if (typeof callback !== "function") throw new Error("SIMULATION_REFERENCE"); for (const element of [...array]) callback(element); }',
     'function sapphireFinite(value) { if (!Number.isFinite(value)) throw new Error("SIMULATION_MATH_DOMAIN"); return value; }',
     'function sapphireIntegerAbs(value) { return value < 0n ? -value : value; }',

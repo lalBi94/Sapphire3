@@ -32,6 +32,14 @@ export function createGenerationContext(analysis, { selection = null, reservedWo
     return reservedWords.has(result) ? `_${result}` : result
   }
 
+  // Réserve un nom technique sans le confondre avec une déclaration source.
+  function reserveSyntheticName(base) {
+    let name = identifier(base)
+    while (usedNames.has(name)) name = `_${name}`
+    usedNames.add(name)
+    return name
+  }
+
   // Réserve tous les noms avant l'émission pour conserver les appels intermodules et récursifs.
   function reserveDeclaration(node) {
     if (generatedNames.has(node.sourceId)) return generatedNames.get(node.sourceId)
@@ -60,7 +68,7 @@ export function createGenerationContext(analysis, { selection = null, reservedWo
     return target ? reserveDeclaration(target) : identifier(symbol.name)
   }
 
-  return { analysis, ast, nodes, modules, parents, typeByNode, generatedNames, diagnostics, selection, reserveDeclaration, referenceName, entryName: entryPoints.length === 1 ? reserveDeclaration(entryPoints[0]) : null }
+  return { analysis, ast, nodes, modules, parents, typeByNode, generatedNames, diagnostics, selection, reserveDeclaration, reserveSyntheticName, referenceName, entryName: entryPoints.length === 1 ? reserveDeclaration(entryPoints[0]) : null }
 }
 
 // Valide et émet un extrait avec les mêmes callbacks que le programme complet.

@@ -5,7 +5,8 @@ export const pythonRuntimeNames = [
   '_sapphireMath', '_sapphireStruct', '_sapphireRandom', '_sapphireTypes', '_sapphireCodes',
   'sapphireUninitialized', 'sapphireRead', 'sapphireCheck', 'sapphireBinary',
   'sapphireUnary', 'sapphireCast', 'sapphireFormat', 'sapphireQuotient',
-  'sapphireArray', 'sapphireElement', 'sapphireWrite', 'sapphireForEach',
+  'sapphireArray', 'sapphireElement', 'sapphireWrite', '_SapphirePointer',
+  'sapphirePointer', 'sapphireElementPointer', 'sapphireDeref', 'sapphireDerefWrite', 'sapphirePointerEqual', 'sapphireForEach',
   'sapphireArraySlice', 'sapphireArrayIndexOf',
   'sapphireFinite', 'sapphireClamp', 'sapphireSign', 'sapphireLerp',
   'sapphireCharAt', 'sapphireSubstring', 'sapphireLog', 'sapphireSqrt',
@@ -101,6 +102,61 @@ def sapphireWrite(array, index, value):
     if index < 0 or index >= len(array):
         raise RuntimeError("SIMULATION_ARRAY_BOUNDS")
     array[index] = value
+
+# Représente une adresse stable vers une cellule ou une case de tableau.
+class _SapphirePointer:
+    __slots__ = ("target", "index", "constant", "label")
+
+    def __init__(self, target, index, constant, label):
+        self.target = target
+        self.index = index
+        self.constant = constant
+        self.label = label
+
+    def read(self):
+        if self.index is None:
+            return sapphireRead(self.target[0])
+        return sapphireElement(self.target, self.index)
+
+    def write(self, value):
+        if self.constant:
+            raise RuntimeError("SIMULATION_CONST_IMMUTABLE")
+        if self.index is None:
+            self.target[0] = value
+        else:
+            sapphireWrite(self.target, self.index, value)
+
+    def __eq__(self, other):
+        return isinstance(other, _SapphirePointer) and self.target is other.target and self.index == other.index
+
+    def __hash__(self):
+        return hash((id(self.target), self.index))
+
+    def __str__(self):
+        return self.label
+
+def sapphirePointer(target, index, constant, label):
+    return _SapphirePointer(target, index, constant, label)
+
+def sapphireElementPointer(array, index, constant):
+    if not isinstance(array, list):
+        raise RuntimeError("SIMULATION_REFERENCE")
+    return _SapphirePointer(array, index, constant, "&[" + str(index) + "]")
+
+def sapphireDeref(pointer):
+    if not isinstance(pointer, _SapphirePointer):
+        raise RuntimeError("SIMULATION_REFERENCE")
+    return pointer.read()
+
+def sapphireDerefWrite(pointer, value):
+    if not isinstance(pointer, _SapphirePointer):
+        raise RuntimeError("SIMULATION_REFERENCE")
+    if pointer.constant:
+        raise RuntimeError("SIMULATION_CONST_IMMUTABLE")
+    pointer.write(value)
+
+def sapphirePointerEqual(left, right):
+    return isinstance(left, _SapphirePointer) and isinstance(right, _SapphirePointer) and left.target is right.target and left.index == right.index
 
 # Parcourt une copie de la liste pour figer les éléments visités.
 def sapphireForEach(array, callback):

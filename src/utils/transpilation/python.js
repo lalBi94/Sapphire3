@@ -51,8 +51,27 @@ const nativePython = Object.freeze({
 export function generatePython(analysis, { selection = null } = {}) {
   const context = createGenerationContext(analysis, { selection, reservedWords, runtimeNames: pythonRuntimeNames })
   const { ast, nodes, parents, typeByNode, diagnostics, reserveDeclaration, referenceName, entryName } = context
+  const referenceSymbols = analysis.semantic.index.referenceSymbols
+  const symbolByNode = analysis.semantic.index.symbolByNode
+  // Les variables dont l'adresse est prise vivent dans une cellule mutable.
+  const cellSymbols = new Set()
+  for (const node of nodes.values()) {
+    if (node.kind !== 'UnaryExpression' || node.properties?.operator !== '&') continue
+    const operand = child(node, 'operand')
+    if (operand?.kind !== 'Reference') continue
+    const symbol = referenceSymbols.get(operand.sourceId)
+    if (symbol) cellSymbols.add(symbol.id)
+  }
   const globals = ast.modules.flatMap((module) => module.body).filter((node) => ['VariableDeclaration', 'ConstantDeclaration'].includes(node.kind))
   const globalIds = new Set(globals.map((node) => node.sourceId))
+  const globalEntries = globals.map((node) => ({ node, name: reserveDeclaration(node), cell: cellSymbols.has(symbolByNode.get(node.sourceId)?.id) }))
+  const isCell = (node) => cellSymbols.has(symbolByNode.get(node.sourceId)?.id)
+  // Accède à la cellule d'une variable adressée, ou directement au nom sinon.
+  function referenceCode(node) {
+    const symbol = referenceSymbols.get(node?.sourceId)
+    const name = referenceName(node)
+    return symbol && cellSymbols.has(symbol.id) ? `${name}[0]` : name
+  }
 
   // Convertit les seules valeurs déjà validées par le moteur, notamment l'arrondi direct des float.
   function literalCode(node) {
@@ -81,18 +100,35 @@ export function generatePython(analysis, { selection = null } = {}) {
   function expression(node) {
     if (!node) return 'None'
     if (node.kind === 'Literal') return literalCode(node)
-    if (node.kind === 'Reference') return `sapphireRead(${referenceName(node)})`
+    if (node.kind === 'Reference') return `sapphireRead(${referenceCode(node)})`
     if (node.kind === 'BinaryExpression') {
       const left = expression(child(node, 'left'))
       const right = expression(child(node, 'right'))
       const operator = node.properties.operator
       if (['and', 'or'].includes(operator)) return `(${left} ${operator} ${right})`
-      return `sapphireBinary(${JSON.stringify(operator)}, ${left}, ${right}, ${JSON.stringify(typeByNode.get(child(node, 'left')?.sourceId)?.name)})`
+      const leftType = typeByNode.get(child(node, 'left')?.sourceId)
+      if (['==', '!='].includes(operator) && leftType?.kind === 'pointer') {
+        const equality = `sapphirePointerEqual(${left}, ${right})`
+        return operator === '!=' ? `(not ${equality})` : equality
+      }
+      return `sapphireBinary(${JSON.stringify(operator)}, ${left}, ${right}, ${JSON.stringify(leftType?.name)})`
     }
     if (node.kind === 'UnaryExpression') {
       const operator = node.properties.operator
-      if (operator === '&' || operator === '*') {
-        diagnostics.push(createDiagnostic('TRANSPILE_EXPRESSION_UNSUPPORTED', `Opérateur ${operator} (pointeur) non pris en charge par le backend Python.`, node.location))
+      if (operator === '*') return `sapphireDeref(${expression(child(node, 'operand'))})`
+      if (operator === '&') {
+        const operand = child(node, 'operand')
+        if (operand?.kind === 'Reference') {
+          const symbol = referenceSymbols.get(operand.sourceId)
+          const label = symbol?.name ?? referenceName(operand)
+          return `sapphirePointer(${referenceName(operand)}, None, ${symbol?.kind === 'ConstantDeclaration' ? 'True' : 'False'}, ${JSON.stringify(`&${label}`)})`
+        }
+        if (operand?.kind === 'ArrayAccess') {
+          const arraySymbol = child(operand, 'array')?.kind === 'Reference' ? referenceSymbols.get(child(operand, 'array').sourceId) : null
+          return `sapphireElementPointer(${expression(child(operand, 'array'))}, ${expression(child(operand, 'index'))}, ${arraySymbol?.kind === 'ConstantDeclaration' ? 'True' : 'False'})`
+        }
+        if (operand?.kind === 'UnaryExpression' && operand.properties.operator === '*') return expression(child(operand, 'operand'))
+        diagnostics.push(createDiagnostic('TRANSPILE_EXPRESSION_UNSUPPORTED', 'Adresse d’une expression non prise en charge.', node.location))
         return 'None'
       }
       return `sapphireUnary(${JSON.stringify(operator)}, ${expression(child(node, 'operand'))}, ${JSON.stringify(typeByNode.get(node.sourceId)?.name)})`
@@ -126,6 +162,7 @@ export function generatePython(analysis, { selection = null } = {}) {
     const indent = '    '.repeat(level)
     const name = reserveDeclaration(node)
     const initializer = child(node, 'initializer')
+    if (isCell(node)) return `${indent}${name} = [sapphireUninitialized]${initializer ? `\n${indent}${name}[0] = ${expression(initializer)}` : ''}`
     return `${indent}${name} = sapphireUninitialized${initializer ? `\n${indent}${name} = ${expression(initializer)}` : ''}`
   }
 
@@ -152,8 +189,9 @@ export function generatePython(analysis, { selection = null } = {}) {
     if (node.kind === 'AssignmentStatement') {
       const target = child(node, 'target')
       const value = expression(child(node, 'value'))
+      if (target?.kind === 'UnaryExpression' && target.properties.operator === '*') return `${indent}sapphireDerefWrite(${expression(child(target, 'operand'))}, ${value})`
       if (target?.kind === 'ArrayAccess') return `${indent}sapphireWrite(${expression(child(target, 'array'))}, ${expression(child(target, 'index'))}, ${value})`
-      return `${indent}${referenceName(target)} = ${value}`
+      return `${indent}${referenceCode(target)} = ${value}`
     }
     if (node.kind === 'PrintStatement') return `${indent}print(sapphireFormat(${expression(child(node, 'value'))}))`
     if (node.kind === 'ForEachStatement') return `${indent}sapphireForEach(${expression(child(node, 'array'))}, ${expression(child(node, 'callback'))})`
@@ -196,7 +234,10 @@ export function generatePython(analysis, { selection = null } = {}) {
   // Émet une fonction avec paramètres uniques, globals modifiés et corps lexical réinitialisé.
   function functionCode(node) {
     const names = writtenGlobals(node)
-    return `def ${reserveDeclaration(node)}(${node.children.parameters.map(reserveDeclaration).join(', ')}):\n${names.length ? `    global ${names.join(', ')}\n` : ''}${block(child(node, 'body'), 1)}`
+    const parameterNodes = node.children.parameters
+    const parameterNames = parameterNodes.map(reserveDeclaration)
+    const wrapped = parameterNodes.map((parameter, index) => isCell(parameter) ? `    ${parameterNames[index]} = [${parameterNames[index]}]` : null).filter(Boolean)
+    return `def ${reserveDeclaration(node)}(${parameterNames.join(', ')}):\n${names.length ? `    global ${names.join(', ')}\n` : ''}${wrapped.length ? `${wrapped.join('\n')}\n` : ''}${block(child(node, 'body'), 1)}`
   }
 
   // Retrouve l'update de la boucle englobante pour un aperçu de continue ou de sous-bloc.
@@ -221,12 +262,12 @@ export function generatePython(analysis, { selection = null } = {}) {
       if (code) initializers.push(code)
     }
   }
-  const globalNames = globals.map(reserveDeclaration)
+  const globalNames = globalEntries.map((entry) => entry.name)
   const code = [
     '# Généré par Sapphire 3. Ne pas modifier ce fichier.', pythonRuntime(),
-    ...globalNames.map((name) => `${name} = sapphireUninitialized`), '', ...functions, '',
+    ...globalEntries.map(({ name, cell }) => `${name} = ${cell ? '[sapphireUninitialized]' : 'sapphireUninitialized'}`), '', ...functions, '',
     'def main():', ...(globalNames.length ? [`    global ${globalNames.join(', ')}`] : []),
-    ...globalNames.map((name) => `    ${name} = sapphireUninitialized`), ...initializers,
+    ...globalEntries.map(({ name, cell }) => `    ${name} = ${cell ? '[sapphireUninitialized]' : 'sapphireUninitialized'}`), ...initializers,
     ...(entryName ? [`    ${entryName}()`] : ['    pass']), '',
     'if __name__ == "__main__":', '    main()', '',
   ].join('\n')

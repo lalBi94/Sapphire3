@@ -167,7 +167,7 @@ test('pointeurs : l’adresse d’un élément de tableau est exécutable et dé
   assert.equal(pointerValues.at(-1).value, '&[1]')
 })
 
-test('pointeurs : la transpilation les refuse, faute d’équivalent cible', () => {
+test('pointeurs : la transpilation les prend en charge sur JavaScript et Python', () => {
   const source = executablePointerProgram()
   node(source, 'm', 'body', 'Block', {}, { statements: ['show'] })
   node(source, 'm', 'show', 'PrintStatement', {}, { value: 'derefP' })
@@ -175,11 +175,11 @@ test('pointeurs : la transpilation les refuse, faute d’équivalent cible', () 
   node(source, 'm', 'pRef', 'Reference', {}, {}, { target: { kind: 'node', nodeId: 'p' } })
 
   const web = transpileProgram(source, { target: 'javascript' })
-  assert.equal(web.ok, false)
-  assert.ok(web.diagnostics.some((entry) => entry.code === 'TRANSPILE_EXPRESSION_UNSUPPORTED'))
+  assert.equal(web.ok, true, JSON.stringify(web.diagnostics))
+  assert.match(web.code, /sapphireDeref/)
   const python = transpileProgram(source, { target: 'python' })
-  assert.equal(python.ok, false)
-  assert.ok(python.diagnostics.some((entry) => entry.code === 'TRANSPILE_EXPRESSION_UNSUPPORTED'))
+  assert.equal(python.ok, true, JSON.stringify(python.diagnostics))
+  assert.match(python.code, /sapphireDeref/)
 })
 
 // Programme exécutable : `*p = 5` sur une variable et `*pe = 9` sur un élément de tableau.
