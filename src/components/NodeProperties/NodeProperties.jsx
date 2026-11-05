@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react'
 import { ChevronRight, Copy, FileJson, Image as ImageIcon, X } from 'lucide-react'
-import { resolveContext, getNodeSchema, contractKinds, createContract, contractLabel, getContractDefinition, deletionImpact } from '../../utils/logic/index.js'
+import { resolveContext, getNodeSchema, contractKindsForType, createContract, contractLabel, getContractDefinition, deletionImpact } from '../../utils/logic/index.js'
 import { diagnosticLabel, kindLabel, nodeSummary, slotLabel, typeLabel } from '../LogicTree/logicLabels.js'
 import { ancestorNodeIds } from '../../utils/nodeTree.js'
 import { buildBugReport } from '../../utils/bugReport.js'
@@ -78,8 +78,10 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
   const diagnostics = index.analysis.diagnostics.filter((entry) => selected.kind === 'module' ? entry.location.moduleId === selected.id : entry.location.nodeId === selected.id)
   const configurable = schema && (schema.named || schema.declaresType || schema.declaresElementType || ['BinaryExpression', 'UnaryExpression', 'Reference'].includes(record.kind))
   const contractable = selected.kind === 'node' && Boolean(record) && ['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(record.kind)
-  const contractDefinition = getContractDefinition(contractKind)
-  const draftedContract = contractKind ? createContract(contractKind, contractArguments) : null
+  const contractType = record ? index.nodeTypes?.get(record.id) ?? record.properties?.type ?? null : null
+  const availableContractKinds = contractable ? contractKindsForType(contractType) : []
+  const contractDefinition = contractKind && availableContractKinds.includes(contractKind) ? getContractDefinition(contractKind) : null
+  const draftedContract = contractDefinition ? createContract(contractKind, contractArguments) : null
 
   // Prépare les champs d'argument du contrat choisi.
   function handleContractKind(kind) {
@@ -156,7 +158,7 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
         <NodeForm key={`${record.id}:${JSON.stringify([record.properties, record.references])}`} kind={record.kind} initialNode={record} context={context} showName={!schema.named} onSubmit={(patch) => onConfigure(record.id, patch)} />
       </> : <p>{t('details.addParts')}</p>}
       {selected.kind === 'module' && <ModuleInterface key={record.id} module={record} project={project} analysis={index.analysis} index={index} onExport={onExport} onImport={onImport} onRemoveImport={onRemoveImport} />}
-      {contractable && <section className="node-properties__contracts" aria-label={t('contracts.title')}>
+      {contractable && (availableContractKinds.length > 0 || (record.contracts ?? []).length > 0) && <section className="node-properties__contracts" aria-label={t('contracts.title')}>
         <h3>{t('contracts.title')} <InfoHint text={t('contracts.hint')} /></h3>
         {(record.contracts ?? []).length === 0
           ? <p>{t('contracts.none')}</p>
@@ -165,9 +167,9 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
             <button type="button" aria-label={`${t('contracts.remove')} · ${contractLabel(contract, t)}`} title={t('contracts.remove')} onClick={() => onContracts(record.id, record.contracts.filter((_, index2) => index2 !== position))}><X size={13} aria-hidden="true" /></button>
           </li>)}</ul>}
         <div className="node-properties__contracts-add">
-          <select value={contractKind} onChange={(event) => handleContractKind(event.target.value)} aria-label={t('contracts.choose')}>
+          <select value={contractDefinition ? contractKind : ''} onChange={(event) => handleContractKind(event.target.value)} aria-label={t('contracts.choose')}>
             <option value="">{t('contracts.choose')}</option>
-            {contractKinds.map((kind) => {
+            {availableContractKinds.map((kind) => {
               const definition = getContractDefinition(kind)
               const values = Object.fromEntries(definition.arguments.map((argument) => [argument.name, '…']))
               return <option key={kind} value={kind}>{t(`contract.${kind}`, values)}</option>

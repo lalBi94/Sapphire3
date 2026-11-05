@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { simulateProgram, satisfiesContract, normalizeContracts, contractKinds } from '../../src/utils/logic/index.js'
+import { simulateProgram, satisfiesContract, normalizeContracts, contractKinds, contractKindsForType } from '../../src/utils/logic/index.js'
 import { program, root, node, intType } from './fixtures.js'
 
 const voidType = { kind: 'primitive', name: 'void' }
@@ -68,6 +68,27 @@ test('sans contrat, le résultat ne signale rien', () => {
   const result = simulateProgram(assignmentProgram(null, 5, 0))
   assert.equal(result.contracts.total, 0)
   assert.deepEqual(result.contracts.violations, [])
+})
+
+test('contrats proposés : le type déclaré filtre les genres applicables', () => {
+  const intContracts = contractKindsForType(intType)
+  assert.ok(intContracts.includes('even') && intContracts.includes('between'))
+  assert.equal(intContracts.includes('contains'), false)
+  assert.equal(intContracts.includes('isTrue'), false)
+  const doubleContracts = contractKindsForType({ kind: 'primitive', name: 'double' })
+  assert.ok(doubleContracts.includes('greaterThan'))
+  assert.equal(doubleContracts.includes('even'), false)
+  const stringContracts = contractKindsForType({ kind: 'primitive', name: 'string' })
+  assert.ok(stringContracts.includes('startsWith') && stringContracts.includes('minLength'))
+  assert.equal(stringContracts.includes('positive'), false)
+  assert.deepEqual(contractKindsForType({ kind: 'primitive', name: 'boolean' }), ['isTrue', 'isFalse'])
+  const arrayContracts = contractKindsForType(intArray)
+  assert.ok(arrayContracts.includes('sortedAscending') && arrayContracts.includes('uniqueElements') && arrayContracts.includes('minLength'))
+  assert.equal(arrayContracts.includes('even'), false)
+  assert.equal(contractKindsForType({ kind: 'array', elementType: { kind: 'primitive', name: 'boolean' } }).includes('sortedAscending'), false)
+  assert.deepEqual(contractKindsForType({ kind: 'pointer', pointee: intType }), [])
+  assert.deepEqual(contractKindsForType({ kind: 'function', parameters: [intType], returnType: voidType }), [])
+  assert.deepEqual(contractKindsForType(null), [])
 })
 
 test('helpers de contrat : genres connus, évaluation et normalisation', () => {

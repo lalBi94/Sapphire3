@@ -39,6 +39,34 @@ export function getContractDefinition(kind) {
   return contractDefinitions.find((definition) => definition.kind === kind) ?? null
 }
 
+const integerTypes = ['short int', 'short uint', 'int', 'uint']
+const floatTypes = ['float', 'double']
+const textTypes = ['string', 'char']
+
+// Indique si un type est numérique, entier ou flottant.
+function numericKind(type) {
+  if (type?.kind !== 'primitive') return null
+  if (integerTypes.includes(type.name)) return 'integer'
+  if (floatTypes.includes(type.name)) return 'float'
+  return null
+}
+
+// Liste les contrats réellement applicables au type déclaré d'un symbole.
+export function contractKindsForType(type) {
+  let allowed = []
+  const numeric = numericKind(type)
+  if (numeric === 'integer') allowed = ['positive', 'nonNegative', 'nonZero', 'even', 'odd', 'greaterThan', 'lessThan', 'between']
+  else if (numeric === 'float') allowed = ['positive', 'nonNegative', 'nonZero', 'greaterThan', 'lessThan', 'between']
+  else if (type?.kind === 'primitive' && textTypes.includes(type.name)) allowed = ['nonEmpty', 'nonBlank', 'singleLine', 'startsWith', 'endsWith', 'contains', 'minLength', 'maxLength']
+  else if (type?.kind === 'primitive' && type.name === 'boolean') allowed = ['isTrue', 'isFalse']
+  else if (type?.kind === 'array') {
+    const element = numericKind(type.elementType) ? 'number' : type.elementType?.kind === 'primitive' && textTypes.includes(type.elementType.name) ? 'text' : null
+    allowed = ['nonEmpty', 'minLength', 'maxLength', 'uniqueElements', ...(element ? ['sortedAscending'] : [])]
+  }
+  const set = new Set(allowed)
+  return contractDefinitions.filter((definition) => set.has(definition.kind)).map((definition) => definition.kind)
+}
+
 // Vérifie qu'un genre de contrainte est connu.
 export function isContractKind(kind) {
   return getContractDefinition(kind) !== null
