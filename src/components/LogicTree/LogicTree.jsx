@@ -8,12 +8,14 @@ function moduleNodeIds(module, index) {
   return new Set(index.nodeIdsByModule?.get(module.id) ?? [])
 }
 
-// Détermine si la sélection contient un nœud de ce module.
-function hasSelectedNode(props) {
-  if (props.selectedId && props.index.nodes.get(props.selectedId)?.moduleId === props.module.id) return true
-  if (!props.selectedIds) return false
-  for (const id of props.selectedIds) if (props.index.nodes.get(id)?.moduleId === props.module.id) return true
-  return false
+// Signature des nœuds sélectionnés dans ce module : un changement de nœud doit re-rendre l'arbre.
+function selectedSignature(props) {
+  if (props.selectedIds) {
+    const ids = []
+    for (const id of props.selectedIds) if (props.index.nodes.get(id)?.moduleId === props.module.id) ids.push(id)
+    return ids.sort().join('|')
+  }
+  return props.selectedId && props.index.nodes.get(props.selectedId)?.moduleId === props.module.id ? props.selectedId : ''
 }
 
 // Détermine si le nœud exécuté appartient à ce module.
@@ -40,7 +42,7 @@ function sameTreeProps(previous, next) {
   if (previous.module !== next.module || previous.index !== next.index || previous.readOnly !== next.readOnly) return false
   if (previous.expandedNodeIds !== next.expandedNodeIds) return false
   if (!sameIds(previous.executionExpandedNodeIds, next.executionExpandedNodeIds)) return false
-  if (hasSelectedNode(previous) !== hasSelectedNode(next)) return false
+  if (selectedSignature(previous) !== selectedSignature(next)) return false
   if (hasActiveNode(previous) !== hasActiveNode(next)) return false
   if ((hasActiveNode(previous) || hasActiveNode(next)) && previous.executionSession !== next.executionSession) return false
   if (dropSignature(previous) !== dropSignature(next)) return false
