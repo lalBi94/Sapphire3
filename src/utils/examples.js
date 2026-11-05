@@ -1351,7 +1351,7 @@ function roverSurvey() {
   b.project.nodes.find((node) => node.id === 'roverRockIndices').contracts = [{ kind: 'minLength', arguments: [20] }]
 
   const result = workspace(b.project, [
-    note('roverScreenNote', 'Rover map', 'Écran 48×18 : la carte est peinte une fois (rochers et artefact), puis le rover avance de deux cases par image. La position de l’artefact est tirée au hasard, en haut ou en bas de la carte, à chaque exécution ; la batterie alimente la jauge et la LED s’allume quand l’artefact est atteint.', 0, 900, 620, 240),
+    note('roverScreenNote', 'Rover map', 'Écran 48×18 : la carte est peinte une fois (rochers et artefact), puis le rover avance de deux cases par image. La position de l’artefact est tirée au hasard, en haut ou en bas de la carte, à chaque exécution et à chaque boucle de lecture ; la batterie alimente la jauge et la LED s’allume quand l’artefact est atteint.', 0, 900, 620, 240),
     note('roverMapNote', 'Map data', 'Le module Map propose un alias `Tile`, la constante `ARTIFACT` et `tileAt` / `isArtifact`. Les rochers sont marqués par une boucle **For**, puis peints par **ForEach** via une variable de type fonction.', 660, 900, 620, 240),
     note('roverDriveNote', 'Drive', '`explore` reçoit trois pointeurs (`&x`, `&y`, `&battery`), essaie jusqu’à quatre directions avec une boucle **While** et sort par **Break** au premier pas libre ; la batterie diminue à chaque déplacement.', 1320, 900, 620, 240),
   ])

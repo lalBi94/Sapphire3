@@ -21,7 +21,7 @@ function paintScreen(context, imageRef, state, fallbackWidth, fallbackHeight) {
 
 // Dessine le tampon RGBA de l'écran dans un canvas, sans allocation de grille DOM.
 // La taille vient uniquement de la carte : l'application choisit le meilleur ratio.
-export default function ScreenCanvas({ card, state = null, frames = null, screenId = null, playing = false }) {
+export default function ScreenCanvas({ card, state = null, frames = null, screenId = null, playing = false, onSequenceEnd = null }) {
   const { t } = useTranslation()
   const canvasRef = useRef(null)
   const viewportRef = useRef(null)
@@ -29,6 +29,8 @@ export default function ScreenCanvas({ card, state = null, frames = null, screen
   const playbackRef = useRef(0)
   const cycleRef = useRef(0)
   const framesRef = useRef(null)
+  const endCallbackRef = useRef(onSequenceEnd)
+  const endNotifiedRef = useRef(false)
   const [box, setBox] = useState({ width: 0, height: 0 })
   const width = state?.width ?? card.screenWidth ?? 15
   const height = state?.height ?? card.screenHeight ?? 9
@@ -60,13 +62,18 @@ export default function ScreenCanvas({ card, state = null, frames = null, screen
     paintScreen(canvas.getContext('2d'), imageRef, state, width, height)
   }, [state, width, height])
 
+  useEffect(() => {
+    endCallbackRef.current = onSequenceEnd
+  }, [onSequenceEnd])
+
   // Rejoue les images capturées à 24 fps directement dans le canvas, sans état React par frame.
-  // La lecture avance toujours : elle boucle sur la période détectée, sinon sur toute la séquence.
+  // Une séquence cyclique boucle sur sa période ; une séquence unique demande une nouvelle exécution à la fin.
   useEffect(() => {
     if (framesRef.current !== frames) {
       framesRef.current = frames
       playbackRef.current = 0
       cycleRef.current = findFrameCycle(frames, screenId)
+      endNotifiedRef.current = false
     }
     const canvas = canvasRef.current
     if (!canvas || !frames?.length || !screenId) return undefined
@@ -80,6 +87,14 @@ export default function ScreenCanvas({ card, state = null, frames = null, screen
     const timer = window.setInterval(() => {
       const cycle = cycleRef.current > 1 ? cycleRef.current : frames.length
       if (cycle <= 1) return
+      const sequenceEnd = cycleRef.current <= 1 && playbackRef.current >= frames.length - 1
+      if (sequenceEnd && endCallbackRef.current) {
+        if (!endNotifiedRef.current) {
+          endNotifiedRef.current = true
+          endCallbackRef.current()
+        }
+        return
+      }
       playbackRef.current = (playbackRef.current + 1) % cycle
       draw()
     }, screenPlaybackFrameDelay)

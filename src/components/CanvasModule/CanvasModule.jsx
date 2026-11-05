@@ -67,7 +67,7 @@ function ModuleEmoji({ emoji, onChange }) {
 }
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -424,7 +424,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         <div className="canvas-module__content" data-canvas-scroll>
           {screenView === 'code'
             ? children
-            : <ScreenCanvas card={module} state={screenState} frames={screenFrames} screenId={module.id} playing={screenPlaying} />}
+            : <ScreenCanvas card={module} state={screenState} frames={screenFrames} screenId={module.id} playing={screenPlaying} onSequenceEnd={onScreenSequenceEnd} />}
         </div>
       ) : definition.hasText ? (
         readOnly ? (

@@ -73,6 +73,7 @@ export default function Canvas() {
   const [functionTarget, setFunctionTarget] = useState(null)
   const [functionResult, setFunctionResult] = useState(null)
   const [revealTarget, setRevealTarget] = useState(null)
+  const screenRerunAtRef = useRef(0)
   const [bookmarks, setBookmarks] = useState(() => loadBookmarks())
   const [bookmarksOpen, setBookmarksOpen] = useState(false)
   const [breakpoints, setBreakpoints] = useState(() => new Set())
@@ -436,6 +437,25 @@ export default function Canvas() {
     setSimulationResult(result)
     setExecutionFree(false)
     setExecution(result.ok && result.trace.length > 0 ? { trace: result.trace, index: 0, running: true, paused: false, stopped: false } : null)
+  }
+
+  // Une séquence d'écran sans cycle relance la simulation pour produire de nouvelles images.
+  function handleScreenSequenceEnd() {
+    if (!simulationResult || !execution) return
+    const now = Date.now()
+    if (now - screenRerunAtRef.current < 200) return
+    screenRerunAtRef.current = now
+    const result = simulateProgram(document.project)
+    if (!result.ok || !result.screenFrames?.length) return
+    setSimulationResult((current) => current ? {
+      ...current,
+      screens: result.screens,
+      gauges: result.gauges,
+      leds: result.leds,
+      screenFrames: result.screenFrames,
+      screenFrameGauges: result.screenFrameGauges ?? [],
+      screenFrameLeds: result.screenFrameLeds ?? [],
+    } : current)
   }
 
   // Ouvre la simulation graphique simplifiée sur la trace du moteur, sans code mort.
@@ -895,6 +915,7 @@ export default function Canvas() {
         onResize={(id, width, height) => document.updateGeometry(id, { width, height })}
         onMove={handleModuleMove} onMoveStart={handleModuleMoveStart} onMoveEnd={handleModuleMoveEnd}
         onScreenViewChange={(id, screenView) => document.updateGeometry(id, { screenView })}
+        onScreenSequenceEnd={handleScreenSequenceEnd}
         onGaugeViewChange={(id, gaugeView) => document.updateGeometry(id, { gaugeView })}
         onLedViewChange={(id, ledView) => document.updateGeometry(id, { ledView })}
         screenState={screenPlayback ? null : screenStates[card.id] ?? null}
