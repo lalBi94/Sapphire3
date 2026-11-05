@@ -6,6 +6,7 @@ import { getMathNative } from './mathNatives.js'
 import { createScreenStateReader, sameScreenStates } from './screenState.js'
 import { createGaugeStateReader } from './gaugeState.js'
 import { createLedStateReader } from './ledState.js'
+import { moduleInitializationOrder } from './moduleInitialization.js'
 
 // Ajoute un code stable sans introduire de traduction ni de dépendance UI dans le moteur.
 function simulationError(code, message) {
@@ -500,7 +501,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   let lastScopes = []
   let lastInstructionId = null
   try {
-    for (const module of project.modules) {
+    for (const module of moduleInitializationOrder(project, analysis)) {
       for (const id of module.rootNodeIds) {
         const node = nodes.get(id)
         if (node && node.kind !== 'FunctionDeclaration') executeStatement(node, global)

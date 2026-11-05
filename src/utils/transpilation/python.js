@@ -3,6 +3,7 @@ import { validateLiteral } from '../logic/numericConstants.js'
 import { child, createGenerationContext, generateSelection } from './context.js'
 import { pythonRuntime, pythonRuntimeNames } from './pythonRuntime.js'
 import { getMathNative } from '../logic/mathNatives.js'
+import { moduleInitializationOrder } from '../logic/moduleInitialization.js'
 
 const reservedWords = new Set([
   'False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await', 'break', 'class',
@@ -255,7 +256,10 @@ export function generatePython(analysis, { selection = null } = {}) {
 
   const functions = []
   const initializers = []
-  for (const module of ast.modules) for (const node of module.body) {
+  const modulesById = new Map(ast.modules.map((module) => [module.sourceId, module]))
+  const orderedModules = moduleInitializationOrder(analysis.source, analysis).map((module) => modulesById.get(module.id)).filter(Boolean)
+  for (const module of ast.modules) if (!orderedModules.includes(module)) orderedModules.push(module)
+  for (const module of orderedModules) for (const node of module.body) {
     if (node.kind === 'FunctionDeclaration') functions.push(functionCode(node))
     else {
       const code = statementCode(node, 1)

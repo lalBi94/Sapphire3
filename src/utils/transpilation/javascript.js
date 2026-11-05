@@ -4,6 +4,7 @@ import { createNumericOperations, validateLiteral } from '../logic/numericConsta
 import { primitiveDefinitions } from '../logic/primitives.js'
 import { diagnosticCodes } from '../logic/diagnostics.js'
 import { getMathNative } from '../logic/mathNatives.js'
+import { moduleInitializationOrder } from '../logic/moduleInitialization.js'
 
 const operators = Object.freeze({
   and: '&&',
@@ -251,7 +252,10 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
   const functions = []
   const globalDeclarations = []
   const globalInitializers = []
-  for (const module of ast.modules) {
+  const modulesById = new Map(ast.modules.map((module) => [module.sourceId, module]))
+  const orderedModules = moduleInitializationOrder(analysis.source, analysis).map((module) => modulesById.get(module.id)).filter(Boolean)
+  for (const module of ast.modules) if (!orderedModules.includes(module)) orderedModules.push(module)
+  for (const module of orderedModules) {
     for (const node of module.body) {
       if (node.kind === 'FunctionDeclaration') functions.push(functionCode(node))
       else if (node.kind === 'VariableDeclaration' || node.kind === 'ConstantDeclaration') {
