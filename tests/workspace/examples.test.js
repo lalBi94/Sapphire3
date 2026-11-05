@@ -5,6 +5,7 @@ import { examples, exampleCategories, exampleSubcategories } from '../../src/uti
 import { deserializeWorkspace } from '../../src/utils/workspaceFile.js'
 import { analyzeProgram, simulateProgram } from '../../src/utils/logic/index.js'
 import { findFrameCycle } from '../../src/utils/screenPlayback.js'
+import { nodeSchema } from '../../src/utils/logic/nodeSchema.js'
 import { transpileProgram } from '../../src/utils/transpilation/index.js'
 
 const expectedOutput = {
@@ -24,12 +25,14 @@ const expectedOutput = {
   pixelScreens: ['Logos bouncing'],
   rain: ['Rain'],
   gameOfLife: ['Game of life'],
+  roverSurvey: ['Rover survey', 'true'],
+  signalLab: ['hot', 'STABLE', 'w', 'true', '5', '8', '16', '3', '19', 'true', '0', 'Signal lab'],
   gaugeDemo: ['Gauge full'],
   carDashboard: ['Car dashboard'],
 }
 
 test('bibliothèque d’exemples : chaque projet est valide, analysable et s’exécute', () => {
-  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'recursion', 'arrays', 'foreach', 'sorting', 'maths', 'imports', 'pointers', 'higherOrder', 'quickSort', 'coinChange', 'gaugeDemo', 'carDashboard', 'pixelScreens', 'rain', 'knapsack', 'calculus', 'gameOfLife'])
+  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'recursion', 'arrays', 'foreach', 'sorting', 'maths', 'imports', 'pointers', 'higherOrder', 'quickSort', 'coinChange', 'gaugeDemo', 'carDashboard', 'pixelScreens', 'rain', 'knapsack', 'calculus', 'gameOfLife', 'roverSurvey', 'signalLab'])
   assert.deepEqual(exampleCategories.map((category) => category.id), ['simple', 'medium', 'hard'])
   for (const example of examples) {
     assert.ok(exampleCategories.some((category) => category.id === example.category), `${example.id}: catégorie connue`)
@@ -107,6 +110,26 @@ test('exemple pluie matricielle : colonnes, traînée et boucle sans raccord', (
   const counts = result.screenFrames.map((frame) => frame.rainScreen.pixels.filter((value, index) => index % 4 === 3 && value > 0).length)
   assert.ok(counts.every((count) => count === 9))
   assert.equal(transpileProgram(workspace.project).code, 'TRANSPILE_SCREEN_UNSUPPORTED')
+})
+
+test('exemples Hard : les deux simulations couvrent tous les types de nœud et de carte', () => {
+  const sourceKinds = Object.keys(nodeSchema).filter((kind) => kind !== 'Hole')
+  for (const id of ['roverSurvey', 'signalLab']) {
+    const workspace = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === id).build()))
+    const used = new Set(workspace.project.nodes.map((node) => node.kind))
+    assert.deepEqual(sourceKinds.filter((kind) => !used.has(kind)), [], `${id}: types de nœud manquants`)
+    const cardTypes = new Set(workspace.presentation.cards.map((card) => card.type))
+    for (const type of ['module', 'screen', 'gauge', 'led', 'comment']) assert.ok(cardTypes.has(type), `${id}: carte ${type}`)
+    assert.equal(cardTypes.has('image'), false, `${id}: aucune carte Image`)
+    assert.ok(workspace.project.modules.length >= 7, `${id}: modules`)
+    const result = simulateProgram(workspace.project)
+    assert.equal(result.ok, true, result.errorCode)
+    assert.ok(result.steps < 10000, `${id}: budget de pas`)
+    assert.ok(result.gaugeFrames.length < 8000, `${id}: images de jauge`)
+    assert.ok(result.screenFrames.length <= 240, `${id}: images d'écran`)
+    assert.equal(result.screenFrameGauges.length, result.screenFrames.length, `${id}: jauges alignées`)
+    assert.equal(result.screenFrameLeds.length, result.screenFrames.length, `${id}: LED alignées`)
+  }
 })
 
 test('exemple tableau de bord : pixel, jauge et images alignées à 24 fps', () => {

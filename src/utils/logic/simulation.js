@@ -49,8 +49,9 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   const ledReader = (project.modules ?? []).some((module) => module.led) ? createLedStateReader(project) : null
   const ledFrames = []
   const screenFrames = []
-  // États de jauge alignés sur les images d'écran, pour animer la jauge au même rythme.
+  // États de jauge et de LED alignés sur les images d'écran, pour les animer au même rythme.
   const screenFrameGauges = []
+  const screenFrameLeds = []
   const maximumScreenFrames = 240
   let lastScreens = null
   const breakSignal = Symbol('break')
@@ -116,6 +117,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     if (blank && screenFrames.length === 0 && !force) return
     screenFrames.push(current)
     if (gaugeReader) screenFrameGauges.push(gaugeReader(global.values))
+    if (ledReader) screenFrameLeds.push(ledReader(global.values))
   }
 
   // Cherche une déclaration dans les environnements lexicaux actifs, sans valeur implicite.
@@ -490,6 +492,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     if (visible) {
       screenFrames.push(lastScreens)
       if (gaugeReader) screenFrameGauges.push(gaugeReader(global.values))
+      if (ledReader) screenFrameLeds.push(ledReader(global.values))
     }
   }
   const debug = captureDebug ? createDebugRecorder(analysis, global, output, uninitialized) : null
@@ -521,13 +524,14 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       ...(debug ? { debugFrames: debug.frames } : {}),
       ...(screenReader ? { screenFrames } : {}),
       ...(screenFrameGauges.length ? { screenFrameGauges } : {}),
+      ...(screenFrameLeds.length ? { screenFrameLeds } : {}),
       ...(gaugeReader ? { gaugeFrames } : {}),
       ...(ledReader ? { ledFrames } : {}),
     }
   } catch (error) {
     const errorCode = error?.code ?? 'SIMULATION_FAILED'
     debug?.record(lastInstructionId, lastEnvironment, lastScopes, 'error', errorCode)
-    return { ok: false, output, outputSteps, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, screens: screenReader ? screenReader(global.values) : {}, gauges: gaugeReader ? gaugeReader(global.values) : {}, leds: ledReader ? ledReader(global.values) : {}, ...(debug ? { debugFrames: debug.frames } : {}), ...(screenReader ? { screenFrames } : {}), ...(screenFrameGauges.length ? { screenFrameGauges } : {}), ...(gaugeReader ? { gaugeFrames } : {}), ...(ledReader ? { ledFrames } : {}) }
+    return { ok: false, output, outputSteps, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, screens: screenReader ? screenReader(global.values) : {}, gauges: gaugeReader ? gaugeReader(global.values) : {}, leds: ledReader ? ledReader(global.values) : {}, ...(debug ? { debugFrames: debug.frames } : {}), ...(screenReader ? { screenFrames } : {}), ...(screenFrameGauges.length ? { screenFrameGauges } : {}), ...(screenFrameLeds.length ? { screenFrameLeds } : {}), ...(gaugeReader ? { gaugeFrames } : {}), ...(ledReader ? { ledFrames } : {}) }
   }
 }
 

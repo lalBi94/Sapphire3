@@ -904,6 +904,8 @@ export default function Canvas() {
         gaugeFrames={screenPlayback ? simulationResult.screenFrameGauges ?? null : null}
         gaugePlaying={screenPlayback && Boolean(execution?.running)}
         ledState={ledStates[card.id] ?? null}
+        ledFrames={screenPlayback ? simulationResult.screenFrameLeds ?? null : null}
+        ledPlaying={screenPlayback && Boolean(execution?.running)}
         readOnly={presentationMode}
         onRename={document.renameCard} onTextChange={document.updateComment} onImageChange={document.updateImage} onEmojiChange={document.setCardEmoji}
         onToggleLock={handleToggleLock}

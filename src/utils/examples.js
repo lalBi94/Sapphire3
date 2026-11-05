@@ -1,6 +1,7 @@
 import { createProject, createModule, createNode } from './logic/index.js'
 import { createScreenModule, screenDefaults } from './screenNode.js'
 import { createGaugeModule, gaugeDefaults } from './gaugeNode.js'
+import { createLedModule, ledDefaults } from './ledNode.js'
 import { moduleTypes } from './moduleTypes.js'
 
 const intType = { kind: 'primitive', name: 'int' }
@@ -1045,6 +1046,599 @@ function gaugeDemo() {
   ])
 }
 
+// Rover : exploration d'une carte, batterie, LED d'artefact et écran pixel.
+function roverSurvey() {
+  const b = builder()
+  const width = 48
+  const height = 18
+  const frames = 24
+  const artifactIndex = 4 * width + 6
+  const artifactX = 6
+  const artifactY = 4
+  const interfaceType = { kind: 'function', parameters: [intType], returnType: voidType }
+  const screen = createScreenModule('roverScreen', 'Rover map', 1, { width, height })
+  const gauge = createGaugeModule('roverGauge', 'Battery', 1, { min: 0, max: 100 })
+  const led = createLedModule('roverLed', 'Artifact found', 1, { value: false })
+  b.project.modules.push(screen.module, gauge.module, led.module)
+  b.project.nodes.push(...screen.nodes, ...gauge.nodes, ...led.nodes)
+
+  const setPixel = screen.module.exports.find((entry) => entry.name === 'SCREEN_SP3_SET_PIXEL_1')
+  const present = screen.module.exports.find((entry) => entry.name === 'SCREEN_SP3_PRESENT_1')
+  const setBattery = gauge.module.exports.find((entry) => entry.name === 'GAUGE_SP3_SET_VALUE_1')
+  const setFound = led.module.exports.find((entry) => entry.name === 'LED_SP3_SET_VALUE_1')
+
+  // Carte : alias de type, constante et lecture d'une case.
+  b.useModule('roverMap', 'Rover map data')
+  b.root('roverTileType', 'TypeDeclaration', { name: 'Tile', type: intType })
+  b.root('roverArtifact', 'ConstantDeclaration', { name: 'ARTIFACT', type: intType }, { initializer: 'roverArtifactValue' })
+  b.intValue('roverArtifactValue', 2)
+  b.root('roverTileAt', 'FunctionDeclaration', { name: 'tileAt', type: intType }, { parameters: ['roverCells', 'roverWidth', 'roverXArg', 'roverYArg'], body: 'roverTileBody' })
+  b.make('roverCells', 'Parameter', { name: 'cells', type: intArrayType })
+  b.make('roverWidth', 'Parameter', { name: 'width', type: intType })
+  b.make('roverXArg', 'Parameter', { name: 'x', type: intType })
+  b.make('roverYArg', 'Parameter', { name: 'y', type: intType })
+  b.block('roverTileBody', ['roverTileValue', 'roverTileReturn'])
+  b.binary('roverTileIndex', '+', 'roverTileRow', 'roverXRead')
+  b.binary('roverTileRow', '*', 'roverYRead', 'roverWidthRead')
+  b.ref('roverYRead', 'y'); b.ref('roverWidthRead', 'width'); b.ref('roverXRead', 'x')
+  b.make('roverTileValue', 'VariableDeclaration', { name: 'tile', type: { kind: 'named', target: { kind: 'name', name: 'Tile' } } }, { initializer: 'roverTileAccess' })
+  b.access('roverTileAccess', 'roverCellsRef', 'roverTileIndex')
+  b.ref('roverCellsRef', 'cells')
+  b.returnValue('roverTileReturn', 'roverTileRef'); b.ref('roverTileRef', 'tile')
+  b.root('roverIsArtifact', 'FunctionDeclaration', { name: 'isArtifact', type: { kind: 'primitive', name: 'boolean' } }, { parameters: ['roverFindCells', 'roverFindWidth', 'roverFindX', 'roverFindY'], body: 'roverFindBody' })
+  b.make('roverFindCells', 'Parameter', { name: 'cells', type: intArrayType })
+  b.make('roverFindWidth', 'Parameter', { name: 'width', type: intType })
+  b.make('roverFindX', 'Parameter', { name: 'x', type: intType })
+  b.make('roverFindY', 'Parameter', { name: 'y', type: intType })
+  b.block('roverFindBody', ['roverFindValue', 'roverFindReturn'])
+  b.make('roverFindValue', 'VariableDeclaration', { name: 'tile', type: { kind: 'named', target: { kind: 'name', name: 'Tile' } } }, { initializer: 'roverFindCall' })
+  b.call('roverFindCall', 'roverFindRef', ['roverFindCellsArg', 'roverFindWidthArg', 'roverFindXArg', 'roverFindYArg'])
+  b.ref('roverFindRef', 'tileAt'); b.ref('roverFindCellsArg', 'cells'); b.ref('roverFindWidthArg', 'width'); b.ref('roverFindXArg', 'x'); b.ref('roverFindYArg', 'y')
+  b.returnValue('roverFindReturn', 'roverFindCompare')
+  b.binary('roverFindCompare', '==', 'roverFindValueRef', 'roverArtifactRef')
+  b.ref('roverFindValueRef', 'tile'); b.ref('roverArtifactRef', 'ARTIFACT')
+
+  // Déplacement : pointeurs, boucle while, sortie par break et drain de batterie.
+  b.useModule('roverDrive', 'Rover drive')
+  b.root('roverExplore', 'FunctionDeclaration', { name: 'explore', type: { kind: 'primitive', name: 'boolean' } }, { parameters: ['driveCells', 'driveWidth', 'driveHeight', 'driveX', 'driveY', 'driveBattery', 'driveTargetX', 'driveTargetY'], body: 'driveBody' })
+  b.make('driveCells', 'Parameter', { name: 'cells', type: intArrayType })
+  b.make('driveWidth', 'Parameter', { name: 'width', type: intType })
+  b.make('driveHeight', 'Parameter', { name: 'height', type: intType })
+  b.make('driveX', 'Parameter', { name: 'x', type: intPointerType })
+  b.make('driveY', 'Parameter', { name: 'y', type: intPointerType })
+  b.make('driveBattery', 'Parameter', { name: 'battery', type: intPointerType })
+  b.make('driveTargetX', 'Parameter', { name: 'targetX', type: intType })
+  b.make('driveTargetY', 'Parameter', { name: 'targetY', type: intType })
+  b.block('driveBody', ['driveDx', 'driveDy', 'driveAttempts', 'driveMoved', 'driveLoop', 'driveReturn'])
+  b.make('driveDx', 'VariableDeclaration', { name: 'dx', type: intType }, { initializer: 'driveDxCall' })
+  b.make('driveDxCall', 'MathCall', { name: 'sign' }, { arguments: ['driveDxDelta'] })
+  b.binary('driveDxDelta', '-', 'driveTargetXRead', 'driveXNow'); b.ref('driveTargetXRead', 'targetX'); b.deref('driveXNow', 'driveXNowRef'); b.ref('driveXNowRef', 'x')
+  b.make('driveDy', 'VariableDeclaration', { name: 'dy', type: intType }, { initializer: 'driveDyCall' })
+  b.make('driveDyCall', 'MathCall', { name: 'sign' }, { arguments: ['driveDyDelta'] })
+  b.binary('driveDyDelta', '-', 'driveTargetYRead', 'driveYNow'); b.ref('driveTargetYRead', 'targetY'); b.deref('driveYNow', 'driveYNowRef'); b.ref('driveYNowRef', 'y')
+  b.make('driveAttempts', 'VariableDeclaration', { name: 'attempts', type: intType }, { initializer: 'driveAttemptsStart' }); b.intValue('driveAttemptsStart', 0)
+  b.make('driveMoved', 'VariableDeclaration', { name: 'moved', type: { kind: 'primitive', name: 'boolean' } }, { initializer: 'driveMovedStart' }); b.make('driveMovedStart', 'Literal', { type: { kind: 'primitive', name: 'boolean' }, value: false })
+  b.make('driveLoop', 'WhileStatement', {}, { test: 'driveTest', body: 'driveLoopBody' })
+  b.binary('driveTest', '<', 'driveAttemptRead', 'driveFour'); b.ref('driveAttemptRead', 'attempts'); b.intValue('driveFour', 4)
+  b.block('driveLoopBody', ['driveNextX', 'driveNextY', 'driveBlocked', 'driveRetryDx', 'driveRetryDy', 'driveStep'])
+  b.make('driveNextX', 'VariableDeclaration', { name: 'nextX', type: intType }, { initializer: 'driveNextXCall' })
+  b.make('driveNextXCall', 'MathCall', { name: 'clamp' }, { arguments: ['driveNextXSum', 'driveZero', 'driveMaxX'] })
+  b.binary('driveNextXSum', '+', 'driveXRead', 'driveDxRead')
+  b.deref('driveXRead', 'driveXRef'); b.ref('driveXRef', 'x'); b.ref('driveDxRead', 'dx')
+  b.binary('driveMaxX', '-', 'driveWidthRead', 'driveOneX'); b.ref('driveWidthRead', 'width'); b.intValue('driveOneX', 1)
+  b.intValue('driveZero', 0)
+  b.make('driveNextY', 'VariableDeclaration', { name: 'nextY', type: intType }, { initializer: 'driveNextYCall' })
+  b.make('driveNextYCall', 'MathCall', { name: 'clamp' }, { arguments: ['driveNextYSum', 'driveZeroY', 'driveMaxY'] })
+  b.binary('driveNextYSum', '+', 'driveYRead', 'driveDyRead')
+  b.deref('driveYRead', 'driveYRef'); b.ref('driveYRef', 'y'); b.ref('driveDyRead', 'dy')
+  b.binary('driveMaxY', '-', 'driveHeightRead', 'driveOneYMax'); b.ref('driveHeightRead', 'height'); b.intValue('driveOneYMax', 1)
+  b.intValue('driveZeroY', 0)
+  b.make('driveBlocked', 'IfStatement', {}, { test: 'driveRockTest', consequent: 'driveMoveBody', alternate: null })
+  b.binary('driveRockTest', '!=', 'driveCellValue', 'driveRock')
+  b.access('driveCellValue', 'driveCellsRef', 'driveCellIndex'); b.ref('driveCellsRef', 'cells')
+  b.binary('driveCellIndex', '+', 'driveCellRow', 'driveNextXRef'); b.binary('driveCellRow', '*', 'driveNextYRef', 'driveCellWidth'); b.ref('driveNextYRef', 'nextY'); b.ref('driveCellWidth', 'width'); b.ref('driveNextXRef', 'nextX')
+  b.intValue('driveRock', 1)
+  b.block('driveMoveBody', ['driveWriteX', 'driveWriteY', 'driveBatteryStep', 'driveMovedTrue', 'driveBreak'])
+  b.make('driveWriteX', 'AssignmentStatement', {}, { target: 'driveXTarget', value: 'driveNextXValue' })
+  b.deref('driveXTarget', 'driveXTargetRef'); b.ref('driveXTargetRef', 'x'); b.ref('driveNextXValue', 'nextX')
+  b.make('driveWriteY', 'AssignmentStatement', {}, { target: 'driveYTarget', value: 'driveNextYValue' })
+  b.deref('driveYTarget', 'driveYTargetRef'); b.ref('driveYTargetRef', 'y'); b.ref('driveNextYValue', 'nextY')
+  b.make('driveBatteryStep', 'AssignmentStatement', {}, { target: 'driveBatteryTarget', value: 'driveBatteryNext' })
+  b.deref('driveBatteryTarget', 'driveBatteryTargetRef'); b.ref('driveBatteryTargetRef', 'battery')
+  b.make('driveBatteryNext', 'MathCall', { name: 'clamp' }, { arguments: ['driveBatteryMinus', 'driveBatteryZero', 'driveBatteryHundred'] })
+  b.binary('driveBatteryMinus', '-', 'driveBatteryRead', 'driveBatteryCost'); b.deref('driveBatteryRead', 'driveBatteryReadRef'); b.ref('driveBatteryReadRef', 'battery'); b.intValue('driveBatteryCost', 2)
+  b.intValue('driveBatteryZero', 0); b.intValue('driveBatteryHundred', 100)
+  b.make('driveMovedTrue', 'AssignmentStatement', {}, { target: 'driveMovedTarget', value: 'driveTrue' }); b.ref('driveMovedTarget', 'moved'); b.make('driveTrue', 'Literal', { type: { kind: 'primitive', name: 'boolean' }, value: true })
+  b.make('driveBreak', 'BreakStatement')
+  b.make('driveRetryDx', 'AssignmentStatement', {}, { target: 'driveDxTarget', value: 'driveDxRandom' })
+  b.ref('driveDxTarget', 'dx'); b.make('driveDxRandom', 'MathCall', { name: 'randomInt' }, { arguments: ['driveRetryMinX', 'driveRetryMaxX'] }); b.intValue('driveRetryMinX', -1); b.intValue('driveRetryMaxX', 1)
+  b.make('driveRetryDy', 'AssignmentStatement', {}, { target: 'driveDyTarget', value: 'driveDyRandom' })
+  b.ref('driveDyTarget', 'dy'); b.make('driveDyRandom', 'MathCall', { name: 'randomInt' }, { arguments: ['driveRetryMinY', 'driveRetryMaxY'] }); b.intValue('driveRetryMinY', -1); b.intValue('driveRetryMaxY', 1)
+  b.make('driveStep', 'AssignmentStatement', {}, { target: 'driveAttemptTarget', value: 'driveAttemptNext' })
+  b.ref('driveAttemptTarget', 'attempts'); b.binary('driveAttemptNext', '+', 'driveAttemptReadNext', 'driveOneAttempt'); b.ref('driveAttemptReadNext', 'attempts'); b.intValue('driveOneAttempt', 1)
+  b.returnValue('driveReturn', 'driveMovedRef'); b.ref('driveMovedRef', 'moved')
+
+  // Parcours : ForEach sur des indices et rappel de type fonction.
+  b.useModule('roverSurvey', 'Rover survey tools')
+  b.root('roverEach', 'FunctionDeclaration', { name: 'forEachIndex', type: voidType }, { parameters: ['eachIndices', 'eachVisit'], body: 'eachBody' })
+  b.make('eachIndices', 'Parameter', { name: 'indices', type: intArrayType })
+  b.make('eachVisit', 'Parameter', { name: 'visit', type: interfaceType })
+  b.block('eachBody', ['eachStatement'])
+  b.make('eachStatement', 'ForEachStatement', {}, { array: 'eachArrayRef', callback: 'eachVisitRef' })
+  b.ref('eachArrayRef', 'indices'); b.ref('eachVisitRef', 'visit')
+
+  // Mission : cartographie, boucle de 24 images, jauge, LED et écran.
+  b.useModule('roverApp', 'Rover mission')
+  b.root('roverCellsData', 'VariableDeclaration', { name: 'cells', type: intArrayType }, { initializer: 'roverCellsCreate' })
+  b.make('roverCellsCreate', 'ArrayCreation', { elementType: intType }, { size: 'roverCellsSize', initializer: 'roverCellsZero' })
+  b.intValue('roverCellsSize', width * height); b.intValue('roverCellsZero', 0)
+  const rocks = []
+  for (let index = 0; rocks.length < 30; index += 1) {
+    const x = (index * 7 + 3) % (width - 4) + 2
+    const y = (index * 5 + 2) % (height - 4) + 2
+    const cell = y * width + x
+    if (x < 12 && y < 8) continue
+    if (cell !== artifactIndex && !rocks.includes(cell)) rocks.push(cell)
+  }
+  b.root('roverRockIndices', 'VariableDeclaration', { name: 'rocks', type: intArrayType }, { initializer: 'roverRockList' })
+  b.make('roverRockList', 'ArrayLiteral', { elementType: intType }, { elements: rocks.map((cell, index) => {
+    const id = `roverRockValue${index}`
+    b.intValue(id, cell)
+    return id
+  }) })
+  b.root('roverArtifactIndex', 'ConstantDeclaration', { name: 'ARTIFACT_INDEX', type: intType }, { initializer: 'roverArtifactIndexValue' })
+  b.intValue('roverArtifactIndexValue', artifactIndex)
+  b.root('roverBattery', 'VariableDeclaration', { name: 'battery', type: intType }, { initializer: 'roverBatteryStart' }); b.intValue('roverBatteryStart', 100)
+  b.root('roverXData', 'VariableDeclaration', { name: 'x', type: intType }, { initializer: 'roverXStart' }); b.intValue('roverXStart', 1)
+  b.root('roverYData', 'VariableDeclaration', { name: 'y', type: intType }, { initializer: 'roverYStart' }); b.intValue('roverYStart', 1)
+  b.root('roverFoundData', 'VariableDeclaration', { name: 'found', type: { kind: 'primitive', name: 'boolean' } }, { initializer: 'roverFoundStart' }); b.make('roverFoundStart', 'Literal', { type: { kind: 'primitive', name: 'boolean' }, value: false })
+  b.root('roverPainter', 'ConstantDeclaration', { name: 'painter', type: interfaceType }, { initializer: 'roverPainterRef' }); b.ref('roverPainterRef', 'paintRock')
+
+  b.root('roverMarkRock', 'FunctionDeclaration', { name: 'markRock', type: voidType }, { parameters: ['markIndex'], body: 'markBody' })
+  b.make('markIndex', 'Parameter', { name: 'index', type: intType })
+  b.block('markBody', ['markAssignment'])
+  b.make('markAssignment', 'AssignmentStatement', {}, { target: 'markTarget', value: 'markOne' })
+  b.access('markTarget', 'markCellsRef', 'markIndexRef'); b.ref('markCellsRef', 'cells'); b.ref('markIndexRef', 'index'); b.intValue('markOne', 1)
+
+  b.root('roverPaintRock', 'FunctionDeclaration', { name: 'paintRock', type: voidType }, { parameters: ['paintIndex'], body: 'paintBody' })
+  b.make('paintIndex', 'Parameter', { name: 'index', type: intType })
+  b.block('paintBody', ['paintCallStatement'])
+  b.make('paintCallStatement', 'ExpressionStatement', {}, { expression: 'paintCall' })
+  b.call('paintCall', 'paintCallee', ['paintIndexRef', 'paintRed', 'paintGreen', 'paintBlue', 'paintAlpha'])
+  b.make('paintCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'roverPixelImport' } })
+  b.ref('paintIndexRef', 'index'); b.intValue('paintRed', 72); b.intValue('paintGreen', 86); b.intValue('paintBlue', 112); b.intValue('paintAlpha', 255)
+
+  b.root('roverMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'roverMainBody' })
+  b.make('roverRockCursor', 'VariableDeclaration', { name: 'r', type: intType }, { initializer: 'roverRockCursorStart' }); b.intValue('roverRockCursorStart', 0)
+  b.binary('roverRockTest', '<', 'roverRockCursorRead', 'roverRockCount'); b.ref('roverRockCursorRead', 'r'); b.intValue('roverRockCount', rocks.length)
+  b.make('roverRockStep', 'AssignmentStatement', {}, { target: 'roverRockCursorTarget', value: 'roverRockCursorNext' }); b.ref('roverRockCursorTarget', 'r'); b.binary('roverRockCursorNext', '+', 'roverRockCursorNextRead', 'roverRockOne'); b.ref('roverRockCursorNextRead', 'r'); b.intValue('roverRockOne', 1)
+  b.block('roverMarkLoopBody', ['roverMarkCallStatement'])
+  b.make('roverMarkCallStatement', 'ExpressionStatement', {}, { expression: 'roverMarkCall' })
+  b.call('roverMarkCall', 'roverMarkCallee', ['roverRockCell'])
+  b.ref('roverMarkCallee', 'markRock')
+  b.access('roverRockCell', 'roverRockArrayRef', 'roverRockCursorIndex'); b.ref('roverRockArrayRef', 'rocks'); b.ref('roverRockCursorIndex', 'r')
+  b.make('roverMarkLoop', 'ForStatement', {}, { initializer: 'roverRockCursor', test: 'roverRockTest', update: 'roverRockStep', body: 'roverMarkLoopBody' })
+
+  b.make('roverPaintStatement', 'ExpressionStatement', {}, { expression: 'roverPaintEachCall' })
+  b.call('roverPaintEachCall', 'roverPaintEachCallee', ['roverRocksArg', 'roverPainterArg'])
+  b.make('roverPaintEachCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'roverEachImport' } })
+  b.ref('roverRocksArg', 'rocks'); b.ref('roverPainterArg', 'painter')
+  b.make('roverArtifactMark', 'AssignmentStatement', {}, { target: 'roverArtifactMarkTarget', value: 'roverArtifactTwoMark' })
+  b.access('roverArtifactMarkTarget', 'roverArtifactMarkCells', 'roverArtifactMarkIndex')
+  b.ref('roverArtifactMarkCells', 'cells'); b.intValue('roverArtifactMarkIndex', artifactIndex); b.intValue('roverArtifactTwoMark', 2)
+  b.make('roverArtifactPaintStatement', 'ExpressionStatement', {}, { expression: 'roverArtifactPaintCall' })
+  b.call('roverArtifactPaintCall', 'roverArtifactPaintCallee', ['roverArtifactIndexRef', 'roverArtifactRed', 'roverArtifactGreen', 'roverArtifactBlue', 'roverArtifactAlpha'])
+  b.make('roverArtifactPaintCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'roverPixelImport' } })
+  b.ref('roverArtifactIndexRef', 'ARTIFACT_INDEX'); b.intValue('roverArtifactRed', 148); b.intValue('roverArtifactGreen', 190); b.intValue('roverArtifactBlue', 255); b.intValue('roverArtifactAlpha', 255)
+  b.make('roverStartPixelStatement', 'ExpressionStatement', {}, { expression: 'roverStartPixelCall' })
+  b.call('roverStartPixelCall', 'roverStartPixelCallee', ['roverStartIndex', 'roverRoverRed', 'roverRoverGreen', 'roverRoverBlue', 'roverRoverAlpha'])
+  b.make('roverStartPixelCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'roverPixelImport' } })
+  b.binary('roverStartIndex', '+', 'roverStartRow', 'roverStartX'); b.binary('roverStartRow', '*', 'roverStartY', 'roverWidthValue'); b.ref('roverStartY', 'y'); b.intValue('roverWidthValue', width); b.ref('roverStartX', 'x')
+  b.intValue('roverRoverRed', 255); b.intValue('roverRoverGreen', 213); b.intValue('roverRoverBlue', 71); b.intValue('roverRoverAlpha', 255)
+
+  b.make('roverFrame', 'VariableDeclaration', { name: 'frame', type: intType }, { initializer: 'roverFrameStart' }); b.intValue('roverFrameStart', 0)
+  b.binary('roverFrameTest', '<', 'roverFrameRead', 'roverFrameEnd'); b.ref('roverFrameRead', 'frame'); b.intValue('roverFrameEnd', frames)
+  b.make('roverFrameStep', 'AssignmentStatement', {}, { target: 'roverFrameTarget', value: 'roverFrameNext' }); b.ref('roverFrameTarget', 'frame'); b.binary('roverFrameNext', '+', 'roverFrameNextRead', 'roverFrameOne'); b.ref('roverFrameNextRead', 'frame'); b.intValue('roverFrameOne', 1)
+  b.block('roverFrameBody', [
+    'roverOldX', 'roverOldY', 'roverMoved', 'roverContinue', 'roverOldIndex',
+    'roverClearStatement', 'roverArtifactRestore', 'roverDrawStatement', 'roverFoundIf',
+    'roverGaugeStatement', 'roverPresentStatement',
+  ])
+  b.make('roverOldX', 'VariableDeclaration', { name: 'oldX', type: intType }, { initializer: 'roverOldXInit' }); b.ref('roverOldXInit', 'x')
+  b.make('roverOldY', 'VariableDeclaration', { name: 'oldY', type: intType }, { initializer: 'roverOldYInit' }); b.ref('roverOldYInit', 'y')
+  b.make('roverMoved', 'VariableDeclaration', { name: 'moved', type: { kind: 'primitive', name: 'boolean' } }, { initializer: 'roverExploreCall' })
+  b.call('roverExploreCall', 'roverExploreRef', ['roverCellsArg', 'roverWidthArg', 'roverHeightArg', 'roverAddressX', 'roverAddressY', 'roverAddressBattery', 'roverTargetX', 'roverTargetY'])
+  b.make('roverExploreRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'roverExploreImport' } })
+  b.ref('roverCellsArg', 'cells'); b.intValue('roverWidthArg', width); b.intValue('roverHeightArg', height)
+  b.intValue('roverTargetX', artifactX); b.intValue('roverTargetY', artifactY)
+  b.address('roverAddressX', 'roverXRef'); b.ref('roverXRef', 'x')
+  b.address('roverAddressY', 'roverYRef'); b.ref('roverYRef', 'y')
+  b.address('roverAddressBattery', 'roverBatteryRef'); b.ref('roverBatteryRef', 'battery')
+  b.make('roverContinue', 'IfStatement', {}, { test: 'roverNotMoved', consequent: 'roverContinueBody', alternate: null })
+  b.make('roverNotMoved', 'UnaryExpression', { operator: 'not' }, { operand: 'roverMovedRef' }); b.ref('roverMovedRef', 'moved')
+  b.block('roverContinueBody', ['roverContinueStatement'])
+  b.make('roverContinueStatement', 'ContinueStatement')
+  b.make('roverOldIndex', 'VariableDeclaration', { name: 'oldIndex', type: intType }, { initializer: 'roverOldIndexValue' })
+  b.binary('roverOldIndexValue', '+', 'roverOldRow', 'roverOldXRef'); b.binary('roverOldRow', '*', 'roverOldYRef', 'roverOldWidth'); b.ref('roverOldYRef', 'oldY'); b.intValue('roverOldWidth', width); b.ref('roverOldXRef', 'oldX')
+  b.make('roverClearStatement', 'ExpressionStatement', {}, { expression: 'roverClearCall' })
+  b.call('roverClearCall', 'roverClearCallee', ['roverOldIndexRef', 'roverClearRed', 'roverClearGreen', 'roverClearBlue', 'roverClearAlpha'])
+  b.make('roverClearCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'roverPixelImport' } })
+  b.ref('roverOldIndexRef', 'oldIndex'); b.intValue('roverClearRed', 0); b.intValue('roverClearGreen', 0); b.intValue('roverClearBlue', 0); b.intValue('roverClearAlpha', 0)
+  b.make('roverArtifactRestore', 'IfStatement', {}, { test: 'roverOldArtifactTest', consequent: 'roverArtifactRestoreBody', alternate: null })
+  b.binary('roverOldArtifactTest', '==', 'roverOldIndexArtifact', 'roverArtifactIndexRestore'); b.ref('roverOldIndexArtifact', 'oldIndex'); b.ref('roverArtifactIndexRestore', 'ARTIFACT_INDEX')
+  b.block('roverArtifactRestoreBody', ['roverArtifactRestoreStatement'])
+  b.make('roverArtifactRestoreStatement', 'ExpressionStatement', {}, { expression: 'roverArtifactRestoreCall' })
+  b.call('roverArtifactRestoreCall', 'roverArtifactRestoreCallee', ['roverArtifactIndexAgain', 'roverArtifactRedAgain', 'roverArtifactGreenAgain', 'roverArtifactBlueAgain', 'roverArtifactAlphaAgain'])
+  b.make('roverArtifactRestoreCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'roverPixelImport' } })
+  b.ref('roverArtifactIndexAgain', 'ARTIFACT_INDEX'); b.intValue('roverArtifactRedAgain', 148); b.intValue('roverArtifactGreenAgain', 190); b.intValue('roverArtifactBlueAgain', 255); b.intValue('roverArtifactAlphaAgain', 255)
+  b.make('roverDrawStatement', 'ExpressionStatement', {}, { expression: 'roverDrawCall' })
+  b.call('roverDrawCall', 'roverDrawCallee', ['roverNewIndex', 'roverDrawRed', 'roverDrawGreen', 'roverDrawBlue', 'roverDrawAlpha'])
+  b.make('roverDrawCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'roverPixelImport' } })
+  b.binary('roverNewIndex', '+', 'roverNewRow', 'roverXNow'); b.binary('roverNewRow', '*', 'roverYNow', 'roverNewWidth'); b.ref('roverYNow', 'y'); b.intValue('roverNewWidth', width); b.ref('roverXNow', 'x')
+  b.intValue('roverDrawRed', 255); b.intValue('roverDrawGreen', 213); b.intValue('roverDrawBlue', 71); b.intValue('roverDrawAlpha', 255)
+  b.make('roverFoundIf', 'IfStatement', {}, { test: 'roverArtifactCall', consequent: 'roverFoundBody', alternate: null })
+  b.call('roverArtifactCall', 'roverArtifactCallee', ['roverFindCellsArg2', 'roverFindWidthArg2', 'roverFindXArg2', 'roverFindYArg2'])
+  b.make('roverArtifactCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'roverFindImport' } })
+  b.ref('roverFindCellsArg2', 'cells'); b.intValue('roverFindWidthArg2', width); b.ref('roverFindXArg2', 'x'); b.ref('roverFindYArg2', 'y')
+  b.block('roverFoundBody', ['roverFoundAssign', 'roverLedStatement'])
+  b.make('roverFoundAssign', 'AssignmentStatement', {}, { target: 'roverFoundTarget', value: 'roverFoundTrue' }); b.ref('roverFoundTarget', 'found'); b.make('roverFoundTrue', 'Literal', { type: { kind: 'primitive', name: 'boolean' }, value: true })
+  b.make('roverLedStatement', 'ExpressionStatement', {}, { expression: 'roverLedCall' })
+  b.call('roverLedCall', 'roverLedCallee', ['roverFoundRef2'])
+  b.make('roverLedCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'roverLedImport' } })
+  b.ref('roverFoundRef2', 'found')
+  b.make('roverGaugeStatement', 'ExpressionStatement', {}, { expression: 'roverGaugeCall' })
+  b.call('roverGaugeCall', 'roverGaugeCallee', ['roverBatteryDouble'])
+  b.make('roverGaugeCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'roverBatteryImport' } })
+  b.make('roverBatteryDouble', 'CastExpression', { type: doubleType }, { argument: 'roverBatteryDoubleArg' }); b.ref('roverBatteryDoubleArg', 'battery')
+  b.make('roverPresentStatement', 'ExpressionStatement', {}, { expression: 'roverPresentCall' })
+  b.call('roverPresentCall', 'roverPresentCallee', [])
+  b.make('roverPresentCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'roverPresentImport' } })
+  b.make('roverFrameLoop', 'ForStatement', {}, { initializer: 'roverFrame', test: 'roverFrameTest', update: 'roverFrameStep', body: 'roverFrameBody' })
+
+  b.print('roverPrint', 'roverMessage'); b.make('roverMessage', 'Literal', { type: { kind: 'primitive', name: 'string' }, value: 'Rover survey' })
+  b.print('roverFoundPrint', 'roverFoundRef'); b.ref('roverFoundRef', 'found')
+  b.block('roverMainBody', ['roverMarkLoop', 'roverPaintStatement', 'roverArtifactMark', 'roverArtifactPaintStatement', 'roverStartPixelStatement', 'roverFrameLoop', 'roverPrint', 'roverFoundPrint'])
+
+  const app = b.project.modules.find((module) => module.id === 'roverApp')
+  app.imports.push(
+    { id: 'roverPixelImport', moduleId: 'roverScreen', nodeId: setPixel.nodeId, localName: 'setPixel' },
+    { id: 'roverPresentImport', moduleId: 'roverScreen', nodeId: present.nodeId, localName: 'present' },
+    { id: 'roverBatteryImport', moduleId: 'roverGauge', nodeId: setBattery.nodeId, localName: 'setBattery' },
+    { id: 'roverLedImport', moduleId: 'roverLed', nodeId: setFound.nodeId, localName: 'setFound' },
+    { id: 'roverExploreImport', moduleId: 'roverDrive', nodeId: 'roverExplore', localName: 'explore' },
+    { id: 'roverFindImport', moduleId: 'roverMap', nodeId: 'roverIsArtifact', localName: 'isArtifact' },
+    { id: 'roverEachImport', moduleId: 'roverSurvey', nodeId: 'roverEach', localName: 'forEachIndex' },
+  )
+  b.project.modules.find((module) => module.id === 'roverDrive').exports.push({ nodeId: 'roverExplore', name: 'explore' })
+  b.project.modules.find((module) => module.id === 'roverMap').exports.push({ nodeId: 'roverTileAt', name: 'tileAt' }, { nodeId: 'roverIsArtifact', name: 'isArtifact' })
+  b.project.modules.find((module) => module.id === 'roverSurvey').exports.push({ nodeId: 'roverEach', name: 'forEachIndex' })
+  b.project.nodes.find((node) => node.id === 'roverBattery').contracts = [{ kind: 'between', arguments: [0, 100] }]
+  b.project.nodes.find((node) => node.id === 'roverRockIndices').contracts = [{ kind: 'minLength', arguments: [20] }]
+
+  const result = workspace(b.project, [
+    note('roverScreenNote', 'Rover map', 'Écran 48×18 : la carte est peinte une fois (rochers et artefact), puis le rover avance case par case. La batterie alimente la jauge ; la LED s’allume quand l’artefact est atteint.', 0, 900, 620, 240),
+    note('roverMapNote', 'Map data', 'Le module Map propose un alias `Tile`, la constante `ARTIFACT` et `tileAt` / `isArtifact`. Les rochers sont marqués par une boucle **For**, puis peints par **ForEach** via une variable de type fonction.', 660, 900, 620, 240),
+    note('roverDriveNote', 'Drive', '`explore` reçoit trois pointeurs (`&x`, `&y`, `&battery`), essaie jusqu’à quatre directions avec une boucle **While** et sort par **Break** au premier pas libre ; la batterie diminue à chaque déplacement.', 1320, 900, 620, 240),
+  ])
+  const cards = result.presentation.cards
+  const byId = (id) => cards.find((card) => card.id === id)
+  Object.assign(byId('roverScreen'), { x: 0, y: 0, width: 760, height: 360 })
+  Object.assign(byId('roverGauge'), { x: 820, y: 0 })
+  Object.assign(byId('roverLed'), { x: 1240, y: 0 })
+  Object.assign(byId('roverMap'), { x: 0, y: 420 })
+  Object.assign(byId('roverDrive'), { x: 560, y: 420 })
+  Object.assign(byId('roverSurvey'), { x: 1120, y: 420 })
+  Object.assign(byId('roverApp'), { x: 1680, y: 420 })
+  return result
+}
+
+// Laboratoire de signaux : échantillons, statistiques, texte, jauge et LED d'alerte.
+function signalLab() {
+  const b = builder()
+  const width = 48
+  const height = 18
+  const frames = 48
+  const stringType = { kind: 'primitive', name: 'string' }
+  const charType = { kind: 'primitive', name: 'char' }
+  const booleanType = { kind: 'primitive', name: 'boolean' }
+  const stringArrayType = { kind: 'array', elementType: stringType }
+  const doubleMapper = { kind: 'function', parameters: [intType], returnType: doubleType }
+  const intEffect = { kind: 'function', parameters: [intType], returnType: voidType }
+  const screen = createScreenModule('signalScreen', 'Waveform', 1, { width, height })
+  const gauge = createGaugeModule('signalGauge', 'Quality', 1, { min: 0, max: 100 })
+  const led = createLedModule('signalLed', 'Alarm', 1, { value: false })
+  b.project.modules.push(screen.module, gauge.module, led.module)
+  b.project.nodes.push(...screen.nodes, ...gauge.nodes, ...led.nodes)
+
+  const setPixel = screen.module.exports.find((entry) => entry.name === 'SCREEN_SP3_SET_PIXEL_1')
+  const present = screen.module.exports.find((entry) => entry.name === 'SCREEN_SP3_PRESENT_1')
+  const setQuality = gauge.module.exports.find((entry) => entry.name === 'GAUGE_SP3_SET_VALUE_1')
+  const setAlarm = led.module.exports.find((entry) => entry.name === 'LED_SP3_SET_VALUE_1')
+
+  // Données : alias de type et lectures/retours de tableaux.
+  b.useModule('signalData', 'Signal data')
+  b.root('signalReadingType', 'TypeDeclaration', { name: 'Reading', type: intType })
+  b.root('signalSampleAt', 'FunctionDeclaration', { name: 'sampleAt', type: intType }, { parameters: ['signalValues', 'signalIndex'], body: 'signalSampleBody' })
+  b.make('signalValues', 'Parameter', { name: 'values', type: intArrayType })
+  b.make('signalIndex', 'Parameter', { name: 'index', type: intType })
+  b.block('signalSampleBody', ['signalSampleRead', 'signalSampleReturn'])
+  b.make('signalSampleRead', 'VariableDeclaration', { name: 'reading', type: { kind: 'named', target: { kind: 'name', name: 'Reading' } } }, { initializer: 'signalSampleAccess' })
+  b.access('signalSampleAccess', 'signalSampleArray', 'signalSampleIndex'); b.ref('signalSampleArray', 'values'); b.ref('signalSampleIndex', 'index')
+  b.returnValue('signalSampleReturn', 'signalSampleRef'); b.ref('signalSampleRef', 'reading')
+
+  // Statistiques : While/Continue/Break, For, fonction de type, pointeur et natives mathématiques.
+  b.useModule('signalStats', 'Signal stats')
+  b.root('signalAverage', 'FunctionDeclaration', { name: 'average', type: intType }, { parameters: ['averageValues'], body: 'signalAverageBody' })
+  b.make('averageValues', 'Parameter', { name: 'values', type: intArrayType })
+  b.block('signalAverageBody', ['averageIndex', 'averageTotal', 'averageCount', 'averageLoop', 'averageEmpty', 'averageReturn'])
+  b.make('averageIndex', 'VariableDeclaration', { name: 'i', type: intType }, { initializer: 'averageIndexStart' }); b.intValue('averageIndexStart', 0)
+  b.make('averageTotal', 'VariableDeclaration', { name: 'total', type: intType }, { initializer: 'averageTotalStart' }); b.intValue('averageTotalStart', 0)
+  b.make('averageCount', 'VariableDeclaration', { name: 'count', type: intType }, { initializer: 'averageCountStart' }); b.intValue('averageCountStart', 0)
+  b.make('averageLoop', 'WhileStatement', {}, { test: 'averageTest', body: 'averageLoopBody' })
+  b.binary('averageTest', '<', 'averageIndexRead', 'averageLength'); b.ref('averageIndexRead', 'i'); b.make('averageLength', 'MathCall', { name: 'arrayLength' }, { arguments: ['averageArray'] }); b.ref('averageArray', 'values')
+  b.block('averageLoopBody', ['averageSentinel', 'averageAdd', 'averageCountStep', 'averageLimit', 'averageStep'])
+  b.make('averageSentinel', 'IfStatement', {}, { test: 'averageIsSentinel', consequent: 'averageSentinelBody', alternate: null })
+  b.binary('averageIsSentinel', '==', 'averageValue', 'averageNegOne'); b.access('averageValue', 'averageValueArray', 'averageValueIndex'); b.ref('averageValueArray', 'values'); b.ref('averageValueIndex', 'i'); b.intValue('averageNegOne', -1)
+  b.block('averageSentinelBody', ['averageSentinelStep', 'averageContinue'])
+  b.make('averageSentinelStep', 'AssignmentStatement', {}, { target: 'averageIndexSentinelTarget', value: 'averageIndexSentinelNext' }); b.ref('averageIndexSentinelTarget', 'i'); b.binary('averageIndexSentinelNext', '+', 'averageIndexSentinelRead', 'averageOneSentinel'); b.ref('averageIndexSentinelRead', 'i'); b.intValue('averageOneSentinel', 1)
+  b.make('averageContinue', 'ContinueStatement')
+  b.make('averageAdd', 'AssignmentStatement', {}, { target: 'averageTotalTarget', value: 'averageTotalNext' }); b.ref('averageTotalTarget', 'total'); b.binary('averageTotalNext', '+', 'averageTotalRead', 'averageValueAdd'); b.ref('averageTotalRead', 'total'); b.access('averageValueAdd', 'averageValueAddArray', 'averageValueAddIndex'); b.ref('averageValueAddArray', 'values'); b.ref('averageValueAddIndex', 'i')
+  b.make('averageCountStep', 'AssignmentStatement', {}, { target: 'averageCountTarget', value: 'averageCountNext' }); b.ref('averageCountTarget', 'count'); b.binary('averageCountNext', '+', 'averageCountRead', 'averageOneCount'); b.ref('averageCountRead', 'count'); b.intValue('averageOneCount', 1)
+  b.make('averageLimit', 'IfStatement', {}, { test: 'averageCountReached', consequent: 'averageLimitBody', alternate: null })
+  b.binary('averageCountReached', '>=', 'averageCountReadLimit', 'averageLimitEight'); b.ref('averageCountReadLimit', 'count'); b.intValue('averageLimitEight', 8)
+  b.block('averageLimitBody', ['averageBreak'])
+  b.make('averageBreak', 'BreakStatement')
+  b.make('averageStep', 'AssignmentStatement', {}, { target: 'averageIndexTarget', value: 'averageIndexNext' }); b.ref('averageIndexTarget', 'i'); b.binary('averageIndexNext', '+', 'averageIndexStepRead', 'averageOneStep'); b.ref('averageIndexStepRead', 'i'); b.intValue('averageOneStep', 1)
+  b.make('averageEmpty', 'IfStatement', {}, { test: 'averageEmptyTest', consequent: 'averageEmptyBody', alternate: null })
+  b.binary('averageEmptyTest', '==', 'averageCountEmpty', 'averageZeroEmpty'); b.ref('averageCountEmpty', 'count'); b.intValue('averageZeroEmpty', 0)
+  b.block('averageEmptyBody', ['averageEmptyReturn'])
+  b.returnValue('averageEmptyReturn', 'averageZeroValue'); b.intValue('averageZeroValue', 0)
+  b.returnValue('averageReturn', 'averageQuotient'); b.binary('averageQuotient', '/', 'averageTotalFinal', 'averageCountFinal'); b.ref('averageTotalFinal', 'total'); b.ref('averageCountFinal', 'count')
+
+  b.root('signalWeight', 'FunctionDeclaration', { name: 'weight', type: doubleType }, { parameters: ['weightValue'], body: 'signalWeightBody' })
+  b.make('weightValue', 'Parameter', { name: 'value', type: intType })
+  b.block('signalWeightBody', ['weightReturn'])
+  b.returnValue('weightReturn', 'weightRounded')
+  b.make('weightRounded', 'MathCall', { name: 'round' }, { arguments: ['weightRoot'] })
+  b.make('weightRoot', 'MathCall', { name: 'sqrt' }, { arguments: ['weightCast'] })
+  b.make('weightCast', 'CastExpression', { type: doubleType }, { argument: 'weightRef' }); b.ref('weightRef', 'value')
+
+  b.root('signalScore', 'FunctionDeclaration', { name: 'score', type: intType }, { parameters: ['scoreValues', 'scoreMetric'], body: 'signalScoreBody' })
+  b.make('scoreValues', 'Parameter', { name: 'values', type: intArrayType })
+  b.make('scoreMetric', 'Parameter', { name: 'metric', type: doubleMapper })
+  b.block('signalScoreBody', ['scoreTotal', 'scoreLoop', 'scoreReturn'])
+  b.make('scoreIndex', 'VariableDeclaration', { name: 'i', type: intType }, { initializer: 'scoreIndexStart' }); b.intValue('scoreIndexStart', 0)
+  b.make('scoreTotal', 'VariableDeclaration', { name: 'total', type: doubleType }, { initializer: 'scoreTotalStart' }); b.make('scoreTotalStart', 'Literal', { type: doubleType, value: '0.0' })
+  b.make('scoreLoop', 'ForStatement', {}, { initializer: 'scoreIndex', test: 'scoreTest', update: 'scoreStep', body: 'scoreLoopBody' })
+  b.binary('scoreTest', '<', 'scoreIndexRead', 'scoreLength'); b.ref('scoreIndexRead', 'i'); b.make('scoreLength', 'MathCall', { name: 'arrayLength' }, { arguments: ['scoreArray'] }); b.ref('scoreArray', 'values')
+  b.make('scoreStep', 'AssignmentStatement', {}, { target: 'scoreIndexTarget', value: 'scoreIndexNext' }); b.ref('scoreIndexTarget', 'i'); b.binary('scoreIndexNext', '+', 'scoreIndexNextRead', 'scoreOne'); b.ref('scoreIndexNextRead', 'i'); b.intValue('scoreOne', 1)
+  b.block('scoreLoopBody', ['scoreAdd'])
+  b.make('scoreAdd', 'AssignmentStatement', {}, { target: 'scoreTotalTarget', value: 'scoreTotalNext' })
+  b.ref('scoreTotalTarget', 'total')
+  b.binary('scoreTotalNext', '+', 'scoreTotalRead', 'scoreMetricCall'); b.ref('scoreTotalRead', 'total')
+  b.call('scoreMetricCall', 'scoreMetricRef', ['scoreValueArg']); b.ref('scoreMetricRef', 'metric'); b.access('scoreValueArg', 'scoreValueArray', 'scoreValueIndex'); b.ref('scoreValueArray', 'values'); b.ref('scoreValueIndex', 'i')
+  b.returnValue('scoreReturn', 'scoreClamped')
+  b.make('scoreClamped', 'MathCall', { name: 'clamp' }, { arguments: ['scoreAverage', 'scoreZero', 'scoreHundred'] })
+  b.make('scoreAverage', 'CastExpression', { type: intType }, { argument: 'scoreAverageRound' })
+  b.make('scoreAverageRound', 'MathCall', { name: 'round' }, { arguments: ['scoreAverageValue'] })
+  b.binary('scoreAverageValue', '/', 'scoreTotalLast', 'scoreLengthDouble'); b.ref('scoreTotalLast', 'total'); b.make('scoreLengthDouble', 'CastExpression', { type: doubleType }, { argument: 'scoreLengthCastArg' }); b.make('scoreLengthCastArg', 'MathCall', { name: 'arrayLength' }, { arguments: ['scoreLengthCastArray'] }); b.ref('scoreLengthCastArray', 'values')
+  b.intValue('scoreZero', 0); b.intValue('scoreHundred', 100)
+
+  b.root('signalSmooth', 'FunctionDeclaration', { name: 'smooth', type: voidType }, { parameters: ['smoothValue', 'smoothTarget'], body: 'signalSmoothBody' })
+  b.make('smoothValue', 'Parameter', { name: 'value', type: intPointerType })
+  b.make('smoothTarget', 'Parameter', { name: 'target', type: intType })
+  b.block('signalSmoothBody', ['smoothAssign'])
+  b.make('smoothAssign', 'AssignmentStatement', {}, { target: 'smoothTargetRef', value: 'smoothClamp' })
+  b.deref('smoothTargetRef', 'smoothTargetParam'); b.ref('smoothTargetParam', 'value')
+  b.make('smoothClamp', 'MathCall', { name: 'clamp' }, { arguments: ['smoothNext', 'smoothZero', 'smoothHundred'] })
+  b.binary('smoothNext', '+', 'smoothRead', 'smoothStep'); b.deref('smoothRead', 'smoothReadRef'); b.ref('smoothReadRef', 'value')
+  b.binary('smoothStep', '*', 'smoothSign', 'smoothFour'); b.make('smoothSign', 'MathCall', { name: 'sign' }, { arguments: ['smoothDelta'] }); b.binary('smoothDelta', '-', 'smoothTargetRead', 'smoothValueRead'); b.ref('smoothTargetRead', 'target'); b.deref('smoothValueRead', 'smoothValueReadRef'); b.ref('smoothValueReadRef', 'value')
+  b.intValue('smoothFour', 4); b.intValue('smoothZero', 0); b.intValue('smoothHundred', 100)
+
+  b.root('signalEach', 'FunctionDeclaration', { name: 'forEachSample', type: voidType }, { parameters: ['eachValues', 'eachVisit'], body: 'signalEachBody' })
+  b.make('eachValues', 'Parameter', { name: 'values', type: intArrayType })
+  b.make('eachVisit', 'Parameter', { name: 'visit', type: intEffect })
+  b.block('signalEachBody', ['eachStatement'])
+  b.make('eachStatement', 'ForEachStatement', {}, { array: 'eachArrayRef', callback: 'eachVisitRef' }); b.ref('eachArrayRef', 'values'); b.ref('eachVisitRef', 'visit')
+
+  // Texte : découpage, assemblage, extraction et recherche.
+  b.useModule('signalText', 'Signal text')
+  b.root('signalTextType', 'TypeDeclaration', { name: 'Text', type: stringType })
+  b.root('signalTags', 'ConstantDeclaration', { name: 'TAGS', type: stringType }, { initializer: 'signalTagsValue' })
+  b.make('signalTagsValue', 'Literal', { type: stringType, value: 'calm|warm|hot' })
+  b.root('signalDescribe', 'FunctionDeclaration', { name: 'describe', type: { kind: 'named', target: { kind: 'name', name: 'Text' } } }, { parameters: ['describeValue'], body: 'signalDescribeBody' })
+  b.make('describeValue', 'Parameter', { name: 'value', type: intType })
+  b.block('signalDescribeBody', ['describeParts', 'describeIndex', 'describeWord', 'describePrefix', 'describeRest', 'describePieces', 'describeReturn'])
+  b.make('describeParts', 'VariableDeclaration', { name: 'parts', type: stringArrayType }, { initializer: 'describeSplit' })
+  b.make('describeSplit', 'MathCall', { name: 'stringSplit' }, { arguments: ['describeTagsRef', 'describeSeparator'] }); b.ref('describeTagsRef', 'TAGS'); b.make('describeSeparator', 'Literal', { type: charType, value: '|' })
+  b.make('describeIndex', 'VariableDeclaration', { name: 'index', type: intType }, { initializer: 'describeIndexCall' })
+  b.make('describeIndexCall', 'MathCall', { name: 'clamp' }, { arguments: ['describeIndexQuotient', 'describeZero', 'describeLast'] })
+  b.binary('describeIndexQuotient', '/', 'describeValueRef', 'describeThirtyFour'); b.ref('describeValueRef', 'value'); b.intValue('describeThirtyFour', 34)
+  b.intValue('describeZero', 0); b.binary('describeLast', '-', 'describeLengthCall', 'describeOne'); b.make('describeLengthCall', 'MathCall', { name: 'arrayLength' }, { arguments: ['describePartsRef'] }); b.ref('describePartsRef', 'parts'); b.intValue('describeOne', 1)
+  b.make('describeWord', 'VariableDeclaration', { name: 'word', type: { kind: 'named', target: { kind: 'name', name: 'Text' } } }, { initializer: 'describeWordAccess' })
+  b.access('describeWordAccess', 'describeWordArray', 'describeIndexRef'); b.ref('describeWordArray', 'parts'); b.ref('describeIndexRef', 'index')
+  b.make('describePrefix', 'VariableDeclaration', { name: 'prefix', type: { kind: 'named', target: { kind: 'name', name: 'Text' } } }, { initializer: 'describePrefixCall' })
+  b.make('describePrefixCall', 'MathCall', { name: 'substring' }, { arguments: ['describeWordRef', 'describePrefixStart', 'describePrefixEnd'] }); b.ref('describeWordRef', 'word'); b.intValue('describePrefixStart', 0); b.intValue('describePrefixEnd', 1)
+  b.make('describeRest', 'VariableDeclaration', { name: 'rest', type: { kind: 'named', target: { kind: 'name', name: 'Text' } } }, { initializer: 'describeRestCall' })
+  b.make('describeRestCall', 'MathCall', { name: 'substring' }, { arguments: ['describeWordRestRef', 'describeRestStart', 'describeRestEnd'] }); b.ref('describeWordRestRef', 'word'); b.intValue('describeRestStart', 1); b.make('describeRestEnd', 'MathCall', { name: 'length' }, { arguments: ['describeWordLengthRef'] }); b.ref('describeWordLengthRef', 'word')
+  b.make('describePieces', 'VariableDeclaration', { name: 'pieces', type: stringArrayType }, { initializer: 'describePiecesList' })
+  b.make('describePiecesList', 'ArrayLiteral', { elementType: stringType }, { elements: ['describePiecePrefix', 'describePieceRest'] })
+  b.ref('describePiecePrefix', 'prefix'); b.ref('describePieceRest', 'rest')
+  b.returnValue('describeReturn', 'describeJoin')
+  b.make('describeJoin', 'MathCall', { name: 'stringJoin' }, { arguments: ['describePiecesRef', 'describeJoiner'] }); b.ref('describePiecesRef', 'pieces'); b.make('describeJoiner', 'Literal', { type: stringType, value: '' })
+
+  b.root('signalTagFor', 'FunctionDeclaration', { name: 'tagFor', type: stringType }, { parameters: ['tagValue'], body: 'signalTagBody' })
+  b.make('tagValue', 'Parameter', { name: 'value', type: intType })
+  b.block('signalTagBody', ['tagHigh'])
+  b.make('tagHigh', 'IfStatement', {}, { test: 'tagHighTest', consequent: 'tagHighBody', alternate: 'tagMidBlock' })
+  b.binary('tagHighTest', '>=', 'tagHighRead', 'tagHighLimit'); b.ref('tagHighRead', 'value'); b.intValue('tagHighLimit', 70)
+  b.block('tagHighBody', ['tagStableReturn'])
+  b.returnValue('tagStableReturn', 'tagStableValue'); b.make('tagStableValue', 'Literal', { type: stringType, value: 'STABLE' })
+  b.make('tagMid', 'IfStatement', {}, { test: 'tagMidTest', consequent: 'tagMidBody', alternate: 'tagLowBody' })
+  b.make('tagMidBlock', 'Block', {}, { statements: ['tagMid'] })
+  b.binary('tagMidTest', '>=', 'tagMidRead', 'tagMidLimit'); b.ref('tagMidRead', 'value'); b.intValue('tagMidLimit', 40)
+  b.block('tagMidBody', ['tagVolatileReturn'])
+  b.returnValue('tagVolatileReturn', 'tagVolatileValue'); b.make('tagVolatileValue', 'Literal', { type: stringType, value: 'VOLATILE' })
+  b.block('tagLowBody', ['tagCriticalReturn'])
+  b.returnValue('tagCriticalReturn', 'tagCriticalValue'); b.make('tagCriticalValue', 'Literal', { type: stringType, value: 'CRITICAL' })
+
+  // Application : collecte ForEach, boucle For, écran, jauge et LED.
+  b.useModule('signalApp', 'Signal console')
+  b.root('signalSamplesData', 'VariableDeclaration', { name: 'samples', type: intArrayType }, { initializer: 'signalSamplesCreate' })
+  b.make('signalSamplesCreate', 'ArrayCreation', { elementType: intType }, { size: 'signalSamplesSize', initializer: 'signalSamplesZero' })
+  b.intValue('signalSamplesSize', 16); b.intValue('signalSamplesZero', 0)
+  b.root('signalCode', 'ConstantDeclaration', { name: 'CODE', type: stringType }, { initializer: 'signalCodeValue' }); b.make('signalCodeValue', 'Literal', { type: stringType, value: 'warm|hot' })
+  b.root('signalSum', 'VariableDeclaration', { name: 'sum', type: intType }, { initializer: 'signalSumStart' }); b.intValue('signalSumStart', 0)
+  b.root('signalQuality', 'VariableDeclaration', { name: 'quality', type: intType }, { initializer: 'signalQualityStart' }); b.intValue('signalQualityStart', 50)
+  b.root('signalAlarmData', 'VariableDeclaration', { name: 'alarm', type: booleanType }, { initializer: 'signalAlarmStart' }); b.make('signalAlarmStart', 'Literal', { type: booleanType, value: false })
+  b.root('signalMetric', 'ConstantDeclaration', { name: 'metric', type: doubleMapper }, { initializer: 'signalMetricRef' }); b.make('signalMetricRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'signalWeightImport' } })
+
+  b.root('signalCollect', 'FunctionDeclaration', { name: 'collect', type: voidType }, { parameters: ['collectValue'], body: 'signalCollectBody' })
+  b.make('collectValue', 'Parameter', { name: 'value', type: intType })
+  b.block('signalCollectBody', ['collectAssign'])
+  b.make('collectAssign', 'AssignmentStatement', {}, { target: 'collectTarget', value: 'collectNext' }); b.ref('collectTarget', 'sum'); b.binary('collectNext', '+', 'collectSumRead', 'collectValueRef'); b.ref('collectSumRead', 'sum'); b.ref('collectValueRef', 'value')
+
+  b.root('signalMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'signalMainBody' })
+  b.make('signalFillIndex', 'VariableDeclaration', { name: 'i', type: intType }, { initializer: 'signalFillStart' }); b.intValue('signalFillStart', 0)
+  b.binary('signalFillTest', '<', 'signalFillRead', 'signalFillEnd'); b.ref('signalFillRead', 'i'); b.intValue('signalFillEnd', 16)
+  b.make('signalFillStep', 'AssignmentStatement', {}, { target: 'signalFillTarget', value: 'signalFillNext' }); b.ref('signalFillTarget', 'i'); b.binary('signalFillNext', '+', 'signalFillNextRead', 'signalFillOne'); b.ref('signalFillNextRead', 'i'); b.intValue('signalFillOne', 1)
+  b.block('signalFillBody', ['signalFillAssign'])
+  b.make('signalFillAssign', 'AssignmentStatement', {}, { target: 'signalFillElement', value: 'signalFillValue' })
+  b.access('signalFillElement', 'signalFillArray', 'signalFillIndexRef'); b.ref('signalFillArray', 'samples'); b.ref('signalFillIndexRef', 'i')
+  b.make('signalFillValue', 'MathCall', { name: 'randomInt' }, { arguments: ['signalFillMin', 'signalFillMax'] }); b.intValue('signalFillMin', 20); b.intValue('signalFillMax', 90)
+  b.make('signalFillLoop', 'ForStatement', {}, { initializer: 'signalFillIndex', test: 'signalFillTest', update: 'signalFillStep', body: 'signalFillBody' })
+  b.make('signalZeroSet', 'AssignmentStatement', {}, { target: 'signalZeroElement', value: 'signalFortyTwo' })
+  b.access('signalZeroElement', 'signalZeroArray', 'signalZeroIndex'); b.ref('signalZeroArray', 'samples'); b.intValue('signalZeroIndex', 0); b.intValue('signalFortyTwo', 42)
+
+  b.make('signalCollectStatement', 'ExpressionStatement', {}, { expression: 'signalCollectCall' })
+  b.call('signalCollectCall', 'signalCollectCallee', ['signalSamplesArg', 'signalCollectRef'])
+  b.make('signalCollectCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'signalEachImport' } }); b.ref('signalSamplesArg', 'samples'); b.ref('signalCollectRef', 'collect')
+  b.make('signalQualityAssign', 'AssignmentStatement', {}, { target: 'signalQualityTarget', value: 'signalQualityAverage' })
+  b.ref('signalQualityTarget', 'quality')
+  b.make('signalQualityAverage', 'MathCall', { name: 'clamp' }, { arguments: ['signalQualityQuotient', 'signalQualityZero', 'signalQualityHundred'] })
+  b.binary('signalQualityQuotient', '/', 'signalSumRead', 'signalSixteen'); b.ref('signalSumRead', 'sum'); b.intValue('signalSixteen', 16)
+  b.intValue('signalQualityZero', 0); b.intValue('signalQualityHundred', 100)
+
+  b.make('signalDescribePrint', 'PrintStatement', {}, { value: 'signalDescribeCall' })
+  b.call('signalDescribeCall', 'signalDescribeRef', ['signalDescribeArg']); b.make('signalDescribeRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'signalDescribeImport' } }); b.intValue('signalDescribeArg', 70)
+  b.make('signalTagPrint', 'PrintStatement', {}, { value: 'signalTagCall' })
+  b.call('signalTagCall', 'signalTagRef', ['signalTagArg']); b.make('signalTagRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'signalTagImport' } }); b.intValue('signalTagArg', 70)
+  b.make('signalCharPrint', 'PrintStatement', {}, { value: 'signalCharCall' })
+  b.make('signalCharCall', 'MathCall', { name: 'charAt' }, { arguments: ['signalCodeRef', 'signalCharIndex'] }); b.ref('signalCodeRef', 'CODE'); b.intValue('signalCharIndex', 0)
+  b.make('signalContainsPrint', 'PrintStatement', {}, { value: 'signalContainsCall' })
+  b.make('signalContainsCall', 'MathCall', { name: 'contains' }, { arguments: ['signalCodeContainsRef', 'signalContainsSearch'] }); b.ref('signalCodeContainsRef', 'CODE'); b.make('signalContainsSearch', 'Literal', { type: stringType, value: 'hot' })
+  b.make('signalSearchPrint', 'PrintStatement', {}, { value: 'signalSearchCall' })
+  b.make('signalSearchCall', 'MathCall', { name: 'stringIndexOf' }, { arguments: ['signalCodeSearchRef', 'signalSearchPart'] }); b.ref('signalCodeSearchRef', 'CODE'); b.make('signalSearchPart', 'Literal', { type: stringType, value: 'hot' })
+  b.make('signalLengthPrint', 'PrintStatement', {}, { value: 'signalLengthCall' })
+  b.make('signalLengthCall', 'MathCall', { name: 'length' }, { arguments: ['signalCodeLengthRef'] }); b.ref('signalCodeLengthRef', 'CODE')
+
+  b.make('signalReverseVar', 'VariableDeclaration', { name: 'reversed', type: intArrayType }, { initializer: 'signalReverseInit' })
+  b.make('signalReverseInit', 'MathCall', { name: 'arrayReverse' }, { arguments: ['signalReverseSamples'] }); b.ref('signalReverseSamples', 'samples')
+  b.make('signalSliceVar', 'VariableDeclaration', { name: 'part', type: intArrayType }, { initializer: 'signalSliceCall' })
+  b.make('signalSliceCall', 'MathCall', { name: 'arraySlice' }, { arguments: ['signalSliceSamples', 'signalSliceStart', 'signalSliceEnd'] }); b.ref('signalSliceSamples', 'samples'); b.intValue('signalSliceStart', 1); b.intValue('signalSliceEnd', 4)
+  b.make('signalConcatVar', 'VariableDeclaration', { name: 'both', type: intArrayType }, { initializer: 'signalConcatCall' })
+  b.make('signalConcatCall', 'MathCall', { name: 'arrayConcat' }, { arguments: ['signalConcatPart', 'signalConcatReversed'] }); b.ref('signalConcatPart', 'part'); b.ref('signalConcatReversed', 'reversed')
+  b.make('signalReverseLengthPrint', 'PrintStatement', {}, { value: 'signalReverseLengthCall' })
+  b.make('signalReverseLengthCall', 'MathCall', { name: 'arrayLength' }, { arguments: ['signalReverseLengthArg'] }); b.ref('signalReverseLengthArg', 'reversed')
+  b.make('signalSliceLengthPrint', 'PrintStatement', {}, { value: 'signalSliceLengthCall' })
+  b.make('signalSliceLengthCall', 'MathCall', { name: 'arrayLength' }, { arguments: ['signalSliceLengthArg'] }); b.ref('signalSliceLengthArg', 'part')
+  b.make('signalConcatLengthPrint', 'PrintStatement', {}, { value: 'signalConcatLengthCall' })
+  b.make('signalConcatLengthCall', 'MathCall', { name: 'arrayLength' }, { arguments: ['signalConcatLengthArg'] }); b.ref('signalConcatLengthArg', 'both')
+  b.make('signalContainsArrayPrint', 'PrintStatement', {}, { value: 'signalArrayContainsCall' })
+  b.make('signalArrayContainsCall', 'MathCall', { name: 'arrayContains' }, { arguments: ['signalArrayContainsRef', 'signalArraySearch'] }); b.ref('signalArrayContainsRef', 'samples'); b.intValue('signalArraySearch', 42)
+  b.make('signalIndexArrayPrint', 'PrintStatement', {}, { value: 'signalArrayIndexCall' })
+  b.make('signalArrayIndexCall', 'MathCall', { name: 'arrayIndexOf' }, { arguments: ['signalArrayIndexRef', 'signalArrayIndexSearch'] }); b.ref('signalArrayIndexRef', 'samples'); b.intValue('signalArrayIndexSearch', 42)
+
+  // Axes statiques puis un point par image.
+  for (let y = 0; y < height; y += 1) {
+    const id = `signalAxisY${y}`
+    b.make(`${id}Statement`, 'ExpressionStatement', {}, { expression: `${id}Call` })
+    b.call(`${id}Call`, `${id}Callee`, [`${id}Index`, `${id}Red`, `${id}Green`, `${id}Blue`, `${id}Alpha`])
+    b.make(`${id}Callee`, 'Reference', {}, {}, { target: { kind: 'import', importId: 'signalPixelImport' } })
+    b.intValue(`${id}Index`, y * width); b.intValue(`${id}Red`, 40); b.intValue(`${id}Green`, 46); b.intValue(`${id}Blue`, 64); b.intValue(`${id}Alpha`, 255)
+  }
+  for (let x = 0; x < width; x += 1) {
+    const id = `signalAxisX${x}`
+    b.make(`${id}Statement`, 'ExpressionStatement', {}, { expression: `${id}Call` })
+    b.call(`${id}Call`, `${id}Callee`, [`${id}Index`, `${id}Red`, `${id}Green`, `${id}Blue`, `${id}Alpha`])
+    b.make(`${id}Callee`, 'Reference', {}, {}, { target: { kind: 'import', importId: 'signalPixelImport' } })
+    b.intValue(`${id}Index`, (height - 1) * width + x); b.intValue(`${id}Red`, 40); b.intValue(`${id}Green`, 46); b.intValue(`${id}Blue`, 64); b.intValue(`${id}Alpha`, 255)
+  }
+  const axisStatements = []
+  for (let y = 0; y < height; y += 1) axisStatements.push(`signalAxisY${y}Statement`)
+  for (let x = 0; x < width; x += 1) axisStatements.push(`signalAxisX${x}Statement`)
+
+  b.make('signalFrame', 'VariableDeclaration', { name: 'frame', type: intType }, { initializer: 'signalFrameStart' }); b.intValue('signalFrameStart', 0)
+  b.binary('signalFrameTest', '<', 'signalFrameRead', 'signalFrameEnd'); b.ref('signalFrameRead', 'frame'); b.intValue('signalFrameEnd', frames)
+  b.make('signalFrameStep', 'AssignmentStatement', {}, { target: 'signalFrameTarget', value: 'signalFrameNext' }); b.ref('signalFrameTarget', 'frame'); b.binary('signalFrameNext', '+', 'signalFrameNextRead', 'signalFrameOne'); b.ref('signalFrameNextRead', 'frame'); b.intValue('signalFrameOne', 1)
+  b.block('signalFrameBody', ['signalIndexVar', 'signalValueVar', 'signalYVar', 'signalPixelStatement', 'signalSmoothStatement', 'signalAlarmAssign', 'signalLedStatement', 'signalGaugeStatement', 'signalPresentStatement'])
+  b.make('signalIndexVar', 'VariableDeclaration', { name: 'index', type: intType }, { initializer: 'signalIndexModulo' })
+  b.binary('signalIndexModulo', '%', 'signalFrameModRead', 'signalFrameMod'); b.ref('signalFrameModRead', 'frame'); b.intValue('signalFrameMod', 16)
+  b.make('signalValueVar', 'VariableDeclaration', { name: 'value', type: intType }, { initializer: 'signalValueCall' })
+  b.call('signalValueCall', 'signalValueRef', ['signalValueSamples', 'signalIndexRef']); b.make('signalValueRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'signalSampleImport' } }); b.ref('signalValueSamples', 'samples'); b.ref('signalIndexRef', 'index')
+  b.make('signalYVar', 'VariableDeclaration', { name: 'y', type: intType }, { initializer: 'signalYClamp' })
+  b.make('signalYClamp', 'MathCall', { name: 'clamp' }, { arguments: ['signalYRaw', 'signalYMin', 'signalYMax'] })
+  b.binary('signalYRaw', '-', 'signalYBase', 'signalYOffset'); b.intValue('signalYBase', 16); b.binary('signalYOffset', '/', 'signalValueY', 'signalYTens'); b.ref('signalValueY', 'value'); b.intValue('signalYTens', 10)
+  b.intValue('signalYMin', 1); b.intValue('signalYMax', height - 1)
+  b.make('signalPixelStatement', 'ExpressionStatement', {}, { expression: 'signalPixelCall' })
+  b.call('signalPixelCall', 'signalPixelCallee', ['signalPixelIndex', 'signalPixelRed', 'signalPixelGreen', 'signalPixelBlue', 'signalPixelAlpha'])
+  b.make('signalPixelCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'signalPixelImport' } })
+  b.binary('signalPixelIndex', '+', 'signalPixelRow', 'signalPixelColumn'); b.binary('signalPixelRow', '*', 'signalPixelY', 'signalPixelWidth'); b.ref('signalPixelY', 'y'); b.intValue('signalPixelWidth', width); b.ref('signalPixelColumn', 'frame')
+  b.intValue('signalPixelRed', 148); b.intValue('signalPixelGreen', 190); b.intValue('signalPixelBlue', 255); b.intValue('signalPixelAlpha', 255)
+  b.make('signalSmoothStatement', 'ExpressionStatement', {}, { expression: 'signalSmoothCall' })
+  b.call('signalSmoothCall', 'signalSmoothCallee', ['signalSmoothAddress', 'signalSmoothTargetValue']); b.make('signalSmoothCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'signalSmoothImport' } }); b.address('signalSmoothAddress', 'signalQualityRef'); b.ref('signalQualityRef', 'quality'); b.ref('signalSmoothTargetValue', 'value')
+  b.make('signalAlarmAssign', 'AssignmentStatement', {}, { target: 'signalAlarmTarget', value: 'signalAlarmNot' }); b.ref('signalAlarmTarget', 'alarm')
+  b.make('signalAlarmNot', 'UnaryExpression', { operator: 'not' }, { operand: 'signalAlarmTest' }); b.binary('signalAlarmTest', '>=', 'signalQualityAlarmRead', 'signalAlarmLimit'); b.ref('signalQualityAlarmRead', 'quality'); b.intValue('signalAlarmLimit', 50)
+  b.make('signalLedStatement', 'ExpressionStatement', {}, { expression: 'signalLedCall' }); b.call('signalLedCall', 'signalLedCallee', ['signalAlarmRef']); b.make('signalLedCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'signalAlarmImport' } }); b.ref('signalAlarmRef', 'alarm')
+  b.make('signalGaugeStatement', 'ExpressionStatement', {}, { expression: 'signalGaugeCall' }); b.call('signalGaugeCall', 'signalGaugeCallee', ['signalQualityDouble']); b.make('signalGaugeCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'signalQualityImport' } }); b.make('signalQualityDouble', 'CastExpression', { type: doubleType }, { argument: 'signalQualityDoubleArg' }); b.ref('signalQualityDoubleArg', 'quality')
+  b.make('signalPresentStatement', 'ExpressionStatement', {}, { expression: 'signalPresentCall' }); b.call('signalPresentCall', 'signalPresentCallee', []); b.make('signalPresentCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'signalPresentImport' } })
+  b.make('signalFrameLoop', 'ForStatement', {}, { initializer: 'signalFrame', test: 'signalFrameTest', update: 'signalFrameStep', body: 'signalFrameBody' })
+  b.make('signalFinalPrint', 'PrintStatement', {}, { value: 'signalFinalMessage' }); b.make('signalFinalMessage', 'Literal', { type: stringType, value: 'Signal lab' })
+  b.block('signalMainBody', [
+    'signalFillLoop', 'signalZeroSet', 'signalCollectStatement', 'signalQualityAssign',
+    'signalDescribePrint', 'signalTagPrint', 'signalCharPrint', 'signalContainsPrint', 'signalSearchPrint', 'signalLengthPrint',
+    'signalReverseVar', 'signalSliceVar', 'signalConcatVar',
+    'signalReverseLengthPrint', 'signalSliceLengthPrint', 'signalConcatLengthPrint', 'signalContainsArrayPrint', 'signalIndexArrayPrint',
+    ...axisStatements, 'signalFrameLoop', 'signalFinalPrint',
+  ])
+
+  const app = b.project.modules.find((module) => module.id === 'signalApp')
+  app.imports.push(
+    { id: 'signalPixelImport', moduleId: 'signalScreen', nodeId: setPixel.nodeId, localName: 'setPixel' },
+    { id: 'signalPresentImport', moduleId: 'signalScreen', nodeId: present.nodeId, localName: 'present' },
+    { id: 'signalQualityImport', moduleId: 'signalGauge', nodeId: setQuality.nodeId, localName: 'setQuality' },
+    { id: 'signalAlarmImport', moduleId: 'signalLed', nodeId: setAlarm.nodeId, localName: 'setAlarm' },
+    { id: 'signalSampleImport', moduleId: 'signalData', nodeId: 'signalSampleAt', localName: 'sampleAt' },
+    { id: 'signalSmoothImport', moduleId: 'signalStats', nodeId: 'signalSmooth', localName: 'smooth' },
+    { id: 'signalEachImport', moduleId: 'signalStats', nodeId: 'signalEach', localName: 'forEachSample' },
+    { id: 'signalWeightImport', moduleId: 'signalStats', nodeId: 'signalWeight', localName: 'weight' },
+    { id: 'signalDescribeImport', moduleId: 'signalText', nodeId: 'signalDescribe', localName: 'describe' },
+    { id: 'signalTagImport', moduleId: 'signalText', nodeId: 'signalTagFor', localName: 'tagFor' },
+  )
+  b.project.modules.find((module) => module.id === 'signalData').exports.push({ nodeId: 'signalSampleAt', name: 'sampleAt' })
+  b.project.modules.find((module) => module.id === 'signalStats').exports.push({ nodeId: 'signalSmooth', name: 'smooth' }, { nodeId: 'signalEach', name: 'forEachSample' }, { nodeId: 'signalScore', name: 'score' }, { nodeId: 'signalWeight', name: 'weight' })
+  b.project.modules.find((module) => module.id === 'signalText').exports.push({ nodeId: 'signalDescribe', name: 'describe' }, { nodeId: 'signalTagFor', name: 'tagFor' })
+  b.project.nodes.find((node) => node.id === 'signalQuality').contracts = [{ kind: 'between', arguments: [0, 100] }]
+  b.project.nodes.find((node) => node.id === 'signalSamplesData').contracts = [{ kind: 'minLength', arguments: [8] }]
+  b.project.nodes.find((node) => node.id === 'averageValues').contracts = [{ kind: 'nonEmpty' }]
+
+  const result = workspace(b.project, [
+    note('signalScreenNote', 'Waveform', 'Écran 48×18 : les axes sont tracés une fois, puis un point apparaît par image à la hauteur de l’échantillon. La boucle de 48 images dure deux secondes à 24 fps.', 0, 900, 620, 240),
+    note('signalStatsNote', 'Signal stats', '`average` illustre While, Continue et Break ; `score` reçoit une fonction de type `(int) -> double` et somme ses résultats dans une boucle For ; `smooth` écrit la qualité à travers un pointeur avec `sign` et `clamp`.', 660, 900, 620, 240),
+    note('signalTextNote', 'Signal text', '`TAGS` est découpé par `stringSplit`, indexé, recomposé par `substring` et `stringJoin` ; l’application affiche aussi `charAt`, `contains`, `stringIndexOf` et `length`.', 1320, 900, 620, 240),
+  ])
+  const cards = result.presentation.cards
+  const byId = (id) => cards.find((card) => card.id === id)
+  Object.assign(byId('signalScreen'), { x: 0, y: 0, width: 760, height: 360 })
+  Object.assign(byId('signalGauge'), { x: 820, y: 0 })
+  Object.assign(byId('signalLed'), { x: 1240, y: 0 })
+  Object.assign(byId('signalData'), { x: 0, y: 420 })
+  Object.assign(byId('signalStats'), { x: 560, y: 420 })
+  Object.assign(byId('signalText'), { x: 1120, y: 420 })
+  Object.assign(byId('signalApp'), { x: 1680, y: 420 })
+  return result
+}
+
 // Tableau de bord : un pixel-voiture avance selon une vitesse lissée et aléatoire, affichée par la jauge.
 function carDashboard() {
   const b = builder()
@@ -1275,6 +1869,8 @@ export const examples = [
   { id: 'knapsack', labelKey: 'examples.knapsack', category: 'hard', subcategory: 'dynamic', build: knapsack },
   { id: 'calculus', labelKey: 'examples.calculus', category: 'hard', subcategory: 'operations', build: calculus },
   { id: 'gameOfLife', labelKey: 'examples.gameOfLife', category: 'hard', subcategory: 'automata', build: gameOfLife },
+  { id: 'roverSurvey', labelKey: 'examples.roverSurvey', category: 'hard', subcategory: 'simulation', build: roverSurvey },
+  { id: 'signalLab', labelKey: 'examples.signalLab', category: 'hard', subcategory: 'simulation', build: signalLab },
 ]
 
 // Sous-catégories facultatives à l'intérieur d'une catégorie du volet Examples.
@@ -1290,4 +1886,5 @@ export const exampleSubcategories = [
   { id: 'dynamic', labelKey: 'examples.sub.dynamic' },
   { id: 'animation', labelKey: 'examples.sub.animation' },
   { id: 'automata', labelKey: 'examples.sub.automata' },
+  { id: 'simulation', labelKey: 'examples.sub.simulation' },
 ]
