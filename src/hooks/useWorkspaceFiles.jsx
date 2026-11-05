@@ -160,8 +160,8 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
         const saved = await writeWorkspaceFileWithBackup(currentPath, text)
         lastSavedText.current = text
         await discardRecovery()
-        setMessage('files.saved')
-        if (saved.backupError) setError({ prefix: 'errors.couldNotBackup', failure: saved.backupError })
+        setMessage(saved.backupError ? 'files.savedWithoutBackup' : 'files.saved')
+        if (saved.backupError) console.warn('Workspace backup could not be written.', saved.backupError)
       } catch (failure) {
         setError({ prefix: 'errors.couldNotSave', failure })
       } finally {
