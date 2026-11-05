@@ -3,6 +3,9 @@ import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { findFrameCycle } from '../../utils/screenPlayback.js'
 import './ScreenCanvas.css'
 
+// Cadence fixe du moniteur : 24 images par seconde, indépendante des pas de simulation.
+const playbackFrameDelay = 1000 / 24
+
 // Peint un état d'écran en réutilisant la même ImageData pour éviter une allocation par frame.
 function paintScreen(context, imageRef, state, fallbackWidth, fallbackHeight) {
   const width = state?.width ?? fallbackWidth
@@ -60,7 +63,7 @@ export default function ScreenCanvas({ card, state = null, frames = null, screen
     paintScreen(canvas.getContext('2d'), imageRef, state, width, height)
   }, [state, width, height])
 
-  // Rejoue les images capturées à environ 30 fps directement dans le canvas, sans état React par frame.
+  // Rejoue les images capturées à 24 fps directement dans le canvas, sans état React par frame.
   // La lecture avance toujours : elle boucle sur la période détectée, sinon sur toute la séquence.
   useEffect(() => {
     if (framesRef.current !== frames) {
@@ -82,7 +85,7 @@ export default function ScreenCanvas({ card, state = null, frames = null, screen
       if (cycle <= 1) return
       playbackRef.current = (playbackRef.current + 1) % cycle
       draw()
-    }, 33)
+    }, playbackFrameDelay)
     return () => window.clearInterval(timer)
   }, [frames, screenId, playing, width, height])
 
