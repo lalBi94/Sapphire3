@@ -39,6 +39,7 @@ function createFilesystem(initialFiles = {}, failures = {}) {
     async remove(target) {
       calls.push(['remove', target])
       if (failures.remove) throw Object.assign(new Error('remove failed'), { code: 'NE_FS_REMVERR' })
+      if (!files.has(target) && failures.removeMissing) throw Object.assign(new Error('missing'), { code: 'NE_FS_REMVERR' })
       files.delete(target)
     },
     async createDirectory(target) {
@@ -234,4 +235,13 @@ test('sauvegardes de secours : un échec de copie laisse l’enregistrement réu
   assert.equal(saved.path, path)
   assert.equal(saved.backupError?.code, 'NE_FS_FILRDERR')
   assert.equal(filesystem.files.get(path), 'nouveau')
+})
+
+test('sauvegardes de secours : une génération absente ne remonte pas NE_FS_REMVERR', async () => {
+  const filesystem = createFilesystem({ [path]: 'ancien' }, { removeMissing: true })
+  const client = createClient(filesystem)
+  const saved = await writeWorkspaceFileWithBackup(path, 'nouveau', client)
+  assert.equal(saved.backupError, null)
+  assert.equal(filesystem.files.get(path), 'nouveau')
+  assert.equal(filesystem.files.get(backupPath(1)), 'ancien')
 })

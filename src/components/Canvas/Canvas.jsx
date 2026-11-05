@@ -9,7 +9,7 @@ import useGlobalKeybinds from '../../hooks/useGlobalKeybinds.jsx'
 import useAppUpdate from '../../hooks/useAppUpdate.jsx'
 import CanvasStatus from '../CanvasStatus/CanvasStatus.jsx'
 import ModuleFunctions from '../ModuleFunctions/ModuleFunctions.jsx'
-import { semanticZoomLevel, semanticDetailZoomLevel } from '../../utils/semanticZoom.js'
+import { semanticZoomLevel, semanticSearchZoomLevel } from '../../utils/semanticZoom.js'
 import Minimap from '../Minimap/Minimap.jsx'
 import CanvasContextMenu from '../CanvasContextMenu/CanvasContextMenu.jsx'
 import CanvasModule from '../CanvasModule/CanvasModule.jsx'
@@ -293,7 +293,7 @@ export default function Canvas() {
     document.setExpandedNodes(moduleId, [...expanded])
     handleSelect({ kind: 'node', id: nodeId })
     // Une recherche doit révéler les instructions même si la vue était sémantiquement repliée.
-    restoreCamera({ x: card.x + card.width / 2, y: card.y + card.height / 2, zoomLevel: Math.max(camera.zoomLevel, semanticDetailZoomLevel) })
+    restoreCamera({ x: card.x + card.width / 2, y: card.y + card.height / 2, zoomLevel: Math.max(camera.zoomLevel, semanticSearchZoomLevel) })
     setRevealTarget({ nodeId, token: crypto.randomUUID() })
   }
 

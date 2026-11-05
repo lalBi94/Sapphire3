@@ -133,19 +133,21 @@ function backupPath(path, generation) {
 // Ignore seulement l'absence d'un fichier pendant la rotation des sauvegardes.
 async function removeIfPresent(filesystem, target) {
   try {
-    await filesystem.remove(target)
-  } catch (error) {
-    if (error?.code !== 'NE_FS_NOPATHE') throw error
+    await filesystem.getStats(target)
+  } catch {
+    return
   }
+  await filesystem.remove(target)
 }
 
 // Déplace une génération existante ; une génération absente n'interrompt pas la rotation.
 async function moveIfPresent(filesystem, source, destination) {
   try {
-    await filesystem.move(source, destination)
-  } catch (error) {
-    if (error?.code !== 'NE_FS_NOPATHE') throw error
+    await filesystem.getStats(source)
+  } catch {
+    return
   }
+  await filesystem.move(source, destination)
 }
 
 // Fait tourner jusqu'à trois copies du contenu précédent, sans jamais bloquer l'écriture du fichier courant.
