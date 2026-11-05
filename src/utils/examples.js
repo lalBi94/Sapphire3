@@ -1052,9 +1052,6 @@ function roverSurvey() {
   const width = 48
   const height = 18
   const frames = 24
-  const artifactIndex = 4 * width + 6
-  const artifactX = 6
-  const artifactY = 4
   const interfaceType = { kind: 'function', parameters: [intType], returnType: voidType }
   const screen = createScreenModule('roverScreen', 'Rover map', 1, { width, height })
   const gauge = createGaugeModule('roverGauge', 'Battery', 1, { min: 0, max: 100 })
@@ -1178,7 +1175,7 @@ function roverSurvey() {
     const y = (index * 5 + 2) % (height - 4) + 2
     const cell = y * width + x
     if (x < 12 && y < 8) continue
-    if (cell !== artifactIndex && !rocks.includes(cell)) rocks.push(cell)
+    if (!rocks.includes(cell)) rocks.push(cell)
   }
   b.root('roverRockIndices', 'VariableDeclaration', { name: 'rocks', type: intArrayType }, { initializer: 'roverRockList' })
   b.make('roverRockList', 'ArrayLiteral', { elementType: intType }, { elements: rocks.map((cell, index) => {
@@ -1186,8 +1183,17 @@ function roverSurvey() {
     b.intValue(id, cell)
     return id
   }) })
+  // L'artefact tombe dans une zone dégagée, à une position tirée à chaque exécution.
+  b.root('roverArtifactX', 'VariableDeclaration', { name: 'artifactX', type: intType }, { initializer: 'roverArtifactXValue' })
+  b.make('roverArtifactXValue', 'MathCall', { name: 'randomInt' }, { arguments: ['roverArtifactXMin', 'roverArtifactXMax'] })
+  b.intValue('roverArtifactXMin', 2); b.intValue('roverArtifactXMax', 11)
+  b.root('roverArtifactY', 'VariableDeclaration', { name: 'artifactY', type: intType }, { initializer: 'roverArtifactYValue' })
+  b.make('roverArtifactYValue', 'MathCall', { name: 'randomInt' }, { arguments: ['roverArtifactYMin', 'roverArtifactYMax'] })
+  b.intValue('roverArtifactYMin', 2); b.intValue('roverArtifactYMax', 7)
   b.root('roverArtifactIndex', 'ConstantDeclaration', { name: 'ARTIFACT_INDEX', type: intType }, { initializer: 'roverArtifactIndexValue' })
-  b.intValue('roverArtifactIndexValue', artifactIndex)
+  b.binary('roverArtifactIndexValue', '+', 'roverArtifactIndexRow', 'roverArtifactIndexColumn')
+  b.binary('roverArtifactIndexRow', '*', 'roverArtifactIndexYRef', 'roverArtifactIndexWidth')
+  b.ref('roverArtifactIndexYRef', 'artifactY'); b.intValue('roverArtifactIndexWidth', width); b.ref('roverArtifactIndexColumn', 'artifactX')
   b.root('roverBattery', 'VariableDeclaration', { name: 'battery', type: intType }, { initializer: 'roverBatteryStart' }); b.intValue('roverBatteryStart', 100)
   b.root('roverXData', 'VariableDeclaration', { name: 'x', type: intType }, { initializer: 'roverXStart' }); b.intValue('roverXStart', 1)
   b.root('roverYData', 'VariableDeclaration', { name: 'y', type: intType }, { initializer: 'roverYStart' }); b.intValue('roverYStart', 1)
@@ -1225,7 +1231,7 @@ function roverSurvey() {
   b.ref('roverRocksArg', 'rocks'); b.ref('roverPainterArg', 'painter')
   b.make('roverArtifactMark', 'AssignmentStatement', {}, { target: 'roverArtifactMarkTarget', value: 'roverArtifactTwoMark' })
   b.access('roverArtifactMarkTarget', 'roverArtifactMarkCells', 'roverArtifactMarkIndex')
-  b.ref('roverArtifactMarkCells', 'cells'); b.intValue('roverArtifactMarkIndex', artifactIndex); b.intValue('roverArtifactTwoMark', 2)
+  b.ref('roverArtifactMarkCells', 'cells'); b.ref('roverArtifactMarkIndex', 'ARTIFACT_INDEX'); b.intValue('roverArtifactTwoMark', 2)
   b.make('roverArtifactPaintStatement', 'ExpressionStatement', {}, { expression: 'roverArtifactPaintCall' })
   b.call('roverArtifactPaintCall', 'roverArtifactPaintCallee', ['roverArtifactIndexRef', 'roverArtifactRed', 'roverArtifactGreen', 'roverArtifactBlue', 'roverArtifactAlpha'])
   b.make('roverArtifactPaintCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'roverPixelImport' } })
@@ -1250,7 +1256,7 @@ function roverSurvey() {
   b.call('roverExploreCall', 'roverExploreRef', ['roverCellsArg', 'roverWidthArg', 'roverHeightArg', 'roverAddressX', 'roverAddressY', 'roverAddressBattery', 'roverTargetX', 'roverTargetY'])
   b.make('roverExploreRef', 'Reference', {}, {}, { target: { kind: 'import', importId: 'roverExploreImport' } })
   b.ref('roverCellsArg', 'cells'); b.intValue('roverWidthArg', width); b.intValue('roverHeightArg', height)
-  b.intValue('roverTargetX', artifactX); b.intValue('roverTargetY', artifactY)
+  b.ref('roverTargetX', 'artifactX'); b.ref('roverTargetY', 'artifactY')
   b.address('roverAddressX', 'roverXRef'); b.ref('roverXRef', 'x')
   b.address('roverAddressY', 'roverYRef'); b.ref('roverYRef', 'y')
   b.address('roverAddressBattery', 'roverBatteryRef'); b.ref('roverBatteryRef', 'battery')
@@ -1316,7 +1322,7 @@ function roverSurvey() {
   b.project.nodes.find((node) => node.id === 'roverRockIndices').contracts = [{ kind: 'minLength', arguments: [20] }]
 
   const result = workspace(b.project, [
-    note('roverScreenNote', 'Rover map', 'Écran 48×18 : la carte est peinte une fois (rochers et artefact), puis le rover avance case par case. La batterie alimente la jauge ; la LED s’allume quand l’artefact est atteint.', 0, 900, 620, 240),
+    note('roverScreenNote', 'Rover map', 'Écran 48×18 : la carte est peinte une fois (rochers et artefact), puis le rover avance case par case. La position de l’artefact est tirée au hasard à chaque exécution ; la batterie alimente la jauge et la LED s’allume quand l’artefact est atteint.', 0, 900, 620, 240),
     note('roverMapNote', 'Map data', 'Le module Map propose un alias `Tile`, la constante `ARTIFACT` et `tileAt` / `isArtifact`. Les rochers sont marqués par une boucle **For**, puis peints par **ForEach** via une variable de type fonction.', 660, 900, 620, 240),
     note('roverDriveNote', 'Drive', '`explore` reçoit trois pointeurs (`&x`, `&y`, `&battery`), essaie jusqu’à quatre directions avec une boucle **While** et sort par **Break** au premier pas libre ; la batterie diminue à chaque déplacement.', 1320, 900, 620, 240),
   ])

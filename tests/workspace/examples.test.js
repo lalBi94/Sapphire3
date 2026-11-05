@@ -48,6 +48,40 @@ test('bibliothèque d’exemples : chaque projet est valide, analysable et s’e
   }
 })
 
+// Rejoue Rover survey avec un tirage imposé et relève la case colorée de l'artefact.
+function roverArtifactPosition(randomValue) {
+  const originalRandom = Math.random
+  Math.random = () => randomValue
+  try {
+    const workspace = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'roverSurvey').build()))
+    const result = simulateProgram(workspace.project)
+    assert.equal(result.ok, true, result.errorCode)
+    assert.deepEqual(result.output, ['Rover survey', 'true'])
+    assert.ok(result.steps < 10000)
+    for (const frame of result.screenFrames) {
+      const pixels = frame.roverScreen.pixels
+      for (let offset = 0; offset < pixels.length; offset += 4) {
+        if (pixels[offset] === 148 && pixels[offset + 1] === 190 && pixels[offset + 2] === 255 && pixels[offset + 3] === 255) return offset / 4
+      }
+    }
+    return null
+  } finally {
+    Math.random = originalRandom
+  }
+}
+
+test('exemple Rover survey : la position de l’artefact est tirée à chaque exécution', () => {
+  const first = roverArtifactPosition(0.2)
+  const second = roverArtifactPosition(0.6)
+  assert.equal(first, 148)
+  assert.equal(second, 248)
+  assert.notEqual(first, second)
+  for (const index of [first, second]) {
+    assert.ok(index % 48 >= 2 && index % 48 <= 11, 'artefact dans la zone dégagée en x')
+    assert.ok(Math.floor(index / 48) >= 2 && Math.floor(index / 48) <= 7, 'artefact dans la zone dégagée en y')
+  }
+})
+
 test('exemple sac à dos : programmation dynamique pilotée par les natives', () => {
   const workspace = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'knapsack').build()))
   const analysis = analyzeProgram(workspace.project)
