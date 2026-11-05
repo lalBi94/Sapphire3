@@ -215,7 +215,7 @@
 | `scripts/build-windows.mjs`, `pnpm dist:win` | Configuration Neutralinojs de production, compilation Vite, paquet portable Windows, licences, ZIP et empreinte SHA-256 |
 | `scripts/licenses/neutralinojs.txt`, `scripts/licenses/libtrashcan.txt` | Licences complètes des composants du runtime Neutralinojs distribués dans le ZIP |
 | `docs/DISTRIBUTION.md` | Organisation de distribution du dépôt unique, construction reproductible et procédure de release |
-| `docs/releases/v0.1.0-alpha.*.md`, `docs/releases/v0.1.0-beta.1.md` | Notes de version des préversions Windows et de la première bêta |
+| `docs/releases/v0.1.0-alpha.*.md`, `docs/releases/v0.1.0-beta.*.md` | Notes de version des préversions Windows et des bêtas |
 | `src/utils/transpilation/python.js`, `pythonRuntime.js` | Backend Python et helpers d'exécution générés (`sapphireForEach`, opérations natives via `math.*` et helpers Unicode), cible active |
 | `src/hooks/useCanvasPan.jsx` | Caméra locale, capture du pointeur, annulation, clavier, zoom logarithmique à la molette, recentrage et déplacement direct (`panTo`) pour la mini-carte |
 | `src/styles/tokens.css`, `src/styles/global.css` | Thème Squircle + Glass, tokens partagés (dont `--font-family`, `--font-display`, `--font-mono`), géométrie et transitions communes, verre des surfaces flottantes et replis d'accessibilité/compatibilité |
@@ -263,7 +263,7 @@ Scripts dans `package.json` :
 ## Distribution et limites
 
 - Distribution configurée sur le dépôt public unique `lalBi94/Sapphire3` : sources sur `master`, paquets portables en assets de GitHub Releases. Aucun second dépôt, sous-module, remote supplémentaire, manifeste `update.json` ni updater.
-- `pnpm dist:win` génère `build/release/Sapphire3-<version>-windows.zip` depuis `package.json` (actuellement `Sapphire3-0.1.0-beta.1-windows.zip`), avec configuration Neutralinojs de production séparée : inspecteur et journalisation désactivés, aucun serveur Vite, source maps ni fixtures de développement. La configuration de développement n'est pas modifiée.
+- `pnpm dist:win` génère `build/release/Sapphire3-<version>-windows.zip` depuis `package.json` (actuellement `Sapphire3-0.1.0-beta.2-windows.zip`), avec configuration Neutralinojs de production séparée : inspecteur et journalisation désactivés, aucun serveur Vite, source maps ni fixtures de développement. La configuration de développement n'est pas modifiée.
 - Le ZIP contient `Sapphire3.exe`, `resources.neu`, `VERSION.txt`, `CREDITS.md`, `LIRE-MOI.txt`, `README.txt` et `licenses/`. Aucune installation de Node.js n'est requise à l'exécution.
 - WebView2 requis sous Windows. Autres OS non vérifiés.
 - Tests du moteur configurés avec Node ; pas de lint ni suite d'interactions UI automatisée configurés.
