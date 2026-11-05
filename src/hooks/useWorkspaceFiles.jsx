@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { serializeWorkspace, deserializeWorkspace, emptyWorkspace } from '../utils/workspaceFile.js'
-import { exportWorkspaceFile, exportBinaryFile, importWorkspaceFile, readWorkspaceFile, writeWorkspaceFile } from '../services/workspaceFiles.js'
+import { exportWorkspaceFile, exportBinaryFile, importWorkspaceFile, readWorkspaceFile, writeWorkspaceFile, readRecoveryFile, writeRecoveryFile, clearRecoveryFile } from '../services/workspaceFiles.js'
 import { useTranslation } from '../contexts/LanguageContext.jsx'
 import { readPreference, writePreference, hydratePreferences } from '../services/preferences.js'
 import { examples } from '../utils/examples.js'
@@ -37,8 +37,10 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
   const [pendingNew, setPendingNew] = useState(false)
   const [currentPath, setCurrentPath] = useState(null)
   const [recentFiles, setRecentFiles] = useState(loadRecentFiles)
+  const [ready, setReady] = useState(false)
   const operation = useRef(false)
   const lastSavedText = useRef(null)
+  const lastRecoveryText = useRef(null)
   const view = useRef({ camera, selected })
   const booted = useRef(false)
 
@@ -67,6 +69,21 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     writePreference(lastFileStorageKey, path ?? '')
   }
 
+  // Supprime la copie de récupération ; un échec réel reste réessayé par l'autosauvegarde suivante.
+  async function discardRecovery() {
+    if (lastRecoveryText.current === null) return
+    try {
+      await clearRecoveryFile()
+      lastRecoveryText.current = null
+    } catch (failure) {
+      if (failure?.code === 'DESKTOP_REQUIRED') {
+        lastRecoveryText.current = null
+        return
+      }
+      setError({ prefix: 'errors.couldNotSave', failure })
+    }
+  }
+
   // Capture le document courant dans le format demandé et l'ecrit au chemin choisi.
   async function saveAs(extension = 'sp3') {
     if (operation.current || pendingImport) return
@@ -82,6 +99,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
           lastSavedText.current = text
           applyCurrentPath(path)
           rememberRecentFile(path)
+          await discardRecovery()
         }
         setMessage('files.saved')
       }
@@ -141,6 +159,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
         const text = serializeWorkspace(project, cards, camera, selected)
         await writeWorkspaceFile(currentPath, text)
         lastSavedText.current = text
+        await discardRecovery()
         setMessage('files.saved')
       } catch (failure) {
         setError({ prefix: 'errors.couldNotSave', failure })
@@ -153,9 +172,9 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     await saveAs('sp3')
   }
 
-  // Écrit le document sans dialogue ni message : l'autosauvegarde suit chaque modification du contenu.
-  async function autosaveToCurrentPath() {
-    if (!currentPath || operation.current || pendingImport) return
+  // Écrit le document sans dialogue : fichier associé, ou copie de récupération pour un document sans chemin.
+  async function autosaveWorkspace() {
+    if (operation.current || pendingImport) return
     const { camera: activeCamera, selected: activeSelected } = view.current
     let text
     try {
@@ -164,14 +183,38 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
       setError({ prefix: 'errors.couldNotSave', failure })
       return
     }
-    if (text === lastSavedText.current) return
+    if (currentPath) {
+      if (text === lastSavedText.current) {
+        await discardRecovery()
+        return
+      }
+      operation.current = true
+      try {
+        await writeWorkspaceFile(currentPath, text)
+        lastSavedText.current = text
+        await discardRecovery()
+      } catch (failure) {
+        // L'absence d'environnement natif n'est pas bloquante pour le mode web, ne pas perturber l'interface.
+        if (failure.code !== 'DESKTOP_REQUIRED') {
+          setError({ prefix: 'errors.couldNotSave', failure })
+        }
+      } finally {
+        operation.current = false
+      }
+      return
+    }
+    // Un document vierge n'a pas besoin de copie de récupération.
+    if (!hasUnsavedContent()) {
+      await discardRecovery()
+      return
+    }
+    if (text === lastRecoveryText.current) return
     operation.current = true
     try {
-      await writeWorkspaceFile(currentPath, text)
-      lastSavedText.current = text
+      await writeRecoveryFile(text)
+      lastRecoveryText.current = text
     } catch (failure) {
-      // L'absence d'environnement natif n'est pas bloquante pour le mode web, ne pas perturber l'interface.
-      if (failure.code !== 'DESKTOP_REQUIRED') {
+      if (failure?.code !== 'DESKTOP_REQUIRED') {
         setError({ prefix: 'errors.couldNotSave', failure })
       }
     } finally {
@@ -255,6 +298,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     lastSavedText.current = path ? pendingImport.text : null
     applyCurrentPath(path)
     if (path) rememberRecentFile(path)
+    discardRecovery()
     setPendingImport(null)
     setMessage('files.opened')
   }
@@ -272,12 +316,13 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
   // Écrit les dernières modifications en attente, puis remplace le document par un workspace vierge sans chemin.
   async function startNewWorkspace() {
     setPendingNew(false)
-    await autosaveToCurrentPath()
+    await autosaveWorkspace()
     onReplace(emptyWorkspace())
     lastSavedText.current = null
     applyCurrentPath(null)
     setError(null)
     setMessage('files.new')
+    await discardRecovery()
   }
 
   // Repart d'un document vierge, après confirmation seulement si des modifications risquent d'être perdues.
@@ -302,26 +347,51 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     setError(null)
   }
 
-  // Recharge la liste durable puis rouvre le dernier fichier .sp3 sans dialogue, le document étant neuf.
+  // Restaure une copie non enregistrée valide, sinon rouvre le dernier fichier .sp3 sans dialogue.
   async function openLastFileOnStartup() {
     await hydratePreferences()
     setRecentFiles(loadRecentFiles())
-    const path = loadLastFile()
-    if (!path || operation.current || pendingImport) return
     operation.current = true
     try {
-      const file = await readWorkspaceFile(path)
-      onReplace(deserializeWorkspace(file.text))
-      lastSavedText.current = file.text
-      setCurrentPath(path)
-      setMessage('files.opened')
-    } catch (failure) {
-      // Sans client natif (dev web), on ne détruit pas la mémoire du dernier fichier ; on retient seulement un fichier réellement introuvable.
-      if (failure?.code === 'DESKTOP_REQUIRED') return
-      forgetRecentFile(path)
-      writePreference(lastFileStorageKey, '')
+      let recovery = null
+      try {
+        recovery = await readRecoveryFile()
+      } catch (failure) {
+        // Le mode web n'a pas de répertoire de données : aucune récupération à tenter.
+        if (failure?.code !== 'DESKTOP_REQUIRED') setError({ prefix: 'errors.couldNotOpen', failure })
+      }
+      if (recovery) {
+        try {
+          onReplace(deserializeWorkspace(recovery.text))
+          lastRecoveryText.current = recovery.text
+          setMessage('files.recovered')
+          return
+        } catch {
+          // Une copie illisible est écartée sans empêcher l'ouverture du dernier fichier.
+          try {
+            await clearRecoveryFile()
+          } catch (failure) {
+            if (failure?.code !== 'DESKTOP_REQUIRED') setError({ prefix: 'errors.couldNotSave', failure })
+          }
+        }
+      }
+      const path = loadLastFile()
+      if (!path) return
+      try {
+        const file = await readWorkspaceFile(path)
+        onReplace(deserializeWorkspace(file.text))
+        lastSavedText.current = file.text
+        setCurrentPath(path)
+        setMessage('files.opened')
+      } catch (failure) {
+        // Sans client natif (dev web), on ne détruit pas la mémoire du dernier fichier ; on retient seulement un fichier réellement introuvable.
+        if (failure?.code === 'DESKTOP_REQUIRED') return
+        forgetRecentFile(path)
+        writePreference(lastFileStorageKey, '')
+      }
     } finally {
       operation.current = false
+      setReady(true)
     }
   }
 
@@ -334,10 +404,10 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
 
   useEffect(() => {
     // Planifie une autosauvegarde après chaque changement de contenu, sans écrire pendant les déplacements de vue.
-    if (!currentPath) return undefined
-    const timer = window.setTimeout(autosaveToCurrentPath, autosaveDelay)
+    if (!ready) return undefined
+    const timer = window.setTimeout(autosaveWorkspace, autosaveDelay)
     return () => window.clearTimeout(timer)
-  }, [project, cards, currentPath])
+  }, [project, cards, currentPath, ready])
 
   return { busy, message: message ? t(message) : '', error: error ? `${t(error.prefix)} ${failureLabel(error.failure, t)}` : '', pendingImport, pendingNew, recentFiles, currentPath, handleSave, saveAs, exportText, exportBinary, handleOpenSp3, handleOpenRecent, handleImport, handleOpenExample, handleConfirmImport, handleCancelImport, handleNew, handleConfirmNew, handleCancelNew, handleDismiss }
 }

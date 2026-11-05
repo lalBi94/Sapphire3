@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { writeWorkspaceFile } from '../../src/services/workspaceFiles.js'
+import { writeWorkspaceFile, writeRecoveryFile, readRecoveryFile, clearRecoveryFile } from '../../src/services/workspaceFiles.js'
 
 const path = 'C:\\workspace\\note.sp3'
 
@@ -40,12 +40,27 @@ function createFilesystem(initialFiles = {}, failures = {}) {
       if (failures.remove) throw Object.assign(new Error('remove failed'), { code: 'NE_FS_REMVERR' })
       files.delete(target)
     },
+    async createDirectory(target) {
+      calls.push(['createDirectory', target])
+    },
   }
 }
 
 // Regroupe le client minimal attendu par writeWorkspaceFile.
 function createClient(filesystem, extension = 'sp3') {
   return { extension, filesystem }
+}
+
+// Regroupe le client minimal attendu par les fonctions de récupération.
+function createRecoveryClient(filesystem, dataPath = 'C:\\Users\\me\\AppData\\Local\\Sapphire3') {
+  return {
+    ...createClient(filesystem),
+    os: {
+      async getPath(name) {
+        return name === 'data' ? dataPath : ''
+      },
+    },
+  }
 }
 
 // Retourne le premier chemin temporaire écrit, pour vérifier sa forme et son sort.
@@ -145,4 +160,35 @@ test('refuse un fichier au-delà de la taille maximale', async () => {
 
 test('exige l’application desktop sans client fourni', async () => {
   await assert.rejects(writeWorkspaceFile(path, 'contenu'), (error) => error.code === 'DESKTOP_REQUIRED')
+})
+
+test('écrit la copie de récupération dans le répertoire de données', async () => {
+  const filesystem = createFilesystem()
+  const client = createRecoveryClient(filesystem)
+  const result = await writeRecoveryFile('contenu', client)
+  assert.equal(result, 'C:\\Users\\me\\AppData\\Local\\Sapphire3/sapphire3-recovery.sp3')
+  assert.equal(filesystem.files.get(result), 'contenu')
+  assert.deepEqual(filesystem.calls.find(([name]) => name === 'createDirectory'), ['createDirectory', 'C:\\Users\\me\\AppData\\Local\\Sapphire3'])
+})
+
+test('un chemin de données terminé par un séparateur ne double pas la barre oblique', async () => {
+  const filesystem = createFilesystem()
+  const result = await writeRecoveryFile('contenu', createRecoveryClient(filesystem, 'C:\\Users\\me\\Data\\'))
+  assert.equal(result, 'C:\\Users\\me\\Data/sapphire3-recovery.sp3')
+})
+
+test('une copie de récupération absente est un état normal', async () => {
+  const filesystem = createFilesystem()
+  assert.equal(await readRecoveryFile(createRecoveryClient(filesystem)), null)
+})
+
+test('relit puis efface la copie de récupération', async () => {
+  const filesystem = createFilesystem()
+  const client = createRecoveryClient(filesystem)
+  const target = await writeRecoveryFile('contenu', client)
+  assert.deepEqual(await readRecoveryFile(client), { path: target, text: 'contenu' })
+  await clearRecoveryFile(client)
+  assert.equal(filesystem.files.has(target), false)
+  await clearRecoveryFile(client)
+  assert.equal(await readRecoveryFile(client), null)
 })

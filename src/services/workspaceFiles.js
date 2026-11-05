@@ -113,7 +113,8 @@ export async function exportBinaryFile(extension, bytes, language = 'en') {
 }
 
 // Ecrit directement un workspace déjà associé à un chemin connu.
-export async function writeWorkspaceFile(path, text, client = null) {  const extension = client?.extension || 'sp3'
+export async function writeWorkspaceFile(path, text, client = null) {
+  const extension = client?.extension || 'sp3'
   if (typeof path !== 'string' || !path.toLowerCase().endsWith(`.${extension}`)) throw fileError('FILE_EXTENSION_INVALID', { extension })
   if (new TextEncoder().encode(text).length > maximumFileSize) throw fileError('FILE_TOO_LARGE')
   const { filesystem } = client || await getClient()
@@ -138,10 +139,52 @@ export async function importWorkspaceFile(extensions = ['sp3', 'json'], language
 }
 
 // Relit un fichier recent connu sans afficher un second dialogue de sélection.
-export async function readWorkspaceFile(path, extension = 'sp3') {
+export async function readWorkspaceFile(path, extension = 'sp3', client = null) {
   if (typeof path !== 'string' || !path.toLowerCase().endsWith(`.${extension}`)) throw fileError('FILE_EXTENSION_INVALID', { extension })
-  const { filesystem } = await getClient()
+  const { filesystem } = client || await getClient()
   const info = await filesystem.getStats(path)
   if (!info.isFile || info.size > maximumFileSize) throw fileError('FILE_INVALID')
   return { path, text: await filesystem.readFile(path) }
+}
+
+const recoveryFileName = 'sapphire3-recovery.sp3'
+
+// Retrouve le fichier de récupération dans le répertoire de données persistant de l'application.
+async function recoveryPath(client) {
+  const dataPath = await client.os.getPath('data')
+  try {
+    await client.filesystem.createDirectory(dataPath)
+  } catch {
+    // Le répertoire existe déjà ou sera signalé par l'écriture suivante.
+  }
+  return `${String(dataPath).replace(/[\\/]+$/, '')}/${recoveryFileName}`
+}
+
+// Écrit une copie de récupération d'un document qui n'a pas encore de chemin `.sp3`.
+export async function writeRecoveryFile(text, client = null) {
+  const target = client || await getClient()
+  return writeWorkspaceFile(await recoveryPath(target), text, target)
+}
+
+// Relit la copie de récupération ; son absence est un état normal.
+export async function readRecoveryFile(client = null) {
+  const target = client || await getClient()
+  const path = await recoveryPath(target)
+  try {
+    return await readWorkspaceFile(path, 'sp3', target)
+  } catch (error) {
+    if (error?.code === 'NE_FS_NOPATHE') return null
+    throw error
+  }
+}
+
+// Supprime la copie de récupération après une sauvegarde ou un remplacement volontaire.
+export async function clearRecoveryFile(client = null) {
+  const target = client || await getClient()
+  const path = await recoveryPath(target)
+  try {
+    await target.filesystem.remove(path)
+  } catch (error) {
+    if (error?.code !== 'NE_FS_NOPATHE') throw error
+  }
 }
