@@ -32,6 +32,22 @@ function hasLed(source) {
   return Array.isArray(source?.modules) && source.modules.some((module) => module?.led)
 }
 
+// Une barre de progression SP3 est un widget d'interface : même refus explicite qu'une jauge.
+function hasProgress(source) {
+  return Array.isArray(source?.modules) && source.modules.some((module) => module?.progress)
+}
+
+// Produit le refus stable opposé à toute transpilation contenant une barre de progression.
+function progressFailure(source, target, analysis = null) {
+  return {
+    ok: false,
+    target,
+    code: 'TRANSPILE_PROGRESS_UNSUPPORTED',
+    diagnostics: [{ code: 'TRANSPILE_PROGRESS_UNSUPPORTED', severity: 'error', message: 'Une barre de progression SP3 rend le programme non transpilable.', location: { projectId: source?.id ?? null, moduleId: null, nodeId: null, field: null } }],
+    ...(analysis ? { analysis } : {}),
+  }
+}
+
 // Produit le refus stable opposé à toute transpilation contenant une LED.
 function ledFailure(source, target, analysis = null) {
   return {
@@ -59,6 +75,7 @@ export function transpileSelection(source, selection, { target = 'javascript', a
   if (!Object.hasOwn(backends, target)) return { ok: false, code: '', diagnostics: [{ code: 'TRANSPILE_TARGET_UNSUPPORTED' }] }
   if (hasScreen(source)) return screenFailure(source, target, analysis)
   if (hasGauge(source)) return gaugeFailure(source, target, analysis)
+  if (hasProgress(source)) return progressFailure(source, target, analysis)
   if (hasLed(source)) return ledFailure(source, target, analysis)
   return backends[target](analysis, { selection })
 }
@@ -73,6 +90,7 @@ export function transpileProgram(source, options = {}) {
   }
   if (hasScreen(source)) return screenFailure(source, target, analysis)
   if (hasGauge(source)) return gaugeFailure(source, target, analysis)
+  if (hasProgress(source)) return progressFailure(source, target, analysis)
   if (hasLed(source)) return ledFailure(source, target, analysis)
   if (hasBlockingDiagnostics(analysis.diagnostics)) return { ok: false, target, code: '', diagnostics: analysis.diagnostics, analysis }
   options.onProgress?.({ phase: 'generate', target, current: 1, total: 1 })

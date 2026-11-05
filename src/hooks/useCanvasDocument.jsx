@@ -2,6 +2,7 @@ import { useReducer } from 'react'
 import { moduleTypes } from '../utils/moduleTypes.js'
 import { createScreenModule, screenDefaults } from '../utils/screenNode.js'
 import { createGaugeModule, gaugeDefaults } from '../utils/gaugeNode.js'
+import { createProgressModule, progressDefaults } from '../utils/progressNode.js'
 import { createLedModule, ledDefaults } from '../utils/ledNode.js'
 import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol, deleteSourceTargets, duplicateSourceTargets, moveSourceNodes } from '../utils/logic/index.js'
 import { initialDocument, reduceHistory } from '../utils/canvasDocument.js'
@@ -38,6 +39,14 @@ export default function useCanvasDocument() {
       const gaugeName = `${name} ${index}`
       const gauge = createGaugeModule(id, gaugeName, index, gaugeDefaults)
       dispatch({ type: 'createGauge', card: { id, type, name: gaugeName, ...position, width: definition.width, height: definition.height, expandedNodeIds: [] }, gauge })
+      return
+    }
+    if (type === 'progress') {
+      const id = crypto.randomUUID()
+      const index = Math.max(0, ...document.project.modules.map((module) => Number(module.progress?.index) || 0)) + 1
+      const progressName = `${name} ${index}`
+      const progress = createProgressModule(id, progressName, index, progressDefaults)
+      dispatch({ type: 'createProgress', card: { id, type, name: progressName, ...position, width: definition.width, height: definition.height, expandedNodeIds: [] }, progress })
       return
     }
     if (type === 'led') {

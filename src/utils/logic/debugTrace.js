@@ -2,6 +2,7 @@
 import { readScreenStates } from './screenState.js'
 import { readGaugeStates } from './gaugeState.js'
 import { readLedStates } from './ledState.js'
+import { readProgressStates } from './progressState.js'
 
 export function createDebugRecorder(analysis, global, output, uninitialized) {
   const frames = []
@@ -13,6 +14,7 @@ export function createDebugRecorder(analysis, global, output, uninitialized) {
   let previousScreens = null
   let previousGauges = null
   let previousLeds = null
+  let previousProgresses = null
 
   // Distingue une valeur non initialisée d'une vraie chaîne ou d'un booléen.
   function displayValue(value) {
@@ -148,14 +150,19 @@ export function createDebugRecorder(analysis, global, output, uninitialized) {
     const compacted = compactScreens(readScreenStates(analysis.source, global.values))
     const gauges = readGaugeStates(analysis.source, global.values)
     const leds = readLedStates(analysis.source, global.values)
+    const progresses = readProgressStates(analysis.source, global.values)
     const gaugesChanged = !previousGauges || JSON.stringify(previousGauges) !== JSON.stringify(gauges)
     const ledsChanged = !previousLeds || JSON.stringify(previousLeds) !== JSON.stringify(leds)
+    const progressesChanged = !previousProgresses || JSON.stringify(previousProgresses) !== JSON.stringify(progresses)
     const frameGauges = gaugesChanged ? gauges : previousGauges
     const frameLeds = ledsChanged ? leds : previousLeds
+    const frameProgresses = progressesChanged ? progresses : previousProgresses
     previousGauges = gauges
     previousLeds = leds
+    previousProgresses = progresses
     if (gaugesChanged) retained.units += Object.keys(gauges).length * 3
     if (ledsChanged) retained.units += Object.keys(leds).length
+    if (progressesChanged) retained.units += Object.keys(progresses).length * 3
     const count = 1 + retained.units + localScopes.length + activeScopes.length + compacted.units
     if (status === 'paused' && entries + count > 200000) throw Object.assign(new Error('Debug history memory limit reached.'), { code: 'DEBUG_HISTORY_LIMIT' })
     entries += count
@@ -163,7 +170,7 @@ export function createDebugRecorder(analysis, global, output, uninitialized) {
       nodeId, status, errorCode,
       scopeIds: activeScopes.map((scope) => scope.instanceId),
       callStack: activeScopes.filter((scope) => scope.scopeId.startsWith('function:')).map((scope) => ({ instanceId: scope.instanceId, nodeId: scope.nodeId })),
-      globals, localScopes, output: frameOutput, gauges: frameGauges, leds: frameLeds,
+      globals, localScopes, output: frameOutput, gauges: frameGauges, leds: frameLeds, progresses: frameProgresses,
       ...(compacted.base ? { screenBase: compacted.base } : {}),
       ...(compacted.patch ? { screenPatch: compacted.patch } : {}),
     })

@@ -5,6 +5,7 @@ import { serializeWorkspace, deserializeWorkspace, emptyWorkspace } from '../../
 import { examples } from '../../src/utils/examples.js'
 import { createModule, createProject, captureSourceNode, pasteSourceNode, duplicateSourceNode, moveSourceNode, deleteSourceNodes, insertSourceNodes, createNode, captureBookmark, insertBookmark } from '../../src/utils/logic/index.js'
 import { createLedModule } from '../../src/utils/ledNode.js'
+import { createProgressModule } from '../../src/utils/progressNode.js'
 import { debugFixture, node, intType } from '../logic/fixtures.js'
 
 // Fournit une carte valide sans dépendre des identifiants aléatoires du hook React.
@@ -278,6 +279,49 @@ test('vue de jauge : conservée à l’aller-retour et refusée si elle est inco
   const invalid = JSON.parse(text)
   invalid.presentation.cards.find((entry) => entry.type === 'gauge').gaugeView = 'preview'
   assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)), { message: 'Invalid gauge view.' })
+})
+
+test('vue de barre de progression : conservée à l’aller-retour et refusée si elle est inconnue', () => {
+  const camera = { x: 0, y: 0, zoomLevel: 0 }
+  const progress = createProgressModule('progress1', 'Progress 1', 1, { min: 0, max: 100 })
+  const project = createProject('p')
+  project.modules.push(progress.module)
+  project.nodes.push(...progress.nodes)
+  const card = { id: 'progress1', type: 'progress', name: 'Progress 1', x: 0, y: 0, width: 420, height: 150, expandedNodeIds: [], progressView: 'code' }
+  const text = serializeWorkspace(project, [card], camera)
+  assert.match(text, /"progressView":\s*"code"/)
+  const roundTrip = deserializeWorkspace(text)
+  assert.deepEqual(roundTrip.presentation.cards.filter((entry) => entry.type === 'progress').map((entry) => entry.progressView), ['code'])
+  // L'aperçu par défaut n'alourdit pas le fichier.
+  const plain = JSON.parse(serializeWorkspace(project, [{ ...card, progressView: undefined }], camera))
+  assert.equal(plain.presentation.cards.some((entry) => Object.hasOwn(entry, 'progressView')), false)
+  const invalid = JSON.parse(text)
+  invalid.presentation.cards.find((entry) => entry.type === 'progress').progressView = 'preview'
+  assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)), { message: 'Invalid progress view.' })
+})
+
+test('barre de progression : carte conservée à l’aller-retour et métadonnées validées', () => {
+  const camera = { x: 0, y: 0, zoomLevel: 0 }
+  const progress = createProgressModule('progress2', 'Progress 2', 2, { min: 0, max: 100 })
+  const project = createProject('p')
+  project.modules.push(progress.module)
+  project.nodes.push(...progress.nodes)
+  const cards = [{ id: 'progress2', type: 'progress', name: 'Progress 2', x: 0, y: 0, width: 420, height: 150, expandedNodeIds: [] }]
+  const text = serializeWorkspace(project, cards, camera)
+  const roundTrip = deserializeWorkspace(text)
+  assert.deepEqual(roundTrip.presentation.cards.filter((entry) => entry.type === 'progress').map((entry) => entry.name), ['Progress 2'])
+  assert.deepEqual(roundTrip.project.modules.find((module) => module.id === 'progress2').progress, { index: 2, min: 0, max: 100 })
+  // Une barre sans module correspondant est refusée, comme un écran orphelin.
+  const invalidCard = JSON.parse(text)
+  invalidCard.presentation.cards[0].id = 'missing'
+  assert.throws(() => deserializeWorkspace(JSON.stringify(invalidCard)), { message: 'Cards do not match the logical project.' })
+  // Un index invalide et une plage inversée sont refusés.
+  const invalidIndex = JSON.parse(text)
+  invalidIndex.project.modules[0].progress.index = 0
+  assert.throws(() => deserializeWorkspace(JSON.stringify(invalidIndex)), { message: 'Invalid progress module data.' })
+  const invalidRange = JSON.parse(text)
+  invalidRange.project.modules[0].progress.max = 0
+  assert.throws(() => deserializeWorkspace(JSON.stringify(invalidRange)), { message: 'Invalid progress module data.' })
 })
 
 test('vue de LED : conservée à l’aller-retour et refusée si elle est inconnue', () => {

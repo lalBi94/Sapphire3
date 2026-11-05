@@ -55,6 +55,17 @@ test('couche de liens : une carte jauge participe aux flèches comme son module 
   assert.ok(layer.edges[0].x > 0 && layer.edges[0].x < 1220)
 })
 
+test('couche de liens : une carte barre de progression participe aux flèches comme son module caché', () => {
+  const progressCards = [
+    { id: 'work', type: 'progress', x: 0, y: 0, width: 420, height: 150 },
+    { id: 'jobs', type: 'module', x: 700, y: 0, width: 520, height: 420 },
+  ]
+  const progressLink = { id: 'work::jobs', fromId: 'work', toId: 'jobs', fromName: 'Work', toName: 'Job queue', exports: [{ nodeId: 'set', name: 'PROGRESS_SP3_SET_VALUE_1', localName: 'setWork', uses: 3 }] }
+  const layer = buildLinkLayer(progressCards, [progressLink])
+  assert.equal(layer.edges.length, 1)
+  assert.ok(layer.edges[0].x > 0 && layer.edges[0].x < 1220)
+})
+
 test('couche de liens : une carte LED participe aux flèches comme son module caché', () => {
   const ledCards = [
     { id: 'alarm', type: 'led', x: 0, y: 0, width: 220, height: 170 },

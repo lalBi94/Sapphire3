@@ -1,11 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronsDownUp, ChevronsUpDown, Code2, Gauge, Lightbulb, Lock, Monitor, Smile } from 'lucide-react'
+import { Activity, ChevronsDownUp, ChevronsUpDown, Code2, Gauge, Lightbulb, Lock, Monitor, Smile } from 'lucide-react'
 import { minimumModuleSize, moduleTypes } from '../../utils/moduleTypes.js'
 import { isEmbeddedImage } from '../../utils/embeddedImage.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
 import ScreenCanvas from '../ScreenCanvas/ScreenCanvas.jsx'
 import GaugeCard from '../GaugeCard/GaugeCard.jsx'
+import ProgressCard from '../ProgressCard/ProgressCard.jsx'
 import LedCard from '../LedCard/LedCard.jsx'
 import CommentText from '../CommentText/CommentText.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
@@ -67,7 +68,7 @@ function ModuleEmoji({ emoji, onChange }) {
 }
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, progressState = null, progressFrames = null, progressPlaying = false, onProgressViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -112,6 +113,8 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
   const screenView = module.screenView === 'code' ? 'code' : 'screen'
   // Une carte jauge montre son aperçu par défaut, ou le code de son module caché.
   const gaugeView = module.gaugeView === 'code' ? 'code' : 'gauge'
+  // Une carte barre montre son aperçu par défaut, ou le code de son module caché.
+  const progressView = module.progressView === 'code' ? 'code' : 'progress'
   // Une carte LED montre son voyant par défaut, ou le code de son module caché.
   const ledView = module.ledView === 'code' ? 'code' : 'led'
   // La bascule d'en-tête promet l'action inverse de l'état actuel du pliage.
@@ -380,6 +383,17 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         >
           {gaugeView === 'code' ? <Gauge size={13} strokeWidth={2} aria-hidden="true" /> : <Code2 size={13} strokeWidth={2} aria-hidden="true" />}
         </button>}
+        {definition.hasProgress && semanticLevel !== 'modules' && !readOnly && <button
+          type="button"
+          className="canvas-module__view"
+          aria-label={t(progressView === 'code' ? 'progress.viewProgress' : 'progress.viewCode')}
+          aria-pressed={progressView === 'code'}
+          title={t(progressView === 'code' ? 'progress.viewProgress' : 'progress.viewCode')}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => { event.stopPropagation(); onProgressViewChange?.(module.id, progressView === 'code' ? 'progress' : 'code') }}
+        >
+          {progressView === 'code' ? <Activity size={13} strokeWidth={2} aria-hidden="true" /> : <Code2 size={13} strokeWidth={2} aria-hidden="true" />}
+        </button>}
         {definition.hasLed && semanticLevel !== 'modules' && !readOnly && <button
           type="button"
           className="canvas-module__view"
@@ -427,6 +441,14 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
             : gaugeView === 'code'
               ? (deferContent ? null : structuredContent)
               : <GaugeCard card={module} state={gaugeState} frames={gaugeFrames} playing={gaugePlaying} />}
+        </div>
+      ) : definition.hasProgress ? (
+        <div className="canvas-module__content" data-canvas-scroll>
+          {!contentVisible
+            ? null
+            : progressView === 'code'
+              ? (deferContent ? null : structuredContent)
+              : <ProgressCard card={module} state={progressState} frames={progressFrames} playing={progressPlaying} />}
         </div>
       ) : definition.hasScreen ? (
         <div className="canvas-module__content" data-canvas-scroll>

@@ -42,9 +42,11 @@ self.onmessage = (event) => {
           screens: result.screens,
           gauges: result.gauges,
           leds: result.leds,
+          progresses: result.progresses,
           screenFrames: result.screenFrames,
           screenFrameGauges: result.screenFrameGauges,
           screenFrameLeds: result.screenFrameLeds,
+          screenFrameProgresses: result.screenFrameProgresses,
         },
       })
       return
