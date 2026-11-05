@@ -129,8 +129,8 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
     </nav>}
     {!context.ok ? <p>{t('details.missingBlock')}</p> : <>
       {selected.kind === 'node' && <div className="node-properties__tools">
-        <button type="button" className="node-properties__tool" title={t('details.exportImage')} aria-label={t('details.exportImage')} onClick={handleExportImage}><ImageIcon size={14} aria-hidden="true" /></button>
-        <button type="button" className="node-properties__tool" title={t('details.exportJson')} aria-label={t('details.exportJson')} onClick={handleExportJson}><FileJson size={14} aria-hidden="true" /></button>
+        <button type="button" className="node-properties__tool" title={t('details.exportImage')} aria-label={t('details.exportImage')} onClick={handleExportImage}><ImageIcon size={14} aria-hidden="true" /><span>{t('details.exportImage')}</span></button>
+        <button type="button" className="node-properties__tool" title={t('details.exportJson')} aria-label={t('details.exportJson')} onClick={handleExportJson}><FileJson size={14} aria-hidden="true" /><span>{t('details.exportJson')}</span></button>
       </div>}
       {selected.kind === 'module' ? <ModuleNameForm key={`${record.id}:${record.name}`} module={record} onRename={onRename} /> : configurable ? <>
         {schema?.named && <RenameSymbol key={`${record.id}:${record.properties.name}`} record={record} index={index} onPreview={onPreviewSymbolRename} onApply={onApplySymbolRename} />}
