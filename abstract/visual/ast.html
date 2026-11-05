@@ -66,7 +66,7 @@
           <h3>Le moteur est pur</h3>
           <p><code>src/utils/logic/</code> n'importe ni React, ni DOM, ni Neutralinojs. Les fonctions ne modifient
           pas leurs entrées&nbsp;; elles renvoient de nouvelles sources et des résultats dérivés. Il est testé seul,
-          par 360 tests Node sans dépendance de test.</p>
+          par 456 tests Node et Python sans dépendance de test.</p>
         </div>
         <div class="card">
           <h3>Périmètre volontairement borné</h3>
@@ -225,7 +225,7 @@
     <section id="constructions">
       <h2>4 · Constructions et slots</h2>
       <p>
-        Vingt-sept sortes de nœuds, toutes décrites dans un seul objet figé, <code>nodeSchema</code>. Ce schéma
+        Vingt-huit sortes de nœuds, toutes décrites dans un seul objet figé, <code>nodeSchema</code>. Ce schéma
         pilote la validation, le typage et les propositions du menu d'ajout&nbsp;: il n'existe aucune liste
         d'actions codée en dur ailleurs.
       </p>
@@ -236,7 +236,8 @@
         <tbody>
           <tr><td><code>VariableDeclaration</code></td><td>declaration</td><td><code>name</code>, <code>type</code> obligatoires&nbsp;; <code>initializer?</code> expression</td></tr>
           <tr><td><code>ConstantDeclaration</code></td><td>declaration</td><td><code>name</code>, <code>type</code>&nbsp;; <code>initializer</code> requis</td></tr>
-          <tr><td><code>FunctionDeclaration</code></td><td>declaration</td><td><code>name</code>, <code>type</code> (retour), <code>entryPoint?</code> booléen&nbsp;; <code>parameters[]</code>, <code>body</code> Block</td></tr>
+          <tr><td><code>FunctionDeclaration</code></td><td>declaration</td><td><code>name</code>, <code>type</code> (retour), <code>entryPoint?</code> booléen, <code>generic?</code> historique, <code>typeParameters?</code>&nbsp;; <code>parameters[]</code>, <code>body</code> Block</td></tr>
+          <tr><td><code>LambdaExpression</code></td><td>expression</td><td><code>type</code> (retour), <code>parameters[]</code>, <code>body</code> expression unique&nbsp;; capture lexicale implicite</td></tr>
           <tr><td><code>Parameter</code></td><td>parameter</td><td><code>name</code>, <code>type</code>&nbsp;; uniquement dans <code>parameters[]</code></td></tr>
           <tr><td><code>TypeDeclaration</code></td><td>declaration</td><td><code>name</code>, <code>type</code>&nbsp;; alias transparent d'un primitif</td></tr>
           <tr><td><code>Block</code></td><td>statement</td><td><code>statements[]</code>&nbsp;: déclarations ou instructions</td></tr>
@@ -356,33 +357,42 @@
         jamais le type de son initialiseur.
       </p>
       <p>
-        Deux types construits s'annotent en plus sur une variable, une constante ou un paramètre&nbsp;: le
-        <b>pointeur</b> <code>{kind:'pointer', pointee}</code> vers un primitif non <code>void</code>, et la
-        <b>signature de fonction</b> <code>{kind:'function', parameters, returnType}</code>. <code>&amp;</code> prend
-        l'adresse d'une valeur stockable&nbsp;; <code>*</code> relit la valeur pointée et peut servir de cible
-        d'affectation, la simulation écrivant alors dans l'emplacement d'origine. Une fonction nommée est une valeur
-        de première classe&nbsp;: une <code>Reference</code> vers une fonction porte sa signature et peut être
-        stockée, transmise puis appelée. Aucune lambda ni fermeture n'existe. Chaque type construit reste limité à
-        ses emplacements autorisés, sans conversion implicite.
+        Trois types construits s'annotent en plus sur une variable, une constante, un paramètre ou le retour d'une
+        fonction&nbsp;: le <b>pointeur</b> <code>{kind:'pointer', pointee}</code> vers un primitif non
+        <code>void</code>, la <b>signature de fonction</b>
+        <code>{kind:'function', parameters, returnType}</code> et le <b>tableau générique</b> en retour.
+        <code>&amp;</code> prend l'adresse d'une valeur stockable&nbsp;; <code>*</code> relit la valeur pointée et
+        peut servir de cible d'affectation, la simulation écrivant alors dans l'emplacement d'origine&nbsp;; les
+        pointeurs sont transpilés en JavaScript et Python. Une fonction nommée est une valeur de première classe&nbsp;:
+        une <code>Reference</code> vers une fonction porte sa signature et peut être stockée, transmise puis
+        appelée. Une <b>lambda</b> anonyme (<code>LambdaExpression</code>) possède des paramètres typés et une
+        expression de résultat, capture lexicalement les variables visibles et peut être stockée, passée en
+        argument ou appelée immédiatement. Une fonction peut retourner une signature concrète, ce qui permet de
+        renvoyer une fermeture. Chaque type construit reste limité à ses emplacements autorisés, sans conversion
+        implicite.
       </p>
 
-      <h3>Généricité V1</h3>
+      <h3>Généricité avancée</h3>
       <p>
-        Une fonction peut porter <code>generic: true</code> et utiliser l'unique type
-        <code>{kind:'generic', name:'T'}</code>, seulement sur son retour et ses paramètres. <code>T</code> est inféré
-        à chaque appel direct&nbsp;: toutes ses occurrences doivent recevoir le même primitif non <code>void</code>, et
-        le retour prend ce type. <code>T[]</code>, <code>T*</code>, les génériques imbriqués, les opérations sur
-        <code>T</code> et l'usage de la fonction générique comme valeur sont refusés. Aucune spécialisation n'est
-        créée&nbsp;: la simulation exécute la même fonction et les transpileurs émettent une fonction ordinaire, avec
-        les types concrets publiés dans <code>semantic.genericCalls</code>.
+        Une fonction peut déclarer jusqu'à huit paramètres de type nommés — <code>T</code>, <code>U</code>,
+        <code>Element</code>… — dont le nom suit <code>[A-Z][A-Za-z0-9]*</code>. Chacun peut porter une
+        <b>contrainte exacte</b> optionnelle (un type concret valide). Le paramètre s'utilise sur le retour et les
+        paramètres de sa fonction, directement ou comme élément de tableau générique (<code>T[]</code>). L'inférence
+        confronte chaque argument à son motif, lie un type réel, exige le même type pour toutes les occurrences,
+        vérifie la contrainte et substitue le retour. <code>T*</code>, <code>T[][]</code>, les génériques imbriqués,
+        les variables/constantes génériques et l'usage de la fonction générique comme valeur de première classe
+        restent refusés. Aucune spécialisation n'est créée&nbsp;: la simulation exécute la même fonction et les
+        transpileurs émettent une fonction ordinaire, avec les types concrets publiés dans
+        <code>semantic.genericCalls</code>.
       </p>
 
       <h3>Tableaux</h3>
       <p>
-        Un tableau est un type construit <code>{kind:'array', elementType}</code>, annotable <b>uniquement</b> sur
-        une variable, une constante ou un paramètre. Un type tableau sur un retour de fonction, un alias ou une
-        conversion est refusé (<code>TYPE_INVALID</code>). L'élément doit être un primitif non <code>void</code>&nbsp;;
-        les tableaux imbriqués sont refusés dans cette version. Trois constructions portent
+        Un tableau est un type construit <code>{kind:'array', elementType}</code>, annotable sur une variable, une
+        constante ou un paramètre. Un retour de fonction ne peut être un tableau que si son élément est un paramètre
+        de type générique&nbsp;; un alias ou une conversion tableau reste refusé (<code>TYPE_INVALID</code>).
+        L'élément est un primitif non <code>void</code>, ou un paramètre de type dans une signature générique&nbsp;;
+        les tableaux imbriqués restent refusés. Trois constructions portent
         <code>properties.elementType</code>&nbsp;: <code>ArrayLiteral</code>, <code>ArrayCreation</code>,
         <code>ArrayAccess</code>. Une case jamais remplie ne reçoit aucune valeur inventée&nbsp;: sa lecture échoue
         comme une variable sans initialiseur, et les éléments d'une constante ne sont pas modifiables.
@@ -561,7 +571,7 @@
           <tr><td>Les identifiants viennent de l'appelant et ne sont jamais régénérés</td><td>Une sélection, une référence ou une position reste valable après une modification.</td></tr>
           <tr><td>Un nœud a au plus un parent syntaxique</td><td><code>SYNTAX_MULTIPLE_PARENTS</code> et <code>SYNTAX_CYCLE</code> sont des erreurs dures, pas des avertissements.</td></tr>
           <tr><td>Les résultats dérivés sont des instantanés en lecture seule</td><td>Les panneaux d'analyse ne peuvent pas écrire dans le document par accident.</td></tr>
-          <tr><td>La conservation JSON prime sur la normalisation</td><td>Une version inconnue, une catégorie de module obsolète ou un doublon d'entrée restent conservés et diagnostiqués&nbsp;; aucune migration silencieuse.</td></tr>
+          <tr><td>La conservation JSON prime sur la normalisation</td><td>Le format source v1 conserve les champs inconnus et diagnostique une version future. L'enveloppe workspace version 1 est migrée explicitement vers la version 2 à la lecture&nbsp;; une version future est refusée avant remplacement.</td></tr>
         </tbody>
       </table>
       <p>

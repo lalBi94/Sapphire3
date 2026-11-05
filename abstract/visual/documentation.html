@@ -382,19 +382,24 @@
         chaque littéral porte le sien, et aucune conversion implicite n'existe entre deux types distincts.
       </p>
       <p>
-        Une fonction peut porter la propriété optionnelle <code>generic: true</code> et utiliser l'unique type
-        <code>T</code> sur son retour et ses paramètres. <code>T</code> est inféré à chaque appel direct avec un
-        primitif non <code>void</code> ; toutes ses occurrences doivent recevoir le même type. Les tableaux et pointeurs
-        de <code>T</code>, les génériques imbriqués et les usages de la fonction générique comme valeur restent
-        refusés dans cette V1.
+        Une fonction peut déclarer jusqu'à huit paramètres de type nommés — par exemple <code>T</code> et
+        <code>U</code> — avec une contrainte exacte optionnelle. Le type générique s'utilise sur le retour et les
+        paramètres de sa fonction, directement ou comme élément de tableau (<code>T[]</code>) ; l'inférence confronte
+        chaque argument à son motif, exige le même type pour toutes les occurrences, vérifie la contrainte et
+        substitue le retour. Les anciens fichiers <code>generic: true</code> restent lus comme un unique
+        <code>T</code>. Les pointeurs de type générique, les tableaux imbriqués et les génériques locaux restent
+        refusés.
       </p>
       <p>
         Les autres types construits suivent la même règle d'emplacement&nbsp;: un pointeur <code>int*</code> vers un
         primitif non <code>void</code> et une signature de fonction <code>(int) -&gt; int</code> s'annotent sur une
-        variable, une constante ou un paramètre. <code>&amp;</code> prend l'adresse d'une valeur stockable&nbsp;;
-        <code>*</code> relit la valeur pointée et peut être affecté pour écrire l'emplacement d'origine&nbsp;; la
-        transpilation refuse encore les pointeurs. Une <code>Reference</code> vers une fonction porte sa signature et
-        peut être stockée, transmise puis appelée, sans lambda ni fermeture.
+        variable, une constante, un paramètre ou le retour d'une fonction. <code>&amp;</code> prend l'adresse d'une
+        valeur stockable&nbsp;; <code>*</code> relit la valeur pointée et peut être affecté pour écrire l'emplacement
+        d'origine&nbsp;; les pointeurs sont transpilés en JavaScript et Python. Une <code>Reference</code> vers une
+        fonction porte sa signature et peut être stockée, transmise puis appelée. Une <b>lambda</b> anonyme
+        (<code>LambdaExpression</code>) capture lexicalement les variables visibles&nbsp;; elle peut être stockée,
+        passée en argument, appelée immédiatement ou utilisée comme callback, et une fonction peut retourner une
+        fermeture. Son corps est une expression unique, sans affectation ni boucle, et elle n'est pas générique.
       </p>
       <figure class="shot" data-shot="17-forme-entree">
         <div class="shot-layout">
@@ -416,7 +421,7 @@
             <img src="assets/shots/18-forme-tableau.png" alt="Formulaire d'une variable de type tableau d'entiers avec ses six éléments saisis un par un." width="1600" height="900">
           </div>
           <ol class="notes">
-            <li data-marker="formulaire">Variable <code>nombres&nbsp;: int[]</code>. Les tableaux sont des types construits à part entière&nbsp;: annotables sur les variables, constantes et paramètres uniquement.</li>
+            <li data-marker="formulaire">Variable <code>nombres&nbsp;: int[]</code>. Les tableaux sont des types construits à part entière&nbsp;: annotables sur les variables, constantes et paramètres&nbsp;; un retour de fonction ne peut être un tableau que si son élément est un paramètre de type générique.</li>
             <li data-marker="elements">Éléments saisis un par un, chacun dans son propre emplacement d'expression, et chacun tenu d'avoir exactement le type d'élément annoncé — sinon <code>TYPE_MISMATCH</code> localisé par index.</li>
           </ol>
         </div>
@@ -605,6 +610,13 @@
         bornés.
       </p>
       <p>
+        La simulation, la préparation du debug et la transpilation sont exécutées dans un <b>Web Worker</b> pour
+        garder le canvas réactif. Un panneau d'avancement affiche les phases d'analyse, les pas exécutés ou la
+        génération, avec un bouton <b>Cancel</b> qui termine immédiatement le worker et invalide les résultats en
+        attente. Les mutations structurelles, elles, gardent une analyse synchrone pour rendre leurs diagnostics
+        sans délai.
+      </p>
+      <p>
         Depuis cette campagne de captures, le débogueur ajoute des <b>points d'arrêt visuels</b>, une fenêtre
         <b>Memory space</b> (code, globales et pile d'appels avec adresses illustratives), les valeurs et types au
         survol ainsi que les tableaux en cases. Run propose aussi une <b>simulation graphique simplifiée</b>
@@ -733,13 +745,20 @@
         L'apparence et la langue sont des préférences locales, distinctes du document. Changer l'une ou l'autre ne
         touche ni aux données ni à l'analyse.
       </p>
+      <p>
+        Le zoom porte une lecture <b>sémantique</b> du projet&nbsp;: au-dessus de <b>21&nbsp;%</b>, les instructions
+        restent détaillées&nbsp;; de <b>10 à 21&nbsp;%</b>, chaque module se réduit à la liste de ses fonctions
+        racines avec leur signature&nbsp;; à <b>10&nbsp;% et moins</b>, seules les cartes de modules et les relations
+        intermodules subsistent, annotations masquées. Le niveau courant est affiché dans la barre d'état et une
+        recherche de bloc force le retour au détail.
+      </p>
       <figure class="shot" data-shot="35-themes">
         <div class="shot-layout">
           <div class="shot-frame">
             <img src="assets/shots/35-themes.png" alt="Volet des thèmes avec les six palettes proposées et leurs couleurs." width="1600" height="900">
           </div>
           <ol class="notes">
-            <li data-marker="menu">Six thèmes, tous construits sur les mêmes jetons&nbsp;: fond, surface, bordure, primaire, sélection, diagnostics.</li>
+            <li data-marker="menu">Six palettes prédéfinies et des thèmes personnalisés, tous construits sur les mêmes jetons&nbsp;: fond, surface, bordure, primaire, sélection, diagnostics.</li>
             <li data-marker="option">Aperçu couleur par entrée, sélection immédiate, mémorisée en préférence locale.</li>
           </ol>
         </div>
@@ -849,21 +868,28 @@
         ouvrir, enregistrer, importer ou exporter.
       </p>
       <ul>
-        <li>Une enveloppe <em>workspace</em> versionnée contient le document logique et les informations de
+        <li>Une enveloppe <em>workspace</em> <b>version 2</b> contient le document logique et les informations de
         présentation — positions des cartes, notes, images intégrées. Les deux formats sont distincts&nbsp;: le
-        modèle logique ne dépend ni de la fenêtre ni de la mise en page.</li>
+        modèle logique ne dépend ni de la fenêtre ni de la mise en page. Les fichiers version 1 sont migrés à la
+        lecture (ancien drapeau générique et <code>screenScale</code>) ; une version future est refusée avant tout
+        remplacement.</li>
         <li>Un fichier <code>.sp3</code> ou un JSON logique se lisent et s'écrivent par les dialogues natifs de
         l'application&nbsp;; <code>Ctrl+S</code> enregistre le fichier courant.</li>
         <li>Avant remplacement, la source est validée&nbsp;: en cas d'erreur ou d'annulation, le document en cours
-        reste intact. Une version inconnue est conservée et signalée, jamais migrée en silence.</li>
+        reste intact.</li>
+        <li>Un enregistrement direct conserve jusqu'à trois sauvegardes adjacentes
+        (<code>&lt;base&gt;.backup-1.sp3</code> à <code>3</code>). Une génération absente est ignorée et un échec de
+        copie est affiché comme statut, sans bloquer l'enregistrement.</li>
         <li>Les préférences — langue, thème, cinq chemins récents, dernier fichier et raccourcis clavier personnalisés — sont stockées à part, dans un répertoire
         persistant utilisateur, jamais à côté de l'exécutable.</li>
       </ul>
       <div class="notes-soft">
         <p style="margin:0">
-          Un document sans chemin (.sp3 non encore écrit) reste en mémoire jusqu'à sa première sauvegarde&nbsp;; une fois
-          le fichier créé, chaque modification y est réécrite automatiquement (retard de 500&nbsp;ms) et le même fichier est
-          rouvert au prochain lancement.
+          Un document neuf non vierge sans chemin est protégé par une copie
+          <code>sapphire3-recovery.sp3</code> dans le répertoire de données persistant, restaurée au prochain
+          lancement. Après sa première sauvegarde, chaque modification est réécrite dans le fichier
+          <code>.sp3</code> (retard de 500&nbsp;ms), le dernier fichier est rouvert au lancement et les sauvegardes
+          de secours restent disponibles.
         </p>
       </div>
     </section>
@@ -887,7 +913,10 @@
           <tr><td>Analyse</td><td>Conservatrice&nbsp;: aucune preuve générale sur les valeurs, les comparaisons numériques, les dépendances globales ou la terminaison.</td></tr>
           <tr><td>Modèle objet</td><td>Évoqué comme direction, aucun contrat décidé. Pas de classes ni de structures dans le modèle source actuel&nbsp;; <code>TypeDeclaration</code> est un alias transparent.</td></tr>
           <tr><td>Sous-modules</td><td>Absents&nbsp;: la hiérarchie des portées lexicales ne doit pas être confondue avec un rangement de modules.</td></tr>
-          <tr><td>Migrations</td><td>Aucune migration automatique. Une source d'une autre version est conservée et diagnostiquée.</td></tr>
+          <tr><td>Génériques</td><td>Plusieurs paramètres, tableaux génériques et contraintes exactes. Pas de <code>T*</code>, de <code>T[][]</code>, de génériques locaux ni de lambda générique.</td></tr>
+          <tr><td>Lambdas</td><td>Corps expression unique, captures lexicales en lecture, retours de type fonction. Pas d'affectation ni de boucle interne, pas d'adresse sur un paramètre de lambda.</td></tr>
+          <tr><td>Exécution hors fil</td><td>Simulation, debug, transpilation et vérifications dans un Web Worker avec progression et annulation. Les mutations structurelles gardent une analyse synchrone.</td></tr>
+          <tr><td>Migrations</td><td>Workspace version 1 migré vers la version 2 à la lecture. Une version future ou malformée est refusée sans remplacer le document ; la source logique reste en version 1.</td></tr>
           <tr><td>Documentation</td><td>Évolutive&nbsp;: elle décrit l'incrément livré, pas le plan. Les sections manquantes signifient des fonctionnalités non encore demandées.</td></tr>
         </tbody>
       </table>
@@ -895,7 +924,7 @@
     </section>
 
     <footer class="site-footer">
-      <p>Sapphire 3 · documentation visuelle · 42 captures réelles, 20 sections. Les captures précèdent les derniers incréments (généricité, keybinds, mémoire de debug et simulation graphique), décrits dans le texte. Les repères d'annotation sont produits par la campagne de captures de l'application, en pourcentages de la vue 1600 × 900.</p>
+      <p>Sapphire 3 · documentation visuelle · 42 captures réelles, 20 sections. Les captures précèdent les derniers incréments (généricité avancée, lambdas et fermetures, Web Worker, sauvegardes, workspace version 2, zoom sémantique), décrits dans le texte. Les repères d'annotation sont produits par la campagne de captures de l'application, en pourcentages de la vue 1600 × 900.</p>
     </footer>
   </main>
 

@@ -1,12 +1,12 @@
 # Sapphire 3
 
-![Espace de travail Sapphire 3 : deux modules Library et App reliés par une flèche, avec leurs blocs dépliés](docs/assets/sapphire3-workspace.png)
+![Espace de travail Sapphire 3 : deux modules reliés par une flèche, avec leurs blocs dépliés](docs/assets/sapphire3-workspace.png)
 
-Application desktop de programmation visuelle en construction. Le canvas visuel, l'édition contextuelle des nœuds et les fondations d'un moteur AST indépendant des langages sont présents.
+Application **desktop Windows** de programmation visuelle, en bêta (`0.1.0-beta.2`). Chaque carte posée sur le canvas est une construction d'un langage typé, analysée par un moteur JavaScript pur et indépendant des langages cibles. Le texte reste possible, mais il n'est plus le point de départ.
 
 ## Installation et démarrage
 
-Prérequis : Node.js compatible avec Vite 8 (22.12+ ou 24+), pnpm 11.5 et Windows avec WebView2 installé.
+Prérequis : Node.js compatible avec Vite 8 (22.12+ ou 24+), pnpm 11.5 et Windows avec WebView2.
 
 ```sh
 pnpm install
@@ -18,84 +18,72 @@ pnpm dev
 
 ## Commandes
 
-- `pnpm dev:web` : frontend seul, sur http://127.0.0.1:5173.
+- `pnpm dev:web` : frontend seul dans le navigateur, sur `http://127.0.0.1:5173`.
+- `pnpm test` : tests Node et Python du moteur, du workspace et de la transpilation.
 - `pnpm build` : compile le frontend dans `dist/`.
-- `pnpm preview` : prévisualise le frontend compilé dans un navigateur.
 - `pnpm desktop:start` : compile puis ouvre le frontend compilé dans Neutralinojs, sans Vite.
 - `pnpm dist:win` : construit le paquet portable Windows et son ZIP dans `build/release/`.
+- `pnpm docs:ast` : recompile le rapport LaTeX `abstract/ARCHITECTURE_AST.pdf`.
 
-L'application contient une page unique avec un canvas plein écran : quadrillage discret, déformé aux bords. Glissez avec le bouton gauche ou central pour vous déplacer sans limite applicative, ou utilisez les flèches après avoir donné le focus au canvas.
+La CI GitHub Actions (`.github/workflows/ci.yml`) exécute l’installation verrouillée, les contrôles de qualité, les tests et le build sur chaque pull request.
 
-La molette zoome autour du milieu de la vue, jusqu'à 400 %. Le dézoom n'a pas de minimum applicatif (hors limites numériques JavaScript), et la grille adapte sa densité. Une croix marque l'origine absolue (0, 0). En bas à droite : coordonnées, zoom et bouton cadrant l'ensemble des modules, sans les annotations et au maximum à 100 %. Sans module, il revient à l'origine à 100 %.
+## Ce que l’application sait faire
 
-Clic droit sur le canvas vide pour ouvrir « Create module » / « Create comment » / « Create image ». Glissez l'en-tête pour déplacer une carte ; les flèches la déplacent aussi lorsque l'en-tête a le focus. La poignée inférieure droite permet de redimensionner la zone, également au clavier. Aucun module Main : cochez « Start program here » sur une fonction pour désigner le point d'entrée, indépendamment de son nom. Zéro ou une seule fonction peut porter ce rôle ; un badge la distingue dans l'arbre. **Run** lance une simulation locale bornée, sans effet natif, que l'on peut mettre en pause, reprendre ou arrêter. Un document sans chemin reste en mémoire jusqu'à sa première sauvegarde ; ensuite, chaque modification est réécrite dans ce fichier `.sp3` et le dernier fichier ouvert est restauré au lancement.
+### Canvas et compréhension visuelle
+- Canvas plein écran navigable, zoom jusqu’à 400 %, quadrillage courbé, mini-carte et cadrage des modules.
+- **Zoom sémantique** : instructions détaillées au-dessus de 21 %, liste des fonctions racines de 10 à 21 %, puis seules les cartes de modules et les relations intermodules à 10 % et moins.
+- Modules, annotations **Comment** (avec formules KaTeX entre `$$ … $$`) et cartes **Image** intégrées localement.
+- Cartes spéciales **Screen**, **Gauge** et **LED**, adossées à des modules cachés normaux, avec aperçu ou code et lecture des images à 24 fps.
+- Liens intermodules, vue graphique simplifiée, graphe de contrôle, dépendances et recherche de blocs.
 
-La barre supérieure propose **Settings** (nouveau document, ouverture `.sp3`, cinq chemins récents, sauvegarde directe, import, export JSON/SVG et une **fenêtre de paramètres** de l'application), **Edit** (undo/redo, recherche), **View** (zoom, cadrage, grille courbée, mini-carte), **Theme** (six palettes) et **Windows** (fenêtres flottantes ouvertes : afficher, plier, fermer, cascader). Chaque menu regroupe ses entrées par sous-catégories. **Ctrl+S** écrit le fichier `.sp3` courant ou ouvre « Enregistrer sous » s'il n'a pas encore de chemin. Les fichiers conservent source logique, cartes/commentaires/images, géométrie, pliage, vue et sélection. L'import validé demande confirmation avant remplacement ; annulations et erreurs conservent le travail courant. Une source logique JSON v1 seule est aussi importable. Le fichier `.sp3` courant est **autosauvegardé** après chaque modification (aucun stockage distant). Limite : 20 Mio, images intégrées comprises. Voir `docs/WORKSPACE_FILES.md`.
+### Langage et moteur
+- Typage statique strict : primitifs, tableaux, pointeurs, signatures de fonction, type `void` réservé aux retours.
+- Fonctions, paramètres, conditions, boucles, `ForEach`, affectations, appels, littéraux, opérations natives et conversions explicites.
+- **Génériques avancés** : plusieurs paramètres `T`, `U`…, tableaux génériques `T[]`, contraintes exactes et inférence par appel. Ancien `generic: true` toujours lu.
+- **Lambdas et fermetures** : `LambdaExpression` anonyme à corps expression, capture lexicale par référence, retours de type fonction, appel via variable, callback `ForEach` et invocation immédiate.
+- Pointeurs exécutés **et transpilés** en JavaScript et Python (`&`, `*p`, écriture à travers un pointeur).
+- Initialisation globale des modules dans un **ordre topologique stable** selon les imports.
+- Simulation locale bornée, débogage pas à pas avec points d’arrêt, mémoire pédagogique, valeurs au survol et exécution d’une fonction choisie.
+- Transpilation **JavaScript** et **Python** sur action explicite ; C, C++ et Java sont désactivés.
 
-Les cartes **Screen**, **Gauge** et **LED** sont adossées à des modules cachés normaux : elles proposent un aperçu ou le code du module et lisent leurs images à **24 fps**. Le panneau de propriétés ajoute des **contrats vérifiables** aux variables, constantes et paramètres, filtrés selon leur type déclaré.
+### Exécution hors du fil React
+- Simulation, préparation du debug, transpilation et vérifications de cibles s’exécutent dans un **Web Worker**.
+- Messages d’avancement (analyse, pas exécutés, génération) et bouton **Cancel** qui termine immédiatement le worker.
+- Les mutations structurelles gardent une analyse synchrone pour renvoyer leurs diagnostics sans délai.
 
-L'application vérifie au lancement les **releases publiées** du dépôt configuré. Si une version plus récente existe, un bouton **Update** apparaît dans la barre ; la fenêtre de paramètres (**About → Application**) permet aussi de vérifier et d'installer. L'installation demande confirmation, vérifie la taille et l'empreinte **SHA‑256** de l'archive, puis un helper embarqué `updater.ps1` remplace les fichiers distribués après fermeture et relance l'application, sans toucher aux données ni aux préférences.
+### Fichiers et sécurité des données
+- Import/export `.sp3` et JSON par dialogues natifs, export SVG, export PNG/JSON d’un nœud.
+- Autosauvegarde du fichier `.sp3` courant après modification ; dernier fichier rouvert au lancement ; cinq chemins récents.
+- **Récupération après crash** : un document neuf non vierge sans chemin est conservé dans `sapphire3-recovery.sp3` (répertoire de données persistant) et restauré au lancement.
+- **Sauvegardes de secours** : jusqu’à trois générations `<base>.backup-1.sp3` à `3` lors d’un enregistrement direct. Une copie impossible n’annule pas la sauvegarde et est affichée dans le statut.
+- **Workspace version 2** : les fichiers version 1 sont migrés à la lecture (`generic` → `typeParameters`, retrait de `screenScale`) ; une version future ou malformée est refusée sans remplacer le document.
+- Limite de fichier : 20 Mio, images intégrées comprises. Voir `docs/WORKSPACE_FILES.md`.
 
-Les dialogues de fichiers nécessitent la fenêtre **Neutralinojs**, pas `pnpm dev:web`. Redémarrez une ancienne fenêtre desktop après cette évolution des permissions natives.
+### Interface
+- Barre compacte **Settings**, **Edit**, **View**, **Theme**, **Examples**, **Bookmarks**, **Windows**, Transpile et Run.
+- Fenêtre de paramètres, thèmes prédéfinis et personnalisés, huit langues (anglais par défaut, français, chinois, espagnol, arabe, japonais, hindi, russe), raccourcis clavier configurables.
+- Favoris personnels de fonctions et modules purs, gestionnaire de fenêtres flottantes, undo/redo structurel.
 
-### Simulation et debug SP3
+## Distribution et mises à jour
 
-**Run** est le cinquième contrôle de la barre, après Settings, Edit, View et Theme. Son bouton adjacent déplie **Run SP3 simulation**, **Debug SP3 workspace** et l'**exécution graphique simplifiée** (fenêtre flottante avec pile d'appels et liens animés). La simulation s'exécute hors du fil principal pour ne pas bloquer l'interface.
+L’application vérifie les **releases publiées** du dépôt `lalBi94/Sapphire3`. L’installation demande confirmation, vérifie la version, la taille et l’empreinte SHA-256 de l’archive, puis un helper `updater.ps1` embarqué remplace les fichiers distribués après fermeture. Les données et préférences de l’utilisateur ne sont jamais remplacées.
 
-Le debug travaille sur le workspace courant, avec un panneau mémoire déplaçable et redimensionnable, également au clavier :
+## Documentation
 
-- **Next / Suivant** exécute l'instruction courante et avance, en entrant dans les fonctions appelées.
-- **Finish scope / Sauter le bloc** exécute normalement jusqu'à la sortie du scope courant, sans ignorer le code.
-- **Back / Précédent** restaure le dernier arrêt choisi, variables et sorties comprises.
-- **Restart / Recommencer** revient au premier arrêt de la même session et oublie l'historique de navigation.
-
-Le panneau de propriétés suit automatiquement le bloc exécuté, en simulation comme en debug, sans réinitialiser sa position. Le panneau mémoire montre les globaux, les variables des scopes lexicaux actifs seulement, les fonctions du programme et une analyse conservatrice des nœuds inatteignables. Il ne confond pas une branche non visitée avec une branche impossible. Le nœud courant est surligné sur le canvas, avec dépliage temporaire de ses parents. Les états sont pré-calculés par le simulateur borné, puis parcourus de façon réversible ; ils ne sont ni sauvegardés dans le workspace ni envoyés à un service. Une modification du code ferme la session pour éviter un état périmé. Contrat et limites dans `docs/LOGIC_API.md`.
-
-### Édition contextuelle
-
-Chaque carte/nœud possède **un seul « + » dans son coin haut droit** : il ouvre le même menu que le clic droit, **sous le bouton**. Pour les modules et nœuds logiques, ce menu propose le slot libre puis les constructions compatibles avec le contexte lexical (fonctions et types seulement aux racines du module, paramètres dans une liste de fonction, break/continue dans une boucle…). Clic gauche sur le nœud : sélection et panneau de propriétés.
-
-À la création d'une condition ou d'un initialiseur, choisissez directement une comparaison/opération binaire, une opération unaire, un appel de fonction ou une conversion numérique explicite, en plus des littéraux et références. Les opérandes/arguments et leurs expressions imbriquées se renseignent **dans le même formulaire**, avec types explicites et validation atomique : plus besoin de créer chaque `left`/`right` dans un menu séparé. Le formulaire autorise six niveaux d'imbrication ; les slots restent disponibles au-delà.
-
-Après insertion, le module s'agrandit pour afficher le contenu déplié sans rester limité à sa petite taille initiale. L'ajustement ne réduit jamais les dimensions ; un redimensionnement manuel le suspend jusqu'à la prochaine insertion. Les tailles restent incluses dans l'export workspace.
-
-Chaque insertion est atomique : slot unique occupé jamais remplacé, ordre des listes conservé, identifiants stables, projet réanalysé et insertion rejetée si elle introduit une erreur dure (type incompatible, dépassement de bornes…). Un nœud incomplet reste représentable et éditable, avec ses diagnostics. Les possibilités du menu sont déduites du moteur (`getAvailableActions`). Les nœuds logiques peuvent être copiés, collés, dupliqués et déplacés entre modules, avec validation atomique et annulation.
-
-Un module expose aussi ses échanges de fonctions dans son panneau de propriétés. **Functions shared with other modules** liste ses déclarations de premier niveau et permet de les exporter ou de retirer l'export ; **Functions used from other modules** liste les imports avec leur nom local et permet de les retirer. L'import propose les fonctions des autres modules, accepte un nom local et crée l'export manquant dans le module source. Ces changements restent des modifications de source annulables. Seules les fonctions réellement visibles dans la portée peuvent ensuite être choisies dans « Utiliser une fonction » ; un import retiré laisse ses références visibles avec leur diagnostic.
-
-### Pliage et suppression
-
-Le bouton `▸`/`▾` de chaque nœud logique le plie ou le déplie. Tous les nœuds sont pliés par défaut, sauf restauration d'un fichier ; seuls ceux que vous dépliez restent ouverts. Un nœud créé s'affiche déplié avec ses parents. Plié, il tient sur une ligne avec ses données utiles et masque ses slots ; déplié, il reprend le rendu complet. Ce pliage est purement visuel, inclus dans les exports workspace et sans effet sur l'AST.
-
-Un nœud peut être supprimé par « Delete block » dans son menu, ou depuis le panneau de propriétés avec confirmation. La suppression retire le nœud et ses descendants, puis sélectionne son parent logique. Les références restantes deviennent des diagnostics `REFERENCE_UNRESOLVED`, sans réécriture silencieuse. Modules et annotations se retirent avec confirmation depuis leur menu. Supprimer la fonction point d'entrée ou son module libère le rôle. Undo permet de revenir sur une suppression en mémoire ; l'import confirmé remet l'historique à zéro. Déplacements, texte d'annotations et pliage ne créent pas d'étapes dédiées d'historique.
-
-Chaque nœud affiche une bordure colorée selon sa catégorie logique : variable, type, fonction, paramètre, condition, boucle, retour, bloc, instruction, opérateur, valeur ou incomplet. Le groupe est défini avec le schéma de la construction, et les couleurs sont des variables CSS partagées.
-
-L'interface propose l'anglais par défaut, le français, le chinois, l'espagnol, l'arabe, le japonais, l'hindi et le russe, y compris aides, textes accessibles, résumés, diagnostics, erreurs et textes applicatifs des dialogues natifs. Le catalogue unique est dans `src/utils/translations.js` ; les contextes sont dans `src/contexts/`. La direction HTML suit la langue active (`rtl` pour l'arabe). Les noms saisis, types/opérateurs et sorties du programme restent inchangés ; les boutons et messages Windows suivent la langue système. Les commentaires et la documentation du projet sont en français. Langue, thème et chemins récents sont des préférences locales, séparées du workspace.
-
-Double-cliquez sur le titre d'un Module pour le renommer (ou Entrée/F2 sur son en-tête). Entrée ou sortie du champ valide, Échap annule.
-
-« Create comment » ajoute une carte d'annotation : titre renommable, texte multiligne dans le corps, déplacement par l'en-tête et redimensionnement par le coin. Le texte peut contenir des formules encadrées par `$$ … $$`, rendues par KaTeX (embarqué, hors ligne). Ces notes sont uniquement visuelles : elles ne sont ni des modules logiques, ni des commentaires de code, et ne sont pas envoyées à l'AST. Titres et textes sont inclus dans les exports workspace.
-
-Les API natives utiles aux dialogues et fichiers sont limitées et regroupées dans `src/services/`. Aucun backend ni service distant. Les scripts d'installation de trois dépendances transitives de la CLI sont explicitement désactivés dans `pnpm-workspace.yaml` ; les accélérations WebSocket natives ne sont pas nécessaires ici.
-
-## Repères
-
-### Moteur logique
-
-`src/utils/logic/index.js` expose une API JavaScript pure : source JSON v1, AST tolérant, portées, références intermodules et typage statique strict. Les dix primitifs sont `short int`, `short uint`, `int`, `uint`, `float`, `double`, `string`, `char`, `boolean`, `void` (retour uniquement). Déclarations et littéraux explicitement typés ; aucune conversion implicite ni type de secours. Le simulateur réutilise les règles numériques pour contrôler les valeurs calculées. Aucun moteur de suggestions ; la transpilation JavaScript/Python reste une action explicite.
-
-- `pnpm test` : tests automatisés avec le runner natif Node.
-- `docs/LOGIC_API.md` : conventions, API et exemple à deux modules.
-- `abstract/ARCHITECTURE_AST.tex` et `abstract/ARCHITECTURE_AST.pdf` : rapport technique français de quatre pages.
-- `pnpm docs:ast` : recompile le PDF depuis le LaTeX (MiKTeX/pdfLaTeX, Latin Modern et PowerShell requis). Auxiliaires dans `build/latex/`, ignorés par Git.
-
-Les conteneurs graphiques et le modèle logique sont raccordés : chaque Module visuel possède son module source de même identifiant, et les nœuds sont créés/édités via l'API contextuelle. Les positions/dimensions et les annotations Comment restent hors du moteur, dans l'enveloppe workspace exportable. Le moteur peut conserver et diagnostiquer une ancienne source contenant un module `main` ; l'import UI refuse cette ancienne catégorie sans migration automatique.
-
-### Documentation du projet
-
+- `docs/LOGIC_API.md` : contrats du moteur, types, génériques, lambdas, simulation et transpilation.
+- `docs/WORKSPACE_FILES.md` : format `.sp3`, versions, récupération et sauvegardes.
+- `docs/PROJECT_STATE.md` : état vérifié et cartographie des fichiers.
+- `abstract/visual/index.html`, `documentation.html`, `ast.html` : documentation visuelle du projet.
+- `abstract/ARCHITECTURE_AST.tex` / `.pdf` : rapport d’architecture.
 - `AGENTS.md` : règles de développement et périmètre.
-- `docs/PROJECT_STATE.md` : état actuel et cartographie.
-- `docs/PROJECT_ARCHIVE.md` : vérifications détaillées.
-- `PROMPT_INITIALISATION.md` : kit d'origine conservé.
-- `docs/DISTRIBUTION.md` : construction reproductible, publication des paquets portables Windows via les GitHub Releases du dépôt unique et mise à jour intégrée par `updater.ps1`.
+
+## Limites connues
+
+- Modèle objet, classes et structures non décidés ; `TypeDeclaration` reste un alias transparent.
+- Lambdas à corps expression unique, non génériques ; `&` sur un paramètre de lambda refusé.
+- Les sauvegardes de secours ne tournent qu’à l’enregistrement direct, pas à l’autosauvegarde ni lors d’un « Enregistrer sous ».
+- C, C++ et Java indisponibles ; les cartes Screen/Gauge/LED ne sont pas transpilables.
+- L’analyse reste conservatrice et ne prouve ni terminaison ni valeurs générales.
+- Les captures de `abstract/visual` datent d’une campagne antérieure ; les fonctionnalités récentes y sont décrites dans le texte.
+
+Tests actuels : **456 tests Node et Python réussis**.

@@ -19,7 +19,7 @@
 
   <main>
     <section class="hero" id="presentation">
-      <p class="kicker">Application desktop Windows · 0.1.0-beta.1</p>
+      <p class="kicker">Application desktop Windows · 0.1.0-beta.2</p>
       <h1>Des blocs qui sont de vrai code, pas des dessins qui y ressemblent</h1>
       <p class="lede">
         Sapphire 3 est un environnement de programmation visuelle. Chaque carte posée sur le canvas est une
@@ -41,24 +41,32 @@
         <div class="card">
           <h3>Ce qui fonctionne aujourd'hui</h3>
           <p>
-            Canvas navigable avec zoom et repères, cartes Module, notes et images, fonctions et types déclarés à
-            la racine d'un module, blocs conditionnels, boucles et instruction <code>ForEach</code>, affectations, appels,
-            tableaux, typage statique, références de fonction, pointeurs (adresse, déréférencement et écriture à
-            travers un pointeur), opérations natives SP3 (maths, texte et tableaux), formules mathématiques (KaTeX)
-            dans les notes, références intermodules avec flèches courbes, simulation locale pas à pas (pause, reprise,
-            arrêt), débogueur avec points d'arrêt, mémoire abstraite et valeurs au survol, vue graphique simplifiée
-            des flux, graphe de contrôle, dépendances, transpilation JavaScript et Python, fenêtre de paramètres,
-            raccourcis clavier configurables, export PNG/JSON d'un nœud, auto-layout des modules, export JSON et SVG,
-            cartes Screen/Gauge/LED avec modules cachés et lecture à 24 fps, contrats vérifiables, gestionnaire de
-            fenêtres, autosauvegarde du fichier <code>.sp3</code> courant, thèmes, interface en huit langues (anglais,
-            français, chinois, espagnol, arabe, japonais, hindi, russe), import/export <code>.sp3</code> et généricité V1
-            avec un paramètre <code>T</code>.
+            Canvas navigable, zoom sémantique et cartes Module, notes et images. Le langage couvre les fonctions et
+            types déclarés à la racine d'un module, conditions, boucles, <code>ForEach</code>, affectations, appels,
+            tableaux, typage statique strict, références de fonction, pointeurs avec adresse, déréférencement et
+            écriture, génériques avancés (plusieurs paramètres <code>T</code>, <code>U</code>, tableaux génériques
+            et contraintes exactes), lambdas et fermetures avec retours de type fonction, opérations natives SP3
+            (maths, texte et tableaux), formules KaTeX dans les notes et références intermodules avec flèches
+            courbes. La simulation, le debug et la transpilation JavaScript/Python s'exécutent hors du fil React,
+            avec progression et annulation ; le debug ajoute points d'arrêt, mémoire abstraite, valeurs au survol
+            et vue graphique simplifiée. L'interface propose aussi les graphes de contrôle et de dépendances, les
+            cartes Screen/Gauge/LED à 24 fps, les contrats vérifiables, le gestionnaire de fenêtres, le constructeur
+            de signatures de fonction, les thèmes prédéfinis et personnalisés, huit langues, l'import/export
+            <code>.sp3</code>/JSON, l'autosauvegarde, la récupération des documents neufs, trois sauvegardes de
+            secours et un workspace version 2 migré depuis la version 1.
           </p>
         </div>
         <div class="card">
           <h3>Ce qui ne l'est pas encore</h3>
           <p>
-            Aucun lancement de simulation sans action explicite&nbsp;; seule la lecture d'une séquence d'écran sans cycle peut relancer la simulation pour renouveler ses images. Les cibles C/C++/Java sont présentes mais désactivées. Le modèle objet n'est pas décidé. La généricité reste limitée à un seul paramètre <code>T</code>, sans tableau ni pointeur de <code>T</code>, et une fonction générique ne peut pas être utilisée comme valeur. Le rendu de monnaie des exemples est glouton pour un jeu canonique, et l'exemple de calcul utilise une intégrale numérique de Simpson.
+            Aucun lancement de simulation sans action explicite&nbsp;; seule la lecture d'une séquence d'écran sans
+            cycle peut relancer la simulation pour renouveler ses images. Les cibles C/C++/Java sont présentes mais
+            désactivées. Le modèle objet n'est pas décidé. Les lambdas ont un corps expression unique et ne sont pas
+            génériques&nbsp;; leurs paramètres ne sont pas adressés par <code>&amp;</code>. Les sauvegardes de secours
+            ne tournent que lors d'un enregistrement direct. Les mutations structurelles du document gardent une
+            analyse synchrone, même si les calculs lourds explicites passent par un Web Worker. Le rendu de monnaie
+            des exemples est glouton pour un jeu canonique, et l'exemple de calcul utilise une intégrale numérique de
+            Simpson.
           </p>
         </div>
         <div class="card">
@@ -101,9 +109,9 @@
         <p><b>Le code est écrit avec des assistants.</b> Sapphire 3 est un projet conduit en dialogue avec des
         outils d'assistance au développement (OpenCode, DeepSeek V3.2, ChatGPT Sol&nbsp;6.1, GLM 3.2, Nemotron de
         NVIDIA)&nbsp;: c'est un mode de fabrication assumé, pas un détail caché. Ce qui l'encadre&nbsp;: chaque
-        incrément est relu, testé (360 tests du moteur logique, runner Node natif, sans dépendance de test) et
-        validé dans l'interface avant d'être retenu. Le vocabulaire, les contrats et les limites sont décidés par
-        le projet, pas par le générateur.</p>
+        incrément est relu, testé (456 tests Node et Python, runner Node natif, sans dépendance de test) et
+        validé dans l'interface avant d'être retenu ; la CI GitHub Actions rejoue tests et build sur chaque pull
+        request. Le vocabulaire, les contrats et les limites sont décidés par le projet, pas par le générateur.</p>
         <p style="margin-bottom:0"><b>Cette documentation évolue avec le projet.</b> Elle décrit l'état atteint, pas
         un plan. Les pages sont produites en même temps que les fonctionnalités&nbsp;: une capacité ajoutée ailleurs
         se traduit ici par une nouvelle capture et une nouvelle section, et une capacité non encore livrée y est
@@ -118,10 +126,10 @@
           <tr><td>Interface</td><td><code>React 19.3.1</code>, composants fonctionnels JSX</td><td>Canvas plein écran, panneaux flottants déplacables, aucune bibliothèque d'interface tierce</td></tr>
           <tr><td>Build</td><td><code>Vite 8.3.5</code></td><td>Serveur de développement local, compilation du frontend pour la distribution</td></tr>
           <tr><td>Desktop</td><td><code>Neutralinojs 6.10.0</code> (<code>neu 11.8.0</code>)</td><td>Fenêtre native, dialogues de fichiers, accès disque&nbsp;; aucun backend, aucun service distant à l'exécution</td></tr>
-          <tr><td>Style</td><td>CSS natif + jetons dans <code>src/styles/tokens.css</code></td><td>Six thèmes, variables sémantiques, pas de charge distant de police ou de feuille de style</td></tr>
+          <tr><td>Style</td><td>CSS natif + jetons dans <code>src/styles/tokens.css</code></td><td>Six palettes prédéfinies et thèmes personnalisés, variables sémantiques, pas de charge distant de police ou de feuille de style</td></tr>
           <tr><td>Icônes</td><td><code>lucide-react ^1.64.0</code></td><td>Utilisés comme glyphes décoratifs, toujours accompagnés d'un libellé ou d'<code>aria-label</code></td></tr>
           <tr><td>Moteur logique</td><td>JavaScript pur dans <code>src/utils/logic/</code></td><td>Sans React, sans DOM, sans API native&nbsp;; source JSON versionnée, importable et testable seul</td></tr>
-          <tr><td>Tests</td><td><code>node --test</code></td><td>360 tests&nbsp;: scénarios valides, invalides, incomplets, localisations, non-mutation, conservation JSON</td></tr>
+          <tr><td>Tests</td><td><code>node --test</code></td><td>456 tests&nbsp;: scénarios valides, invalides, incomplets, localisations, non-mutation, conservation JSON, migrations et sauvegardes</td></tr>
           <tr><td>Documentation AST</td><td>LaTeX → PDF</td><td><code>abstract/ARCHITECTURE_AST.tex</code> et son PDF, compilés par <code>pnpm docs:ast</code></td></tr>
         </tbody>
       </table>
@@ -139,12 +147,14 @@
           <h3><a href="documentation.html">Documentation visuelle</a></h3>
           <p>Vingt sections, quarante-deux captures réelles annotées&nbsp;: créer un module, construire une
           expression, déclarer un export, importer une fonction, lire une flèche de dépendance, simuler, déboguer
-          pas à pas, transpiler, changer de thème et de langue.</p>
+          pas à pas, transpiler, changer de thème et de langue. Les fonctionnalités récentes — généricité avancée,
+          lambdas et fermetures, zoom sémantique, sauvegardes et migration du workspace — sont décrites dans le
+          texte&nbsp;; les captures datent de la campagne précédente.</p>
         </div>
         <div class="card">
           <h3><a href="ast.html">Le modèle AST</a></h3>
           <p>Ce que le moteur stocke vraiment&nbsp;: la source JSON v1, les trois relations indépendantes, les
-          vingt-sept constructions et leurs slots, le typage strict, les portées, les diagnostics, puis la route
+          vingt-huit constructions et leurs slots, le typage strict, les portées, les diagnostics, puis la route
           vers l'analyse, la simulation et la transpilation.</p>
         </div>
         <div class="card">

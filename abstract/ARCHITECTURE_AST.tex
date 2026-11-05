@@ -27,14 +27,16 @@ possibilité d'inspecter l'arbre.
 
 Le périmètre livré couvre l'AST, les portées lexicales, les références locales
 et intermodules, un typage statique strict — primitifs, tableaux, pointeurs,
-signatures de fonction et paramètre générique T — et la sérialisation JSON.
+signatures de fonction, génériques avancés (plusieurs paramètres, contraintes
+exactes et tableaux génériques) et lambdas/fermetures — et la sérialisation JSON.
 S'y ajoutent, sur action explicite, la \textbf{simulation locale} déterministe,
 le \textbf{débogage pas à pas} avec points d'arrêt et mémoire pédagogique, les
 \textbf{contrats}, l'\textbf{analyse de graphes}, la \textbf{simulation
 graphique simplifiée} et la \textbf{transpilation} JavaScript/Python. Les
 opérations natives (\code{Print}, \code{MathCall}, \code{ForEach}) restent
 locales et sans effet système. Moteur JavaScript pur, sans React, DOM,
-Neutralinojs ni npm ; l'interface y est branchée.
+Neutralinojs ni npm ; l'interface y est branchée et déporte les calculs lourds
+dans un Web Worker avec progression et annulation.
 
 \textbf{Exclus :} suggestions contextuelles, exécution automatique, génération
 de code implicite, analyse de flot avancée, modèles objets et persistance
@@ -235,15 +237,16 @@ Entiers signés/non signés de 16/32 bits, flottants IEEE 754 de 32/64 bits ;
 sont numériques explicites, avec troncature ou arrondi et contrôle des bornes.
 
 \textbf{Vérifications exécutées :} \code{pnpm test}, runner natif Node :
-\textbf{360 tests réussis, 0 échec}. Couverture de la construction de l'AST,
+\textbf{456 tests réussis, 0 échec}. Couverture de la construction de l'AST,
 des portées et références, du typage et des tableaux, des pointeurs et de
-l'écriture à travers eux, des types fonction et références de fonction, de la
-généricité T, des bornes et arrondis numériques, de la sérialisation JSON, de
-la simulation (tableaux, contrats, fonction choisie, \code{ForEach} et
-opérations natives compris), du débogage pas à pas (points d'arrêt et mémoire),
-de l'accessibilité, des graphes de dépendances et de flot, de la transpilation
-JavaScript et Python, des transferts de sous-arbres, des exports/imports et de
-la détection des déclarations inutilisées.
+l'écriture à travers eux, des types fonction et références de fonction, des
+génériques avancés et des lambdas/fermetures, des bornes et arrondis numériques,
+de la sérialisation JSON et des migrations de workspace, de la simulation
+(tableaux, contrats, fonction choisie, \code{ForEach} et opérations natives
+compris), du débogage pas à pas (points d'arrêt et mémoire), de l'accessibilité,
+des graphes de dépendances et de flot, de la transpilation JavaScript et Python,
+des transferts de sous-arbres, des exports/imports, des sauvegardes de secours
+et de la détection des déclarations inutilisées.
 
 \code{pnpm build} : frontend compilé avec succès. Ce contrôle protège le
 frontend existant ; le moteur séparé est vérifié par les tests Node, pas par
@@ -259,7 +262,11 @@ retour et variables observées. Budget de pas (1 à 100 000) et profondeur
 d'appel (200) bornent le travail. Tableaux, pointeurs, \code{ForEach} par
 recopie et opérations natives (\code{Print}, \code{MathCall}) s'exécutent
 localement ; \code{*p} relit et écrit l'emplacement visé. Une fonction générique
-s'exécute sans spécialisation, avec ses types concrets inférés.
+s'exécute sans spécialisation, avec ses types concrets inférés. Une lambda
+anonyme s'exécute dans un environnement dont le parent est son environnement de
+création ; une fermeture retournée garde ainsi ses variables après la sortie de
+la fonction englobante. L'interface déporte simulation, debug, transpilation et
+vérifications dans un Web Worker avec progression et annulation immédiate.
 
 Les contrats \code{positive}, \code{nonNegative} et \code{nonEmpty} sont
 évalués après chaque instruction ; leurs violations sont signalées sans
@@ -271,9 +278,9 @@ atteignables et de leurs appels directs, sans persistance ni appels indirects.
 
 La transpilation délègue à des backends enregistrés : JavaScript et Python sont
 actifs, C, C++ et Java indisponibles. Ils couvrent tableaux, références de
-fonction, \code{ForEach} par recopie et opérations natives ; les pointeurs sont
-refusés faute d'équivalent portable. Les diagnostics bloquants empêchent toute
-génération ; un point d'entrée paramétré est refusé. Le code produit n'est
+fonction, lambdas et fermetures, \code{ForEach} par recopie, opérations natives
+et pointeurs par cellules/jetons d'adresse. Les diagnostics bloquants empêchent
+toute génération ; un point d'entrée paramétré est refusé. Le code produit n'est
 jamais exécuté automatiquement.
 
 \section*{8. Évolution sans couplage prématuré}
@@ -285,20 +292,25 @@ devra refuser les diagnostics bloquants. \code{canGenerate} signifie seulement
 d'exécutabilité. Aucun moteur de suggestion ni système de plugins n'est
 implémenté.
 
-Le format v1 préserve les champs supplémentaires. Une version inconnue est
-conservée et signalée, sans migration. La sérialisation refuse les données
-non JSON au lieu de les supprimer silencieusement. Les profondeurs d'analyse
-et de sérialisation sont bornées pour éviter les dépassements de pile.
+Le format source v1 préserve les champs supplémentaires. Une version source
+inconnue est conservée et signalée. L'enveloppe workspace est en version 2 : un
+fichier version 1 est migré explicitement à la lecture (drapeau générique
+historique et \code{screenScale}) avant validation ; une version future est
+refusée avant tout remplacement. La sérialisation refuse les données non JSON au
+lieu de les supprimer silencieusement. Les profondeurs d'analyse et de
+sérialisation sont bornées pour éviter les dépassements de pile.
 
 \textbf{Limites assumées :} pas de sous-modules, objets, réexports ni
 résolution de fichiers ; un tableau porte un élément primitif unique, sans
-tableau imbriqué ; la généricité se limite à un \code{T} par fonction, sans
-\code{T[]}, \code{T*}, contrainte ni usage comme valeur ; les pointeurs
-s'exécutent mais ne se transpilent pas ; la simulation graphique ne trace pas
-les appels indirects via une variable de type fonction. Les dépassements
-constants sont diagnostiqués ; les valeurs reçues à l'exécution ne sont pas
-bornées globalement par l'analyse. Les cibles C, C++ et Java sont annoncées mais
-indisponibles. Les futurs backends devront appliquer les mêmes opérations
-contrôlées, sans rebouclage. L'API complète et les conventions de slots sont
-décrites dans \code{docs/LOGIC\_API.md}.
+tableau imbriqué ; les génériques acceptent plusieurs paramètres, des tableaux
+génériques et des contraintes exactes, mais refusent \code{T*}, \code{T[][]} et
+les génériques locaux ; les lambdas ont un corps expression unique, ne sont pas
+génériques et leurs paramètres ne sont pas adressés par \code{\&}. Les
+sauvegardes de secours ne tournent que lors d'un enregistrement direct ; la
+simulation graphique ne trace pas les appels indirects via une variable de type
+fonction. Les dépassements constants sont diagnostiqués ; les valeurs reçues à
+l'exécution ne sont pas bornées globalement par l'analyse. Les cibles C, C++ et
+Java sont annoncées mais indisponibles. Les futurs backends devront appliquer les
+mêmes opérations contrôlées, sans rebouclage. L'API complète et les conventions
+de slots sont décrites dans \code{docs/LOGIC\_API.md}.
 \end{document}
