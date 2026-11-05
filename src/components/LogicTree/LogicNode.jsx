@@ -148,9 +148,10 @@ function isSelected(props) {
   return props.selectedIds ? props.selectedIds.has(props.id) : props.selectedId === props.id
 }
 
-// Détermine si le nœud reçoit le dépôt courant.
-function isDropTarget(props) {
-  return props.dropTarget?.kind === 'node' && props.dropTarget.id === props.id
+// Signature du dépôt sur ce nœud, y compris la validité affichée.
+function dropSignature(props) {
+  const drop = props.dropTarget
+  return drop?.kind === 'node' && drop.id === props.id ? (drop.ok ? 'ok' : 'no') : ''
 }
 
 // Compare les ancêtres sans dépendre de l'identité du tableau recréé à chaque rendu.
@@ -167,7 +168,7 @@ function sameNodeProps(previous, next) {
   // Toute modification du pliage peut concerner un descendant : les ancêtres doivent aussi se re-rendre.
   if (previous.expandedIds !== next.expandedIds) return false
   if ((previous.activeExecutionId === previous.id) !== (next.activeExecutionId === next.id)) return false
-  if (isDropTarget(previous) !== isDropTarget(next)) return false
+  if (dropSignature(previous) !== dropSignature(next)) return false
   if ((previous.onReorder == null) !== (next.onReorder == null)) return false
   if (previous.unusedIds !== next.unusedIds || previous.pureIds !== next.pureIds || previous.breakpoints !== next.breakpoints) return false
   if ((previous.onToggleBreakpoint == null) !== (next.onToggleBreakpoint == null)) return false

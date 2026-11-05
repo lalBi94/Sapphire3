@@ -278,7 +278,6 @@ export default function Canvas() {
     }
     document.setExpandedNodes(moduleId, [...expanded])
     handleSelect({ kind: 'node', id: nodeId })
-    setGrowthRequest((current) => ({ moduleId, revision: current.revision + 1, documentRevision: document.revision }))
     restoreCamera({ x: card.x + card.width / 2, y: card.y + card.height / 2, zoomLevel: camera.zoomLevel })
     setRevealTarget({ nodeId, token: crypto.randomUUID() })
   }
