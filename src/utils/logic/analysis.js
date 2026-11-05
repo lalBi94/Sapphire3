@@ -4,9 +4,12 @@ import { buildSemanticModel } from './semantics.js'
 import { analyzeTypes } from './typeAnalysis.js'
 
 // Assemble les passes pures sans bloquer l'inspection d'une source incomplète ou invalide.
-export function analyzeProgram(source) {
+export function analyzeProgram(source, { onProgress = null } = {}) {
+  onProgress?.({ phase: 'analysis', step: 'syntax', current: 1, total: 3 })
   const built = buildLogicalAst(source)
+  onProgress?.({ phase: 'analysis', step: 'semantics', current: 2, total: 3 })
   const semantic = buildSemanticModel(built.ast)
+  onProgress?.({ phase: 'analysis', step: 'types', current: 3, total: 3 })
   const typed = analyzeTypes(semantic, built.ast.sourceId)
   const diagnostics = [...built.diagnostics, ...semantic.diagnostics, ...typed.diagnostics]
   return {

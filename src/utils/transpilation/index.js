@@ -66,7 +66,7 @@ export function transpileSelection(source, selection, { target = 'javascript', a
 // Transpile un programme Sapphire vers une cible enregistrée sans coupler l'AST à cette cible.
 export function transpileProgram(source, options = {}) {
   const target = options.target ?? 'javascript'
-  const analysis = analyzeProgram(source)
+  const analysis = options.analysis ?? analyzeProgram(source, { onProgress: options.onProgress })
   const backend = Object.hasOwn(backends, target) ? backends[target] : null
   if (!backend) {
     return { ok: false, target, code: '', diagnostics: [{ code: 'TRANSPILE_TARGET_UNSUPPORTED', severity: 'error', message: `Cible non prise en charge : ${target}.`, location: { projectId: source?.id ?? null, moduleId: null, nodeId: null, field: null } }], analysis }
@@ -75,6 +75,7 @@ export function transpileProgram(source, options = {}) {
   if (hasGauge(source)) return gaugeFailure(source, target, analysis)
   if (hasLed(source)) return ledFailure(source, target, analysis)
   if (hasBlockingDiagnostics(analysis.diagnostics)) return { ok: false, target, code: '', diagnostics: analysis.diagnostics, analysis }
+  options.onProgress?.({ phase: 'generate', target, current: 1, total: 1 })
   const generated = backend(analysis)
   const diagnostics = [...analysis.diagnostics, ...generated.diagnostics]
   return { ok: !hasBlockingDiagnostics(diagnostics), target, code: generated.code, diagnostics, analysis }

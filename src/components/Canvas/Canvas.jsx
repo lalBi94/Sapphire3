@@ -27,8 +27,7 @@ import useWorkspaceFiles from '../../hooks/useWorkspaceFiles.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { diagnosticLabel, nodeLine } from '../LogicTree/logicLabels.js'
 import { moveDebugSession, resolveDebugScreens, getModuleLinks, getUnusedDeclarationIds, getPureIds, captureBookmark, captureSourceNode } from '../../utils/logic/index.js'
-import { runDebugSession, runSimulation } from '../../services/simulationRunner.js'
-import { transpileProgram } from '../../utils/transpilation/index.js'
+import { runDebugSession, runSimulation, runTranspilation, runTranspilationChecks, cancelEngineWork, isEngineCancelled } from '../../services/engineRunner.js'
 import { transpilationLanguages } from '../../utils/transpilation/languages.js'
 import { exportWorkspaceFile } from '../../services/workspaceFiles.js'
 import { openExternal } from '../../services/externalLinks.js'
@@ -70,11 +69,14 @@ export default function Canvas() {
   const [flowRun, setFlowRun] = useState(null)
   const [transpilationResult, setTranspilationResult] = useState(null)
   const [transpileExportError, setTranspileExportError] = useState(null)
+  const [engineWork, setEngineWork] = useState(null)
   const [nodeGraph, setNodeGraph] = useState(null)
   const [functionTarget, setFunctionTarget] = useState(null)
   const [functionResult, setFunctionResult] = useState(null)
   const [revealTarget, setRevealTarget] = useState(null)
   const simulationEpochRef = useRef(0)
+  const engineEpochRef = useRef(0)
+  const transpileEpochRef = useRef(0)
   const functionRunTokenRef = useRef(0)
   const screenRerunRef = useRef({ at: 0, inFlight: false })
   const [bookmarks, setBookmarks] = useState(() => loadBookmarks())
@@ -435,25 +437,63 @@ export default function Canvas() {
     return { x: right + 80, y: top }
   }
 
+  // Démarre une opération du moteur et prépare son avancement annulable.
+  function beginEngineWork(kind) {
+    const epoch = ++engineEpochRef.current
+    setEngineWork({ kind, current: 0, total: 0, step: '' })
+    return epoch
+  }
+
+  // Met à jour l'avancement seulement pour l'opération encore courante.
+  function updateEngineWork(epoch, progress) {
+    if (epoch !== engineEpochRef.current) return
+    setEngineWork((current) => current ? { ...current, ...progress } : current)
+  }
+
+  // Efface l'avancement d'une opération terminée, sans toucher à une opération plus récente.
+  function endEngineWork(epoch) {
+    if (epoch === engineEpochRef.current) setEngineWork(null)
+  }
+
+  // Annule immédiatement tout calcul du moteur et invalide les résultats en attente.
+  function handleCancelEngineWork() {
+    const kind = engineWork?.kind
+    engineEpochRef.current += 1
+    simulationEpochRef.current += 1
+    functionRunTokenRef.current += 1
+    transpileEpochRef.current += 1
+    screenRerunRef.current.inFlight = false
+    cancelEngineWork()
+    setEngineWork(null)
+    if (['graphical', 'debug'].includes(kind)) {
+      setFlowRun(null)
+      setDebugSession(null)
+    }
+  }
+
   // Lance une simulation locale uniquement sur un programme statiquement valide.
   async function handleRunSimulation() {
     const epoch = ++simulationEpochRef.current
+    cancelEngineWork()
+    const work = beginEngineWork('simulation')
     setFlowRun(null)
     setDebugSession(null)
     setExecutionFree(false)
     try {
-      const result = await runSimulation(document.project)
+      const result = await runSimulation(document.project, {}, { onProgress: (progress) => updateEngineWork(work, progress) })
       if (epoch !== simulationEpochRef.current) return
       startTransition(() => {
         setSimulationResult(result)
         setExecution(result.ok && result.trace.length > 0 ? { trace: result.trace, index: 0, running: true, paused: false, stopped: false } : null)
       })
     } catch (error) {
-      if (epoch !== simulationEpochRef.current) return
+      if (isEngineCancelled(error) || epoch !== simulationEpochRef.current) return
       startTransition(() => {
         setSimulationResult({ ok: false, output: [], outputSteps: [], trace: [], errorCode: 'SIMULATION_FAILED', error: error?.message ?? '' })
         setExecution(null)
       })
+    } finally {
+      endEngineWork(work)
     }
   }
 
@@ -479,7 +519,7 @@ export default function Canvas() {
         } : current)
       })
     } catch {
-      // Conserve les images précédentes si la relance échoue.
+      // Conserve les images précédentes si la relance échoue ou est annulée.
     } finally {
       screenRerunRef.current.inFlight = false
     }
@@ -488,16 +528,20 @@ export default function Canvas() {
   // Ouvre la simulation graphique simplifiée sur la trace du moteur, sans code mort.
   async function handleRunGraphical() {
     const epoch = ++simulationEpochRef.current
+    cancelEngineWork()
+    const work = beginEngineWork('graphical')
     setExecution(null)
     setSimulationResult(null)
     setDebugSession(null)
     setContextMenu(null)
     try {
-      const session = await runDebugSession(document.project)
+      const session = await runDebugSession(document.project, {}, { onProgress: (progress) => updateEngineWork(work, progress) })
       if (epoch !== simulationEpochRef.current) return
       setFlowRun({ session: { ...session, project: document.project }, index: 0, running: session.frames.length > 1, paused: false, stopped: false })
-    } catch {
-      if (epoch === simulationEpochRef.current) setFlowRun(null)
+    } catch (error) {
+      if (!isEngineCancelled(error) && epoch === simulationEpochRef.current) setFlowRun(null)
+    } finally {
+      endEngineWork(work)
     }
   }
 
@@ -544,32 +588,48 @@ export default function Canvas() {
   // Prépare les arrêts réversibles après l'analyse d'accessibilité, sans changer le workspace.
   async function handleDebugSp3() {
     const epoch = ++simulationEpochRef.current
+    cancelEngineWork()
+    const work = beginEngineWork('debug')
     setExecution(null)
     setSimulationResult(null)
     setFlowRun(null)
     setContextMenu(null)
     try {
-      const session = await runDebugSession(document.project, { breakpoints })
+      const session = await runDebugSession(document.project, { breakpoints }, { onProgress: (progress) => updateEngineWork(work, progress) })
       if (epoch !== simulationEpochRef.current) return
       setDebugSession({ ...session, project: document.project, breakpoints })
-    } catch {
-      if (epoch === simulationEpochRef.current) setDebugSession(null)
+    } catch (error) {
+      if (!isEngineCancelled(error) && epoch === simulationEpochRef.current) setDebugSession(null)
+    } finally {
+      endEngineWork(work)
     }
   }
 
-  // Génère le JavaScript uniquement après analyse du document courant.
-  function handleTranspile(target) {
+  // Analyse et génère le code dans le worker, avec avancement et annulation.
+  async function handleTranspile(target) {
     setTranspileExportError(null)
-    setTranspilationResult(transpileProgram(document.project, { target }))
+    const epoch = ++transpileEpochRef.current
+    cancelEngineWork()
+    const work = beginEngineWork('transpile')
+    try {
+      const result = await runTranspilation(document.project, { target }, { onProgress: (progress) => updateEngineWork(work, progress) })
+      if (epoch === transpileEpochRef.current) setTranspilationResult(result)
+    } catch (error) {
+      if (isEngineCancelled(error) || epoch !== transpileEpochRef.current) return
+      setTranspilationResult({ ok: false, target, code: '', diagnostics: [] })
+    } finally {
+      endEngineWork(work)
+    }
   }
 
   // Indique, pour chaque cible installée, si le projet courant est réellement transpilable.
-  function getTranspileChecks() {
-    const checks = {}
-    for (const option of transpilationLanguages.filter((entry) => entry.available)) {
-      checks[option.id] = transpileProgram(document.project, { target: option.id }).ok ? 'ok' : 'blocked'
+  async function getTranspileChecks() {
+    try {
+      return await runTranspilationChecks(document.project, transpilationLanguages.filter((entry) => entry.available).map((entry) => entry.id))
+    } catch (error) {
+      if (isEngineCancelled(error)) return {}
+      throw error
     }
-    return checks
   }
 
   // Ouvre une analyse liée à la cible du menu sans changer la source ni lancer le programme.
@@ -644,14 +704,18 @@ export default function Canvas() {
     const token = ++functionRunTokenRef.current
     const epoch = simulationEpochRef.current
     const functionId = functionTarget
+    cancelEngineWork()
+    const work = beginEngineWork('function')
     setFlowRun(null)
     try {
-      const result = await runSimulation(document.project, { functionId, args })
+      const result = await runSimulation(document.project, { functionId, args }, { onProgress: (progress) => updateEngineWork(work, progress) })
       if (token !== functionRunTokenRef.current || epoch !== simulationEpochRef.current) return
       startTransition(() => setFunctionResult({ functionId, result }))
     } catch (error) {
-      if (token !== functionRunTokenRef.current || epoch !== simulationEpochRef.current) return
+      if (isEngineCancelled(error) || token !== functionRunTokenRef.current || epoch !== simulationEpochRef.current) return
       startTransition(() => setFunctionResult({ functionId, result: { ok: false, output: [], outputSteps: [], trace: [], errorCode: 'SIMULATION_FAILED', error: error?.message ?? '' } }))
+    } finally {
+      endEngineWork(work)
     }
   }
 
@@ -661,17 +725,21 @@ export default function Canvas() {
     const token = ++functionRunTokenRef.current
     const epoch = ++simulationEpochRef.current
     const functionId = functionTarget
+    cancelEngineWork()
+    const work = beginEngineWork('debug')
     setExecution(null)
     setSimulationResult(null)
     setFlowRun(null)
     setContextMenu(null)
     setFunctionResult(null)
     try {
-      const session = await runDebugSession(document.project, { functionId, args, breakpoints })
+      const session = await runDebugSession(document.project, { functionId, args, breakpoints }, { onProgress: (progress) => updateEngineWork(work, progress) })
       if (token !== functionRunTokenRef.current || epoch !== simulationEpochRef.current) return
       setDebugSession({ ...session, project: document.project, breakpoints })
-    } catch {
-      if (token === functionRunTokenRef.current && epoch === simulationEpochRef.current) setDebugSession(null)
+    } catch (error) {
+      if (!isEngineCancelled(error) && token === functionRunTokenRef.current && epoch === simulationEpochRef.current) setDebugSession(null)
+    } finally {
+      endEngineWork(work)
     }
   }
 
@@ -946,6 +1014,9 @@ export default function Canvas() {
     'execution.debug': { available: () => true, run: handleDebugSp3 },
   })
 
+  const enginePercent = engineWork && engineWork.total > 0 ? Math.max(0, Math.min(100, Math.round((engineWork.current / engineWork.total) * 100))) : null
+  const engineLabel = engineWork ? t(`engine.${engineWork.kind}`) : ''
+
   return (
     <div ref={workspaceRef} className={`canvas-workspace${navCollapsed ? ' canvas-workspace--nav-collapsed' : ''}`}>
     <ProjectNavigation busy={files.busy} message={files.message} error={files.error} pendingImport={files.pendingImport} pendingNew={files.pendingNew} recentFiles={files.recentFiles} onSave={files.handleSave} onSaveAs={files.saveAs} onExportSvg={handleExportSvg} onOpenSp3={files.handleOpenSp3} onOpenRecent={files.handleOpenRecent} onImport={files.handleImport} onOpenExample={files.handleOpenExample} onConfirmImport={files.handleConfirmImport} onCancelImport={files.handleCancelImport} onNew={files.handleNew} onConfirmNew={files.handleConfirmNew} onCancelNew={files.handleCancelNew} onDismiss={files.handleDismiss}
@@ -997,6 +1068,15 @@ export default function Canvas() {
         {document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} selectedIds={selectedIds} readOnly={presentationMode} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} onReorder={(id, offset) => document.reorderNode(id, offset)} unusedIds={unusedIds} pureIds={pureIds.functions} breakpoints={breakpoints} onToggleBreakpoint={handleToggleBreakpoint} debugValues={debugValues} genericCalls={genericCalls} dropTarget={transfers.dropTarget} />}
       </CanvasModule>)}
       <CanvasStatus camera={camera} zoom={zoom} hiddenCount={hiddenCards.length} onShowAllHidden={handleShowAllHidden} onRecenter={() => handleRecenter(getModulesBounds())} />
+      {engineWork && <div className="canvas-engine-status" data-canvas-ui role="status" onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+        <div className="canvas-engine-status__body">
+          <span>{engineLabel}{enginePercent !== null ? ` · ${enginePercent} %` : ''}</span>
+          {enginePercent !== null
+            ? <progress max={100} value={enginePercent} aria-label={engineLabel} />
+            : <span className="canvas-engine-status__pulse" aria-hidden="true" />}
+        </div>
+        <button type="button" onClick={handleCancelEngineWork}>{t('engine.cancel')}</button>
+      </div>}
       {selectedTargets.length > 1 && !hasScreenSelection && !presentationMode && <SelectionToolbar key={selectedTargets.map((target) => `${target.kind}:${target.id}`).join('|')} count={selectedTargets.length} onDuplicate={handleDuplicateSelection} onDelete={handleDeleteSelection} onClear={() => setSelection([])} />}
       {minimapVisible && <Minimap modules={minimapModules} camera={camera} zoom={zoom} canvasRef={canvasRef} onNavigate={panTo} />}
       {transfers.notice && <div className={`canvas-transfer-status${transfers.notice.error ? ' canvas-transfer-status--error' : ''}`} data-canvas-ui role={transfers.notice.error ? 'alert' : 'status'} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>

@@ -14,7 +14,7 @@ function simulationError(code, message) {
 }
 
 // Exécute le sous-ensemble déterministe du langage sans accéder au DOM ni au système.
-export function simulateProgram(project, { maxSteps = 10000, captureDebug = false, functionId = null, args = [] } = {}) {
+export function simulateProgram(project, { maxSteps = 10000, captureDebug = false, functionId = null, args = [], onProgress = null } = {}) {
   if (!Number.isSafeInteger(maxSteps) || maxSteps < 1 || maxSteps > 100000) return { ok: false, output: [], trace: [], errorCode: 'SIMULATION_BUDGET_INVALID', error: 'The step budget must be an integer between 1 and 100000.' }
   const analysis = analyzeProgram(project)
   if (!analysis.canGenerate) return { ok: false, output: [], trace: [], errorCode: 'SIMULATION_DIAGNOSTICS', error: 'The program has blocking diagnostics.', diagnostics: analysis.diagnostics }
@@ -100,6 +100,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   function step(node) {
     steps += 1
     if (steps > maxSteps) throw simulationError('SIMULATION_STEP_LIMIT', 'Simulation step limit reached.')
+    if (onProgress && steps % 500 === 0) onProgress({ phase: 'simulation', current: steps, total: maxSteps })
     trace.push(node.id)
     if (gaugeReader && gaugeFrames.length < maximumGaugeFrames) gaugeFrames.push(gaugeReader(global.values))
     if (ledReader && ledFrames.length < maximumGaugeFrames) ledFrames.push(ledReader(global.values))

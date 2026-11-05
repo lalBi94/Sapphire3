@@ -38,7 +38,7 @@ export function resolveDebugScreens(frames, index) {
 // Prépare une trace bornée sans mutation source ; le debug démarre toujours sur le premier arrêt.
 export function createDebugSession(project, options = {}) {
   const breakpoints = breakpointSet(options.breakpoints)
-  const analysis = analyzeProgram(project)
+  const analysis = analyzeProgram(project, { onProgress: options.onProgress })
   const reachability = analyzeReachability(project, analysis)
   const result = simulateProgram(project, { ...options, captureDebug: true })
   const frames = result.debugFrames ?? []

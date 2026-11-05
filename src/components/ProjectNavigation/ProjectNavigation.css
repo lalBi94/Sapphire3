@@ -41,6 +41,7 @@
 .project-navigation__chip--available { color: var(--color-pure); border-color: color-mix(in srgb, var(--color-pure) 50%, transparent); background: color-mix(in srgb, var(--color-pure) 14%, transparent); }
 .project-navigation__chip--blocked { color: var(--color-diagnostic); border-color: color-mix(in srgb, var(--color-diagnostic) 50%, transparent); background: color-mix(in srgb, var(--color-diagnostic) 12%, transparent); }
 .project-navigation__chip--unavailable { background: var(--color-hover); }
+.project-navigation__chip--checking { color: var(--color-text-muted); border-color: var(--color-border); background: var(--color-hover); }
 .project-navigation__theme-menu { width: 250px; max-height: calc(100dvh - 50px); overflow: auto; }
 .project-navigation__check, .project-navigation__language { display: flex; align-items: center; gap: var(--space-control); padding: 8px; white-space: nowrap; }
 .project-navigation__language { margin-left: var(--space-control); padding: 0; color: var(--color-text-muted); }

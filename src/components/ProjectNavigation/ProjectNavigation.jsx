@@ -33,6 +33,8 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
   const navigationRef = useRef(null)
   const [insertingId, setInsertingId] = useState(null)
   const [transpileChecks, setTranspileChecks] = useState({})
+  const [checkingTranspile, setCheckingTranspile] = useState(false)
+  const transpileCheckEpoch = useRef(0)
   const { language, setLanguage, t } = useTranslation()
 
   useEffect(() => {
@@ -54,10 +56,20 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
     }
   }
 
-  // Recalcule, à l'ouverture du menu Transpile, si le code courant est transpilable vers chaque cible installée.
-  function handleTranspileToggle(event) {
+  // Recalcule dans le worker, à l'ouverture du menu Transpile, si le code courant est transpilable.
+  async function handleTranspileToggle(event) {
     handleToggle(event)
-    if (event.currentTarget.open && typeof onCheckTranspile === 'function') setTranspileChecks(onCheckTranspile())
+    if (!event.currentTarget.open || typeof onCheckTranspile !== 'function') return
+    const epoch = ++transpileCheckEpoch.current
+    setCheckingTranspile(true)
+    try {
+      const checks = await onCheckTranspile()
+      if (epoch === transpileCheckEpoch.current) setTranspileChecks(checks)
+    } catch {
+      // Une vérification annulée laisse simplement les états précédents visibles.
+    } finally {
+      if (epoch === transpileCheckEpoch.current) setCheckingTranspile(false)
+    }
   }
 
   // Referme les menus sans modifier la sélection ou la vue du document.
@@ -290,9 +302,9 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
           <div className="project-navigation__menu">
             <p className="project-navigation__section">{t('transpile.chooseLanguage')}</p>
             {transpilationLanguages.map((option) => {
-              const status = option.available ? transpileChecks[option.id] : 'unavailable'
-              const chipClass = status === 'ok' ? ' project-navigation__chip--available' : status === 'blocked' ? ' project-navigation__chip--blocked' : ' project-navigation__chip--unavailable'
-              const chipLabel = status === 'ok' ? t('transpile.ready') : status === 'blocked' ? t('transpile.blocked') : t('transpile.unavailable')
+              const status = option.available ? (checkingTranspile && !transpileChecks[option.id] ? 'checking' : transpileChecks[option.id]) : 'unavailable'
+              const chipClass = status === 'ok' ? ' project-navigation__chip--available' : status === 'blocked' ? ' project-navigation__chip--blocked' : status === 'checking' ? ' project-navigation__chip--checking' : ' project-navigation__chip--unavailable'
+              const chipLabel = status === 'ok' ? t('transpile.ready') : status === 'blocked' ? t('transpile.blocked') : status === 'checking' ? t('transpile.checking') : t('transpile.unavailable')
               return <button type="button" key={option.id} disabled={!option.available} onClick={() => { closeMenus(); onTranspile(option.id) }}><span>{option.name}</span><span className={`project-navigation__chip${chipClass}`}>{chipLabel}</span></button>
             })}
           </div>
