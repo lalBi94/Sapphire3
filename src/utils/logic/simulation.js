@@ -25,8 +25,8 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   // Contraintes vérifiables attachées aux nœuds, lues sur la valeur du symbole déclaré.
   const contracts = []
   for (const node of project.nodes) {
-    const kinds = normalizeContracts(node?.contracts).map((contract) => contract.kind)
-    if (kinds.length) contracts.push({ nodeId: node.id, name: node.properties?.name || node.id, kinds })
+    const entries = normalizeContracts(node?.contracts)
+    if (entries.length) contracts.push({ nodeId: node.id, name: node.properties?.name || node.id, entries })
   }
   const contractViolations = []
   const contractStates = new Map()
@@ -306,17 +306,17 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     for (const entry of contracts) {
       const value = peekBinding(entry.nodeId, environment)
       if (value === undefined) continue
-      for (const kind of entry.kinds) {
-        const satisfied = satisfiesContract(kind, value)
+      for (const contract of entry.entries) {
+        const satisfied = satisfiesContract(contract.kind, value, contract.arguments)
         if (satisfied === null) continue
         contractObservations += 1
-        const key = `${entry.nodeId}:${kind}`
+        const key = `${entry.nodeId}:${contract.kind}:${JSON.stringify(contract.arguments ?? [])}`
         if (satisfied) { contractStates.delete(key); continue }
         const observed = formatValue(value)
         const previous = contractStates.get(key)
         if (!previous || previous !== observed) {
           contractStates.set(key, observed)
-          if (contractViolations.length < maximumContractViolations) contractViolations.push({ nodeId: entry.nodeId, name: entry.name, kind, step: steps, value: observed })
+          if (contractViolations.length < maximumContractViolations) contractViolations.push({ nodeId: entry.nodeId, name: entry.name, kind: contract.kind, arguments: contract.arguments ?? [], step: steps, value: observed })
         }
       }
     }
@@ -517,7 +517,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       screens: screenReader ? screenReader(global.values) : {},
       gauges: gaugeReader ? gaugeReader(global.values) : {},
       leds: ledReader ? ledReader(global.values) : {},
-      contracts: { total: contracts.reduce((count, entry) => count + entry.kinds.length, 0), observations: contractObservations, violations: contractViolations },
+      contracts: { total: contracts.reduce((count, entry) => count + entry.entries.length, 0), observations: contractObservations, violations: contractViolations },
       ...(debug ? { debugFrames: debug.frames } : {}),
       ...(screenReader ? { screenFrames } : {}),
       ...(screenFrameGauges.length ? { screenFrameGauges } : {}),

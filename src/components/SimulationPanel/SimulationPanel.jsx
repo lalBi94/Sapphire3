@@ -2,6 +2,7 @@ import { FastForward, Pause, Play, Square, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import usePanelFront from '../../hooks/usePanelFront.jsx'
 import { failureLabel } from '../../utils/translations.js'
+import { contractLabel } from '../../utils/logic/contracts.js'
 import './SimulationPanel.css'
 
 // Affiche les sorties et l'erreur éventuelle de la dernière simulation locale, avec pause, reprise et arrêt.
@@ -28,7 +29,7 @@ export default function SimulationPanel({ result, running = false, paused = fals
           <h3>{t('contracts.title')}</h3>
           {result.contracts.violations.length === 0
             ? <p role="status">{t('contracts.satisfied', { count: result.contracts.total })}</p>
-            : <ul>{result.contracts.violations.map((violation, position) => <li key={position} role="alert">{t('contracts.violated', { name: violation.name, rule: t(`contract.${violation.kind}`), step: violation.step, value: violation.value })}</li>)}</ul>}
+            : <ul>{result.contracts.violations.map((violation, position) => <li key={position} role="alert">{t('contracts.violated', { name: violation.name, rule: contractLabel(violation, t), step: violation.step, value: violation.value })}</li>)}</ul>}
         </section>}</> : <p className="simulation-panel__error" role="alert">{failureLabel({ code: result.errorCode ?? 'SIMULATION_FAILED' }, t)}</p>}
     </aside>
   )

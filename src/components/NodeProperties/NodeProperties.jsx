@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react'
 import { ChevronRight, Copy, FileJson, Image as ImageIcon, X } from 'lucide-react'
-import { resolveContext, getNodeSchema, contractKinds, deletionImpact } from '../../utils/logic/index.js'
+import { resolveContext, getNodeSchema, contractKinds, createContract, contractLabel, getContractDefinition, deletionImpact } from '../../utils/logic/index.js'
 import { diagnosticLabel, kindLabel, nodeSummary, slotLabel, typeLabel } from '../LogicTree/logicLabels.js'
 import { ancestorNodeIds } from '../../utils/nodeTree.js'
 import { buildBugReport } from '../../utils/bugReport.js'
@@ -71,12 +71,31 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
   const { t, language } = useTranslation()
   const [reportState, setReportState] = useState('')
   const [contractKind, setContractKind] = useState('')
+  const [contractArguments, setContractArguments] = useState([])
   const context = resolveContext(project, selected, undefined, index)
   const record = context.record
   const schema = selected.kind === 'node' && record ? getNodeSchema(record.kind) : null
   const diagnostics = index.analysis.diagnostics.filter((entry) => selected.kind === 'module' ? entry.location.moduleId === selected.id : entry.location.nodeId === selected.id)
   const configurable = schema && (schema.named || schema.declaresType || schema.declaresElementType || ['BinaryExpression', 'UnaryExpression', 'Reference'].includes(record.kind))
   const contractable = selected.kind === 'node' && Boolean(record) && ['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(record.kind)
+  const contractDefinition = getContractDefinition(contractKind)
+  const draftedContract = contractKind ? createContract(contractKind, contractArguments) : null
+
+  // Prépare les champs d'argument du contrat choisi.
+  function handleContractKind(kind) {
+    const definition = getContractDefinition(kind)
+    setContractKind(kind)
+    setContractArguments(definition ? definition.arguments.map(() => '') : [])
+  }
+
+  // Ajoute le contrat dès que ses arguments sont valides, puis réinitialise le formulaire.
+  function handleAddContract() {
+    if (!draftedContract) return
+    onContracts(record.id, [...(record.contracts ?? []), draftedContract])
+    setContractKind('')
+    setContractArguments([])
+  }
+
   const title = selected.kind === 'module' ? t('details.module') : record ? kindLabel(record.kind, t) : t('details.block')
   const trail = selected.kind === 'node' ? nodeTrail(index, selected.id, t) : []
 
@@ -142,15 +161,29 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
         {(record.contracts ?? []).length === 0
           ? <p>{t('contracts.none')}</p>
           : <ul>{record.contracts.map((contract, position) => <li key={`${contract.kind}:${position}`}>
-            <span>{t(`contract.${contract.kind}`)}</span>
-            <button type="button" aria-label={`${t('contracts.remove')} · ${t(`contract.${contract.kind}`)}`} title={t('contracts.remove')} onClick={() => onContracts(record.id, record.contracts.filter((_, index2) => index2 !== position))}><X size={13} aria-hidden="true" /></button>
+            <span>{contractLabel(contract, t)}</span>
+            <button type="button" aria-label={`${t('contracts.remove')} · ${contractLabel(contract, t)}`} title={t('contracts.remove')} onClick={() => onContracts(record.id, record.contracts.filter((_, index2) => index2 !== position))}><X size={13} aria-hidden="true" /></button>
           </li>)}</ul>}
         <div className="node-properties__contracts-add">
-          <select value={contractKind} onChange={(event) => setContractKind(event.target.value)} aria-label={t('contracts.choose')}>
+          <select value={contractKind} onChange={(event) => handleContractKind(event.target.value)} aria-label={t('contracts.choose')}>
             <option value="">{t('contracts.choose')}</option>
-            {contractKinds.map((kind) => <option key={kind} value={kind}>{t(`contract.${kind}`)}</option>)}
+            {contractKinds.map((kind) => {
+              const definition = getContractDefinition(kind)
+              const values = Object.fromEntries(definition.arguments.map((argument) => [argument.name, '…']))
+              return <option key={kind} value={kind}>{t(`contract.${kind}`, values)}</option>
+            })}
           </select>
-          <button type="button" disabled={!contractKind} onClick={() => { onContracts(record.id, [...(record.contracts ?? []), { kind: contractKind }]); setContractKind('') }}>{t('contracts.add')}</button>
+          {contractDefinition?.arguments.map((argument, position) => <input
+            key={`${argument.name}:${position}`}
+            className="node-properties__contract-argument"
+            type={argument.type === 'number' ? 'number' : 'text'}
+            step={argument.type === 'number' ? 'any' : undefined}
+            value={contractArguments[position] ?? ''}
+            aria-label={t(`contracts.arg.${argument.name}`)}
+            placeholder={t(`contracts.arg.${argument.name}`)}
+            onChange={(event) => setContractArguments((current) => current.map((entry, index2) => index2 === position ? event.target.value : entry))}
+          />)}
+          <button type="button" disabled={!draftedContract} onClick={handleAddContract}>{t('contracts.add')}</button>
         </div>
       </section>}
       <h3>{selected.kind === 'module' ? t('details.topBlocks') : t('details.parts')}</h3>
