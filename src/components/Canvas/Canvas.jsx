@@ -26,7 +26,8 @@ import ProjectNavigation from '../ProjectNavigation/ProjectNavigation.jsx'
 import useWorkspaceFiles from '../../hooks/useWorkspaceFiles.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { diagnosticLabel, nodeLine } from '../LogicTree/logicLabels.js'
-import { createDebugSession, moveDebugSession, simulateProgram, getModuleLinks, getUnusedDeclarationIds, getPureIds, captureBookmark, captureSourceNode } from '../../utils/logic/index.js'
+import { createDebugSession, moveDebugSession, getModuleLinks, getUnusedDeclarationIds, getPureIds, captureBookmark, captureSourceNode } from '../../utils/logic/index.js'
+import { runSimulation } from '../../services/simulationRunner.js'
 import { transpileProgram } from '../../utils/transpilation/index.js'
 import { transpilationLanguages } from '../../utils/transpilation/languages.js'
 import { exportWorkspaceFile } from '../../services/workspaceFiles.js'
@@ -73,7 +74,9 @@ export default function Canvas() {
   const [functionTarget, setFunctionTarget] = useState(null)
   const [functionResult, setFunctionResult] = useState(null)
   const [revealTarget, setRevealTarget] = useState(null)
-  const screenRerunAtRef = useRef(0)
+  const simulationEpochRef = useRef(0)
+  const functionRunTokenRef = useRef(0)
+  const screenRerunRef = useRef({ at: 0, inFlight: false })
   const [bookmarks, setBookmarks] = useState(() => loadBookmarks())
   const [bookmarksOpen, setBookmarksOpen] = useState(false)
   const [breakpoints, setBreakpoints] = useState(() => new Set())
@@ -110,6 +113,8 @@ export default function Canvas() {
   const transfers = useNodeTransfers({ project: document.project, index: document.index, selected, selectedNodeIds, readOnly: presentationMode, workspaceRef, onPaste: document.pasteNode, onMove: document.moveNodes, onDuplicate: document.duplicateNode, onTransferred: handleNodeTransferred })
 
   useEffect(() => {
+    simulationEpochRef.current += 1
+    functionRunTokenRef.current += 1
     setExecution(null)
     setSimulationResult(null)
     setDebugSession(null)
@@ -430,32 +435,47 @@ export default function Canvas() {
   }
 
   // Lance une simulation locale uniquement sur un programme statiquement valide.
-  function handleRunSimulation() {
+  async function handleRunSimulation() {
+    const epoch = ++simulationEpochRef.current
     setFlowRun(null)
     setDebugSession(null)
-    const result = simulateProgram(document.project)
-    setSimulationResult(result)
     setExecutionFree(false)
-    setExecution(result.ok && result.trace.length > 0 ? { trace: result.trace, index: 0, running: true, paused: false, stopped: false } : null)
+    try {
+      const result = await runSimulation(document.project)
+      if (epoch !== simulationEpochRef.current) return
+      setSimulationResult(result)
+      setExecution(result.ok && result.trace.length > 0 ? { trace: result.trace, index: 0, running: true, paused: false, stopped: false } : null)
+    } catch (error) {
+      if (epoch !== simulationEpochRef.current) return
+      setSimulationResult({ ok: false, output: [], outputSteps: [], trace: [], errorCode: 'SIMULATION_FAILED', error: error?.message ?? '' })
+      setExecution(null)
+    }
   }
 
   // Une séquence d'écran sans cycle relance la simulation pour produire de nouvelles images.
-  function handleScreenSequenceEnd() {
-    if (!simulationResult || !execution) return
+  async function handleScreenSequenceEnd() {
+    if (!simulationResult || !execution || screenRerunRef.current.inFlight) return
     const now = Date.now()
-    if (now - screenRerunAtRef.current < 200) return
-    screenRerunAtRef.current = now
-    const result = simulateProgram(document.project)
-    if (!result.ok || !result.screenFrames?.length) return
-    setSimulationResult((current) => current ? {
-      ...current,
-      screens: result.screens,
-      gauges: result.gauges,
-      leds: result.leds,
-      screenFrames: result.screenFrames,
-      screenFrameGauges: result.screenFrameGauges ?? [],
-      screenFrameLeds: result.screenFrameLeds ?? [],
-    } : current)
+    if (now - screenRerunRef.current.at < 200) return
+    const epoch = simulationEpochRef.current
+    screenRerunRef.current = { at: now, inFlight: true }
+    try {
+      const result = await runSimulation(document.project)
+      if (epoch !== simulationEpochRef.current || !result.ok || !result.screenFrames?.length) return
+      setSimulationResult((current) => current ? {
+        ...current,
+        screens: result.screens,
+        gauges: result.gauges,
+        leds: result.leds,
+        screenFrames: result.screenFrames,
+        screenFrameGauges: result.screenFrameGauges ?? [],
+        screenFrameLeds: result.screenFrameLeds ?? [],
+      } : current)
+    } catch {
+      // Conserve les images précédentes si la relance échoue.
+    } finally {
+      screenRerunRef.current.inFlight = false
+    }
   }
 
   // Ouvre la simulation graphique simplifiée sur la trace du moteur, sans code mort.
@@ -593,15 +613,26 @@ export default function Canvas() {
 
   // Prépare le panneau d'exécution d'une fonction choisie, avec ses entrées.
   function handleOpenFunction(functionId) {
+    functionRunTokenRef.current += 1
     setFunctionTarget(functionId)
     setFunctionResult(null)
   }
 
   // Exécute la fonction choisie avec les entrées validées par le moteur.
-  function handleRunFunction(args) {
+  async function handleRunFunction(args) {
     if (!functionTarget) return
+    const token = ++functionRunTokenRef.current
+    const epoch = simulationEpochRef.current
+    const functionId = functionTarget
     setFlowRun(null)
-    setFunctionResult({ functionId: functionTarget, result: simulateProgram(document.project, { functionId: functionTarget, args }) })
+    try {
+      const result = await runSimulation(document.project, { functionId, args })
+      if (token !== functionRunTokenRef.current || epoch !== simulationEpochRef.current) return
+      setFunctionResult({ functionId, result })
+    } catch (error) {
+      if (token !== functionRunTokenRef.current || epoch !== simulationEpochRef.current) return
+      setFunctionResult({ functionId, result: { ok: false, output: [], outputSteps: [], trace: [], errorCode: 'SIMULATION_FAILED', error: error?.message ?? '' } })
+    }
   }
 
   // Ouvre une session de debug sur la fonction choisie, sans modifier la source.
@@ -617,6 +648,7 @@ export default function Canvas() {
 
   // Ferme le panneau d'exécution de fonction.
   function handleCloseFunction() {
+    functionRunTokenRef.current += 1
     setFunctionTarget(null)
     setFunctionResult(null)
   }
