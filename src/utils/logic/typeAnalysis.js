@@ -2,7 +2,8 @@ import { createDiagnostic, diagnosticCodes as codes } from './diagnostics.js'
 import { isRecord } from './model.js'
 import { binaryOperators, unaryOperators, getNodeSchema } from './nodeSchema.js'
 import { getMathNative } from './mathNatives.js'
-import { getPrimitive, primitiveType, isNumeric, sameType, acceptsOperand, arrayType, isArrayType, pointerType, pointerPointee, functionType, typeFromRecord, genericType, isGenericType } from './primitives.js'
+import { getPrimitive, primitiveType, isNumeric, sameType, acceptsOperand, arrayType, isArrayType, pointerType, pointerPointee, functionType, typeFromRecord, genericType, isGenericType, containsGeneric, isValidParameterType } from './primitives.js'
+import { declaredTypeParameters, substituteType, typeParameterConstraint } from './generics.js'
 import { validateLiteral, convertConstant, evaluateBinary, evaluateUnary } from './numericConstants.js'
 
 // Extrait un enfant simple sans interpréter un trou ou une liste malformée comme une expression.
@@ -50,12 +51,12 @@ export function analyzeTypes(semantic, projectId) {
     return false
   }
 
-  // Un T explicite n'est admis que sur le retour ou un paramètre de sa fonction générique.
-  function genericAllowed(node) {
-    if (node.kind === 'FunctionDeclaration') return node.properties?.generic === true
-    if (node.kind !== 'Parameter') return false
-    const ownerId = contexts.get(node.sourceId)?.functionId
-    return Boolean(ownerId && nodes.get(ownerId)?.properties?.generic === true)
+  // Noms des paramètres de type visibles sur le retour ou un paramètre de la fonction propriétaire.
+  function genericNames(node) {
+    const owner = node.kind === 'FunctionDeclaration'
+      ? node
+      : node.kind === 'Parameter' ? nodes.get(contexts.get(node.sourceId)?.functionId) : null
+    return new Set(declaredTypeParameters(owner).map((parameter) => parameter.name))
   }
 
   // Résout seulement une annotation écrite par l'utilisateur ; les alias restent transparents.
@@ -72,17 +73,21 @@ export function analyzeTypes(semantic, projectId) {
     }
     annotationActive.add(node.sourceId)
     const sourceType = node.properties.type
+    const allowedGenerics = genericNames(node)
     let type = null
     if (sourceType === undefined || sourceType === null) {
       report(codes.typeRequired, 'Un type explicitement déclaré est obligatoire.', node, 'properties.type')
     } else if (isRecord(sourceType) && sourceType.kind === 'primitive' && getPrimitive(sourceType.name)) {
       type = primitiveType(sourceType.name)
-    } else if (isRecord(sourceType) && sourceType.kind === 'generic' && sourceType.name === 'T' && genericAllowed(node)) {
-      type = genericType('T')
+    } else if (isRecord(sourceType) && sourceType.kind === 'generic' && allowedGenerics.has(sourceType.name)) {
+      type = genericType(sourceType.name)
     } else if (isRecord(sourceType) && sourceType.kind === 'array') {
-      const element = isRecord(sourceType.elementType) && sourceType.elementType.kind === 'primitive' ? primitiveType(sourceType.elementType.name) : null
+      const elementSource = sourceType.elementType
+      const element = isRecord(elementSource) && elementSource.kind === 'primitive' ? primitiveType(elementSource.name)
+        : isRecord(elementSource) && elementSource.kind === 'generic' && allowedGenerics.has(elementSource.name) ? genericType(elementSource.name)
+          : null
       if (!element || element.name === 'void') {
-        report(codes.invalidType, 'Un tableau doit être formé d’éléments d’un primitif non void.', node, 'properties.type')
+        report(codes.invalidType, 'Un tableau doit être formé d’éléments d’un primitif non void ou d’un paramètre de type.', node, 'properties.type')
       } else {
         type = arrayType(element)
       }
@@ -106,8 +111,8 @@ export function analyzeTypes(semantic, projectId) {
       report(codes.voidNotAllowed, 'void est réservé au retour d’une fonction.', node, 'properties.type')
       type = null
     }
-    if (type?.kind === 'array' && !['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(node.kind)) {
-      report(codes.invalidType, 'Un type tableau n’est autorisé que pour une variable, une constante ou un paramètre.', node, 'properties.type')
+    if (type?.kind === 'array' && !['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(node.kind) && !(node.kind === 'FunctionDeclaration' && containsGeneric(type))) {
+      report(codes.invalidType, 'Un type tableau concret n’est autorisé que pour une variable, une constante ou un paramètre ; seul un tableau générique peut être retourné.', node, 'properties.type')
       type = null
     }
     if (type?.kind === 'pointer' && !['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(node.kind)) {
@@ -214,7 +219,7 @@ export function analyzeTypes(semantic, projectId) {
     }
     const target = nodes.get(symbol.nodeId)
     // Une fonction générique n'est utilisable que comme cible directe d'un appel.
-    if (target?.kind === 'FunctionDeclaration' && target.properties?.generic === true) {
+    if (target?.kind === 'FunctionDeclaration' && declaredTypeParameters(target).length > 0) {
       const parent = parents.get(node.sourceId)
       const callee = parent?.kind === 'CallExpression' ? parent.children?.callee : null
       const directCallee = callee === node || callee?.sourceId === node.sourceId
@@ -237,45 +242,73 @@ export function analyzeTypes(semantic, projectId) {
     if (calleeNode?.kind !== 'Reference') return null
     const symbol = referenceSymbols.get(calleeNode.sourceId)
     const target = symbol?.nodeId ? nodes.get(symbol.nodeId) : null
-    return target?.kind === 'FunctionDeclaration' && target.properties?.generic === true ? target : null
+    return target?.kind === 'FunctionDeclaration' && declaredTypeParameters(target).length > 0 ? target : null
   }
 
-  // Infère T depuis les arguments, exige un seul primitif non void et substitue le retour.
+  // Lie un motif de signature à l'argument réel, en respectant les tableaux génériques.
+  function bindGeneric(pattern, actual, bindings, node, field) {
+    if (!actual) return false
+    if (isGenericType(pattern)) {
+      if (!isValidParameterType(actual)) {
+        report(codes.typeMismatch, 'L’argument ne peut pas instancier un paramètre de type avec ce type.', node, field)
+        return false
+      }
+      const previous = bindings.get(pattern.name)
+      if (previous) {
+        if (sameType(previous, actual)) return true
+        report(codes.typeMismatch, `Les occurrences de ${pattern.name} doivent recevoir exactement le même type.`, node, field)
+        return false
+      }
+      bindings.set(pattern.name, actual)
+      return true
+    }
+    if (pattern?.kind === 'array') {
+      if (!isArrayType(actual)) {
+        report(codes.typeMismatch, 'Un tableau est attendu pour instancier ce type.', node, field)
+        return false
+      }
+      return bindGeneric(pattern.elementType, actual.elementType, bindings, node, field)
+    }
+    return expect(pattern, actual, node, field)
+  }
+
+  // Infère chaque paramètre de type depuis les arguments, vérifie sa contrainte puis substitue le retour.
   function genericCall(node, target) {
     const signature = declaration(target)
     if (!signature) return null
+    const typeParameters = declaredTypeParameters(target)
+    const bindings = new Map()
     const args = Array.isArray(node.children.arguments) ? node.children.arguments : []
     if (signature.parameters.length !== args.length) {
       report(codes.typeMismatch, 'Nombre d’arguments incompatible avec la signature.', node, 'children.arguments')
       return null
     }
-    let inferred = null
     let valid = true
     signature.parameters.forEach((parameter, index) => {
       const actual = resolve(args[index]?.sourceId)
-      if (isGenericType(parameter)) {
-        if (actual?.kind !== 'primitive' || actual.name === 'void') {
-          report(codes.typeMismatch, 'L’argument ne peut pas instancier T avec un primitif non void.', node, `children.arguments[${index}]`)
-          valid = false
-          return
-        }
-        if (inferred && !sameType(inferred, actual)) {
-          report(codes.typeMismatch, 'Les occurrences de T doivent recevoir exactement le même type.', node, `children.arguments[${index}]`)
-          valid = false
-          return
-        }
-        inferred = actual
+      if (containsGeneric(parameter)) {
+        if (!bindGeneric(parameter, actual, bindings, node, `children.arguments[${index}]`)) valid = false
         return
       }
       if (!expect(parameter, actual, node, `children.arguments[${index}]`)) valid = false
     })
-    if (!valid) return null
-    if (!inferred) {
-      report(codes.typeMismatch, 'Impossible d’inférer T depuis les arguments de l’appel.', node, 'children.arguments')
-      return null
+    for (const parameter of typeParameters) {
+      const inferred = bindings.get(parameter.name)
+      if (!inferred) {
+        report(codes.typeMismatch, `Impossible d’inférer ${parameter.name} depuis les arguments de l’appel.`, node, 'children.arguments')
+        valid = false
+        continue
+      }
+      const constraint = typeParameterConstraint(parameter)
+      if (constraint && !sameType(constraint, inferred)) {
+        report(codes.typeMismatch, `Le type inféré pour ${parameter.name} ne respecte pas sa contrainte exacte.`, node, 'children.arguments')
+        valid = false
+      }
     }
-    genericCalls.push({ nodeId: node.sourceId, type: inferred })
-    return isGenericType(signature.returnType) ? inferred : signature.returnType
+    if (!valid) return null
+    const types = typeParameters.map((parameter) => ({ name: parameter.name, type: bindings.get(parameter.name) }))
+    genericCalls.push({ nodeId: node.sourceId, ...(types.length === 1 ? { type: types[0].type } : {}), types })
+    return substituteType(signature.returnType, bindings)
   }
 
   // Contrôle intégralement une signature d'appel avant de publier son type de retour.

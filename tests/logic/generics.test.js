@@ -124,10 +124,10 @@ test('généricité : appels incompatibles, ambigus et usage comme valeur refus�
   const arithmeticAnalysis = analyzeProgram(arithmetic)
   assert.ok(arithmeticAnalysis.diagnostics.some((entry) => entry.code === 'TYPE_MISMATCH' && entry.location.nodeId === 'identityPlus'))
 
-  const nested = genericProgram()
-  nested.nodes.find((entry) => entry.id === 'identityValue').properties.type = { kind: 'array', elementType: genericT }
-  const nestedAnalysis = analyzeProgram(nested)
-  assert.ok(nestedAnalysis.diagnostics.some((entry) => entry.code === 'TYPE_INVALID' && entry.location.nodeId === 'identityValue'))
+  const pointer = genericProgram()
+  pointer.nodes.find((entry) => entry.id === 'identityValue').properties.type = { kind: 'pointer', pointee: genericT }
+  const pointerAnalysis = analyzeProgram(pointer)
+  assert.ok(pointerAnalysis.diagnostics.some((entry) => entry.code === 'TYPE_INVALID' && entry.location.nodeId === 'identityValue'))
 })
 
 test('généricité : appel intermodule simulé et transpilé', () => {

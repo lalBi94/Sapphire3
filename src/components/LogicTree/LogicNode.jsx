@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, OctagonMinus } from 'lucide-react'
 import { memo, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { getNodeSchema } from '../../utils/logic/index.js'
+import { getNodeSchema, declaredTypeParameters } from '../../utils/logic/index.js'
 import { scrollNodeIntoCard } from '../../utils/cardScroll.js'
 import { memoryValue } from '../../utils/memorySpace.js'
 import { siblingOrder, foldedPreviewLines } from '../../utils/nodeTree.js'
@@ -29,7 +29,8 @@ function LogicNode({ id, index, selectedId, selectedIds = null, readOnly = false
   const pure = Boolean(pureIds?.has(id))
   const breakpoint = Boolean(breakpoints?.has(id))
   const debugValue = debugValues?.get(id) ?? null
-  const inferredGeneric = genericCalls?.get(id) ?? null
+  const inferredGenerics = genericCalls?.get(id) ?? null
+  const typeParameters = node?.kind === 'FunctionDeclaration' ? declaredTypeParameters(node) : []
   const [preview, setPreview] = useState(null)
   const [valueTip, setValueTip] = useState(null)
   // Un nœud replié qui contient vraiment quelque chose peut montrer un aperçu au survol.
@@ -107,8 +108,8 @@ function LogicNode({ id, index, selectedId, selectedIds = null, readOnly = false
         </button> : <span className="logic-node__toggle-spacer" aria-hidden="true" />}
         <button type="button" className="logic-node__heading" draggable={!readOnly} title={readOnly ? undefined : debugValue ? undefined : t('transfer.dragHint')} onClick={handleSelect} aria-pressed={selected} onMouseEnter={showValueTip} onMouseLeave={hideValueTip} onFocus={showValueTip} onBlur={hideValueTip}>
           <span>{kindLabel(node.kind, t)}{node.properties?.name ? ` · ${node.properties.name}` : ''}</span>
-          {node.kind === 'FunctionDeclaration' && node.properties?.generic === true && <span className="logic-node__generic" title={t('canvas.genericHint')} aria-label={t('canvas.genericHint')}>{'<T>'}</span>}
-          {inferredGeneric && <span className="logic-node__generic-call" title={t('canvas.genericCallHint')}>{`T = ${typeLabel(inferredGeneric, t)}`}</span>}
+          {typeParameters.length > 0 && <span className="logic-node__generic" title={t('canvas.genericHint')} aria-label={t('canvas.genericHint')}>{`<${typeParameters.map((parameter) => parameter.name).join(', ')}>`}</span>}
+          {inferredGenerics?.length > 0 && <span className="logic-node__generic-call" title={t('canvas.genericCallHint')}>{inferredGenerics.map((entry) => `${entry.name} = ${typeLabel(entry.type, t)}`).join(' · ')}</span>}
           {node.kind === 'FunctionDeclaration' && node.properties?.entryPoint === true && <span className="logic-node__entry-point">{t('canvas.startHere')}</span>}
           {node.kind === 'FunctionDeclaration' && pure && <span className="logic-node__pure" title={t('canvas.pureHint')} aria-label={t('canvas.pureHint')}>{t('canvas.pure')}</span>}
           {diagnostics.length > 0 && <span className="logic-node__issues" aria-label={t(diagnostics.length === 1 ? 'canvas.issueCountOne' : 'canvas.issueCount', { count: diagnostics.length })}>{diagnostics.length}</span>}

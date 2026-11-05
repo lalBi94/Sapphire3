@@ -99,7 +99,7 @@ export function insertSourceNodes(project, request, bundle, options = {}) {
   const candidate = { ...project, modules, nodes: [...nodes, ...bundle.nodes] }
   const analysis = analyzeProgram(candidate)
   const constraint = resultConstraint(root, analysis, context.expectedType)
-  if (constraint.incompatible || (context.expectedType && context.expectedType.kind !== 'generic' && constraint.type && !sameType(context.expectedType, constraint.type))) return failure('TYPE_MISMATCH')
+  if (constraint.incompatible || (context.expectedType && !containsGeneric(context.expectedType) && constraint.type && !sameType(context.expectedType, constraint.type))) return failure('TYPE_MISMATCH')
   const previous = context.index.analysis ?? analyzeProgram(project)
   const previousKeys = new Set(previous.diagnostics.map(diagnosticKey))
   const invalid = analysis.diagnostics.filter((diagnostic) => {

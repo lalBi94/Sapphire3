@@ -1,12 +1,31 @@
 import { createDiagnostic, diagnosticCodes as codes } from './diagnostics.js'
 import { isId, isRecord, moduleKinds, sourceFormatVersion } from './model.js'
 import { getNodeSchema, moduleRootSlot, acceptsNodeKind } from './nodeSchema.js'
+import { isValidParameterType, typeFromRecord } from './primitives.js'
+import { isTypeParameterName, maximumTypeParameters } from './generics.js'
 
 /**
  * @typedef {{kind:string, sourceId:string|null, moduleId:string|null, properties:Object, references:Object, children:Object, location:import('./diagnostics.js').Location}} LogicalNode
  * Les slots children contiennent des LogicalNode, et non les identifiants source.
  * Hole et Invalid gardent la localisation d'origine sans fabriquer d'identifiant.
  */
+
+// Vérifie la liste annoncée de paramètres de type et leurs contraintes exactes.
+function validTypeParameters(properties) {
+  const declared = properties.typeParameters
+  if (declared === undefined) return true
+  if (!Array.isArray(declared) || declared.length < 1 || declared.length > maximumTypeParameters) return false
+  const names = new Set()
+  for (const entry of declared) {
+    if (!isRecord(entry) || !isTypeParameterName(entry.name) || names.has(entry.name)) return false
+    names.add(entry.name)
+    if (entry.constraint !== undefined && entry.constraint !== null) {
+      const constraint = typeFromRecord(entry.constraint)
+      if (!constraint || !isValidParameterType(constraint)) return false
+    }
+  }
+  return true
+}
 
 // Transforme les liens syntaxiques en arbres inspectables sans modifier les données source.
 export function buildLogicalAst(source) {
@@ -111,6 +130,7 @@ export function buildLogicalAst(source) {
     if (schema?.named && !isId(properties.name)) report(codes.incomplete, 'Nom de déclaration manquant.', { ...ownLocation, field: 'properties.name' })
     if (properties.type !== undefined && !schema?.declaresType) report(codes.invalidStructure, 'Cette construction ne porte pas d’annotation de type ; son type est déterminé par ses opérandes ou sa référence.', { ...ownLocation, field: 'properties.type' })
     if (properties.generic !== undefined && (typeof properties.generic !== 'boolean' || node.kind !== 'FunctionDeclaration')) report(codes.invalidStructure, 'Le marqueur générique doit être un booléen réservé à une déclaration de fonction.', { ...ownLocation, field: 'properties.generic' })
+    if (properties.typeParameters !== undefined && (node.kind !== 'FunctionDeclaration' || !validTypeParameters(properties))) report(codes.invalidStructure, 'Les paramètres de type doivent être une liste nommée et unique, réservée à une déclaration de fonction, avec des contraintes concrètes.', { ...ownLocation, field: 'properties.typeParameters' })
     const children = Object.create(null)
     const slots = isRecord(node.children) ? node.children : {}
     const definitions = schema?.slots ?? {}

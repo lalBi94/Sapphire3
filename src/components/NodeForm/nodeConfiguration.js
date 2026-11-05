@@ -1,4 +1,4 @@
-import { primitiveType, primitiveDefinitions, arrayType, isArrayType, isValidElementType, pointerType, isPointerType, pointerPointee, isValidPointee, typeFromRecord, getNodeSchema, binaryOperators, unaryOperators, acceptsOperand, sameType, genericType, containsGeneric } from '../../utils/logic/index.js'
+import { primitiveType, primitiveDefinitions, arrayType, isArrayType, isValidElementType, pointerType, isPointerType, pointerPointee, isValidPointee, typeFromRecord, getNodeSchema, binaryOperators, unaryOperators, acceptsOperand, sameType, genericType, containsGeneric, declaredTypeParameters, isTypeParameterName } from '../../utils/logic/index.js'
 
 // Types entiers proposés pour l'index d'un accès à un élément de tableau ; une seule liste partagée par les formulaires.
 export const integerTypeNames = Object.freeze(Object.keys(primitiveDefinitions).filter((name) => acceptsOperand('integer', primitiveType(name))))
@@ -8,10 +8,10 @@ export function emptyExpression() {
   return { mode: '', value: '', empty: false, symbolId: '', operator: '', operandTypeName: '' }
 }
 
-// Convertit un nom de type choisi ('int', 'int[]', 'int*' ou une signature sérialisée) en type logique.
+// Convertit un nom de type choisi ('int', 'int[]', 'T', 'T[]' ou une signature sérialisée) en type logique.
 export function typeFromName(name) {
   if (typeof name !== 'string' || name === '') return null
-  if (name === 'T') return genericType('T')
+  if (isTypeParameterName(name)) return genericType(name)
   if (name.startsWith('@function:')) {
     try {
       return typeFromRecord(JSON.parse(name.slice('@function:'.length)))
@@ -20,7 +20,8 @@ export function typeFromName(name) {
     }
   }
   if (name.endsWith('[]')) {
-    const element = primitiveType(name.slice(0, -2))
+    const elementName = name.slice(0, -2)
+    const element = isTypeParameterName(elementName) ? genericType(elementName) : primitiveType(elementName)
     return element && element.name !== 'void' ? arrayType(element) : null
   }
   if (name.endsWith('*')) {
@@ -112,7 +113,9 @@ export function initialNodeForm(kind, node, expectedType, symbols, preset = null
     empty: properties.type?.name === 'string' && properties.value === '', symbolId: symbol?.id ?? (target ? '@unresolved' : ''),
     initializer: emptyExpression(), condition: emptyExpression(), expression: emptyExpression(),
     parameters: [], entryPoint: properties.entryPoint === true, allowIncomplete: false,
-    generic: kind === 'FunctionDeclaration' && properties.generic === true,
+    typeParameters: kind === 'FunctionDeclaration'
+      ? declaredTypeParameters(node).map((parameter) => ({ name: parameter.name, constraintName: parameter.constraint ? typeNameFromType(typeFromRecord(parameter.constraint)) : '' }))
+      : [],
     elementTypeName: arrayElementTypeName, arraySize: emptyExpression(), arrayFill: emptyExpression(), arrayElements: [],
     accessArray: emptyExpression(), accessIndex: emptyExpression(), indexTypeName: 'int',
     mathName: kind === 'MathCall' ? properties.name ?? preset?.name ?? '' : '',
@@ -180,8 +183,16 @@ export function nodeConfiguration(kind, form, symbols, initialNode = null) {
   if (kind === 'FunctionDeclaration') {
     if (form.entryPoint) properties.entryPoint = true
     else delete properties.entryPoint
-    if (form.generic) properties.generic = true
-    else delete properties.generic
+    delete properties.generic
+    const typeParameters = (form.typeParameters ?? [])
+      .map((entry) => ({ name: entry.name.trim(), constraintName: entry.constraintName }))
+      .filter((entry) => entry.name !== '')
+    if (typeParameters.length > 0) {
+      properties.typeParameters = typeParameters.map((entry) => {
+        const constraint = entry.constraintName ? typeFromName(entry.constraintName) : null
+        return constraint && !containsGeneric(constraint) ? { name: entry.name, constraint } : { name: entry.name }
+      })
+    } else delete properties.typeParameters
   }
   if (schema.declaresType) {
     if (type) properties.type = type

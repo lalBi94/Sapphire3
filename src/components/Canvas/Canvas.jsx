@@ -167,7 +167,7 @@ export default function Canvas() {
   // Valeurs des variables et paramètres visibles, limitées à l'arrêt de debug courant.
   const debugValues = useMemo(() => debugFrame ? buildDebugValues(document.index, debugFrame) : null, [document.index, debugFrame])
   // Types concrets inférés pour les appels génériques, sans modifier la source.
-  const genericCalls = useMemo(() => new Map((document.analysis?.genericCalls ?? []).map((entry) => [entry.nodeId, entry.type])), [document.analysis])
+  const genericCalls = useMemo(() => new Map((document.analysis?.genericCalls ?? []).map((entry) => [entry.nodeId, entry.types ?? [{ name: 'T', type: entry.type }]])), [document.analysis])
   const activeExecutionId = debugSession ? debugFrame?.nodeId ?? null : execution?.trace[execution.index] ?? null
   // Identité de la session d'exécution courante : un nouveau Run ou une nouvelle session de debug réinitialise le repli manuel.
   const executionSession = debugSession?.project === document.project ? debugSession.frames : execution?.trace ?? null
