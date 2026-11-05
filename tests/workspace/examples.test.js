@@ -25,10 +25,11 @@ const expectedOutput = {
   rain: ['Rain'],
   gameOfLife: ['Game of life'],
   gaugeDemo: ['Gauge full'],
+  carDashboard: ['Car dashboard'],
 }
 
 test('bibliothèque d’exemples : chaque projet est valide, analysable et s’exécute', () => {
-  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'recursion', 'arrays', 'foreach', 'sorting', 'maths', 'imports', 'pointers', 'higherOrder', 'quickSort', 'coinChange', 'gaugeDemo', 'pixelScreens', 'rain', 'knapsack', 'calculus', 'gameOfLife'])
+  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'recursion', 'arrays', 'foreach', 'sorting', 'maths', 'imports', 'pointers', 'higherOrder', 'quickSort', 'coinChange', 'gaugeDemo', 'carDashboard', 'pixelScreens', 'rain', 'knapsack', 'calculus', 'gameOfLife'])
   assert.deepEqual(exampleCategories.map((category) => category.id), ['simple', 'medium', 'hard'])
   for (const example of examples) {
     assert.ok(exampleCategories.some((category) => category.id === example.category), `${example.id}: catégorie connue`)
@@ -107,6 +108,34 @@ test('exemple pluie matricielle : colonnes, traînée et boucle sans raccord', (
   assert.ok(counts.every((count) => count === 9))
   assert.equal(transpileProgram(workspace.project).code, 'TRANSPILE_SCREEN_UNSUPPORTED')
 })
+
+test('exemple tableau de bord : pixel, jauge et images alignées à 24 fps', () => {
+  const workspace = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'carDashboard').build()))
+  const screen = workspace.presentation.cards.find((card) => card.type === 'screen')
+  const gauge = workspace.presentation.cards.find((card) => card.type === 'gauge')
+  assert.deepEqual({ width: screen.screenWidth, height: screen.screenHeight }, { width: 90, height: 14 })
+  assert.ok(gauge)
+  const result = simulateProgram(workspace.project)
+  assert.equal(result.ok, true, result.errorCode)
+  assert.deepEqual(result.output, ['Car dashboard'])
+  assert.equal(result.screenFrames.length, 56)
+  // Un état de jauge par image d'écran, pour une animation synchrone.
+  assert.equal(result.screenFrameGauges.length, result.screenFrames.length)
+  const start = result.screenFrameGauges[0].carGauge.value
+  const speeds = result.screenFrameGauges.map((frame) => frame.carGauge.value)
+  assert.ok(speeds.every((value) => Number.isInteger(value) && value >= 0 && value <= 100))
+  assert.ok(new Set(speeds).size >= 4)
+  // La vitesse progresse par pas de 10 au plus, jamais d'un saut aléatoire complet.
+  for (let position = 1; position < speeds.length; position += 1) assert.ok(Math.abs(speeds[position] - speeds[position - 1]) <= 10)
+  assert.ok(speeds.some((value) => value !== start))
+  // La jauge complète suit toute la trace, au-delà de l'ancienne borne de 4 000 états.
+  assert.equal(result.gaugeFrames.length, result.trace.length)
+  assert.ok(result.trace.length > 4000)
+  const lit = result.screenFrames[0].carScreen.pixels.filter((value, index) => index % 4 === 3 && value > 0).length
+  assert.equal(lit, 16)
+  assert.equal(transpileProgram(workspace.project).code, 'TRANSPILE_SCREEN_UNSUPPORTED')
+})
+
 
 test('exemple jauge : pilotée de l’extérieur et non transpilable', () => {
   const workspace = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'gaugeDemo').build()))

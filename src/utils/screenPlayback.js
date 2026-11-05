@@ -1,5 +1,8 @@
 // Rejoue et détecte les cycles des images d'écran, sans dépendre de React.
 
+// Cadence fixe de lecture d'un moniteur et des jauges associées : 24 images par seconde.
+export const screenPlaybackFrameDelay = 1000 / 24
+
 // Empreinte rapide d'une image, pour comparer sans parcourir tous les pixels à chaque essai.
 function frameHash(frame, screenId) {
   const screen = frame?.[screenId]

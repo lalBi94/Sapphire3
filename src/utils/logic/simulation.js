@@ -43,8 +43,10 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   // Jauges : un état complet par pas, pour que la carte suive exactement le focus de nœud.
   const gaugeReader = (project.modules ?? []).some((module) => module.gauge) ? createGaugeStateReader(project) : null
   const gaugeFrames = []
-  const maximumGaugeFrames = 4000
+  const maximumGaugeFrames = 8000
   const screenFrames = []
+  // États de jauge alignés sur les images d'écran, pour animer la jauge au même rythme.
+  const screenFrameGauges = []
   const maximumScreenFrames = 240
   let lastScreens = null
   const breakSignal = Symbol('break')
@@ -108,6 +110,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     const blank = Object.values(current).every((screen) => !screen.pixels.some((value, index) => index % 4 === 3 && value > 0))
     if (blank && screenFrames.length === 0 && !force) return
     screenFrames.push(current)
+    if (gaugeReader) screenFrameGauges.push(gaugeReader(global.values))
   }
 
   // Cherche une déclaration dans les environnements lexicaux actifs, sans valeur implicite.
@@ -479,7 +482,10 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   if (screenReader) {
     lastScreens = screenReader(global.values)
     const visible = Object.values(lastScreens).some((screen) => screen.pixels.some((value, index) => index % 4 === 3 && value > 0))
-    if (visible) screenFrames.push(lastScreens)
+    if (visible) {
+      screenFrames.push(lastScreens)
+      if (gaugeReader) screenFrameGauges.push(gaugeReader(global.values))
+    }
   }
   const debug = captureDebug ? createDebugRecorder(analysis, global, output, uninitialized) : null
   let lastEnvironment = global
@@ -508,12 +514,13 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       contracts: { total: contracts.reduce((count, entry) => count + entry.kinds.length, 0), observations: contractObservations, violations: contractViolations },
       ...(debug ? { debugFrames: debug.frames } : {}),
       ...(screenReader ? { screenFrames } : {}),
+      ...(screenFrameGauges.length ? { screenFrameGauges } : {}),
       ...(gaugeReader ? { gaugeFrames } : {}),
     }
   } catch (error) {
     const errorCode = error?.code ?? 'SIMULATION_FAILED'
     debug?.record(lastInstructionId, lastEnvironment, lastScopes, 'error', errorCode)
-    return { ok: false, output, outputSteps, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, screens: screenReader ? screenReader(global.values) : {}, gauges: gaugeReader ? gaugeReader(global.values) : {}, ...(debug ? { debugFrames: debug.frames } : {}), ...(screenReader ? { screenFrames } : {}), ...(gaugeReader ? { gaugeFrames } : {}) }
+    return { ok: false, output, outputSteps, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, screens: screenReader ? screenReader(global.values) : {}, gauges: gaugeReader ? gaugeReader(global.values) : {}, ...(debug ? { debugFrames: debug.frames } : {}), ...(screenReader ? { screenFrames } : {}), ...(screenFrameGauges.length ? { screenFrameGauges } : {}), ...(gaugeReader ? { gaugeFrames } : {}) }
   }
 }
 

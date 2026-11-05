@@ -895,6 +895,8 @@ export default function Canvas() {
         screenFrames={screenPlayback ? simulationResult.screenFrames : null}
         screenPlaying={screenPlayback && Boolean(execution?.running)}
         gaugeState={gaugeStates[card.id] ?? null}
+        gaugeFrames={screenPlayback ? simulationResult.screenFrameGauges ?? null : null}
+        gaugePlaying={screenPlayback && Boolean(execution?.running)}
         readOnly={presentationMode}
         onRename={document.renameCard} onTextChange={document.updateComment} onImageChange={document.updateImage} onEmojiChange={document.setCardEmoji}
         onToggleLock={handleToggleLock}

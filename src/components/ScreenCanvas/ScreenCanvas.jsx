@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
-import { findFrameCycle } from '../../utils/screenPlayback.js'
+import { findFrameCycle, screenPlaybackFrameDelay } from '../../utils/screenPlayback.js'
 import './ScreenCanvas.css'
-
-// Cadence fixe du moniteur : 24 images par seconde, indépendante des pas de simulation.
-const playbackFrameDelay = 1000 / 24
 
 // Peint un état d'écran en réutilisant la même ImageData pour éviter une allocation par frame.
 function paintScreen(context, imageRef, state, fallbackWidth, fallbackHeight) {
@@ -85,7 +82,7 @@ export default function ScreenCanvas({ card, state = null, frames = null, screen
       if (cycle <= 1) return
       playbackRef.current = (playbackRef.current + 1) % cycle
       draw()
-    }, playbackFrameDelay)
+    }, screenPlaybackFrameDelay)
     return () => window.clearInterval(timer)
   }, [frames, screenId, playing, width, height])
 

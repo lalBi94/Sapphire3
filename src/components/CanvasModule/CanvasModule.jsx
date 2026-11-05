@@ -66,7 +66,7 @@ function ModuleEmoji({ emoji, onChange }) {
 }
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, gaugeState = null, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, gaugeState = null, gaugeFrames = null, gaugePlaying = false, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -382,7 +382,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         </button>}
       </header>
       {definition.hasGauge ? (
-        <div className="canvas-module__content" data-canvas-scroll><GaugeCard card={module} state={gaugeState} /></div>
+        <div className="canvas-module__content" data-canvas-scroll><GaugeCard card={module} state={gaugeState} frames={gaugeFrames} playing={gaugePlaying} /></div>
       ) : definition.hasScreen ? (
         <div className="canvas-module__content" data-canvas-scroll>
           {screenView === 'code'

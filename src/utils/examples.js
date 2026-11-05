@@ -1043,6 +1043,150 @@ function gaugeDemo() {
   ])
 }
 
+// Tableau de bord : un pixel-voiture avance selon une vitesse lissée et aléatoire, affichée par la jauge.
+function carDashboard() {
+  const b = builder()
+  const width = 90
+  const height = 14
+  const frames = 56
+  const screen = createScreenModule('carScreen', 'Road', 1, { width, height })
+  const gauge = createGaugeModule('carGauge', 'Speed', 1, { min: 0, max: 100 })
+  b.project.modules.push(screen.module, gauge.module)
+  b.project.nodes.push(...screen.nodes, ...gauge.nodes)
+  b.useModule('carApp', 'Car dashboard')
+
+  const app = b.project.modules.find((module) => module.id === 'carApp')
+  const setPixel = screen.module.exports.find((entry) => entry.name === 'SCREEN_SP3_SET_PIXEL_1')
+  const present = screen.module.exports.find((entry) => entry.name === 'SCREEN_SP3_PRESENT_1')
+  const setSpeed = gauge.module.exports.find((entry) => entry.name === 'GAUGE_SP3_SET_VALUE_1')
+  app.imports.push(
+    { id: 'carPixelImport', moduleId: 'carScreen', nodeId: setPixel.nodeId, localName: 'setPixel' },
+    { id: 'carPresentImport', moduleId: 'carScreen', nodeId: present.nodeId, localName: 'present' },
+    { id: 'carGaugeImport', moduleId: 'carGauge', nodeId: setSpeed.nodeId, localName: 'setSpeed' },
+  )
+
+  // Écrit un pixel d'écran à un index fixe, hors de la boucle.
+  function fixedPixel(prefix, index, red, green, blue, alpha) {
+    b.make(`${prefix}Statement`, 'ExpressionStatement', {}, { expression: `${prefix}Call` })
+    b.call(`${prefix}Call`, `${prefix}Callee`, [`${prefix}Index`, `${prefix}Red`, `${prefix}Green`, `${prefix}Blue`, `${prefix}Alpha`])
+    b.make(`${prefix}Callee`, 'Reference', {}, {}, { target: { kind: 'import', importId: 'carPixelImport' } })
+    b.intValue(`${prefix}Index`, index)
+    b.intValue(`${prefix}Red`, red); b.intValue(`${prefix}Green`, green); b.intValue(`${prefix}Blue`, blue); b.intValue(`${prefix}Alpha`, alpha)
+    return `${prefix}Statement`
+  }
+
+  // Écrit la voiture à `position` sur la ligne de route, avec un repli circulaire.
+  function carPixel(prefix, red, green, blue, alpha) {
+    b.make(`${prefix}Statement`, 'ExpressionStatement', {}, { expression: `${prefix}Call` })
+    b.call(`${prefix}Call`, `${prefix}Callee`, [`${prefix}Index`, `${prefix}Red`, `${prefix}Green`, `${prefix}Blue`, `${prefix}Alpha`])
+    b.make(`${prefix}Callee`, 'Reference', {}, {}, { target: { kind: 'import', importId: 'carPixelImport' } })
+    b.binary(`${prefix}Index`, '+', `${prefix}Row`, `${prefix}Column`)
+    b.binary(`${prefix}Row`, '*', `${prefix}RowY`, `${prefix}RowWidth`)
+    b.intValue(`${prefix}RowY`, 6)
+    b.intValue(`${prefix}RowWidth`, width)
+    b.binary(`${prefix}Column`, '%', `${prefix}ColumnSum`, `${prefix}ColumnWidth`)
+    b.binary(`${prefix}ColumnSum`, '+', `${prefix}ColumnBase`, `${prefix}ColumnOffset`)
+    b.ref(`${prefix}ColumnBase`, 'position')
+    b.intValue(`${prefix}ColumnOffset`, 0)
+    b.intValue(`${prefix}ColumnWidth`, width)
+    b.intValue(`${prefix}Red`, red); b.intValue(`${prefix}Green`, green); b.intValue(`${prefix}Blue`, blue); b.intValue(`${prefix}Alpha`, alpha)
+    return `${prefix}Statement`
+  }
+
+  // Ligne de route en pointillés, dessinée une fois avant les images.
+  const roadStatements = []
+  for (let x = 0; x < width; x += 6) roadStatements.push(fixedPixel(`carDash${x}`, 10 * width + x, 48, 52, 66, 255))
+
+  // Position, vitesse et cible aléatoire, conservées entre deux images.
+  const globalVariable = (id, name, value) => {
+    b.root(id, 'VariableDeclaration', { name, type: intType }, { initializer: `${id}Start` })
+    b.intValue(`${id}Start`, value)
+  }
+  globalVariable('carPosition', 'position', 0)
+  globalVariable('carSpeed', 'speed', 0)
+  globalVariable('carTarget', 'target', 0)
+
+  b.root('carMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'carMainBody' })
+  b.make('carFrame', 'VariableDeclaration', { name: 'frame', type: intType }, { initializer: 'carFrameStart' })
+  b.intValue('carFrameStart', 0)
+  b.binary('carFrameTest', '<', 'carFrameRead', 'carFrameEnd')
+  b.ref('carFrameRead', 'frame')
+  b.intValue('carFrameEnd', frames)
+  b.make('carFrameUpdate', 'AssignmentStatement', {}, { target: 'carFrameTarget', value: 'carFrameNext' })
+  b.ref('carFrameTarget', 'frame')
+  b.binary('carFrameNext', '+', 'carFrameNextRead', 'carFrameOne')
+  b.ref('carFrameNextRead', 'frame')
+  b.intValue('carFrameOne', 1)
+
+  // Cible aléatoire rafraîchie toutes les huit images, puis vitesse qui s'en approche par pas de 10.
+  b.make('carTargetIf', 'IfStatement', {}, { test: 'carTargetTest', consequent: 'carTargetBody', alternate: null })
+  b.binary('carTargetTest', '==', 'carFrameModulo', 'carTargetZero')
+  b.binary('carFrameModulo', '%', 'carFrameModuloRead', 'carTargetEvery')
+  b.ref('carFrameModuloRead', 'frame')
+  b.intValue('carTargetEvery', 8)
+  b.intValue('carTargetZero', 0)
+  b.block('carTargetBody', ['carTargetAssign'])
+  b.make('carTargetAssign', 'AssignmentStatement', {}, { target: 'carTargetTarget', value: 'carTargetCall' })
+  b.ref('carTargetTarget', 'target')
+  b.make('carTargetCall', 'MathCall', { name: 'randomInt' }, { arguments: ['carTargetMin', 'carTargetMax'] })
+  b.intValue('carTargetMin', 0); b.intValue('carTargetMax', 100)
+  b.make('carSpeedAssign', 'AssignmentStatement', {}, { target: 'carSpeedTarget', value: 'carSpeedClamp' })
+  b.ref('carSpeedTarget', 'speed')
+  b.make('carSpeedClamp', 'MathCall', { name: 'clamp' }, { arguments: ['carSpeedNext', 'carZero', 'carHundred'] })
+  b.binary('carSpeedNext', '+', 'carSpeedRead', 'carSpeedStep')
+  b.ref('carSpeedRead', 'speed')
+  b.binary('carSpeedStep', '*', 'carSpeedSign', 'carSpeedFive')
+  b.make('carSpeedSign', 'MathCall', { name: 'sign' }, { arguments: ['carSpeedDelta'] })
+  b.binary('carSpeedDelta', '-', 'carTargetRead', 'carSpeedCurrent')
+  b.ref('carTargetRead', 'target'); b.ref('carSpeedCurrent', 'speed')
+  b.intValue('carSpeedFive', 10); b.intValue('carZero', 0); b.intValue('carHundred', 100)
+
+  // Une case par tranche de 10 de vitesse : 0 à 10 cases par image, repliées sur la largeur.
+  b.make('carPositionAssign', 'AssignmentStatement', {}, { target: 'carPositionTarget', value: 'carPositionNext' })
+  b.ref('carPositionTarget', 'position')
+  b.binary('carPositionNext', '%', 'carPositionSum', 'carPositionWidth')
+  b.binary('carPositionSum', '+', 'carPositionRead', 'carCells')
+  b.ref('carPositionRead', 'position')
+  b.binary('carCells', '/', 'carSpeedCells', 'carCellsTen')
+  b.ref('carSpeedCells', 'speed'); b.intValue('carCellsTen', 10)
+  b.intValue('carPositionWidth', width)
+
+  // Le pixel avance réellement de `position`, puis l'image est publiée et la jauge mise à jour.
+  b.make('carPresentStatement', 'ExpressionStatement', {}, { expression: 'carPresentCall' })
+  b.call('carPresentCall', 'carPresentCallee', [])
+  b.make('carPresentCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'carPresentImport' } })
+  b.make('carGaugeStatement', 'ExpressionStatement', {}, { expression: 'carGaugeCall' })
+  b.call('carGaugeCall', 'carGaugeCallee', ['carSpeedDouble'])
+  b.make('carGaugeCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'carGaugeImport' } })
+  b.make('carSpeedDouble', 'CastExpression', { type: doubleType }, { argument: 'carSpeedDoubleArg' })
+  b.ref('carSpeedDoubleArg', 'speed')
+
+  b.block('carLoopBody', [
+    'carTargetIf', 'carSpeedAssign',
+    carPixel('carClear', 0, 0, 0, 0),
+    'carPositionAssign',
+    carPixel('carDraw', 255, 213, 71, 255),
+    'carGaugeStatement', 'carPresentStatement',
+  ])
+  b.make('carLoop', 'ForStatement', {}, { initializer: 'carFrame', test: 'carFrameTest', update: 'carFrameUpdate', body: 'carLoopBody' })
+  b.print('carPrint', 'carMessage')
+  b.make('carMessage', 'Literal', { type: { kind: 'primitive', name: 'string' }, value: 'Car dashboard' })
+  b.block('carMainBody', [...roadStatements, 'carLoop', 'carPrint'])
+
+  const result = workspace(b.project, [
+    note('carRoadNote', 'Road', 'Un pixel-voiture avance de `vitesse / 10` cases par image et se replie au bord. La ligne de route reste fixe ; seuls le pixel et la jauge changent.', 0, 820, 620, 240),
+    note('carGaugeNote', 'Speed', 'Toutes les huit images, une cible aléatoire entre 0 et 100 remplace la précédente ; la vitesse s’en approche par pas de 10 : la jauge reste dans ses bornes et suit une accélération progressive. $$v \\leftarrow \\operatorname{clamp}(v + 10\\,\\operatorname{sign}(cible - v),\\, 0,\\, 100)$$', 660, 820, 620, 240),
+    note('carAppNote', 'Car dashboard', 'main dessine les pointillés, puis 56 images : cible aléatoire, vitesse lissée, déplacement du pixel, présentation et mise à jour de la jauge. Lecture à 24 fps.', 0, 520, 620, 240),
+  ])
+  const cards = result.presentation.cards
+  const screenCard = cards.find((card) => card.id === 'carScreen')
+  if (screenCard) Object.assign(screenCard, { width: 760, height: 300 })
+  const gaugeCard = cards.find((card) => card.id === 'carGauge')
+  if (gaugeCard) gaugeCard.x = 820
+  const appCard = cards.find((card) => card.id === 'carApp')
+  if (appCard) appCard.x = 1240
+  return result
+}
 // Programmation dynamique : sac à dos 0/1, table `dp` remplie de droite à gauche.
 function knapsack() {
   const b = builder()
@@ -1123,6 +1267,7 @@ export const examples = [
   { id: 'quickSort', labelKey: 'examples.quickSort', category: 'medium', subcategory: 'sorting', build: quickSort },
   { id: 'coinChange', labelKey: 'examples.coinChange', category: 'medium', subcategory: 'dynamic', build: coinChange },
   { id: 'gaugeDemo', labelKey: 'examples.gaugeDemo', category: 'medium', subcategory: 'widgets', build: gaugeDemo },
+  { id: 'carDashboard', labelKey: 'examples.carDashboard', category: 'medium', subcategory: 'widgets', build: carDashboard },
   { id: 'pixelScreens', labelKey: 'examples.pixelScreens', category: 'medium', subcategory: 'animation', build: pixelScreens },
   { id: 'rain', labelKey: 'examples.rain', category: 'medium', subcategory: 'animation', build: rain },
   { id: 'knapsack', labelKey: 'examples.knapsack', category: 'hard', subcategory: 'dynamic', build: knapsack },
