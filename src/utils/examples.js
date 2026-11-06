@@ -8,6 +8,7 @@ import { createBarChartModule, barChartDefaults } from './barChartNode.js'
 import { createHeatmapModule } from './heatmapNode.js'
 import { moduleTypes } from './moduleTypes.js'
 import { workspaceFileVersion } from './workspaceFile.js'
+import { widgetExamples } from './widgetExamples.js'
 
 const intType = { kind: 'primitive', name: 'int' }
 const doubleType = { kind: 'primitive', name: 'double' }
@@ -3269,28 +3270,28 @@ export const exampleCategories = [
 
 // Catalogue local, ouvrable sans réseau ni fichier externe, classé par difficulté puis par thème.
 export const examples = [
-  { id: 'fibonacci', labelKey: 'examples.fibonacci', category: 'simple', subcategory: 'basics', build: fibonacci },
-  { id: 'recursion', labelKey: 'examples.recursion', category: 'simple', subcategory: 'basics', build: recursion },
+  { id: 'fibonacci', labelKey: 'examples.fibonacci', category: 'medium', subcategory: 'basics', build: fibonacci },
+  { id: 'recursion', labelKey: 'examples.recursion', category: 'medium', subcategory: 'basics', build: recursion },
   { id: 'arrays', labelKey: 'examples.arrays', category: 'simple', subcategory: 'arrays', build: arrays },
   { id: 'foreach', labelKey: 'examples.forEach', category: 'simple', subcategory: 'arrays', build: forEach },
-  { id: 'sorting', labelKey: 'examples.sorting', category: 'simple', subcategory: 'sorting', build: sorting },
+  { id: 'sorting', labelKey: 'examples.sorting', category: 'medium', subcategory: 'sorting', build: sorting },
   { id: 'maths', labelKey: 'examples.maths', category: 'simple', subcategory: 'operations', build: maths },
   { id: 'imports', labelKey: 'examples.imports', category: 'simple', subcategory: 'modules', build: imports },
   { id: 'rgbLedDemo', labelKey: 'examples.rgbLedDemo', category: 'simple', subcategory: 'widgets', build: rgbLedDemo },
   { id: 'pointers', labelKey: 'examples.pointers', category: 'medium', subcategory: 'pointers', build: pointers },
   { id: 'higherOrder', labelKey: 'examples.higherOrder', category: 'medium', subcategory: 'functions', build: higherOrder },
-  { id: 'quickSort', labelKey: 'examples.quickSort', category: 'medium', subcategory: 'sorting', build: quickSort },
-  { id: 'coinChange', labelKey: 'examples.coinChange', category: 'medium', subcategory: 'dynamic', build: coinChange },
-  { id: 'gaugeDemo', labelKey: 'examples.gaugeDemo', category: 'medium', subcategory: 'widgets', build: gaugeDemo },
+  { id: 'quickSort', labelKey: 'examples.quickSort', category: 'hard', subcategory: 'sorting', build: quickSort },
+  { id: 'coinChange', labelKey: 'examples.coinChange', category: 'hard', subcategory: 'dynamic', build: coinChange },
+  { id: 'gaugeDemo', labelKey: 'examples.gaugeDemo', category: 'simple', subcategory: 'widgets', build: gaugeDemo },
   { id: 'carDashboard', labelKey: 'examples.carDashboard', category: 'medium', subcategory: 'widgets', build: carDashboard },
-  { id: 'trafficControl', labelKey: 'examples.trafficControl', category: 'hard', subcategory: 'simulation', build: trafficControl },
-  { id: 'dnaAnalyzer', labelKey: 'examples.dnaAnalyzer', category: 'hard', subcategory: 'widgets', build: dnaAnalyzer },
+  { id: 'trafficControl', labelKey: 'examples.trafficControl', category: 'medium', subcategory: 'simulation', build: trafficControl },
+  { id: 'dnaAnalyzer', labelKey: 'examples.dnaAnalyzer', category: 'medium', subcategory: 'widgets', build: dnaAnalyzer },
   { id: 'signalProcessing', labelKey: 'examples.signalProcessing', category: 'hard', subcategory: 'widgets', build: signalProcessing },
   { id: 'mandelbrotEscape', labelKey: 'examples.mandelbrotEscape', category: 'hard', subcategory: 'widgets', build: mandelbrotEscape },
-  { id: 'collatzAtlas', labelKey: 'examples.collatzAtlas', category: 'hard', subcategory: 'widgets', build: collatzAtlas },
+  { id: 'collatzAtlas', labelKey: 'examples.collatzAtlas', category: 'medium', subcategory: 'widgets', build: collatzAtlas },
   { id: 'sortRace', labelKey: 'examples.sortRace', category: 'medium', subcategory: 'sorting', build: sortRace },
-  { id: 'heatDiffusion', labelKey: 'examples.heatDiffusion', category: 'medium', subcategory: 'widgets', build: heatDiffusion },
-  { id: 'imageConvolution', labelKey: 'examples.imageConvolution', category: 'medium', subcategory: 'widgets', build: imageConvolution },
+  { id: 'heatDiffusion', labelKey: 'examples.heatDiffusion', category: 'hard', subcategory: 'widgets', build: heatDiffusion },
+  { id: 'imageConvolution', labelKey: 'examples.imageConvolution', category: 'hard', subcategory: 'widgets', build: imageConvolution },
   { id: 'weatherStation', labelKey: 'examples.weatherStation', category: 'medium', subcategory: 'widgets', build: weatherStation },
   { id: 'networkMonitor', labelKey: 'examples.networkMonitor', category: 'medium', subcategory: 'widgets', build: networkMonitor },
   { id: 'pixelScreens', labelKey: 'examples.pixelScreens', category: 'medium', subcategory: 'animation', build: pixelScreens },
@@ -3300,11 +3301,19 @@ export const examples = [
   { id: 'gameOfLife', labelKey: 'examples.gameOfLife', category: 'hard', subcategory: 'automata', build: gameOfLife },
   { id: 'roverSurvey', labelKey: 'examples.roverSurvey', category: 'hard', subcategory: 'simulation', build: roverSurvey },
   { id: 'signalLab', labelKey: 'examples.signalLab', category: 'hard', subcategory: 'simulation', build: signalLab },
-  { id: 'coral', labelKey: 'examples.coral', category: 'medium', subcategory: 'automata', build: coralGrowth },
+  { id: 'coral', labelKey: 'examples.coral', category: 'hard', subcategory: 'automata', build: coralGrowth },
   { id: 'labyrinth', labelKey: 'examples.labyrinth', category: 'hard', subcategory: 'automata', build: labyrinth },
-  { id: 'starfield', labelKey: 'examples.starfield', category: 'medium', subcategory: 'animation', build: starfield },
+  { id: 'starfield', labelKey: 'examples.starfield', category: 'hard', subcategory: 'animation', build: starfield },
   { id: 'colorFlow', labelKey: 'examples.colorFlow', category: 'medium', subcategory: 'animation', build: colorFlow },
   { id: 'rgbMixer', labelKey: 'examples.rgbMixer', category: 'medium', subcategory: 'widgets', build: rgbMixer },
+  ...widgetExamples.map((example) => ({
+    ...example,
+    build: () => {
+      const { project, description, title } = example.build()
+      const notesY = Math.ceil(project.modules.length / 3) * 520
+      return workspace(project, [note(`${example.id}Note`, title, description, 0, notesY, 1120, 240)])
+    },
+  })),
 ]
 
 // Sous-catégories facultatives à l'intérieur d'une catégorie du volet Examples.

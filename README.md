@@ -92,4 +92,21 @@ L’application vérifie les **releases publiées** du dépôt `lalBi94/Sapphire
 
 Dernier check-up : **516 tests Node et Python réussis**, build frontend et parcours navigateur vérifiés. Les trente-cinq exemples passent Run et Debug dans le Web Worker, dont les nouvelles simulations d’écran **Coral growth**, **Labyrinth**, **Starfield**, **Color flow** et **RGB mixer** (64×36 à 96×54) ; les douze exemples transpilables sont exécutés en JavaScript et Python. Les notifications par mascotte, l’aimantation des modules et la vitesse de simulation sont couvertes par des tests purs et des contrôles navigateur. Pour la bêta 0.1.0-beta.3, le paquet Windows a été audité et lancé dans Neutralinojs avec un profil isolé ; première sauvegarde native, Ctrl+S et création d’une sauvegarde de secours vérifiés. Détail dans `docs/PROJECT_ARCHIVE.md`.
 
-Ajout depuis ce check-up : **Examples → Simple → Widgets → RGB LED** (LED RVB en français), un exemple dédié faisant défiler sept couleurs avec `setColor(red, green, blue)`. Lancez **Run** pour observer la LED et les valeurs de ses canaux ; aucun matériel nécessaire. Le catalogue compte désormais **36 exemples**. Vérification ciblée : **22 tests exemples/traductions** et build réussis.
+Ajouts depuis ce check-up : **Examples → Simple → Widgets → RGB LED** (LED RVB en français), puis **dix projets avec widgets**, pour **46 exemples** au total :
+
+| Niveau | Exemple | Ce que montrent les widgets |
+| --- | --- | --- |
+| Moyen | Algorithme d’Euclide | Barres des opérandes et LED de fin ; PGCD = 21 |
+| Moyen | Recherche dichotomique | Indices inspectés et LED RVB verte/rouge |
+| Moyen | Crible des nombres premiers | Heatmap des onze nombres premiers jusqu’à 31 et progression |
+| Moyen | Tri par insertion | Barres déplacées et préfixe trié |
+| Moyen | Histogramme de dés | Six compteurs et progression sur 48 tirages déterministes |
+| Moyen | File de caisse | Historique, jauge de file et LED d’affluence |
+| Moyen | Thermostat | Température, historique et LED du chauffage avec hystérésis |
+| Difficile | Ressort amorti | Oscillations en doubles, jauge et barres signées |
+| Difficile | Remplissage par propagation | Parcours en largeur, heatmap et progression |
+| Difficile | Triangle de Pascal | Calcul en place, heatmap des lignes et graphique de la dernière ligne |
+
+**Difficultés revues sur 13 exemples** : Fibonacci, récursion et tri à bulles passent de simple à moyen ; tri rapide et rendu de monnaie de moyen à difficile ; jauge de moyen à simple ; trafic, ADN et Collatz de difficile à moyen ; diffusion thermique, convolution d’image, corail et champ d’étoiles de moyen à difficile. Répartition actuelle : **6 simples, 23 moyens, 17 difficiles**. Les noms sont disponibles dans les huit langues ; chaque note explique le principe, les paramètres et les limites. Lancez **Run** pour observer les widgets, sans matériel externe. Les modèles thermiques et mécaniques sont pédagogiques ; le générateur de dés n’est pas sécurisé et n’est pas présenté comme non biaisé.
+
+Vérifications ciblées : **32 tests exemples/recherche/traductions**, build et ouverture/Run du thermostat dans le navigateur réussis. Aucun moteur ni capacité native supplémentaire.

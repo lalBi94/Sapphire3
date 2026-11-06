@@ -45,10 +45,20 @@ const expectedOutput = {
   colorFlow: ['Color flow'],
   rgbMixer: ['RGB mixer'],
   rgbLedDemo: ['Red', 'Yellow', 'Green', 'Cyan', 'Blue', 'Magenta', 'White'],
+  euclid: ['21'],
+  binarySearch: ['6'],
+  primeSieve: ['11'],
+  insertionSort: ['1', '2', '3', '4', '6', '7', '8', '9'],
+  diceHistogram: ['48'],
+  checkoutQueue: ['0'],
+  thermostat: ['21'],
+  dampedSpring: ['Damped spring'],
+  floodFill: ['21'],
+  pascalTriangle: ['1', '7', '21', '35', '35', '21', '7', '1'],
 }
 
 test('bibliothèque d’exemples : chaque projet est valide, analysable et s’exécute', () => {
-  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'recursion', 'arrays', 'foreach', 'sorting', 'maths', 'imports', 'rgbLedDemo', 'pointers', 'higherOrder', 'quickSort', 'coinChange', 'gaugeDemo', 'carDashboard', 'trafficControl', 'dnaAnalyzer', 'signalProcessing', 'mandelbrotEscape', 'collatzAtlas', 'sortRace', 'heatDiffusion', 'imageConvolution', 'weatherStation', 'networkMonitor', 'pixelScreens', 'rain', 'knapsack', 'calculus', 'gameOfLife', 'roverSurvey', 'signalLab', 'coral', 'labyrinth', 'starfield', 'colorFlow', 'rgbMixer'])
+  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'recursion', 'arrays', 'foreach', 'sorting', 'maths', 'imports', 'rgbLedDemo', 'pointers', 'higherOrder', 'quickSort', 'coinChange', 'gaugeDemo', 'carDashboard', 'trafficControl', 'dnaAnalyzer', 'signalProcessing', 'mandelbrotEscape', 'collatzAtlas', 'sortRace', 'heatDiffusion', 'imageConvolution', 'weatherStation', 'networkMonitor', 'pixelScreens', 'rain', 'knapsack', 'calculus', 'gameOfLife', 'roverSurvey', 'signalLab', 'coral', 'labyrinth', 'starfield', 'colorFlow', 'rgbMixer', 'euclid', 'binarySearch', 'primeSieve', 'insertionSort', 'diceHistogram', 'checkoutQueue', 'thermostat', 'dampedSpring', 'floodFill', 'pascalTriangle'])
   assert.deepEqual(exampleCategories.map((category) => category.id), ['simple', 'medium', 'hard'])
   for (const example of examples) {
     assert.ok(exampleCategories.some((category) => category.id === example.category), `${example.id}: catégorie connue`)
