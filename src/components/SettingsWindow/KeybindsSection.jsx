@@ -4,11 +4,13 @@ import InfoHint from '../InfoHint/InfoHint.jsx'
 import { useKeybindsContext } from '../../contexts/KeybindsContext.jsx'
 import { formatShortcut, keybindActions, keybindCategories, shortcutFromEvent } from '../../utils/keybinds.js'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
+import { useNotifications } from '../../contexts/NotificationContext.jsx'
 
 // Panneau des raccourcis : capture directe, conflits refusés et restauration des défauts.
 export default function KeybindsSection() {
   const { bindings, assign, clear, reset, resetAll, isCustom } = useKeybindsContext()
   const { t } = useTranslation()
+  const { notify } = useNotifications()
   const [capturing, setCapturing] = useState(null)
   const [error, setError] = useState(null)
   const [query, setQuery] = useState('')
@@ -23,6 +25,18 @@ export default function KeybindsSection() {
   // Filtre les actions par leur libellé traduit sans masquer les catégories vides.
   function matches(action) {
     return !search || t(action.labelKey).toLocaleLowerCase().includes(search)
+  }
+
+  // Signale le conflit dans la ligne concernée et dans la mascotte centrale.
+  function reportError(next) {
+    setError(next)
+    if (!next) return
+    notify({
+      type: 'shortcut_conflict',
+      message: next.code === 'KEYBIND_CONFLICT' ? t('keybind.conflict', { action: actionLabel(next.conflictId) }) : t('keybind.invalid'),
+      key: `keybind:${next.id}`,
+      duration: 0,
+    })
   }
 
   // Démarre la capture : le gestionnaire global ignore cet élément grâce à data-keybind-capture.
@@ -49,7 +63,7 @@ export default function KeybindsSection() {
     if (!shortcut) return
     const result = assign(action.id, shortcut)
     if (!result.ok) {
-      setError({ id: action.id, code: result.code, conflictId: result.conflictId })
+      reportError({ id: action.id, code: result.code, conflictId: result.conflictId })
       return
     }
     setCapturing(null)
@@ -59,7 +73,7 @@ export default function KeybindsSection() {
   // Applique une suppression ou une restauration et affiche le conflit éventuel.
   function applyChange(result, id) {
     if (result.ok) setError(null)
-    else setError({ id, code: result.code, conflictId: result.conflictId })
+    else reportError({ id, code: result.code, conflictId: result.conflictId })
   }
 
   return <div className="settings-section keybinds-section">

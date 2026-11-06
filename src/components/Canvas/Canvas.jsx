@@ -11,6 +11,7 @@ import CanvasStatus from '../CanvasStatus/CanvasStatus.jsx'
 import ModuleFunctions from '../ModuleFunctions/ModuleFunctions.jsx'
 import { semanticZoomLevel, semanticSearchZoomLevel } from '../../utils/semanticZoom.js'
 import Minimap from '../Minimap/Minimap.jsx'
+import MascotNotification from '../MascotNotification/MascotNotification.jsx'
 import CanvasContextMenu from '../CanvasContextMenu/CanvasContextMenu.jsx'
 import CanvasModule from '../CanvasModule/CanvasModule.jsx'
 import CanvasLinks from '../CanvasLinks/CanvasLinks.jsx'
@@ -27,7 +28,9 @@ import { buildDebugValues } from '../../utils/memorySpace.js'
 import ProjectNavigation from '../ProjectNavigation/ProjectNavigation.jsx'
 import useWorkspaceFiles from '../../hooks/useWorkspaceFiles.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
+import { useNotifications } from '../../contexts/NotificationContext.jsx'
 import { diagnosticLabel, nodeLine } from '../LogicTree/logicLabels.js'
+import { failureLabel } from '../../utils/translations.js'
 import { moveDebugSession, resolveDebugScreens, getModuleLinks, getUnusedDeclarationIds, getPureIds, captureBookmark, captureSourceNode } from '../../utils/logic/index.js'
 import { runDebugSession, runSimulation, runTranspilation, runTranspilationChecks, cancelEngineWork, isEngineCancelled } from '../../services/engineRunner.js'
 import { transpilationLanguages } from '../../utils/transpilation/languages.js'
@@ -91,6 +94,7 @@ export default function Canvas() {
   const workspaceRef = useRef(null)
   const groupMoveRef = useRef(null)
   const { language, t } = useTranslation()
+  const { notify, clear: clearNotifications } = useNotifications()
   const document = useCanvasDocument()
   const search = useNodeSearch()
   const appUpdate = useAppUpdate()
@@ -252,6 +256,7 @@ export default function Canvas() {
   // Restaure source, présentation et vue ensemble après confirmation d'import.
   function handleReplaceWorkspace(workspace) {
     transfers.reset()
+    clearNotifications()
     setNodeGraph(null)
     setDebugSession(null)
     setExecution(null)
@@ -485,6 +490,7 @@ export default function Canvas() {
     screenRerunRef.current.inFlight = false
     cancelEngineWork()
     setEngineWork(null)
+    if (kind) notify({ type: 'info', message: t('notification.cancelled'), key: kind, duration: 2500 })
     if (['graphical', 'debug'].includes(kind)) {
       setFlowRun(null)
       setDebugSession(null)
@@ -496,18 +502,23 @@ export default function Canvas() {
     const epoch = ++simulationEpochRef.current
     cancelEngineWork()
     const work = beginEngineWork('simulation')
+    notify({ type: 'loading', title: t('simulation.title'), message: t('simulation.running'), key: 'simulation', duration: 0 })
     setFlowRun(null)
     setDebugSession(null)
     setExecutionFree(false)
     try {
       const result = await runSimulation(document.project, {}, { onProgress: (progress) => updateEngineWork(work, progress) })
       if (epoch !== simulationEpochRef.current) return
+      notify(result.ok
+        ? { type: 'simulation_finished', title: t('simulation.title'), message: t('simulation.completed'), key: 'simulation', duration: 6000 }
+        : { type: 'error', title: t('simulation.title'), message: failureLabel({ code: result.errorCode }, t), key: 'simulation', duration: 0 })
       startTransition(() => {
         setSimulationResult(result)
         setExecution(result.ok && result.trace.length > 0 ? { trace: result.trace, index: 0, running: true, paused: false, stopped: false } : null)
       })
     } catch (error) {
       if (isEngineCancelled(error) || epoch !== simulationEpochRef.current) return
+      notify({ type: 'error', title: t('simulation.title'), message: failureLabel({ code: 'SIMULATION_FAILED' }, t), key: 'simulation', duration: 0 })
       startTransition(() => {
         setSimulationResult({ ok: false, output: [], outputSteps: [], trace: [], errorCode: 'SIMULATION_FAILED', error: error?.message ?? '' })
         setExecution(null)
@@ -554,6 +565,7 @@ export default function Canvas() {
     const epoch = ++simulationEpochRef.current
     cancelEngineWork()
     const work = beginEngineWork('graphical')
+    notify({ type: 'loading', title: t('simulation.title'), message: t('simulation.running'), key: 'graphical', duration: 0 })
     setExecution(null)
     setSimulationResult(null)
     setDebugSession(null)
@@ -561,9 +573,15 @@ export default function Canvas() {
     try {
       const session = await runDebugSession(document.project, {}, { onProgress: (progress) => updateEngineWork(work, progress) })
       if (epoch !== simulationEpochRef.current) return
+      notify(session.errorCode
+        ? { type: 'error', title: t('simulation.title'), message: failureLabel({ code: session.errorCode }, t), key: 'graphical', duration: 0 }
+        : { type: 'simulation_finished', title: t('simulation.title'), message: t('simulation.completed'), key: 'graphical', duration: 5000 })
       setFlowRun({ session: { ...session, project: document.project }, index: 0, running: session.frames.length > 1, paused: false, stopped: false })
     } catch (error) {
-      if (!isEngineCancelled(error) && epoch === simulationEpochRef.current) setFlowRun(null)
+      if (!isEngineCancelled(error) && epoch === simulationEpochRef.current) {
+        notify({ type: 'error', title: t('simulation.title'), message: failureLabel({ code: 'SIMULATION_FAILED' }, t), key: 'graphical', duration: 0 })
+        setFlowRun(null)
+      }
     } finally {
       endEngineWork(work)
     }
@@ -614,6 +632,7 @@ export default function Canvas() {
     const epoch = ++simulationEpochRef.current
     cancelEngineWork()
     const work = beginEngineWork('debug')
+    notify({ type: 'loading', title: t('debug.title'), message: t('nav.working'), key: 'debug', duration: 0 })
     setExecution(null)
     setSimulationResult(null)
     setFlowRun(null)
@@ -621,9 +640,15 @@ export default function Canvas() {
     try {
       const session = await runDebugSession(document.project, { breakpoints }, { onProgress: (progress) => updateEngineWork(work, progress) })
       if (epoch !== simulationEpochRef.current) return
+      notify(session.errorCode
+        ? { type: 'error', title: t('debug.title'), message: failureLabel({ code: session.errorCode }, t), key: 'debug', duration: 0 }
+        : { type: 'debug_paused', title: t('debug.title'), message: t('debug.paused'), key: 'debug', duration: 9000 })
       setDebugSession({ ...session, project: document.project, breakpoints })
     } catch (error) {
-      if (!isEngineCancelled(error) && epoch === simulationEpochRef.current) setDebugSession(null)
+      if (!isEngineCancelled(error) && epoch === simulationEpochRef.current) {
+        notify({ type: 'error', title: t('debug.title'), message: failureLabel({ code: 'SIMULATION_FAILED' }, t), key: 'debug', duration: 0 })
+        setDebugSession(null)
+      }
     } finally {
       endEngineWork(work)
     }
@@ -635,11 +660,19 @@ export default function Canvas() {
     const epoch = ++transpileEpochRef.current
     cancelEngineWork()
     const work = beginEngineWork('transpile')
+    const targetName = transpilationLanguages.find((option) => option.id === target)?.name ?? target
+    notify({ type: 'loading', title: t('transpile.button'), message: t('nav.working'), key: 'transpile', duration: 0 })
     try {
       const result = await runTranspilation(document.project, { target }, { onProgress: (progress) => updateEngineWork(work, progress) })
-      if (epoch === transpileEpochRef.current) setTranspilationResult(result)
+      if (epoch === transpileEpochRef.current) {
+        notify(result.ok
+          ? { type: 'success', title: t('transpile.title', { language: targetName }), message: t('transpile.success'), key: 'transpile', duration: 4500 }
+          : { type: 'transpile_failed', title: t('transpile.title', { language: targetName }), message: t('transpile.failed'), key: 'transpile', duration: 0 })
+        setTranspilationResult(result)
+      }
     } catch (error) {
       if (isEngineCancelled(error) || epoch !== transpileEpochRef.current) return
+      notify({ type: 'transpile_failed', title: t('transpile.button'), message: failureLabel({ code: error?.code ?? 'TRANSPILE_FAILED' }, t), key: 'transpile', duration: 0 })
       setTranspilationResult({ ok: false, target, code: '', diagnostics: [] })
     } finally {
       endEngineWork(work)
@@ -668,8 +701,10 @@ export default function Canvas() {
     try {
       setTranspileExportError(null)
       const target = transpilationLanguages.find((option) => option.id === transpilationResult.target)
-      await exportWorkspaceFile(target.extension, transpilationResult.code, language)
+      const path = await exportWorkspaceFile(target.extension, transpilationResult.code, language)
+      if (path) notify({ type: 'export_success', message: t('files.exported'), duration: 4500 })
     } catch (failure) {
+      notify({ type: 'error', message: `${t('errors.couldNotSave')} ${failureLabel(failure, t)}`, duration: 0 })
       setTranspileExportError(failure)
     }
   }
@@ -779,6 +814,10 @@ export default function Canvas() {
     const next = moveDebugSession(debugSession, action, { breakpoints })
     const nodeId = next?.frames[next.cursor]?.nodeId
     const moduleId = document.index.nodes.get(nodeId)?.moduleId
+    const status = next?.frames[next.cursor]?.status
+    const previousStatus = debugSession?.frames[debugSession.cursor]?.status
+    if (status !== previousStatus && status === 'completed') notify({ type: 'simulation_finished', title: t('debug.title'), message: t('debug.completed'), key: 'debug', duration: 5000 })
+    if (status !== previousStatus && status === 'error') notify({ type: 'error', title: t('debug.title'), message: failureLabel({ code: next?.frames[next.cursor]?.errorCode }, t), key: 'debug', duration: 0 })
     if (moduleId) setActiveCardId(moduleId)
     setDebugSession(next)
   }
@@ -918,6 +957,7 @@ export default function Canvas() {
     const card = document.cards.find((entry) => entry.id === targetId?.id)
     if (!card) return
     document.setCardHidden(card.id, true)
+    notify({ type: 'info', message: t('notification.cardHidden', { name: card.name }), duration: 3500 })
     if (selectedTargets.some((target) => target.id === card.id || document.index.nodes.get(target.id)?.moduleId === card.id)) setSelection([])
     if (activeCardId === card.id) setActiveCardId(null)
     menuTriggerRef.current = null
@@ -927,12 +967,17 @@ export default function Canvas() {
   // Remet une carte masquée à la position conservée dans le document.
   function handleShowCard(cardId) {
     document.setCardHidden(cardId, false)
+    const card = document.cards.find((entry) => entry.id === cardId)
+    notify({ type: 'hidden_cards_restored', message: t('notification.cardRestored', { name: card?.name ?? '' }), duration: 4000 })
   }
 
   // Bascule le verrou d'une carte : déplacement et redimensionnement bloqués, source intacte.
   function handleToggleLock(cardId) {
     const card = document.cards.find((entry) => entry.id === cardId)
-    if (card) document.setCardLocked(card.id, !card.locked)
+    if (!card) return
+    const locked = !card.locked
+    document.setCardLocked(card.id, locked)
+    notify({ type: 'locked_card', message: t(locked ? 'notification.cardLocked' : 'notification.cardUnlocked', { name: card.name }), duration: 4000 })
   }
 
   // Mémorise les positions initiales des modules sélectionnés pour un déplacement groupé.
@@ -1002,7 +1047,9 @@ export default function Canvas() {
 
   // Rouvre d'un coup toutes les cartes rangées hors du canvas.
   function handleShowAllHidden() {
+    if (hiddenCards.length === 0) return
     for (const card of hiddenCards) document.setCardHidden(card.id, false)
+    notify({ type: 'hidden_cards_restored', message: t('notification.cardsRestored', { count: hiddenCards.length }), duration: 4000 })
   }
 
   // Action offerte par la bascule : aucune si le module ne contient rien à déplier, sinon ce qui reste à faire.
@@ -1043,7 +1090,7 @@ export default function Canvas() {
 
   return (
     <div ref={workspaceRef} className={`canvas-workspace${navCollapsed ? ' canvas-workspace--nav-collapsed' : ''}`}>
-    <ProjectNavigation busy={files.busy} message={files.message} error={files.error} pendingImport={files.pendingImport} pendingNew={files.pendingNew} recentFiles={files.recentFiles} onSave={files.handleSave} onSaveAs={files.saveAs} onExportSvg={handleExportSvg} onOpenSp3={files.handleOpenSp3} onOpenRecent={files.handleOpenRecent} onImport={files.handleImport} onOpenExample={files.handleOpenExample} onConfirmImport={files.handleConfirmImport} onCancelImport={files.handleCancelImport} onNew={files.handleNew} onConfirmNew={files.handleConfirmNew} onCancelNew={files.handleCancelNew} onDismiss={files.handleDismiss}
+    <ProjectNavigation busy={files.busy} pendingImport={files.pendingImport} pendingNew={files.pendingNew} recentFiles={files.recentFiles} onSave={files.handleSave} onSaveAs={files.saveAs} onExportSvg={handleExportSvg} onOpenSp3={files.handleOpenSp3} onOpenRecent={files.handleOpenRecent} onImport={files.handleImport} onOpenExample={files.handleOpenExample} onConfirmImport={files.handleConfirmImport} onCancelImport={files.handleCancelImport} onNew={files.handleNew} onConfirmNew={files.handleConfirmNew} onCancelNew={files.handleCancelNew}
       canUndo={document.canUndo} canRedo={document.canRedo} onUndo={document.undo} onRedo={document.redo}
       onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={() => handleRecenter(getModulesBounds())}
       distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)}
@@ -1116,6 +1163,7 @@ export default function Canvas() {
       </div>}
       {selectedTargets.length > 1 && !hasScreenSelection && !presentationMode && <SelectionToolbar key={selectedTargets.map((target) => `${target.kind}:${target.id}`).join('|')} count={selectedTargets.length} onDuplicate={handleDuplicateSelection} onDelete={handleDeleteSelection} onClear={() => setSelection([])} />}
       {minimapVisible && <Minimap modules={minimapModules} camera={camera} zoom={zoom} canvasRef={canvasRef} onNavigate={panTo} />}
+      <MascotNotification hasMinimap={minimapVisible && minimapModules.length > 0} />
       {transfers.notice && <div className={`canvas-transfer-status${transfers.notice.error ? ' canvas-transfer-status--error' : ''}`} data-canvas-ui role={transfers.notice.error ? 'alert' : 'status'} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
         <span>{transfers.notice.error ? diagnosticLabel(transfers.notice.error, t) : t(transfers.notice.message)}{transfers.notice.detail && ` · ${diagnosticLabel(transfers.notice.detail, t)}`}</span>
         <button type="button" aria-label={t('nav.dismiss')} onClick={transfers.dismiss}><X size={14} aria-hidden="true" /></button>

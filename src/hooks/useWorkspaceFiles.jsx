@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { serializeWorkspace, deserializeWorkspace, emptyWorkspace } from '../utils/workspaceFile.js'
 import { exportWorkspaceFile, exportBinaryFile, importWorkspaceFile, readWorkspaceFile, writeWorkspaceFile, writeWorkspaceFileWithBackup, readRecoveryFile, writeRecoveryFile, clearRecoveryFile } from '../services/workspaceFiles.js'
 import { useTranslation } from '../contexts/LanguageContext.jsx'
+import { useNotifications } from '../contexts/NotificationContext.jsx'
 import { readPreference, writePreference, hydratePreferences } from '../services/preferences.js'
 import { examples } from '../utils/examples.js'
 import { failureLabel } from '../utils/translations.js'
@@ -30,9 +31,8 @@ function loadLastFile() {
 // Prépare les fichiers sans toucher au document actif avant validation et confirmation de remplacement.
 export default function useWorkspaceFiles({ project, cards, camera, selected, onReplace }) {
   const { language, t } = useTranslation()
+  const { notify } = useNotifications()
   const [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState('')
-  const [error, setError] = useState(null)
   const [pendingImport, setPendingImport] = useState(null)
   const [pendingNew, setPendingNew] = useState(false)
   const [currentPath, setCurrentPath] = useState(null)
@@ -43,6 +43,28 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
   const lastRecoveryText = useRef(null)
   const view = useRef({ camera, selected })
   const booted = useRef(false)
+
+  // Choisit l'expression et la durée adaptées à un message de fichier.
+  function messageType(key) {
+    if (key === 'files.exported') return 'export_success'
+    if (key === 'files.saved' || key === 'files.recovered' || key === 'files.autosaved') return 'saved'
+    if (key === 'files.opened') return 'import_success'
+    if (key === 'files.new') return 'success'
+    if (key === 'files.savedWithoutBackup') return 'warning'
+    return 'info'
+  }
+
+  // Publie le feedback centralisé d'une opération de fichier réussie.
+  function publishMessage(key) {
+    if (!key) return
+    notify({ type: messageType(key), message: t(key), key: `file-message:${key}`, duration: key === 'files.savedWithoutBackup' ? 0 : 4500 })
+  }
+
+  // Publie une alerte persistante pour une opération de fichier en échec.
+  function publishError(value) {
+    if (!value) return
+    notify({ type: 'error', message: `${t(value.prefix)} ${failureLabel(value.failure, t)}`, key: 'file-error', duration: 0 })
+  }
 
   // Garde la caméra et la sélection les plus récentes pour la sérialisation différée de l'autosave.
   useEffect(() => {
@@ -80,7 +102,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
         lastRecoveryText.current = null
         return
       }
-      setError({ prefix: 'errors.couldNotSave', failure })
+      publishError({ prefix: 'errors.couldNotSave', failure })
     }
   }
 
@@ -89,8 +111,6 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     if (operation.current || pendingImport) return
     operation.current = true
     setBusy(true)
-    setError(null)
-    setMessage('')
     try {
       const text = serializeWorkspace(project, cards, camera, selected)
       const path = await exportWorkspaceFile(extension, text, language)
@@ -101,10 +121,10 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
           rememberRecentFile(path)
           await discardRecovery()
         }
-        setMessage('files.saved')
+        publishMessage('files.saved')
       }
     } catch (failure) {
-      setError({ prefix: 'errors.couldNotSave', failure })
+      publishError({ prefix: 'errors.couldNotSave', failure })
     } finally {
       operation.current = false
       setBusy(false)
@@ -116,13 +136,11 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     if (operation.current || pendingImport) return
     operation.current = true
     setBusy(true)
-    setError(null)
-    setMessage('')
     try {
       const path = await exportWorkspaceFile(extension, text, language)
-      if (path) setMessage('files.exported')
+      if (path) publishMessage('files.exported')
     } catch (failure) {
-      setError({ prefix: 'errors.couldNotSave', failure })
+      publishError({ prefix: 'errors.couldNotSave', failure })
     } finally {
       operation.current = false
       setBusy(false)
@@ -134,13 +152,11 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     if (operation.current || pendingImport) return
     operation.current = true
     setBusy(true)
-    setError(null)
-    setMessage('')
     try {
       const path = await exportBinaryFile(extension, bytes, language)
-      if (path) setMessage('files.exported')
+      if (path) publishMessage('files.exported')
     } catch (failure) {
-      setError({ prefix: 'errors.couldNotSave', failure })
+      publishError({ prefix: 'errors.couldNotSave', failure })
     } finally {
       operation.current = false
       setBusy(false)
@@ -153,17 +169,15 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
       if (operation.current || pendingImport) return
       operation.current = true
       setBusy(true)
-      setError(null)
-      setMessage('')
       try {
         const text = serializeWorkspace(project, cards, camera, selected)
         const saved = await writeWorkspaceFileWithBackup(currentPath, text)
         lastSavedText.current = text
         await discardRecovery()
-        setMessage(saved.backupError ? 'files.savedWithoutBackup' : 'files.saved')
+        publishMessage(saved.backupError ? 'files.savedWithoutBackup' : 'files.saved')
         if (saved.backupError) console.warn('Workspace backup could not be written.', saved.backupError)
       } catch (failure) {
-        setError({ prefix: 'errors.couldNotSave', failure })
+        publishError({ prefix: 'errors.couldNotSave', failure })
       } finally {
         operation.current = false
         setBusy(false)
@@ -181,7 +195,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     try {
       text = serializeWorkspace(project, cards, activeCamera, activeSelected)
     } catch (failure) {
-      setError({ prefix: 'errors.couldNotSave', failure })
+      publishError({ prefix: 'errors.couldNotSave', failure })
       return
     }
     if (currentPath) {
@@ -197,7 +211,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
       } catch (failure) {
         // L'absence d'environnement natif n'est pas bloquante pour le mode web, ne pas perturber l'interface.
         if (failure.code !== 'DESKTOP_REQUIRED') {
-          setError({ prefix: 'errors.couldNotSave', failure })
+          publishError({ prefix: 'errors.couldNotSave', failure })
         }
       } finally {
         operation.current = false
@@ -210,13 +224,15 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
       return
     }
     if (text === lastRecoveryText.current) return
+    const firstRecovery = lastRecoveryText.current === null
     operation.current = true
     try {
       await writeRecoveryFile(text)
       lastRecoveryText.current = text
+      if (firstRecovery) publishMessage('files.autosaved')
     } catch (failure) {
       if (failure?.code !== 'DESKTOP_REQUIRED') {
-        setError({ prefix: 'errors.couldNotSave', failure })
+        publishError({ prefix: 'errors.couldNotSave', failure })
       }
     } finally {
       operation.current = false
@@ -228,13 +244,11 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     if (operation.current || pendingImport) return
     operation.current = true
     setBusy(true)
-    setError(null)
-    setMessage('')
     try {
       const file = await importWorkspaceFile(['sp3'], language)
       if (file) setPendingImport({ workspace: deserializeWorkspace(file.text), path: file.path, text: file.text })
     } catch (failure) {
-      setError({ prefix: 'errors.couldNotOpen', failure })
+      publishError({ prefix: 'errors.couldNotOpen', failure })
     } finally {
       operation.current = false
       setBusy(false)
@@ -246,14 +260,12 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     if (operation.current || pendingImport) return
     operation.current = true
     setBusy(true)
-    setError(null)
-    setMessage('')
     try {
       const file = await readWorkspaceFile(path)
       setPendingImport({ workspace: deserializeWorkspace(file.text), path: file.path, text: file.text })
     } catch (failure) {
       forgetRecentFile(path)
-      setError({ prefix: 'errors.couldNotOpen', failure })
+      publishError({ prefix: 'errors.couldNotOpen', failure })
     } finally {
       operation.current = false
       setBusy(false)
@@ -265,13 +277,11 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     if (operation.current || pendingImport) return
     operation.current = true
     setBusy(true)
-    setError(null)
-    setMessage('')
     try {
       const file = await importWorkspaceFile(['sp3', 'json'], language)
       if (file) setPendingImport({ workspace: deserializeWorkspace(file.text), path: file.path, text: file.text })
     } catch (failure) {
-      setError({ prefix: 'errors.couldNotImport', failure })
+      publishError({ prefix: 'errors.couldNotImport', failure })
     } finally {
       operation.current = false
       setBusy(false)
@@ -287,7 +297,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
       const text = JSON.stringify(example.build())
       setPendingImport({ workspace: deserializeWorkspace(text), path: null, text, detail: t(example.labelKey) })
     } catch (failure) {
-      setError({ prefix: 'errors.couldNotOpen', failure })
+      publishError({ prefix: 'errors.couldNotOpen', failure })
     }
   }
 
@@ -301,7 +311,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     if (path) rememberRecentFile(path)
     discardRecovery()
     setPendingImport(null)
-    setMessage('files.opened')
+    publishMessage('files.opened')
   }
 
   // Conserve intégralement le document courant lorsque l'import est abandonné.
@@ -321,8 +331,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     onReplace(emptyWorkspace())
     lastSavedText.current = null
     applyCurrentPath(null)
-    setError(null)
-    setMessage('files.new')
+    publishMessage('files.new')
     await discardRecovery()
   }
 
@@ -343,11 +352,6 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     setPendingNew(false)
   }
 
-  // Efface un message d'échec sans relancer l'opération de fichier.
-  function handleDismiss() {
-    setError(null)
-  }
-
   // Restaure une copie non enregistrée valide, sinon rouvre le dernier fichier .sp3 sans dialogue.
   async function openLastFileOnStartup() {
     await hydratePreferences()
@@ -359,20 +363,20 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
         recovery = await readRecoveryFile()
       } catch (failure) {
         // Le mode web n'a pas de répertoire de données : aucune récupération à tenter.
-        if (failure?.code !== 'DESKTOP_REQUIRED') setError({ prefix: 'errors.couldNotOpen', failure })
+        if (failure?.code !== 'DESKTOP_REQUIRED') publishError({ prefix: 'errors.couldNotOpen', failure })
       }
       if (recovery) {
         try {
           onReplace(deserializeWorkspace(recovery.text))
           lastRecoveryText.current = recovery.text
-          setMessage('files.recovered')
+          publishMessage('files.recovered')
           return
         } catch {
           // Une copie illisible est écartée sans empêcher l'ouverture du dernier fichier.
           try {
             await clearRecoveryFile()
           } catch (failure) {
-            if (failure?.code !== 'DESKTOP_REQUIRED') setError({ prefix: 'errors.couldNotSave', failure })
+            if (failure?.code !== 'DESKTOP_REQUIRED') publishError({ prefix: 'errors.couldNotSave', failure })
           }
         }
       }
@@ -383,7 +387,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
         onReplace(deserializeWorkspace(file.text))
         lastSavedText.current = file.text
         setCurrentPath(path)
-        setMessage('files.opened')
+        publishMessage('files.opened')
       } catch (failure) {
         // Sans client natif (dev web), on ne détruit pas la mémoire du dernier fichier ; on retient seulement un fichier réellement introuvable.
         if (failure?.code === 'DESKTOP_REQUIRED') return
@@ -410,5 +414,5 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     return () => window.clearTimeout(timer)
   }, [project, cards, currentPath, ready])
 
-  return { busy, message: message ? t(message) : '', error: error ? `${t(error.prefix)} ${failureLabel(error.failure, t)}` : '', pendingImport, pendingNew, recentFiles, currentPath, handleSave, saveAs, exportText, exportBinary, handleOpenSp3, handleOpenRecent, handleImport, handleOpenExample, handleConfirmImport, handleCancelImport, handleNew, handleConfirmNew, handleCancelNew, handleDismiss }
+  return { busy, pendingImport, pendingNew, recentFiles, currentPath, handleSave, saveAs, exportText, exportBinary, handleOpenSp3, handleOpenRecent, handleImport, handleOpenExample, handleConfirmImport, handleCancelImport, handleNew, handleConfirmNew, handleCancelNew }
 }

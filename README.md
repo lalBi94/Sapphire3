@@ -56,7 +56,7 @@ La CI GitHub Actions (`.github/workflows/ci.yml`) exécute l’installation verr
 - Import/export `.sp3` et JSON par dialogues natifs, export SVG, export PNG/JSON d’un nœud.
 - Autosauvegarde du fichier `.sp3` courant après modification ; dernier fichier rouvert au lancement ; cinq chemins récents.
 - **Récupération après crash** : un document neuf non vierge sans chemin est conservé dans `sapphire3-recovery.sp3` (répertoire de données persistant) et restauré au lancement.
-- **Sauvegardes de secours** : jusqu’à trois générations `<base>.backup-1.sp3` à `3` lors d’un enregistrement direct. Une copie impossible n’annule pas la sauvegarde et est affichée dans le statut.
+- **Sauvegardes de secours** : jusqu’à trois générations `<base>.backup-1.sp3` à `3` lors d’un enregistrement direct. Une copie impossible n’annule pas la sauvegarde et est signalée par la mascotte.
 - **Workspace version 2** : les fichiers version 1 sont migrés à la lecture (`generic` → `typeParameters`, retrait de `screenScale`) ; une version future ou malformée est refusée sans remplacer le document.
 - Limite de fichier : 20 Mio, images intégrées comprises. Voir `docs/WORKSPACE_FILES.md`.
 
@@ -64,6 +64,7 @@ La CI GitHub Actions (`.github/workflows/ci.yml`) exécute l’installation verr
 - Barre compacte **Settings**, **Edit**, **View**, **Theme**, **Examples**, **Bookmarks**, **Windows**, Transpile et Run.
 - Fenêtre de paramètres, thèmes prédéfinis et personnalisés, huit langues (anglais par défaut, français, chinois, espagnol, arabe, japonais, hindi, russe), raccourcis clavier configurables.
 - Favoris personnels de fonctions et modules purs, gestionnaire de fenêtres flottantes, undo/redo structurel.
+- **Notifications par mascotte** : 16 expressions du robot en bas à gauche du canvas, bulles en verre anthracite avec actions et historique récent, file priorisée, remplacement des progressions et fermeture manuelle. Les dialogues bloquants et les panneaux de diagnostics restent inchangés.
 
 ## Distribution et mises à jour
 
@@ -87,4 +88,4 @@ L’application vérifie les **releases publiées** du dépôt `lalBi94/Sapphire
 - L’analyse reste conservatrice et ne prouve ni terminaison ni valeurs générales.
 - Les captures de `abstract/visual` datent d’une campagne antérieure ; les fonctionnalités récentes y sont décrites dans le texte.
 
-Dernier check-up : **498 tests Node et Python réussis**, build frontend et parcours navigateur vérifiés. Les trente exemples passent Run et Debug dans le Web Worker ; les douze exemples transpilables sont exécutés en JavaScript et Python. Les dialogues et écritures natifs restent couverts par les tests de services, sans nouvelle vérification manuelle Neutralinojs. Détail dans `docs/PROJECT_ARCHIVE.md`.
+Dernier check-up : **502 tests Node et Python réussis**, build frontend et parcours navigateur vérifiés. Les trente exemples passent Run et Debug dans le Web Worker ; les douze exemples transpilables sont exécutés en JavaScript et Python. Les notifications par mascotte sont couvertes par quatre tests purs et des contrôles navigateur. Les dialogues et écritures natifs restent couverts par les tests de services, sans nouvelle vérification manuelle Neutralinojs. Détail dans `docs/PROJECT_ARCHIVE.md`.

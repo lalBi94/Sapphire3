@@ -5,13 +5,16 @@ import './styles/global.css'
 import LanguageProvider from './contexts/LanguageContext.jsx'
 import ThemeProvider from './contexts/ThemeContext.jsx'
 import KeybindsProvider from './contexts/KeybindsContext.jsx'
+import NotificationProvider from './contexts/NotificationContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <LanguageProvider>
       <ThemeProvider>
         <KeybindsProvider>
-          <App />
+          <NotificationProvider>
+            <App />
+          </NotificationProvider>
         </KeybindsProvider>
       </ThemeProvider>
     </LanguageProvider>

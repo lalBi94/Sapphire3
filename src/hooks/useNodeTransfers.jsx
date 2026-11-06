@@ -1,5 +1,8 @@
 import { useRef, useState } from 'react'
 import { captureSourceNode, moveSourceNodes } from '../utils/logic/index.js'
+import { useNotifications } from '../contexts/NotificationContext.jsx'
+import { useTranslation } from '../contexts/LanguageContext.jsx'
+import { failureLabel } from '../utils/translations.js'
 
 const dragType = 'application/x-sapphire-node'
 
@@ -14,6 +17,8 @@ function dropReceiver(element) {
 
 // Gère le presse-papiers local et les gestes de transfert sans persistance ni API native.
 export default function useNodeTransfers({ project, index, selected, selectedNodeIds = [], readOnly = false, workspaceRef, onPaste, onMove, onDuplicate, onTransferred }) {
+  const { notify } = useNotifications()
+  const { t } = useTranslation()
   const [clipboard, setClipboard] = useState(null)
   const [notice, setNotice] = useState(null)
   const [dropTarget, setDropTarget] = useState(null)
@@ -24,9 +29,18 @@ export default function useNodeTransfers({ project, index, selected, selectedNod
     setNotice((current) => current?.message === next.message && current?.error === next.error && current?.detail === next.detail && current?.transient === next.transient ? current : next)
   }
 
+  // Publie le résultat final d'un transfert sans retirer le détail contextuel du canvas.
+  function publishResult(result, message) {
+    notify(result.ok
+      ? { type: 'success', message: t(message), key: 'transfer', duration: 3000 }
+      : { type: 'warning', message: failureLabel({ code: result.code }, t), key: 'transfer', duration: 6000 })
+  }
+
   // Présente le résultat sans transformer un refus en mutation ou en étape d'historique.
   function finish(result, message) {
-    showNotice(result.ok ? { message } : { error: result.code, detail: result.diagnostics?.[0]?.code })
+    if (result.ok) setNotice(null)
+    else showNotice({ error: result.code, detail: result.diagnostics?.[0]?.code })
+    publishResult(result, message)
     if (result.ok) onTransferred(result)
     return result
   }
@@ -34,8 +48,13 @@ export default function useNodeTransfers({ project, index, selected, selectedNod
   // Capture une copie indépendante des modifications ultérieures de la source.
   function copyNode(target) {
     const result = captureSourceNode(project, target.id, { index })
-    if (result.ok) setClipboard(result.clipboard)
-    showNotice(result.ok ? { message: 'transfer.copied' } : { error: result.code })
+    if (result.ok) {
+      setClipboard(result.clipboard)
+      setNotice(null)
+    } else {
+      showNotice({ error: result.code })
+    }
+    publishResult(result, 'transfer.copied')
     return result
   }
 
