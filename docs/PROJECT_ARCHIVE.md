@@ -2,6 +2,14 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Dix exemples graphiques — 6 novembre 2026
+
+- Catalogue porté à **30 exemples** : Simple 7, Medium 13, Hard 10. Les dix nouveaux sont **Traffic control**, **DNA analyzer**, **Signal processing**, **Mandelbrot escape**, **Collatz atlas**, **Sort race**, **Heat diffusion**, **Image convolution**, **Weather station** et **Network monitor**.
+- Tous utilisent les cartes graphiques réelles et des modules ordinaires : trafic (heatmap 10×5, files par voie, débit), ADN (quatre compteurs, carte de codons, GC), signal (échantillons, énergie, huit bandes, fenêtre temps-fréquence), Mandelbrot (grille 6×4, échappement), Collatz (grille 6×4, bandes), course de tris (deux graphiques à barres animés), diffusion thermique (grille 8×4, deux passes), convolution 3×3, météo (7×5 + pluie + confort) et réseau (8 minutes × 6 ports + charge globale). Chaque exemple possède une annotation Comment, des modules nommés, une fonction point d'entrée et des sorties stables.
+- Les scénarios sont bornés et déterministes : **2 317 à 7 723 pas**, sans boucle infinie, sans aléa non contrôlé, sans réseau ni fichier. Les boucles restent sous le budget de simulation et de debug. Aucune nouvelle construction logique n'a été ajoutée.
+- **496 tests Node réussis**, dont 12 tests d'exemples et un contrôle supplémentaire des dix cartes : cartes graphiques présentes, modules cachés, états `barCharts`/`heatmaps`/`progresses` exposés, sorties attendues, commentaires et deux graphiques pour **Sort race**. Les douze exemples transpilables continuent d'être comparés après exécution réelle en JavaScript et Python.
+- Validation navigateur : le volet affiche **Simple 7 / Medium 13 / Hard 10** et les dix libellés dans les huit langues. Les **30 exemples** passent Run et Debug dans le vrai Web Worker ; ouverture de **Traffic control** vérifiée avec une heatmap de 50 cellules, six barres, une barre de progression et une annotation. Aucune erreur console. Pas de vérification native Neutralinojs.
+
 ## Check-up conservateur — 6 novembre 2026
 
 ### État de départ et corrections

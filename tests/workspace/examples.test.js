@@ -29,10 +29,20 @@ const expectedOutput = {
   signalLab: ['hot', 'STABLE', 'w', 'true', '5', '8', '16', '3', '19', 'true', '0', 'Signal lab'],
   gaugeDemo: ['Gauge full'],
   carDashboard: ['Car dashboard'],
+  trafficControl: ['Traffic control'],
+  dnaAnalyzer: ['DNA analyzer'],
+  signalProcessing: ['Signal processing'],
+  mandelbrotEscape: ['Mandelbrot escape'],
+  collatzAtlas: ['Collatz atlas'],
+  sortRace: ['Sort race'],
+  heatDiffusion: ['Heat diffusion'],
+  imageConvolution: ['Image convolution'],
+  weatherStation: ['Weather station'],
+  networkMonitor: ['Network monitor'],
 }
 
 test('bibliothèque d’exemples : chaque projet est valide, analysable et s’exécute', () => {
-  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'recursion', 'arrays', 'foreach', 'sorting', 'maths', 'imports', 'pointers', 'higherOrder', 'quickSort', 'coinChange', 'gaugeDemo', 'carDashboard', 'pixelScreens', 'rain', 'knapsack', 'calculus', 'gameOfLife', 'roverSurvey', 'signalLab'])
+  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'recursion', 'arrays', 'foreach', 'sorting', 'maths', 'imports', 'pointers', 'higherOrder', 'quickSort', 'coinChange', 'gaugeDemo', 'carDashboard', 'trafficControl', 'dnaAnalyzer', 'signalProcessing', 'mandelbrotEscape', 'collatzAtlas', 'sortRace', 'heatDiffusion', 'imageConvolution', 'weatherStation', 'networkMonitor', 'pixelScreens', 'rain', 'knapsack', 'calculus', 'gameOfLife', 'roverSurvey', 'signalLab'])
   assert.deepEqual(exampleCategories.map((category) => category.id), ['simple', 'medium', 'hard'])
   for (const example of examples) {
     assert.ok(exampleCategories.some((category) => category.id === example.category), `${example.id}: catégorie connue`)
@@ -47,6 +57,27 @@ test('bibliothèque d’exemples : chaque projet est valide, analysable et s’e
     assert.deepEqual(result.output, expectedOutput[example.id], example.id)
   }
 })
+
+test('les dix exemples graphiques exposent leurs widgets et leurs états', () => {
+  const ids = ['trafficControl', 'dnaAnalyzer', 'signalProcessing', 'mandelbrotEscape', 'collatzAtlas', 'sortRace', 'heatDiffusion', 'imageConvolution', 'weatherStation', 'networkMonitor']
+  for (const id of ids) {
+    const workspace = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === id).build()))
+    const types = workspace.presentation.cards.map((card) => card.type)
+    assert.ok(types.filter((type) => ['barChart', 'heatmap', 'progress'].includes(type)).length >= 2, `${id}: widgets`)
+    assert.ok(types.includes('comment'), `${id}: commentaire`)
+    const result = simulateProgram(workspace.project)
+    assert.equal(result.ok, true, `${id}: ${result.errorCode ?? ''}`)
+    const widgetModules = workspace.project.modules.filter((module) => module.barChart || module.heatmap || module.progress)
+    assert.ok(widgetModules.length >= 2, `${id}: modules cachés`)
+    for (const module of widgetModules) {
+      const state = module.barChart ? result.barCharts[module.id] : module.heatmap ? result.heatmaps[module.id] : result.progresses[module.id]
+      assert.ok(state, `${id}: état ${module.id}`)
+    }
+  }
+  const race = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'sortRace').build()))
+  assert.equal(race.presentation.cards.filter((card) => card.type === 'barChart').length, 2)
+})
+
 
 // Rejoue Rover survey avec un générateur reproductible et relève la case colorée de l'artefact.
 function roverArtifactPosition(seed) {

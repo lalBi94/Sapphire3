@@ -2,6 +2,9 @@ import { createProject, createModule, createNode } from './logic/index.js'
 import { createScreenModule, screenDefaults } from './screenNode.js'
 import { createGaugeModule, gaugeDefaults } from './gaugeNode.js'
 import { createLedModule, ledDefaults } from './ledNode.js'
+import { createProgressModule, progressDefaults } from './progressNode.js'
+import { createBarChartModule, barChartDefaults } from './barChartNode.js'
+import { createHeatmapModule } from './heatmapNode.js'
 import { moduleTypes } from './moduleTypes.js'
 import { workspaceFileVersion } from './workspaceFile.js'
 
@@ -26,10 +29,32 @@ function builder() {
   const returnValue = (id, argument) => make(id, 'ReturnStatement', {}, { argument })
   const call = (id, callee, args) => make(id, 'CallExpression', {}, { callee, arguments: args })
   const block = (id, statements) => make(id, 'Block', {}, { statements })
-  // Déréférencement `*p` (lecture ou cible d'écriture) et prise d'adresse `&x`.
+  const assign = (id, target, value) => make(id, 'AssignmentStatement', {}, { target, value })
+  const variable = (id, name, type, initializer = null) => make(id, 'VariableDeclaration', { name, type }, { initializer })
+  const math = (id, name, args) => make(id, 'MathCall', { name }, { arguments: args })
+  const ifThen = (id, test, consequent, alternate = null) => make(id, 'IfStatement', {}, { test, consequent, alternate })
+  const forLoop = (id, initializer, test, update, body) => make(id, 'ForStatement', {}, { initializer, test, update, body })
+  const doubleValue = (id, value) => make(id, 'Literal', { type: doubleType, value })
+  const stringValue = (id, value) => make(id, 'Literal', { type: { kind: 'primitive', name: 'string' }, value })
+  // Boucle `for` enti?re standard, avec des identifiants pr?fix?s pour rester lisibles.
+  const countedLoop = (prefix, name, limitId, body, start = 0) => {
+    variable(`${prefix}Decl`, name, intType, `${prefix}Start`)
+    intValue(`${prefix}Start`, start)
+    binary(`${prefix}Test`, '<', `${prefix}Read`, limitId)
+    ref(`${prefix}Read`, name)
+    assign(`${prefix}Update`, `${prefix}Target`, `${prefix}Next`)
+    ref(`${prefix}Target`, name)
+    binary(`${prefix}Next`, '+', `${prefix}NextRead`, `${prefix}One`)
+    ref(`${prefix}NextRead`, name)
+    intValue(`${prefix}One`, 1)
+    block(`${prefix}Body`, body)
+    forLoop(`${prefix}Loop`, `${prefix}Decl`, `${prefix}Test`, `${prefix}Update`, `${prefix}Body`)
+    return `${prefix}Loop`
+  }
+  // D?r?f?rencement `*p` (lecture ou cible d'?criture) et prise d'adresse `&x`.
   const deref = (id, operand) => make(id, 'UnaryExpression', { operator: '*' }, { operand })
   const address = (id, operand) => make(id, 'UnaryExpression', { operator: '&' }, { operand })
-  return { project, useModule, make, root, ref, intValue, binary, access, print, returnValue, call, block, deref, address }
+  return { project, useModule, make, root, ref, intValue, binary, access, print, returnValue, call, block, assign, variable, math, ifThen, forLoop, countedLoop, doubleValue, stringValue, deref, address }
 }
 
 // Décrit une annotation Comment de présentation, hors du modèle logique.
@@ -57,7 +82,19 @@ function workspace(project, notes = []) {
   return { application: 'Sapphire 3', workspaceVersion: workspaceFileVersion, project, presentation: { cards, camera: { x: 0, y: 0, zoomLevel: 0 }, selected: null } }
 }
 
-// Fibonacci récursif : le point d'entrée affiche fib(10).
+// Ajoute une importation de fonction au module courant.
+function importFunction(module, id, moduleId, nodeId, localName) {
+  module.imports.push({ id, moduleId, nodeId, localName })
+}
+
+// Produit une instruction d'appel à une fonction importée.
+function callStatement(b, prefix, importId, args = []) {
+  b.make(`${prefix}Statement`, 'ExpressionStatement', {}, { expression: `${prefix}Call` })
+  b.call(`${prefix}Call`, `${prefix}Callee`, args)
+  b.make(`${prefix}Callee`, 'Reference', {}, {}, { target: { kind: 'import', importId } })
+  return `${prefix}Statement`
+}
+
 function fibonacci() {
   const b = builder()
   b.useModule('fibonacci', 'Fibonacci')
@@ -1053,6 +1090,866 @@ function gaugeDemo() {
   ])
 }
 
+// Trafic routier : grille de charge, files par voie et débit global.
+function trafficControl() {
+  const b = builder()
+  const heat = createHeatmapModule('trafficHeat', 'Road load', 1, { width: 10, height: 5 })
+  const bars = createBarChartModule('trafficBars', 'Lane queues', 1, { size: 6 })
+  const flow = createProgressModule('trafficFlow', 'Flow rate', 1, { min: 0, max: 100 })
+  b.project.modules.push(heat.module, bars.module, flow.module)
+  b.project.nodes.push(...heat.nodes, ...bars.nodes, ...flow.nodes)
+  b.useModule('trafficApp', 'Traffic control')
+  const app = b.project.modules.find((module) => module.id === 'trafficApp')
+  const exported = (widget, name) => widget.module.exports.find((entry) => entry.name === name).nodeId
+  importFunction(app, 'heatCell', heat.module.id, exported(heat, 'HEATMAP_SP3_SET_CELL_1'), 'heatCell')
+  importFunction(app, 'laneValue', bars.module.id, exported(bars, 'BARCHART_SP3_SET_VALUE_1'), 'laneValue')
+  importFunction(app, 'flowValue', flow.module.id, exported(flow, 'PROGRESS_SP3_SET_VALUE_1'), 'flowValue')
+  importFunction(app, 'flowRange', flow.module.id, exported(flow, 'PROGRESS_SP3_SET_RANGE_1'), 'flowRange')
+
+  b.intValue('trafficWidth', 10); b.intValue('trafficHeight', 5); b.intValue('trafficPhases', 2); b.intValue('trafficLanes', 6)
+  b.intValue('trafficEleven', 11); b.intValue('trafficNine', 9); b.intValue('trafficSeven', 7); b.intValue('trafficFive', 5)
+  b.intValue('trafficSevenLane', 7); b.intValue('trafficFiveLane', 5)
+  b.intValue('trafficThree', 3); b.intValue('trafficTwo', 2); b.intValue('trafficForty', 40); b.intValue('trafficHundred', 100)
+  b.doubleValue('trafficMin', '0.0'); b.doubleValue('trafficMax', '100.0')
+  const range = callStatement(b, 'trafficRange', 'flowRange', ['trafficMin', 'trafficMax'])
+
+  // Charge : (x × 3 + y × 5 + phase × 2) mod 11, amplifiée sur 0..90.
+  b.binary('trafficX3', '*', 'trafficX3Read', 'trafficThree'); b.ref('trafficX3Read', 'x')
+  b.binary('trafficY5', '*', 'trafficY5Read', 'trafficFive'); b.ref('trafficY5Read', 'y')
+  b.binary('trafficP2', '*', 'trafficP2Read', 'trafficTwo'); b.ref('trafficP2Read', 'phase')
+  b.binary('trafficSum1', '+', 'trafficX3', 'trafficY5')
+  b.binary('trafficSum2', '+', 'trafficSum1', 'trafficP2')
+  b.binary('trafficDensity', '%', 'trafficSum2', 'trafficEleven')
+  b.binary('trafficLoad', '*', 'trafficDensity', 'trafficNine')
+  callStatement(b, 'trafficCell', 'heatCell', ['trafficXRef', 'trafficYRef', 'trafficLoad'])
+  b.ref('trafficXRef', 'x'); b.ref('trafficYRef', 'y')
+  const yLoop = b.countedLoop('trafficY', 'y', 'trafficHeight', ['trafficCellStatement'])
+  const xLoop = b.countedLoop('trafficX', 'x', 'trafficWidth', [yLoop])
+
+  // Files par voie : motif court, différent à chaque phase.
+  b.binary('trafficLane7', '*', 'trafficLane7Read', 'trafficSevenLane'); b.ref('trafficLane7Read', 'lane')
+  b.binary('trafficLanePhase', '*', 'trafficLanePhaseRead', 'trafficFiveLane'); b.ref('trafficLanePhaseRead', 'phase')
+  b.binary('trafficLaneSum', '+', 'trafficLane7', 'trafficLanePhase')
+  b.binary('trafficQueue', '%', 'trafficLaneSum', 'trafficForty')
+  callStatement(b, 'trafficLaneSet', 'laneValue', ['trafficLaneRef', 'trafficQueue'])
+  b.ref('trafficLaneRef', 'lane')
+  const laneLoop = b.countedLoop('trafficLane', 'lane', 'trafficLanes', ['trafficLaneSetStatement'])
+
+  // Débit : 100 au départ, puis -7 par phase.
+  b.binary('trafficFlowDrop', '*', 'trafficFlowDropRead', 'trafficSeven'); b.ref('trafficFlowDropRead', 'phase')
+  b.binary('trafficFlowInt', '-', 'trafficHundred', 'trafficFlowDrop')
+  b.make('trafficFlowDouble', 'CastExpression', { type: doubleType }, { argument: 'trafficFlowInt' })
+  callStatement(b, 'trafficFlowSet', 'flowValue', ['trafficFlowDouble'])
+  const phaseLoop = b.countedLoop('trafficPhase', 'phase', 'trafficPhases', [xLoop, laneLoop, 'trafficFlowSetStatement'])
+
+  b.root('trafficMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'trafficBody' })
+  b.stringValue('trafficMessage', 'Traffic control')
+  b.print('trafficPrint', 'trafficMessage')
+  b.block('trafficBody', [range, phaseLoop, 'trafficPrint'])
+
+  return workspace(b.project, [
+    note('trafficNote', 'Traffic control', 'Deux phases de trafic. La heatmap 10×5 calcule une charge de route déterministe par cellule ; le graphique à barres montre six files de véhicules ; la barre de progression suit le débit global. Chaque phase met à jour les trois widgets, donc Run les anime pas à pas. Aucune horloge ni image écran.', 0, 1000, 900, 220),
+  ])
+}
+
+
+// ADN : comptage de bases, contenu GC et carte de signaux par codon.
+function dnaAnalyzer() {
+  const b = builder()
+  const bars = createBarChartModule('dnaBars', 'Base counts', 1, { size: 4 })
+  const heat = createHeatmapModule('dnaHeat', 'Codon signal', 1, { width: 6, height: 6 })
+  const gc = createProgressModule('dnaGc', 'GC content', 1, { min: 0, max: 100 })
+  b.project.modules.push(bars.module, heat.module, gc.module)
+  b.project.nodes.push(...bars.nodes, ...heat.nodes, ...gc.nodes)
+  b.useModule('dnaApp', 'DNA analyzer')
+  const app = b.project.modules.find((module) => module.id === 'dnaApp')
+  const exported = (widget, name) => widget.module.exports.find((entry) => entry.name === name).nodeId
+  importFunction(app, 'dnaBar', bars.module.id, exported(bars, 'BARCHART_SP3_SET_VALUE_1'), 'setBaseCount')
+  importFunction(app, 'dnaData', bars.module.id, exported(bars, 'BARCHART_SP3_SET_DATA_1'), 'setBaseCounts')
+  importFunction(app, 'dnaCell', heat.module.id, exported(heat, 'HEATMAP_SP3_SET_CELL_1'), 'setCodon')
+  importFunction(app, 'dnaGcValue', gc.module.id, exported(gc, 'PROGRESS_SP3_SET_VALUE_1'), 'setGc')
+  importFunction(app, 'dnaGcRange', gc.module.id, exported(gc, 'PROGRESS_SP3_SET_RANGE_1'), 'setGcRange')
+
+  b.root('dnaSequence', 'VariableDeclaration', { name: 'sequence', type: intArrayType }, { initializer: 'dnaSequenceList' })
+  b.make('dnaSequenceList', 'ArrayLiteral', { elementType: intType }, { elements: Array.from({ length: 20 }, (_, index) => {
+    b.intValue(`dnaBase${index}`, [0, 1, 2, 3, 1, 1, 2, 0, 3, 2, 1, 0, 0, 2, 3, 1, 1, 2, 3, 0][index])
+    return `dnaBase${index}`
+  }) })
+  b.root('dnaCounts', 'VariableDeclaration', { name: 'counts', type: intArrayType }, { initializer: 'dnaCountsInit' })
+  b.math('dnaCountsInit', 'arrayFill', ['dnaFour', 'dnaZero'])
+  b.intValue('dnaFour', 4); b.intValue('dnaZero', 0); b.intValue('dnaLength', 20); b.intValue('dnaHundred', 100)
+  b.intValue('dnaSix', 6); b.intValue('dnaSixY', 6); b.intValue('dnaTwenty', 20)
+  b.doubleValue('dnaMin', '0.0'); b.doubleValue('dnaMax', '100.0')
+  const range = callStatement(b, 'dnaRangeCall', 'dnaGcRange', ['dnaMin', 'dnaMax'])
+
+  // Comptage : chaque base met à jour sa barre, ce qui anime le graphique pendant la lecture.
+  b.variable('dnaIndex', 'i', intType, 'dnaIndexStart'); b.intValue('dnaIndexStart', 0)
+  b.binary('dnaIndexTest', '<', 'dnaIndexRead', 'dnaLengthRead'); b.ref('dnaIndexRead', 'i')
+  b.make('dnaLengthRead', 'MathCall', { name: 'arrayLength' }, { arguments: ['dnaSequenceRef'] }); b.ref('dnaSequenceRef', 'sequence')
+  b.assign('dnaIndexUpdate', 'dnaIndexTarget', 'dnaIndexNext')
+  b.ref('dnaIndexTarget', 'i'); b.binary('dnaIndexNext', '+', 'dnaIndexNextRead', 'dnaIndexOne'); b.ref('dnaIndexNextRead', 'i'); b.intValue('dnaIndexOne', 1)
+  b.make('dnaBaseVar', 'VariableDeclaration', { name: 'base', type: intType }, { initializer: 'dnaBaseRead' })
+  b.access('dnaBaseRead', 'dnaSequenceAccess', 'dnaIndexBase'); b.ref('dnaSequenceAccess', 'sequence'); b.ref('dnaIndexBase', 'i')
+  b.access('dnaCountRead', 'dnaCountsRef', 'dnaBaseIndex'); b.ref('dnaCountsRef', 'counts'); b.ref('dnaBaseIndex', 'base')
+  b.binary('dnaCountNext', '+', 'dnaCountRead', 'dnaCountOne'); b.intValue('dnaCountOne', 1)
+  b.access('dnaCountTarget', 'dnaCountsWrite', 'dnaBaseWrite'); b.ref('dnaCountsWrite', 'counts'); b.ref('dnaBaseWrite', 'base')
+  b.assign('dnaCountStore', 'dnaCountTarget', 'dnaCountNext')
+  b.access('dnaBarValue', 'dnaCountsBar', 'dnaBaseBar'); b.ref('dnaCountsBar', 'counts'); b.ref('dnaBaseBar', 'base')
+  callStatement(b, 'dnaBarCall', 'dnaBar', ['dnaBaseArg', 'dnaBarValue']); b.ref('dnaBaseArg', 'base')
+  b.block('dnaCountBody', ['dnaBaseVar', 'dnaCountStore', 'dnaBarCallStatement'])
+  b.forLoop('dnaCountLoop', 'dnaIndex', 'dnaIndexTest', 'dnaIndexUpdate', 'dnaCountBody')
+
+  // Carte : chaque cellule combine une base et une position de codon.
+  b.binary('dnaCellBaseIndex', '%', 'dnaCellSum', 'dnaFourRead')
+  b.binary('dnaCellSum', '+', 'dnaCellX', 'dnaCellY')
+  b.ref('dnaCellX', 'x'); b.ref('dnaCellY', 'y'); b.intValue('dnaFourRead', 4)
+  b.access('dnaCellCount', 'dnaCountsCellRef', 'dnaCellBaseIndex'); b.ref('dnaCountsCellRef', 'counts')
+  b.binary('dnaCellSum2', '+', 'dnaCellCount', 'dnaCellX2'); b.ref('dnaCellX2', 'x')
+  b.binary('dnaCellRaw', '+', 'dnaCellSum2', 'dnaCellY2'); b.ref('dnaCellY2', 'y')
+  b.binary('dnaCellValue', '%', 'dnaCellRaw', 'dnaTwenty')
+  callStatement(b, 'dnaCellCall', 'dnaCell', ['dnaCellXRef', 'dnaCellYRef', 'dnaCellValue']); b.ref('dnaCellXRef', 'x'); b.ref('dnaCellYRef', 'y')
+  const dnaY = b.countedLoop('dnaY', 'y', 'dnaSixY', ['dnaCellCallStatement'])
+  const dnaX = b.countedLoop('dnaX', 'x', 'dnaSix', [dnaY])
+
+  // GC = (C + G) × 100 / longueur.
+  b.access('dnaC', 'dnaCountsCRef', 'dnaCIndex'); b.ref('dnaCountsCRef', 'counts'); b.intValue('dnaCIndex', 1)
+  b.access('dnaG', 'dnaCountsGRef', 'dnaGIndex'); b.ref('dnaCountsGRef', 'counts'); b.intValue('dnaGIndex', 2)
+  b.binary('dnaGcSum', '+', 'dnaC', 'dnaG')
+  b.binary('dnaGcScaled', '*', 'dnaGcSum', 'dnaHundred')
+  b.binary('dnaGcValue', '/', 'dnaGcScaled', 'dnaLength')
+  b.make('dnaGcDouble', 'CastExpression', { type: doubleType }, { argument: 'dnaGcValue' })
+  callStatement(b, 'dnaGcCall', 'dnaGcValue', ['dnaGcDouble'])
+  callStatement(b, 'dnaDataCall', 'dnaData', ['dnaCountsArg']); b.ref('dnaCountsArg', 'counts')
+
+  b.root('dnaMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'dnaBody' })
+  b.stringValue('dnaMessage', 'DNA analyzer')
+  b.print('dnaPrint', 'dnaMessage')
+  b.block('dnaBody', [range, 'dnaCountLoop', dnaX, 'dnaGcCallStatement', 'dnaDataCallStatement', 'dnaPrint'])
+
+  return workspace(b.project, [
+    note('dnaNote', 'DNA analyzer', 'Séquence de 20 bases (A, C, G, T codées 0..3). Le graphique à barres suit les quatre compteurs en direct ; la heatmap combine comptage, x et y pour dessiner un motif de codons ; la barre de progression donne le taux GC. `SET_DATA` consolide les compteurs en fin de parcours.', 0, 1000, 900, 220),
+  ])
+}
+
+
+// Traitement du signal : échantillons, énergie, spectre grossier et fenêtre temps-fréquence.
+function signalProcessing() {
+  const b = builder()
+  const bars = createBarChartModule('signalBars', 'Spectrum bins', 1, { size: 8 })
+  const heat = createHeatmapModule('signalHeat', 'Window energy', 1, { width: 8, height: 6 })
+  const quality = createProgressModule('signalQuality', 'Signal quality', 1, { min: 0, max: 100 })
+  b.project.modules.push(bars.module, heat.module, quality.module)
+  b.project.nodes.push(...bars.nodes, ...heat.nodes, ...quality.nodes)
+  b.useModule('signalApp', 'Signal processing')
+  const app = b.project.modules.find((module) => module.id === 'signalApp')
+  const exported = (widget, name) => widget.module.exports.find((entry) => entry.name === name).nodeId
+  importFunction(app, 'signalBar', bars.module.id, exported(bars, 'BARCHART_SP3_SET_VALUE_1'), 'setBin')
+  importFunction(app, 'signalCell', heat.module.id, exported(heat, 'HEATMAP_SP3_SET_CELL_1'), 'setWindow')
+  importFunction(app, 'signalQuality', quality.module.id, exported(quality, 'PROGRESS_SP3_SET_VALUE_1'), 'setQuality')
+  importFunction(app, 'signalRange', quality.module.id, exported(quality, 'PROGRESS_SP3_SET_RANGE_1'), 'setQualityRange')
+
+  b.intValue('signalLengthInit', 24); b.intValue('signalLengthLoop', 24)
+  b.intValue('signalEightBin', 8); b.intValue('signalEightX', 8); b.intValue('signalFive', 6)
+  b.intValue('signalThreeK', 3); b.intValue('signalThreeDiv', 3); b.intValue('signalThreeOffset', 3)
+  b.intValue('signalTwo', 2); b.intValue('signalHundredMinus', 100); b.intValue('signalHundredClamp', 100)
+  b.intValue('signalZeroInit', 0); b.intValue('signalZeroClamp', 0)
+  b.intValue('signalTwentyFour', 24); b.intValue('signalThirtySeven', 37); b.intValue('signalEleven', 11)
+  b.intValue('signalOneHundredOne', 101); b.intValue('signalFifty', 50); b.intValue('signalNinetyNine', 99)
+  b.doubleValue('signalMin', '0.0'); b.doubleValue('signalMax', '100.0')
+  const range = callStatement(b, 'signalRangeCall', 'signalRange', ['signalMin', 'signalMax'])
+
+  // Signal déterministe : une dent de scie centrée autour de zéro.
+  b.make('signalSamples', 'VariableDeclaration', { name: 'samples', type: intArrayType }, { initializer: 'signalSamplesInit' })
+  b.math('signalSamplesInit', 'arrayFill', ['signalLengthInit', 'signalZeroInit'])
+  b.make('signalEnergy', 'VariableDeclaration', { name: 'energy', type: intType }, { initializer: 'signalEnergyStart' })
+  b.intValue('signalEnergyStart', 0)
+  b.variable('signalIndex', 'i', intType, 'signalIndexStart'); b.intValue('signalIndexStart', 0)
+  b.binary('signalIndexTest', '<', 'signalIndexRead', 'signalLengthLoop'); b.ref('signalIndexRead', 'i')
+  b.assign('signalIndexUpdate', 'signalIndexTarget', 'signalIndexNext'); b.ref('signalIndexTarget', 'i')
+  b.binary('signalIndexNext', '+', 'signalIndexNextRead', 'signalIndexOne'); b.ref('signalIndexNextRead', 'i'); b.intValue('signalIndexOne', 1)
+  b.binary('signalProduct', '+', 'signalProductRead', 'signalEleven'); b.ref('signalProductRead', 'i')
+  b.binary('signalProductScaled', '*', 'signalProduct', 'signalThirtySeven')
+  b.binary('signalModulo', '%', 'signalProductScaled', 'signalOneHundredOne')
+  b.binary('signalSample', '-', 'signalModulo', 'signalFifty')
+  b.make('signalSampleVar', 'VariableDeclaration', { name: 'sample', type: intType }, { initializer: 'signalSample' })
+  b.access('signalSampleTarget', 'signalSamplesRef', 'signalIndexWrite'); b.ref('signalSamplesRef', 'samples'); b.ref('signalIndexWrite', 'i')
+  b.assign('signalSampleStore', 'signalSampleTarget', 'signalSampleRead'); b.ref('signalSampleRead', 'sample')
+  b.math('signalAbs', 'abs', ['signalSampleAbs']); b.ref('signalSampleAbs', 'sample')
+  b.binary('signalEnergyNext', '+', 'signalEnergyRead', 'signalAbs'); b.ref('signalEnergyRead', 'energy')
+  b.assign('signalEnergyStore', 'signalEnergyTarget', 'signalEnergyNext'); b.ref('signalEnergyTarget', 'energy')
+  b.block('signalSampleBody', ['signalSampleVar', 'signalSampleStore', 'signalEnergyStore'])
+  b.forLoop('signalSampleLoop', 'signalIndex', 'signalIndexTest', 'signalIndexUpdate', 'signalSampleBody')
+
+  // Spectre : moyenne des amplitudes absolues par paquet de trois échantillons.
+  b.variable('signalBinIndex', 'bin', intType, 'signalBinStart'); b.intValue('signalBinStart', 0)
+  b.binary('signalBinTest', '<', 'signalBinRead', 'signalEightBin'); b.ref('signalBinRead', 'bin')
+  b.assign('signalBinUpdate', 'signalBinTarget', 'signalBinNext'); b.ref('signalBinTarget', 'bin')
+  b.binary('signalBinNext', '+', 'signalBinNextRead', 'signalBinOne'); b.ref('signalBinNextRead', 'bin'); b.intValue('signalBinOne', 1)
+  b.make('signalSum', 'VariableDeclaration', { name: 'sum', type: intType }, { initializer: 'signalSumStart' })
+  b.intValue('signalSumStart', 0)
+  b.variable('signalK', 'k', intType, 'signalKStart'); b.intValue('signalKStart', 0)
+  b.binary('signalKTest', '<', 'signalKRead', 'signalThreeK'); b.ref('signalKRead', 'k')
+  b.assign('signalKUpdate', 'signalKTarget', 'signalKNext'); b.ref('signalKTarget', 'k')
+  b.binary('signalKNext', '+', 'signalKNextRead', 'signalKOne'); b.ref('signalKNextRead', 'k'); b.intValue('signalKOne', 1)
+  b.binary('signalOffset', '*', 'signalOffsetRead', 'signalThreeOffset'); b.ref('signalOffsetRead', 'bin')
+  b.binary('signalSampleIndex', '+', 'signalOffset', 'signalKIndex'); b.ref('signalKIndex', 'k')
+  b.access('signalBinSample', 'signalSamplesSpectrum', 'signalSampleIndex'); b.ref('signalSamplesSpectrum', 'samples')
+  b.math('signalBinAbs', 'abs', ['signalBinSample'])
+  b.binary('signalSumNext', '+', 'signalSumRead', 'signalBinAbs'); b.ref('signalSumRead', 'sum')
+  b.assign('signalSumStore', 'signalSumTarget', 'signalSumNext'); b.ref('signalSumTarget', 'sum')
+  b.block('signalKBody', ['signalSumStore'])
+  b.forLoop('signalKLoop', 'signalK', 'signalKTest', 'signalKUpdate', 'signalKBody')
+  b.binary('signalBinValue', '/', 'signalSumValue', 'signalThreeDiv')
+  b.ref('signalSumValue', 'sum')
+  callStatement(b, 'signalBinCall', 'signalBar', ['signalBinArg', 'signalBinValue']); b.ref('signalBinArg', 'bin')
+  b.block('signalBinBody', ['signalSum', 'signalKLoop', 'signalBinCallStatement'])
+  b.forLoop('signalBinLoop', 'signalBinIndex', 'signalBinTest', 'signalBinUpdate', 'signalBinBody')
+
+  // Fenêtre temps-fréquence : différence locale, amplifiée par la ligne.
+  b.binary('signalXPlusOne', '+', 'signalXPlusOneRead', 'signalXPlusOneLiteral'); b.ref('signalXPlusOneRead', 'x'); b.intValue('signalXPlusOneLiteral', 1)
+  b.access('signalXSample', 'signalSamplesHeat', 'signalXHeat'); b.ref('signalSamplesHeat', 'samples'); b.ref('signalXHeat', 'x')
+  b.access('signalXNextSample', 'signalSamplesHeatNext', 'signalXPlusOne'); b.ref('signalSamplesHeatNext', 'samples')
+  b.binary('signalDifference', '-', 'signalXSample', 'signalXNextSample')
+  b.math('signalDifferenceAbs', 'abs', ['signalDifference'])
+  b.binary('signalRowEnergy', '*', 'signalRowEnergyRead', 'signalTwo'); b.ref('signalRowEnergyRead', 'row')
+  b.binary('signalWindowRaw', '+', 'signalDifferenceAbs', 'signalRowEnergy')
+  b.math('signalWindowValue', 'min', ['signalWindowRaw', 'signalNinetyNine'])
+  callStatement(b, 'signalWindowCall', 'signalCell', ['signalXArg', 'signalRowArg', 'signalWindowValue']); b.ref('signalXArg', 'x'); b.ref('signalRowArg', 'row')
+  const signalRow = b.countedLoop('signalRow', 'row', 'signalFive', ['signalWindowCallStatement'])
+  const signalX = b.countedLoop('signalX', 'x', 'signalEightX', [signalRow])
+
+  b.binary('signalEnergyAverage', '/', 'signalEnergyValue', 'signalTwentyFour')
+  b.ref('signalEnergyValue', 'energy')
+  b.binary('signalQualityRaw', '-', 'signalHundredMinus', 'signalEnergyAverage')
+  b.math('signalQualityValue', 'clamp', ['signalQualityRaw', 'signalZeroClamp', 'signalHundredClamp'])
+  b.make('signalQualityDouble', 'CastExpression', { type: doubleType }, { argument: 'signalQualityValue' })
+  callStatement(b, 'signalQualityCall', 'signalQuality', ['signalQualityDouble'])
+
+  b.root('signalMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'signalBody' })
+  b.stringValue('signalMessage', 'Signal processing')
+  b.print('signalPrint', 'signalMessage')
+  b.block('signalBody', ['signalSamples', 'signalEnergy', range, 'signalSampleLoop', 'signalBinLoop', signalX, 'signalQualityCallStatement', 'signalPrint'])
+
+  return workspace(b.project, [
+    note('signalNote', 'Signal processing', 'Vingt-quatre échantillons déterministes. La boucle calcule l’énergie moyenne, le graphique à barres résume huit bandes spectrales, la heatmap 8×6 montre l’énergie locale par fenêtre et la barre de progression affiche la qualité estimée. Tout est recalculé par le moteur, sans signal externe ni réseau.', 0, 1000, 900, 220),
+  ])
+}
+
+// Fractale de Mandelbrot : échappement par cellule, bandes et progression.
+function mandelbrotEscape() {
+  const b = builder()
+  const heat = createHeatmapModule('mandelHeat', 'Escape time', 1, { width: 6, height: 4 })
+  const bars = createBarChartModule('mandelBars', 'Escape bands', 1, { size: 6 })
+  const progress = createProgressModule('mandelProgress', 'Computed pixels', 1, { min: 0, max: 100 })
+  b.project.modules.push(heat.module, bars.module, progress.module)
+  b.project.nodes.push(...heat.nodes, ...bars.nodes, ...progress.nodes)
+  b.useModule('mandelApp', 'Mandelbrot escape')
+  const app = b.project.modules.find((module) => module.id === 'mandelApp')
+  const exported = (widget, name) => widget.module.exports.find((entry) => entry.name === name).nodeId
+  importFunction(app, 'mandelCell', heat.module.id, exported(heat, 'HEATMAP_SP3_SET_CELL_1'), 'setEscape')
+  importFunction(app, 'mandelBar', bars.module.id, exported(bars, 'BARCHART_SP3_SET_DATA_1'), 'setBands')
+  importFunction(app, 'mandelValue', progress.module.id, exported(progress, 'PROGRESS_SP3_SET_VALUE_1'), 'setComputed')
+  importFunction(app, 'mandelRange', progress.module.id, exported(progress, 'PROGRESS_SP3_SET_RANGE_1'), 'setComputedRange')
+
+  b.intValue('mandelWidth', 6); b.intValue('mandelWidthIndex', 6); b.intValue('mandelHeight', 4); b.intValue('mandelMaxIter', 5)
+  b.intValue('mandelBands', 6); b.intValue('mandelOne', 1); b.intValue('mandelHundred', 100); b.intValue('mandelForty', 24)
+  b.intValue('mandelFive', 5); b.intValue('mandelFour', 4)
+  b.doubleValue('mandelTwoDouble', '2.0')
+  b.doubleValue('mandelCxOffset', '4.0'); b.doubleValue('mandelCxScale', '4.0')
+  b.doubleValue('mandelCyOffset', '2.0'); b.doubleValue('mandelCyScale', '3.0')
+  b.doubleValue('mandelLimit', '4.0')
+  b.doubleValue('mandelMin', '0.0'); b.doubleValue('mandelMax', '100.0')
+  const range = callStatement(b, 'mandelRangeCall', 'mandelRange', ['mandelMin', 'mandelMax'])
+  b.make('mandelCounts', 'VariableDeclaration', { name: 'counts', type: intArrayType }, { initializer: 'mandelCountsInit' })
+  b.math('mandelCountsInit', 'arrayFill', ['mandelBands', 'mandelZeroInt'])
+  b.intValue('mandelZeroInt', 0)
+
+  // Coordonnées complexes : x et y entiers convertis en doubles.
+  b.make('mandelXDouble', 'CastExpression', { type: doubleType }, { argument: 'mandelXInt' }); b.ref('mandelXInt', 'x')
+  b.binary('mandelCx', '/', 'mandelCxSub', 'mandelCxScale')
+  b.binary('mandelCxSub', '-', 'mandelXDouble', 'mandelCxOffset')
+  b.make('mandelYDouble', 'CastExpression', { type: doubleType }, { argument: 'mandelYInt' }); b.ref('mandelYInt', 'y')
+  b.binary('mandelCy', '/', 'mandelCySub', 'mandelCyScale')
+  b.binary('mandelCySub', '-', 'mandelYDouble', 'mandelCyOffset')
+
+  b.block('mandelCellBody', ['mandelZr', 'mandelZi', 'mandelZr2', 'mandelIter', 'mandelLoop', 'mandelBand', 'mandelCount', 'mandelCellCallStatement', 'mandelProgressCallStatement'])
+  b.make('mandelZr', 'VariableDeclaration', { name: 'zr', type: doubleType }, { initializer: 'mandelZrStart' }); b.doubleValue('mandelZrStart', '0.0')
+  b.make('mandelZi', 'VariableDeclaration', { name: 'zi', type: doubleType }, { initializer: 'mandelZiStart' }); b.doubleValue('mandelZiStart', '0.0')
+  b.make('mandelZr2', 'VariableDeclaration', { name: 'zr2', type: doubleType }, { initializer: 'mandelZr2Start' }); b.doubleValue('mandelZr2Start', '0.0')
+  b.make('mandelIter', 'VariableDeclaration', { name: 'iter', type: intType }, { initializer: 'mandelIterStart' }); b.intValue('mandelIterStart', 0)
+
+  // Tant que |z|² ≤ 4 et que le budget d'itérations n'est pas épuisé.
+  b.binary('mandelIterTest', '<', 'mandelIterRead', 'mandelMaxIter'); b.ref('mandelIterRead', 'iter')
+  b.binary('mandelZrSquare', '*', 'mandelZrRead', 'mandelZrRead2'); b.ref('mandelZrRead', 'zr'); b.ref('mandelZrRead2', 'zr')
+  b.binary('mandelZiSquare', '*', 'mandelZiRead', 'mandelZiRead2'); b.ref('mandelZiRead', 'zi'); b.ref('mandelZiRead2', 'zi')
+  b.binary('mandelMag', '+', 'mandelZrSquare', 'mandelZiSquare')
+  b.binary('mandelMagTest', '<=', 'mandelMag', 'mandelLimit')
+  b.binary('mandelContinue', 'and', 'mandelIterTest', 'mandelMagTest')
+  b.binary('mandelZrSquare2', '*', 'mandelZrR', 'mandelZrR2'); b.ref('mandelZrR', 'zr'); b.ref('mandelZrR2', 'zr')
+  b.binary('mandelZiSquare2', '*', 'mandelZiR', 'mandelZiR2'); b.ref('mandelZiR', 'zi'); b.ref('mandelZiR2', 'zi')
+  b.binary('mandelZrNext', '-', 'mandelZrSquare2', 'mandelZiSquare2')
+  b.binary('mandelZrAdd', '+', 'mandelZrNext', 'mandelCx')
+  b.assign('mandelZrStore', 'mandelZrTarget2', 'mandelZrAdd'); b.ref('mandelZrTarget2', 'zr2')
+  b.binary('mandelZiProduct', '*', 'mandelZrOld', 'mandelZiOld'); b.ref('mandelZrOld', 'zr'); b.ref('mandelZiOld', 'zi')
+  b.binary('mandelZiTwice', '*', 'mandelZiProduct', 'mandelTwoDouble')
+  b.binary('mandelZiNext', '+', 'mandelZiTwice', 'mandelCy')
+  b.assign('mandelZiStore', 'mandelZiTarget', 'mandelZiNext'); b.ref('mandelZiTarget', 'zi')
+  b.assign('mandelZrCopy', 'mandelZrTarget3', 'mandelZr2Value'); b.ref('mandelZrTarget3', 'zr'); b.ref('mandelZr2Value', 'zr2')
+  b.assign('mandelIterStep', 'mandelIterTarget', 'mandelIterNext'); b.ref('mandelIterTarget', 'iter')
+  b.binary('mandelIterNext', '+', 'mandelIterRead2', 'mandelOne'); b.ref('mandelIterRead2', 'iter')
+  b.block('mandelWhileBody', ['mandelZrStore', 'mandelZiStore', 'mandelZrCopy', 'mandelIterStep'])
+  b.make('mandelLoop', 'WhileStatement', {}, { test: 'mandelContinue', body: 'mandelWhileBody' })
+
+  b.make('mandelBand', 'VariableDeclaration', { name: 'band', type: intType }, { initializer: 'mandelBandValue' })
+  b.math('mandelBandValue', 'min', ['mandelIterValue', 'mandelFive']); b.ref('mandelIterValue', 'iter')
+  b.access('mandelCountRead', 'mandelCountsRead', 'mandelBandIndex'); b.ref('mandelCountsRead', 'counts'); b.ref('mandelBandIndex', 'band')
+  b.binary('mandelCountNext', '+', 'mandelCountRead', 'mandelOneCount'); b.intValue('mandelOneCount', 1)
+  b.access('mandelCountTarget', 'mandelCountsWrite', 'mandelBandWrite'); b.ref('mandelCountsWrite', 'counts'); b.ref('mandelBandWrite', 'band')
+  b.assign('mandelCount', 'mandelCountTarget', 'mandelCountNext')
+  b.binary('mandelHeatRaw', '*', 'mandelIterRead3', 'mandelFour'); b.ref('mandelIterRead3', 'iter')
+  callStatement(b, 'mandelCellCall', 'mandelCell', ['mandelXArg', 'mandelYArg', 'mandelHeatRaw']); b.ref('mandelXArg', 'x'); b.ref('mandelYArg', 'y')
+  b.binary('mandelCellIndex', '*', 'mandelYProgress', 'mandelWidthIndex'); b.ref('mandelYProgress', 'y')
+  b.binary('mandelIndex', '+', 'mandelCellIndex', 'mandelXProgress')
+  b.ref('mandelXProgress', 'x'); b.intValue('mandelOneProgress', 1)
+  b.binary('mandelIndexOne', '+', 'mandelIndex', 'mandelOneProgress')
+  b.binary('mandelScaled', '*', 'mandelIndexOne', 'mandelHundred')
+  b.binary('mandelPercent', '/', 'mandelScaled', 'mandelForty')
+  b.make('mandelPercentDouble', 'CastExpression', { type: doubleType }, { argument: 'mandelPercent' })
+  callStatement(b, 'mandelProgressCall', 'mandelValue', ['mandelPercentDouble'])
+
+  const yLoop = b.countedLoop('mandelY', 'y', 'mandelHeight', ['mandelCellBody'])
+  const xLoop = b.countedLoop('mandelX', 'x', 'mandelWidth', [yLoop])
+  callStatement(b, 'mandelBarsCall', 'mandelBar', ['mandelCountsArg']); b.ref('mandelCountsArg', 'counts')
+
+  b.root('mandelMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'mandelBody' })
+  b.stringValue('mandelMessage', 'Mandelbrot escape')
+  b.print('mandelPrint', 'mandelMessage')
+  b.block('mandelBody', ['mandelCounts', range, xLoop, 'mandelBarsCallStatement', 'mandelPrint'])
+
+  return workspace(b.project, [
+    note('mandelNote', 'Mandelbrot escape', 'Grille de 6×4 nombres complexes. Pour chaque pixel, z² + c est itéré jusqu’à échapper au disque de rayon 2 ou atteindre cinq itérations. La heatmap montre le temps d’échappement, les barres comptent les bandes, la progression mesure les pixels calculés. $$z_{n+1}=z_n^2+c$$', 0, 1000, 900, 220),
+  ])
+}
+
+
+// Suite de Collatz : temps d'arrêt sur une petite grille et distribution par bande.
+function collatzAtlas() {
+  const b = builder()
+  const heat = createHeatmapModule('collatzHeat', 'Stopping time', 1, { width: 6, height: 4 })
+  const bars = createBarChartModule('collatzBars', 'Run length bands', 1, { size: 8 })
+  const progress = createProgressModule('collatzProgress', 'Atlas coverage', 1, { min: 0, max: 100 })
+  b.project.modules.push(heat.module, bars.module, progress.module)
+  b.project.nodes.push(...heat.nodes, ...bars.nodes, ...progress.nodes)
+  b.useModule('collatzApp', 'Collatz atlas')
+  const app = b.project.modules.find((module) => module.id === 'collatzApp')
+  const exported = (widget, name) => widget.module.exports.find((entry) => entry.name === name).nodeId
+  importFunction(app, 'collatzCell', heat.module.id, exported(heat, 'HEATMAP_SP3_SET_CELL_1'), 'setStop')
+  importFunction(app, 'collatzBars', bars.module.id, exported(bars, 'BARCHART_SP3_SET_DATA_1'), 'setBands')
+  importFunction(app, 'collatzValue', progress.module.id, exported(progress, 'PROGRESS_SP3_SET_VALUE_1'), 'setCoverage')
+  importFunction(app, 'collatzRange', progress.module.id, exported(progress, 'PROGRESS_SP3_SET_RANGE_1'), 'setCoverageRange')
+
+  b.intValue('collatzCount', 24); b.intValue('collatzTwelve', 12)
+  b.intValue('collatzOne', 1); b.intValue('collatzTwo', 2); b.intValue('collatzTwoHalf', 2)
+  b.intValue('collatzThreeBand', 3); b.intValue('collatzSeven', 7); b.intValue('collatzBands', 8); b.intValue('collatzZero', 0)
+  b.intValue('collatzSixX', 6); b.intValue('collatzTwentyFour', 24)
+  b.doubleValue('collatzMin', '0.0'); b.doubleValue('collatzMax', '100.0')
+  const range = callStatement(b, 'collatzRangeCall', 'collatzRange', ['collatzMin', 'collatzMax'])
+  b.make('collatzCounts', 'VariableDeclaration', { name: 'counts', type: intArrayType }, { initializer: 'collatzCountsInit' })
+  b.math('collatzCountsInit', 'arrayFill', ['collatzBands', 'collatzZero'])
+
+  b.make('collatzCurrent', 'VariableDeclaration', { name: 'current', type: intType }, { initializer: 'collatzCurrentStart' })
+  b.binary('collatzCurrentStart', '+', 'collatzIndexValue', 'collatzOne'); b.ref('collatzIndexValue', 'i')
+  b.make('collatzSteps', 'VariableDeclaration', { name: 'steps', type: intType }, { initializer: 'collatzStepsStart' })
+  b.intValue('collatzStepsStart', 0)
+  b.binary('collatzCurrentTest', '>', 'collatzCurrentRead', 'collatzOneCompare'); b.ref('collatzCurrentRead', 'current'); b.intValue('collatzOneCompare', 1)
+  b.binary('collatzStepsTest', '<', 'collatzStepsRead', 'collatzTwelve'); b.ref('collatzStepsRead', 'steps')
+  b.binary('collatzContinue', 'and', 'collatzCurrentTest', 'collatzStepsTest')
+  b.binary('collatzParity', '%', 'collatzParityRead', 'collatzTwo'); b.ref('collatzParityRead', 'current')
+  b.binary('collatzEven', '==', 'collatzParity', 'collatzZeroParity'); b.intValue('collatzZeroParity', 0)
+  b.binary('collatzHalf', '/', 'collatzHalfRead', 'collatzTwoHalf'); b.ref('collatzHalfRead', 'current')
+  b.assign('collatzHalfStore', 'collatzCurrentEvenTarget', 'collatzHalf'); b.ref('collatzCurrentEvenTarget', 'current')
+  b.binary('collatzTriple', '*', 'collatzTripleRead', 'collatzThreeOdd'); b.ref('collatzTripleRead', 'current'); b.intValue('collatzThreeOdd', 3)
+  b.binary('collatzOddNext', '+', 'collatzTriple', 'collatzOneOdd'); b.intValue('collatzOneOdd', 1)
+  b.assign('collatzOddStore', 'collatzCurrentOddTarget', 'collatzOddNext'); b.ref('collatzCurrentOddTarget', 'current')
+  b.ifThen('collatzIf', 'collatzEven', 'collatzEvenBody', 'collatzOddBody')
+  b.block('collatzEvenBody', ['collatzHalfStore']); b.block('collatzOddBody', ['collatzOddStore'])
+  b.binary('collatzStepNext', '+', 'collatzStepRead', 'collatzOneStep'); b.ref('collatzStepRead', 'steps'); b.intValue('collatzOneStep', 1)
+  b.assign('collatzStepStore', 'collatzStepTarget', 'collatzStepNext'); b.ref('collatzStepTarget', 'steps')
+  b.block('collatzWhileBody', ['collatzIf', 'collatzStepStore'])
+  b.make('collatzLoop', 'WhileStatement', {}, { test: 'collatzContinue', body: 'collatzWhileBody' })
+
+  b.binary('collatzBand', '/', 'collatzStepsBand', 'collatzThreeBand'); b.ref('collatzStepsBand', 'steps')
+  b.math('collatzBandValue', 'min', ['collatzBand', 'collatzSeven'])
+  b.variable('collatzBandDecl', 'band', intType, 'collatzBandValue')
+  b.access('collatzCountRead', 'collatzCountsRead', 'collatzBandRead'); b.ref('collatzCountsRead', 'counts'); b.ref('collatzBandRead', 'band')
+  b.binary('collatzCountNext', '+', 'collatzCountRead', 'collatzOneCount'); b.intValue('collatzOneCount', 1)
+  b.access('collatzCountTarget', 'collatzCountsWrite', 'collatzBandWrite'); b.ref('collatzCountsWrite', 'counts'); b.ref('collatzBandWrite', 'band')
+  b.assign('collatzCountStore', 'collatzCountTarget', 'collatzCountNext')
+  b.binary('collatzCellX', '%', 'collatzIndexX', 'collatzSixX'); b.ref('collatzIndexX', 'i')
+  b.binary('collatzCellY', '/', 'collatzIndexY', 'collatzSixY'); b.ref('collatzIndexY', 'i'); b.intValue('collatzSixY', 6)
+  b.binary('collatzHeatValue', '*', 'collatzStepsHeat', 'collatzSevenHeat'); b.ref('collatzStepsHeat', 'steps'); b.intValue('collatzSevenHeat', 7)
+  callStatement(b, 'collatzCellCall', 'collatzCell', ['collatzCellX', 'collatzCellY', 'collatzHeatValue'])
+  b.binary('collatzProgressIndex', '+', 'collatzIndexProgress', 'collatzOneProgress'); b.ref('collatzIndexProgress', 'i'); b.intValue('collatzOneProgress', 1)
+  b.binary('collatzProgressScaled', '*', 'collatzProgressIndex', 'collatzHundredProgress'); b.intValue('collatzHundredProgress', 100)
+  b.binary('collatzProgressValue', '/', 'collatzProgressScaled', 'collatzTwentyFour')
+  b.make('collatzProgressDouble', 'CastExpression', { type: doubleType }, { argument: 'collatzProgressValue' })
+  callStatement(b, 'collatzProgressCall', 'collatzValue', ['collatzProgressDouble'])
+  const collatzLoop = b.countedLoop('collatzIndexLoop', 'i', 'collatzCount', ['collatzCurrent', 'collatzSteps', 'collatzLoop', 'collatzBandDecl', 'collatzCountStore', 'collatzCellCallStatement', 'collatzProgressCallStatement'])
+  callStatement(b, 'collatzBarsCall', 'collatzBars', ['collatzCountsArg']); b.ref('collatzCountsArg', 'counts')
+
+  b.root('collatzMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'collatzBody' })
+  b.stringValue('collatzMessage', 'Collatz atlas')
+  b.print('collatzPrint', 'collatzMessage')
+  b.block('collatzBody', ['collatzCounts', range, collatzLoop, 'collatzBarsCallStatement', 'collatzPrint'])
+
+  return workspace(b.project, [
+    note('collatzNote', 'Collatz atlas', 'Pour les 24 premiers départs, la suite de Collatz est arrêtée après douze étapes. La heatmap 6×4 montre le temps d’arrêt, les barres regroupent les longueurs par bande et la progression couvre l’atlas. Le cas pair divise par 2, le cas impair applique 3n + 1.', 0, 1000, 900, 220),
+  ])
+}
+
+// Course de tris : deux graphiques à barres animés, bulles et insertion.
+function sortRace() {
+  const b = builder()
+  const bubbleBars = createBarChartModule('raceBubbleBars', 'Bubble sort', 1, { size: 10 })
+  const insertionBars = createBarChartModule('raceInsertionBars', 'Insertion sort', 2, { size: 10 })
+  const progress = createProgressModule('raceProgress', 'Sorted fraction', 1, { min: 0, max: 100 })
+  b.project.modules.push(bubbleBars.module, insertionBars.module, progress.module)
+  b.project.nodes.push(...bubbleBars.nodes, ...insertionBars.nodes, ...progress.nodes)
+  b.useModule('raceApp', 'Sort race')
+  const app = b.project.modules.find((module) => module.id === 'raceApp')
+  const exported = (widget, name) => widget.module.exports.find((entry) => entry.name === name).nodeId
+  importFunction(app, 'raceBubbleData', bubbleBars.module.id, exported(bubbleBars, 'BARCHART_SP3_SET_DATA_1'), 'setBubble')
+  importFunction(app, 'raceInsertionData', insertionBars.module.id, exported(insertionBars, 'BARCHART_SP3_SET_DATA_2'), 'setInsertion')
+  importFunction(app, 'raceProgressValue', progress.module.id, exported(progress, 'PROGRESS_SP3_SET_VALUE_1'), 'setSorted')
+  importFunction(app, 'raceProgressRange', progress.module.id, exported(progress, 'PROGRESS_SP3_SET_RANGE_1'), 'setSortedRange')
+
+  const arrayVariable = (id, name, values) => {
+    b.make(id, 'VariableDeclaration', { name, type: intArrayType }, { initializer: `${id}Init` })
+    b.make(`${id}Init`, 'ArrayLiteral', { elementType: intType }, { elements: values.map((value, index) => {
+      b.intValue(`${id}Value${index}`, value)
+      return `${id}Value${index}`
+    }) })
+  }
+  arrayVariable('raceBubble', 'bubble', [9, 3, 7, 1, 8, 2, 6, 4, 5, 0])
+  arrayVariable('raceInsertion', 'insertion', [9, 3, 7, 1, 8, 2, 6, 4, 5, 0])
+  b.intValue('raceNine', 9); b.intValue('raceTen', 10)
+  b.intValue('raceNineInner', 9)
+  b.doubleValue('raceMin', '0.0'); b.doubleValue('raceMax', '100.0')
+  const range = callStatement(b, 'raceRangeCall', 'raceProgressRange', ['raceMin', 'raceMax'])
+  callStatement(b, 'raceBubbleStart', 'raceBubbleData', ['raceBubbleArg']); b.ref('raceBubbleArg', 'bubble')
+  callStatement(b, 'raceInsertionStart', 'raceInsertionData', ['raceInsertionArg']); b.ref('raceInsertionArg', 'insertion')
+
+  // Tri à bulles : comparaison des voisins et échange dans le tableau.
+  b.variable('raceBubbleJ', 'j', intType, 'raceBubbleJStart'); b.intValue('raceBubbleJStart', 0)
+  b.binary('raceBubbleBound', '-', 'raceNineInner', 'raceBubbleIRead'); b.ref('raceBubbleIRead', 'i')
+  b.binary('raceBubbleJTest', '<', 'raceBubbleJRead', 'raceBubbleBound'); b.ref('raceBubbleJRead', 'j')
+  b.assign('raceBubbleJUpdate', 'raceBubbleJTarget', 'raceBubbleJNext'); b.ref('raceBubbleJTarget', 'j')
+  b.binary('raceBubbleJNext', '+', 'raceBubbleJNextRead', 'raceOneJ'); b.ref('raceBubbleJNextRead', 'j'); b.intValue('raceOneJ', 1)
+  b.access('raceBubbleLeft', 'raceBubbleArrayLeft', 'raceBubbleJLeft'); b.ref('raceBubbleArrayLeft', 'bubble'); b.ref('raceBubbleJLeft', 'j')
+  b.binary('raceBubbleJPlus', '+', 'raceBubbleJPlusRead', 'raceOnePlus'); b.ref('raceBubbleJPlusRead', 'j'); b.intValue('raceOnePlus', 1)
+  b.access('raceBubbleRight', 'raceBubbleArrayRight', 'raceBubbleJPlus'); b.ref('raceBubbleArrayRight', 'bubble')
+  b.binary('raceBubbleCompare', '>', 'raceBubbleLeft', 'raceBubbleRight')
+  b.access('raceBubbleLeftSave', 'raceBubbleLeftArraySave', 'raceBubbleJLeftSave'); b.ref('raceBubbleLeftArraySave', 'bubble'); b.ref('raceBubbleJLeftSave', 'j')
+  b.assign('raceBubbleSave', 'raceBubbleTempTarget', 'raceBubbleLeftSave'); b.ref('raceBubbleTempTarget', 'temp')
+  b.access('raceBubbleWriteLeft', 'raceBubbleArrayWriteLeft', 'raceBubbleJWriteLeft'); b.ref('raceBubbleArrayWriteLeft', 'bubble'); b.ref('raceBubbleJWriteLeft', 'j')
+  b.binary('raceBubbleJPlusShift', '+', 'raceBubbleJPlusShiftRead', 'raceOneShift'); b.ref('raceBubbleJPlusShiftRead', 'j'); b.intValue('raceOneShift', 1)
+  b.access('raceBubbleRightShift', 'raceBubbleRightArrayShift', 'raceBubbleJPlusShift'); b.ref('raceBubbleRightArrayShift', 'bubble')
+  b.assign('raceBubbleShift', 'raceBubbleWriteLeft', 'raceBubbleRightShift')
+  b.access('raceBubbleWriteRight', 'raceBubbleArrayWriteRight', 'raceBubbleJPlusWrite'); b.ref('raceBubbleArrayWriteRight', 'bubble')
+  b.binary('raceBubbleJPlusWrite', '+', 'raceBubbleJPlusWriteRead', 'raceOneWrite'); b.ref('raceBubbleJPlusWriteRead', 'j'); b.intValue('raceOneWrite', 1)
+  b.assign('raceBubbleRestore', 'raceBubbleWriteRight', 'raceBubbleTempRead'); b.ref('raceBubbleTempRead', 'temp')
+  b.ifThen('raceBubbleSwap', 'raceBubbleCompare', 'raceBubbleSwapBody', null)
+  b.block('raceBubbleSwapBody', ['raceBubbleSave', 'raceBubbleShift', 'raceBubbleRestore'])
+  b.block('raceBubbleInnerBody', ['raceBubbleSwap'])
+  b.forLoop('raceBubbleInner', 'raceBubbleJ', 'raceBubbleJTest', 'raceBubbleJUpdate', 'raceBubbleInnerBody')
+  callStatement(b, 'raceBubbleDataCall', 'raceBubbleData', ['raceBubbleCallArg']); b.ref('raceBubbleCallArg', 'bubble')
+  b.binary('raceBubbleProgressRaw', '+', 'raceBubbleIProgress', 'raceOneProgress'); b.ref('raceBubbleIProgress', 'i'); b.intValue('raceOneProgress', 1)
+  b.binary('raceBubbleProgressValue', '*', 'raceBubbleProgressRaw', 'raceTenProgress'); b.intValue('raceTenProgress', 10)
+  b.make('raceBubbleProgressDouble', 'CastExpression', { type: doubleType }, { argument: 'raceBubbleProgressValue' })
+  callStatement(b, 'raceBubbleProgressCall', 'raceProgressValue', ['raceBubbleProgressDouble'])
+  const bubbleOuter = b.countedLoop('raceBubbleOuter', 'i', 'raceNine', ['raceBubbleInner', 'raceBubbleDataCallStatement', 'raceBubbleProgressCallStatement'])
+
+  // Tri par insertion : décalage des valeurs supérieures puis insertion de la clé.
+  b.make('raceInsertionKey', 'VariableDeclaration', { name: 'key', type: intType }, { initializer: 'raceInsertionKeyRead' })
+  b.access('raceInsertionKeyRead', 'raceInsertionArrayKey', 'raceInsertionIKey'); b.ref('raceInsertionArrayKey', 'insertion'); b.ref('raceInsertionIKey', 'i')
+  b.variable('raceInsertionJ', 'j', intType, 'raceInsertionJStart')
+  b.binary('raceInsertionJStart', '-', 'raceInsertionIStart', 'raceOneJStart'); b.ref('raceInsertionIStart', 'i'); b.intValue('raceOneJStart', 1)
+  b.binary('raceInsertionJZero', '>=', 'raceInsertionJRead', 'raceZeroJ'); b.ref('raceInsertionJRead', 'j'); b.intValue('raceZeroJ', 0)
+  b.access('raceInsertionCurrent', 'raceInsertionArrayCurrent', 'raceInsertionJCurrent'); b.ref('raceInsertionArrayCurrent', 'insertion'); b.ref('raceInsertionJCurrent', 'j')
+  b.binary('raceInsertionGreater', '>', 'raceInsertionCurrent', 'raceInsertionKeyCompare'); b.ref('raceInsertionKeyCompare', 'key')
+  b.binary('raceInsertionContinue', 'and', 'raceInsertionJZero', 'raceInsertionGreater')
+  b.binary('raceInsertionJPlus', '+', 'raceInsertionJPlusRead', 'raceOneHole'); b.ref('raceInsertionJPlusRead', 'j'); b.intValue('raceOneHole', 1)
+  b.access('raceInsertionHole', 'raceInsertionArrayHole', 'raceInsertionJPlus'); b.ref('raceInsertionArrayHole', 'insertion')
+  b.access('raceInsertionValue', 'raceInsertionArrayValue', 'raceInsertionJValue'); b.ref('raceInsertionArrayValue', 'insertion'); b.ref('raceInsertionJValue', 'j')
+  b.assign('raceInsertionShift', 'raceInsertionHole', 'raceInsertionValue')
+  b.assign('raceInsertionJStep', 'raceInsertionJTarget', 'raceInsertionJNext'); b.ref('raceInsertionJTarget', 'j')
+  b.binary('raceInsertionJNext', '-', 'raceInsertionJStepRead', 'raceOneStep'); b.ref('raceInsertionJStepRead', 'j'); b.intValue('raceOneStep', 1)
+  b.block('raceInsertionWhileBody', ['raceInsertionShift', 'raceInsertionJStep'])
+  b.make('raceInsertionLoop', 'WhileStatement', {}, { test: 'raceInsertionContinue', body: 'raceInsertionWhileBody' })
+  b.binary('raceInsertionFinalPlus', '+', 'raceInsertionFinalRead', 'raceOneFinal'); b.ref('raceInsertionFinalRead', 'j'); b.intValue('raceOneFinal', 1)
+  b.access('raceInsertionFinalTarget', 'raceInsertionArrayFinal', 'raceInsertionFinalPlus'); b.ref('raceInsertionArrayFinal', 'insertion')
+  b.assign('raceInsertionPlace', 'raceInsertionFinalTarget', 'raceInsertionKeyPlace'); b.ref('raceInsertionKeyPlace', 'key')
+  callStatement(b, 'raceInsertionDataCall', 'raceInsertionData', ['raceInsertionCallArg']); b.ref('raceInsertionCallArg', 'insertion')
+  b.binary('raceInsertionProgressRaw', '+', 'raceInsertionIProgress', 'raceOneInsertionProgress'); b.ref('raceInsertionIProgress', 'i'); b.intValue('raceOneInsertionProgress', 1)
+  b.binary('raceInsertionProgressValue', '*', 'raceInsertionProgressRaw', 'raceTenInsertionProgress'); b.intValue('raceTenInsertionProgress', 10)
+  b.make('raceInsertionProgressDouble', 'CastExpression', { type: doubleType }, { argument: 'raceInsertionProgressValue' })
+  callStatement(b, 'raceInsertionProgressCall', 'raceProgressValue', ['raceInsertionProgressDouble'])
+  const insertionOuter = b.countedLoop('raceInsertionOuter', 'i', 'raceTen', ['raceInsertionKey', 'raceInsertionJ', 'raceInsertionLoop', 'raceInsertionPlace', 'raceInsertionDataCallStatement', 'raceInsertionProgressCallStatement'], 1)
+
+  b.root('raceMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'raceBody' })
+  b.make('raceTemp', 'VariableDeclaration', { name: 'temp', type: intType }, { initializer: 'raceTempStart' }); b.intValue('raceTempStart', 0)
+  b.stringValue('raceMessage', 'Sort race')
+  b.print('racePrint', 'raceMessage')
+  b.block('raceBody', ['raceBubble', 'raceInsertion', 'raceTemp', range, 'raceBubbleStartStatement', 'raceInsertionStartStatement', bubbleOuter, insertionOuter, 'racePrint'])
+
+  return workspace(b.project, [
+    note('raceNote', 'Sort race', 'Deux copies du même tableau de dix valeurs. Le premier graphique suit le tri à bulles, le second le tri par insertion. Chaque passe republie le tableau par `SET_DATA`, ce qui anime les barres pendant Run ; la barre de progression indique la fraction triée.', 0, 1000, 900, 220),
+  ])
+}
+
+
+// Diffusion thermique : lissage d'une grille, températures et moyennes par ligne.
+function heatDiffusion() {
+  const b = builder()
+  const heat = createHeatmapModule('diffusionHeat', 'Temperature field', 1, { width: 8, height: 4 })
+  const bars = createBarChartModule('diffusionBars', 'Row averages', 1, { size: 6 })
+  const progress = createProgressModule('diffusionProgress', 'Diffusion steps', 1, { min: 0, max: 100 })
+  b.project.modules.push(heat.module, bars.module, progress.module)
+  b.project.nodes.push(...heat.nodes, ...bars.nodes, ...progress.nodes)
+  b.useModule('diffusionApp', 'Heat diffusion')
+  const app = b.project.modules.find((module) => module.id === 'diffusionApp')
+  const exported = (widget, name) => widget.module.exports.find((entry) => entry.name === name).nodeId
+  importFunction(app, 'diffusionCell', heat.module.id, exported(heat, 'HEATMAP_SP3_SET_CELL_1'), 'setTemperature')
+  importFunction(app, 'diffusionBar', bars.module.id, exported(bars, 'BARCHART_SP3_SET_VALUE_1'), 'setRowAverage')
+  importFunction(app, 'diffusionValue', progress.module.id, exported(progress, 'PROGRESS_SP3_SET_VALUE_1'), 'setStep')
+  importFunction(app, 'diffusionRange', progress.module.id, exported(progress, 'PROGRESS_SP3_SET_RANGE_1'), 'setStepRange')
+
+  b.intValue('diffusionWidth', 8); b.intValue('diffusionHeight', 4); b.intValue('diffusionInteriorX', 7); b.intValue('diffusionInteriorY', 3)
+  b.intValue('diffusionSixty', 32); b.intValue('diffusionSixtyFill', 32); b.intValue('diffusionZero', 0); b.intValue('diffusionZeroFill', 0)
+  b.intValue('diffusionHundred', 100); b.intValue('diffusionTenGrid', 8)
+  b.intValue('diffusionTenHeat', 8); b.intValue('diffusionTenRow', 8); b.intValue('diffusionFour', 4)
+  b.intValue('diffusionEight', 8); b.intValue('diffusionTenRows', 8); b.intValue('diffusionSteps', 2); b.intValue('diffusionStepWeight', 50)
+  b.intValue('diffusionHeightRow', 4)
+  b.doubleValue('diffusionMin', '0.0'); b.doubleValue('diffusionMax', '100.0')
+  const range = callStatement(b, 'diffusionRangeCall', 'diffusionRange', ['diffusionMin', 'diffusionMax'])
+  b.make('diffusionGrid', 'VariableDeclaration', { name: 'grid', type: intArrayType }, { initializer: 'diffusionGridInit' })
+  b.math('diffusionGridInit', 'arrayFill', ['diffusionSixty', 'diffusionZero'])
+  b.make('diffusionNext', 'VariableDeclaration', { name: 'next', type: intArrayType }, { initializer: 'diffusionNextInit' })
+  b.math('diffusionNextInit', 'arrayFill', ['diffusionSixtyFill', 'diffusionZeroFill'])
+  b.access('diffusionSourceTarget', 'diffusionGridSource', 'diffusionSourceIndex'); b.ref('diffusionGridSource', 'grid'); b.intValue('diffusionSourceIndex', 20)
+  b.assign('diffusionSourceStore', 'diffusionSourceTarget', 'diffusionHundred')
+
+  // Une étape : remise à zéro de next, puis moyenne des quatre voisins et du centre.
+  b.math('diffusionNextReset', 'arrayFill', ['diffusionSixtyNext', 'diffusionZeroNext']); b.intValue('diffusionSixtyNext', 32); b.intValue('diffusionZeroNext', 0)
+  b.assign('diffusionNextStore', 'diffusionNextTarget', 'diffusionNextReset'); b.ref('diffusionNextTarget', 'next')
+  b.make('diffusionSmoothIndexDecl', 'VariableDeclaration', { name: 'idx', type: intType }, { initializer: 'diffusionSmoothIndexValue' })
+  b.binary('diffusionSmoothIndexValue', '+', 'diffusionSmoothY', 'diffusionSmoothX'); b.binary('diffusionSmoothY', '*', 'diffusionSmoothYRead', 'diffusionTenGrid'); b.ref('diffusionSmoothYRead', 'sy')
+  b.ref('diffusionSmoothX', 'sx')
+  b.access('diffusionCenter', 'diffusionGridCenter', 'diffusionSmoothIndex'); b.ref('diffusionGridCenter', 'grid'); b.ref('diffusionSmoothIndex', 'idx')
+  b.binary('diffusionCenter4', '*', 'diffusionCenter', 'diffusionFour')
+  b.binary('diffusionLeftIndex', '-', 'diffusionSmoothIndexLeft', 'diffusionOneLeft'); b.ref('diffusionSmoothIndexLeft', 'idx'); b.intValue('diffusionOneLeft', 1)
+  b.access('diffusionLeft', 'diffusionGridLeft', 'diffusionLeftIndex'); b.ref('diffusionGridLeft', 'grid')
+  b.binary('diffusionRightIndex', '+', 'diffusionSmoothIndexRight', 'diffusionOneRight'); b.ref('diffusionSmoothIndexRight', 'idx'); b.intValue('diffusionOneRight', 1)
+  b.access('diffusionRight', 'diffusionGridRight', 'diffusionRightIndex'); b.ref('diffusionGridRight', 'grid')
+  b.binary('diffusionUpIndex', '-', 'diffusionSmoothIndexUp', 'diffusionWidthUp'); b.ref('diffusionSmoothIndexUp', 'idx'); b.intValue('diffusionWidthUp', 8)
+  b.access('diffusionUp', 'diffusionGridUp', 'diffusionUpIndex'); b.ref('diffusionGridUp', 'grid')
+  b.binary('diffusionDownIndex', '+', 'diffusionSmoothIndexDown', 'diffusionWidthDown'); b.ref('diffusionSmoothIndexDown', 'idx'); b.intValue('diffusionWidthDown', 8)
+  b.access('diffusionDown', 'diffusionGridDown', 'diffusionDownIndex'); b.ref('diffusionGridDown', 'grid')
+  b.binary('diffusionSum1', '+', 'diffusionCenter4', 'diffusionLeft')
+  b.binary('diffusionSum2', '+', 'diffusionSum1', 'diffusionRight')
+  b.binary('diffusionSum3', '+', 'diffusionSum2', 'diffusionUp')
+  b.binary('diffusionSum4', '+', 'diffusionSum3', 'diffusionDown')
+  b.binary('diffusionAverage', '/', 'diffusionSum4', 'diffusionEight')
+  b.access('diffusionNextCell', 'diffusionNextArray', 'diffusionNextIndex'); b.ref('diffusionNextArray', 'next'); b.ref('diffusionNextIndex', 'idx')
+  b.assign('diffusionNextWrite', 'diffusionNextCell', 'diffusionAverage')
+  b.block('diffusionSmoothBody', ['diffusionSmoothIndexDecl', 'diffusionNextWrite'])
+  const smoothY = b.countedLoop('diffusionSmoothYLoop', 'sy', 'diffusionInteriorY', [b.countedLoop('diffusionSmoothX', 'sx', 'diffusionInteriorX', ['diffusionSmoothBody'], 1)], 1)
+  b.assign('diffusionSwap', 'diffusionGridTarget', 'diffusionNextRead'); b.ref('diffusionGridTarget', 'grid'); b.ref('diffusionNextRead', 'next')
+
+  // Affichage de la grille : une cellule par coordonnée.
+  b.make('diffusionHeatIndexDecl', 'VariableDeclaration', { name: 'hidx', type: intType }, { initializer: 'diffusionHeatIndexValue' })
+  b.binary('diffusionHeatIndexValue', '+', 'diffusionHeatY', 'diffusionHeatX')
+  b.binary('diffusionHeatY', '*', 'diffusionHeatYRead', 'diffusionTenHeat'); b.ref('diffusionHeatYRead', 'hy')
+  b.ref('diffusionHeatX', 'hx')
+  b.access('diffusionHeatCell', 'diffusionGridHeat', 'diffusionHeatIndex'); b.ref('diffusionGridHeat', 'grid'); b.ref('diffusionHeatIndex', 'hidx')
+  callStatement(b, 'diffusionHeatCall', 'diffusionCell', ['diffusionHeatXArg', 'diffusionHeatYArg', 'diffusionHeatCell']); b.ref('diffusionHeatXArg', 'hx'); b.ref('diffusionHeatYArg', 'hy')
+  const heatY = b.countedLoop('diffusionHeatYLoop', 'hy', 'diffusionHeight', [b.countedLoop('diffusionHeatX', 'hx', 'diffusionWidth', ['diffusionHeatIndexDecl', 'diffusionHeatCallStatement'])])
+
+  // Moyenne de chaque ligne pour le graphique à barres.
+  b.make('diffusionRowSum', 'VariableDeclaration', { name: 'sum', type: intType }, { initializer: 'diffusionRowSumStart' })
+  b.intValue('diffusionRowSumStart', 0)
+  b.binary('diffusionRowIndex', '+', 'diffusionRowY', 'diffusionRowX')
+  b.binary('diffusionRowY', '*', 'diffusionRowYRead', 'diffusionTenRow'); b.ref('diffusionRowYRead', 'r')
+  b.ref('diffusionRowX', 'c')
+  b.access('diffusionRowValue', 'diffusionGridRow', 'diffusionRowIndex'); b.ref('diffusionGridRow', 'grid')
+  b.binary('diffusionRowSumNext', '+', 'diffusionRowSumRead', 'diffusionRowValue'); b.ref('diffusionRowSumRead', 'sum')
+  b.assign('diffusionRowSumStore', 'diffusionRowSumTarget', 'diffusionRowSumNext'); b.ref('diffusionRowSumTarget', 'sum')
+  b.block('diffusionRowInnerBody', ['diffusionRowSumStore'])
+  const rowInner = b.forLoop('diffusionRowInner', 'diffusionRowCInit', 'diffusionRowCTest', 'diffusionRowCUpdate', 'diffusionRowInnerBody')
+  b.make('diffusionRowCInit', 'VariableDeclaration', { name: 'c', type: intType }, { initializer: 'diffusionRowCStart' }); b.intValue('diffusionRowCStart', 0)
+  b.binary('diffusionRowCTest', '<', 'diffusionRowCRead', 'diffusionTenRows'); b.ref('diffusionRowCRead', 'c')
+  b.assign('diffusionRowCUpdate', 'diffusionRowCTarget', 'diffusionRowCNext'); b.ref('diffusionRowCTarget', 'c')
+  b.binary('diffusionRowCNext', '+', 'diffusionRowCNextRead', 'diffusionRowCOne'); b.ref('diffusionRowCNextRead', 'c'); b.intValue('diffusionRowCOne', 1)
+  b.binary('diffusionRowAverage', '/', 'diffusionRowSumValue', 'diffusionTenAverage'); b.intValue('diffusionTenAverage', 8)
+  b.ref('diffusionRowSumValue', 'sum')
+  callStatement(b, 'diffusionRowCall', 'diffusionBar', ['diffusionRowArg', 'diffusionRowAverage']); b.ref('diffusionRowArg', 'r')
+  b.block('diffusionRowBody', ['diffusionRowSum', rowInner, 'diffusionRowCallStatement'])
+  const rowLoop = b.countedLoop('diffusionRowLoop', 'r', 'diffusionHeightRow', ['diffusionRowBody'])
+
+  b.binary('diffusionStepPlus', '+', 'diffusionStepRead', 'diffusionOneStep'); b.ref('diffusionStepRead', 'step'); b.intValue('diffusionOneStep', 1)
+  b.binary('diffusionProgressRaw', '*', 'diffusionStepPlus', 'diffusionStepWeight')
+  b.make('diffusionProgressDouble', 'CastExpression', { type: doubleType }, { argument: 'diffusionProgressRaw' })
+  callStatement(b, 'diffusionProgressCall', 'diffusionValue', ['diffusionProgressDouble'])
+  const stepLoop = b.countedLoop('diffusionStepLoop', 'step', 'diffusionSteps', ['diffusionNextStore', smoothY, 'diffusionSwap', heatY, rowLoop, 'diffusionProgressCallStatement'])
+
+  b.root('diffusionMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'diffusionBody' })
+  b.stringValue('diffusionMessage', 'Heat diffusion')
+  b.print('diffusionPrint', 'diffusionMessage')
+  b.block('diffusionBody', ['diffusionGrid', 'diffusionNext', 'diffusionSourceStore', range, stepLoop, 'diffusionPrint'])
+
+  return workspace(b.project, [
+    note('diffusionNote', 'Heat diffusion', 'Une source chaude est posée au centre d’une grille 8×4. Deux étapes remplacent chaque cellule intérieure par la moyenne pondérée du centre et de ses quatre voisins. La heatmap montre le champ, les barres les moyennes de lignes et la progression le nombre d’étapes.', 0, 1000, 900, 220),
+  ])
+}
+
+// Convolution d'image : motif source, flou 3×3 et histogramme de sortie.
+function imageConvolution() {
+  const b = builder()
+  const heat = createHeatmapModule('imageHeat', 'Filtered image', 1, { width: 8, height: 6 })
+  const bars = createBarChartModule('imageBars', 'Output bands', 1, { size: 8 })
+  const progress = createProgressModule('imageProgress', 'Filter progress', 1, { min: 0, max: 100 })
+  b.project.modules.push(heat.module, bars.module, progress.module)
+  b.project.nodes.push(...heat.nodes, ...bars.nodes, ...progress.nodes)
+  b.useModule('imageApp', 'Image convolution')
+  const app = b.project.modules.find((module) => module.id === 'imageApp')
+  const exported = (widget, name) => widget.module.exports.find((entry) => entry.name === name).nodeId
+  importFunction(app, 'imageCell', heat.module.id, exported(heat, 'HEATMAP_SP3_SET_CELL_1'), 'setFiltered')
+  importFunction(app, 'imageBar', bars.module.id, exported(bars, 'BARCHART_SP3_SET_DATA_1'), 'setHistogram')
+  importFunction(app, 'imageValue', progress.module.id, exported(progress, 'PROGRESS_SP3_SET_VALUE_1'), 'setProgress')
+  importFunction(app, 'imageRange', progress.module.id, exported(progress, 'PROGRESS_SP3_SET_RANGE_1'), 'setProgressRange')
+
+  b.intValue('imageWidth', 8); b.intValue('imageWidthLoop', 8); b.intValue('imageHeight', 6); b.intValue('imageInteriorX', 7); b.intValue('imageInteriorY', 5)
+  b.intValue('imageSizeSource', 48); b.intValue('imageSizeOutput', 48); b.intValue('imageSizeHist', 48)
+  b.intValue('imageBands', 8); b.intValue('imageZeroSource', 0); b.intValue('imageZeroOutput', 0); b.intValue('imageZeroCounts', 0)
+  b.intValue('imageEightValue', 8); b.intValue('imageEightAverage', 8)
+  b.intValue('imageSeven', 7); b.intValue('imageFive', 5); b.intValue('imageThree', 3); b.intValue('imageEleven', 11)
+  b.intValue('imageTen', 10); b.intValue('imageLimit', 7); b.intValue('imageFour', 4); b.intValue('imageOne', 1)
+  b.intValue('imageThirty', 30); b.intValue('imageSeventy', 70); b.intValue('imageHundred', 100)
+  b.doubleValue('imageMin', '0.0'); b.doubleValue('imageMax', '100.0')
+  const range = callStatement(b, 'imageRangeCall', 'imageRange', ['imageMin', 'imageMax'])
+  b.make('imageSource', 'VariableDeclaration', { name: 'source', type: intArrayType }, { initializer: 'imageSourceInit' })
+  b.math('imageSourceInit', 'arrayFill', ['imageSizeSource', 'imageZeroSource'])
+  b.make('imageOutput', 'VariableDeclaration', { name: 'output', type: intArrayType }, { initializer: 'imageOutputInit' })
+  b.math('imageOutputInit', 'arrayFill', ['imageSizeOutput', 'imageZeroOutput'])
+  b.make('imageCounts', 'VariableDeclaration', { name: 'counts', type: intArrayType }, { initializer: 'imageCountsInit' })
+  b.math('imageCountsInit', 'arrayFill', ['imageBands', 'imageZeroCounts'])
+
+  // Motif source : une texture déterministe de 8×6.
+  b.binary('imageSourceX', '*', 'imageSourceXRef', 'imageSeven'); b.ref('imageSourceXRef', 'x')
+  b.binary('imageSourceY', '*', 'imageSourceYRef', 'imageFive'); b.ref('imageSourceYRef', 'y')
+  b.binary('imageSourceSum', '+', 'imageSourceX', 'imageSourceY')
+  b.binary('imageSourceOffset', '+', 'imageSourceSum', 'imageThree')
+  b.binary('imageSourceModulo', '%', 'imageSourceOffset', 'imageEleven')
+  b.binary('imageSourceValue', '*', 'imageSourceModulo', 'imageEightValue')
+  b.binary('imageSourceIndex', '+', 'imageSourceIndexY', 'imageSourceIndexX')
+  b.binary('imageSourceIndexY', '*', 'imageSourceIndexYRead', 'imageWidth'); b.ref('imageSourceIndexYRead', 'y')
+  b.binary('imageSourceIndexX', '*', 'imageSourceIndexXRead', 'imageOne'); b.ref('imageSourceIndexXRead', 'x')
+  b.access('imageSourceTarget', 'imageSourceArray', 'imageSourceIndex'); b.ref('imageSourceArray', 'source')
+  b.assign('imageSourceStore', 'imageSourceTarget', 'imageSourceValue')
+  const sourceY = b.countedLoop('imageSourceYLoop', 'y', 'imageHeight', [b.countedLoop('imageSourceX', 'x', 'imageWidthLoop', ['imageSourceStore'])])
+  const sourceProgress = callStatement(b, 'imageSourceProgress', 'imageValue', ['imageThirtyDouble']); b.make('imageThirtyDouble', 'CastExpression', { type: doubleType }, { argument: 'imageThirty' })
+
+  // Flou 3×3 : centre pondéré et quatre voisins, uniquement sur l'intérieur.
+  b.make('imageIndex', 'VariableDeclaration', { name: 'idx', type: intType }, { initializer: 'imageIndexValue' })
+  b.binary('imageIndexValue', '+', 'imageIndexY', 'imageIndexX')
+  b.binary('imageIndexY', '*', 'imageIndexYRead', 'imageWidthIndex'); b.ref('imageIndexYRead', 'iy'); b.intValue('imageWidthIndex', 8)
+  b.ref('imageIndexX', 'ix')
+  b.access('imageCenter', 'imageSourceCenter', 'imageIndexCenter'); b.ref('imageSourceCenter', 'source'); b.ref('imageIndexCenter', 'idx')
+  b.binary('imageCenter4', '*', 'imageCenter', 'imageFour')
+  b.binary('imageLeftIndex', '-', 'imageIndexLeft', 'imageOneLeft'); b.ref('imageIndexLeft', 'idx'); b.intValue('imageOneLeft', 1)
+  b.access('imageLeft', 'imageSourceLeft', 'imageLeftIndex'); b.ref('imageSourceLeft', 'source')
+  b.binary('imageRightIndex', '+', 'imageIndexRight', 'imageOneRight'); b.ref('imageIndexRight', 'idx'); b.intValue('imageOneRight', 1)
+  b.access('imageRight', 'imageSourceRight', 'imageRightIndex'); b.ref('imageSourceRight', 'source')
+  b.binary('imageUpIndex', '-', 'imageIndexUp', 'imageWidthUp'); b.ref('imageIndexUp', 'idx'); b.intValue('imageWidthUp', 8)
+  b.access('imageUp', 'imageSourceUp', 'imageUpIndex'); b.ref('imageSourceUp', 'source')
+  b.binary('imageDownIndex', '+', 'imageIndexDown', 'imageWidthDown'); b.ref('imageIndexDown', 'idx'); b.intValue('imageWidthDown', 8)
+  b.access('imageDown', 'imageSourceDown', 'imageDownIndex'); b.ref('imageSourceDown', 'source')
+  b.binary('imageSum1', '+', 'imageCenter4', 'imageLeft')
+  b.binary('imageSum2', '+', 'imageSum1', 'imageRight')
+  b.binary('imageSum3', '+', 'imageSum2', 'imageUp')
+  b.binary('imageSum4', '+', 'imageSum3', 'imageDown')
+  b.binary('imageAverage', '/', 'imageSum4', 'imageEightAverage')
+  b.access('imageOutputTarget', 'imageOutputArray', 'imageIndexOutput'); b.ref('imageOutputArray', 'output'); b.ref('imageIndexOutput', 'idx')
+  b.assign('imageOutputStore', 'imageOutputTarget', 'imageAverage')
+  b.access('imageOutputRead', 'imageOutputReadArray', 'imageIndexCell'); b.ref('imageOutputReadArray', 'output'); b.ref('imageIndexCell', 'idx')
+  callStatement(b, 'imageCellCall', 'imageCell', ['imageXArg', 'imageYArg', 'imageOutputRead']); b.ref('imageXArg', 'ix'); b.ref('imageYArg', 'iy')
+  b.block('imageFilterBody', ['imageIndex', 'imageOutputStore', 'imageCellCallStatement'])
+  const filterY = b.countedLoop('imageFilterY', 'iy', 'imageInteriorY', [b.countedLoop('imageFilterX', 'ix', 'imageInteriorX', ['imageFilterBody'], 1)], 1)
+  const filterProgress = callStatement(b, 'imageFilterProgress', 'imageValue', ['imageSeventyDouble']); b.make('imageSeventyDouble', 'CastExpression', { type: doubleType }, { argument: 'imageSeventy' })
+
+  // Histogramme des valeurs filtrées.
+  b.make('imageValueVar', 'VariableDeclaration', { name: 'value', type: intType }, { initializer: 'imageValueRead' })
+  b.access('imageValueRead', 'imageOutputHistArray', 'imageHistIndex'); b.ref('imageOutputHistArray', 'output'); b.ref('imageHistIndex', 'h')
+  b.binary('imageBandRaw', '/', 'imageValueVarRef', 'imageTen'); b.ref('imageValueVarRef', 'value')
+  b.math('imageBand', 'min', ['imageBandRaw', 'imageLimit'])
+  b.access('imageCountRead', 'imageCountsReadArray', 'imageBandRead'); b.ref('imageCountsReadArray', 'counts'); b.ref('imageBandRead', 'band')
+  b.variable('imageBandVar', 'band', intType, 'imageBand')
+  b.binary('imageCountNext', '+', 'imageCountRead', 'imageOneCount'); b.intValue('imageOneCount', 1)
+  b.access('imageCountTarget', 'imageCountsWriteArray', 'imageBandWrite'); b.ref('imageCountsWriteArray', 'counts'); b.ref('imageBandWrite', 'band')
+  b.assign('imageCountStore', 'imageCountTarget', 'imageCountNext')
+  b.block('imageHistBody', ['imageValueVar', 'imageBandVar', 'imageCountStore'])
+  const histLoop = b.countedLoop('imageHistLoop', 'h', 'imageSizeHist', ['imageHistBody'])
+  callStatement(b, 'imageBarsCall', 'imageBar', ['imageCountsArg']); b.ref('imageCountsArg', 'counts')
+  b.make('imageHundredDouble', 'CastExpression', { type: doubleType }, { argument: 'imageHundred' })
+  callStatement(b, 'imageDoneCall', 'imageValue', ['imageHundredDouble'])
+
+  b.root('imageMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'imageBody' })
+  b.stringValue('imageMessage', 'Image convolution')
+  b.print('imagePrint', 'imageMessage')
+  b.block('imageBody', ['imageSource', 'imageOutput', 'imageCounts', range, sourceY, 'imageSourceProgressStatement', filterY, 'imageFilterProgressStatement', histLoop, 'imageBarsCallStatement', 'imageDoneCallStatement', 'imagePrint'])
+
+  return workspace(b.project, [
+    note('imageNote', 'Image convolution', 'Un motif déterministe de 8×6 est filtré par une moyenne 3×3 sur l’intérieur de l’image. La heatmap affiche le résultat filtré, les barres l’histogramme des valeurs et la progression les trois phases : génération, convolution, histogramme.', 0, 1000, 900, 220),
+  ])
+}
+
+
+// Station météo : températures par zone, pluie par jour et indice de confort.
+function weatherStation() {
+  const b = builder()
+  const heat = createHeatmapModule('weatherHeat', 'Temperature map', 1, { width: 7, height: 5 })
+  const bars = createBarChartModule('weatherBars', 'Rainfall', 1, { size: 7 })
+  const comfort = createProgressModule('weatherComfort', 'Comfort index', 1, { min: 0, max: 100 })
+  b.project.modules.push(heat.module, bars.module, comfort.module)
+  b.project.nodes.push(...heat.nodes, ...bars.nodes, ...comfort.nodes)
+  b.useModule('weatherApp', 'Weather station')
+  const app = b.project.modules.find((module) => module.id === 'weatherApp')
+  const exported = (widget, name) => widget.module.exports.find((entry) => entry.name === name).nodeId
+  importFunction(app, 'weatherCell', heat.module.id, exported(heat, 'HEATMAP_SP3_SET_CELL_1'), 'setTemperature')
+  importFunction(app, 'weatherBar', bars.module.id, exported(bars, 'BARCHART_SP3_SET_VALUE_1'), 'setRain')
+  importFunction(app, 'weatherValue', comfort.module.id, exported(comfort, 'PROGRESS_SP3_SET_VALUE_1'), 'setComfort')
+  importFunction(app, 'weatherRange', comfort.module.id, exported(comfort, 'PROGRESS_SP3_SET_RANGE_1'), 'setComfortRange')
+
+  b.intValue('weatherDays', 7); b.intValue('weatherDaysRain', 7); b.intValue('weatherZones', 5); b.intValue('weatherTwelve', 12)
+  b.intValue('weatherFiveHeat', 5); b.intValue('weatherThreeHeat', 3); b.intValue('weatherSevenHeat', 7); b.intValue('weatherEighteen', 18)
+  b.intValue('weatherThirteen', 13); b.intValue('weatherSevenRain', 7); b.intValue('weatherForty', 40)
+  b.intValue('weatherThirtyFive', 35); b.intValue('weatherTwentyTwo', 22); b.intValue('weatherFour', 4)
+  b.intValue('weatherHundred', 100)
+  b.doubleValue('weatherMin', '0.0'); b.doubleValue('weatherMax', '100.0')
+  const range = callStatement(b, 'weatherRangeCall', 'weatherRange', ['weatherMin', 'weatherMax'])
+  b.make('weatherTotal', 'VariableDeclaration', { name: 'total', type: intType }, { initializer: 'weatherTotalStart' })
+  b.intValue('weatherTotalStart', 0)
+
+  // Températures : 12 + ((jour × 5 + zone × 3 + 7) mod 18).
+  b.binary('weatherTempDay', '*', 'weatherTempDayRead', 'weatherFiveHeat'); b.ref('weatherTempDayRead', 'day')
+  b.binary('weatherTempZone', '*', 'weatherTempZoneRead', 'weatherThreeHeat'); b.ref('weatherTempZoneRead', 'zone')
+  b.binary('weatherTempSum', '+', 'weatherTempDay', 'weatherTempZone')
+  b.binary('weatherTempOffset', '+', 'weatherTempSum', 'weatherSevenHeat')
+  b.binary('weatherTempModulo', '%', 'weatherTempOffset', 'weatherEighteen')
+  b.binary('weatherTemp', '+', 'weatherTwelve', 'weatherTempModulo')
+  b.variable('weatherTempVar', 'temp', intType, 'weatherTemp')
+  callStatement(b, 'weatherCellCall', 'weatherCell', ['weatherDayArg', 'weatherZoneArg', 'weatherTempArg']); b.ref('weatherDayArg', 'day'); b.ref('weatherZoneArg', 'zone'); b.ref('weatherTempArg', 'temp')
+  b.binary('weatherTotalNext', '+', 'weatherTotalRead', 'weatherTempTotal'); b.ref('weatherTotalRead', 'total'); b.ref('weatherTempTotal', 'temp')
+  b.assign('weatherTotalStore', 'weatherTotalTarget', 'weatherTotalNext'); b.ref('weatherTotalTarget', 'total')
+  b.block('weatherZoneBody', ['weatherTempVar', 'weatherCellCallStatement', 'weatherTotalStore'])
+  const zoneLoop = b.countedLoop('weatherZoneLoop', 'zone', 'weatherZones', ['weatherZoneBody'])
+  const dayHeatLoop = b.countedLoop('weatherDayHeatLoop', 'day', 'weatherDays', [zoneLoop])
+
+  // Pluie : motif journalier indépendant.
+  b.binary('weatherRainDay', '*', 'weatherRainDayRead', 'weatherThirteen'); b.ref('weatherRainDayRead', 'day')
+  b.binary('weatherRainOffset', '+', 'weatherRainDay', 'weatherSevenRain')
+  b.binary('weatherRain', '%', 'weatherRainOffset', 'weatherForty')
+  callStatement(b, 'weatherBarCall', 'weatherBar', ['weatherRainDayArg', 'weatherRain']); b.ref('weatherRainDayArg', 'day')
+  const dayRainLoop = b.countedLoop('weatherDayRainLoop', 'day', 'weatherDaysRain', ['weatherBarCallStatement'])
+
+  // Confort : écart à 22 °C, pénalisé de 4 points par degré.
+  b.binary('weatherAverage', '/', 'weatherTotalValue', 'weatherThirtyFive'); b.ref('weatherTotalValue', 'total')
+  b.binary('weatherGap', '-', 'weatherAverage', 'weatherTwentyTwo')
+  b.math('weatherGapAbs', 'abs', ['weatherGap'])
+  b.binary('weatherPenalty', '*', 'weatherGapAbs', 'weatherFour')
+  b.binary('weatherComfortRaw', '-', 'weatherHundred', 'weatherPenalty')
+  b.math('weatherComfortValue', 'clamp', ['weatherComfortRaw', 'weatherZeroClamp', 'weatherHundredClamp'])
+  b.intValue('weatherZeroClamp', 0); b.intValue('weatherHundredClamp', 100)
+  b.make('weatherComfortDouble', 'CastExpression', { type: doubleType }, { argument: 'weatherComfortValue' })
+  callStatement(b, 'weatherComfortCall', 'weatherValue', ['weatherComfortDouble'])
+
+  b.root('weatherMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'weatherBody' })
+  b.stringValue('weatherMessage', 'Weather station')
+  b.print('weatherPrint', 'weatherMessage')
+  b.block('weatherBody', ['weatherTotal', range, dayHeatLoop, dayRainLoop, 'weatherComfortCallStatement', 'weatherPrint'])
+
+  return workspace(b.project, [
+    note('weatherNote', 'Weather station', 'Sept jours et cinq zones. La heatmap affiche les températures calculées, les barres la pluie journalière, et la barre de progression l’indice de confort déduit de l’écart moyen à 22 °C. Les trois widgets sont mis à jour pendant le parcours.', 0, 1000, 900, 220),
+  ])
+}
+
+// Moniteur réseau : charge par port, requêtes par minute et charge globale.
+function networkMonitor() {
+  const b = builder()
+  const heat = createHeatmapModule('networkHeat', 'Port activity', 1, { width: 8, height: 6 })
+  const bars = createBarChartModule('networkBars', 'Requests per minute', 1, { size: 8 })
+  const load = createProgressModule('networkLoad', 'Global load', 1, { min: 0, max: 100 })
+  b.project.modules.push(heat.module, bars.module, load.module)
+  b.project.nodes.push(...heat.nodes, ...bars.nodes, ...load.nodes)
+  b.useModule('networkApp', 'Network monitor')
+  const app = b.project.modules.find((module) => module.id === 'networkApp')
+  const exported = (widget, name) => widget.module.exports.find((entry) => entry.name === name).nodeId
+  importFunction(app, 'networkCell', heat.module.id, exported(heat, 'HEATMAP_SP3_SET_CELL_1'), 'setPortLoad')
+  importFunction(app, 'networkBar', bars.module.id, exported(bars, 'BARCHART_SP3_SET_VALUE_1'), 'setMinuteLoad')
+  importFunction(app, 'networkValue', load.module.id, exported(load, 'PROGRESS_SP3_SET_VALUE_1'), 'setGlobalLoad')
+  importFunction(app, 'networkRange', load.module.id, exported(load, 'PROGRESS_SP3_SET_RANGE_1'), 'setGlobalRange')
+
+  b.intValue('networkMinutes', 8); b.intValue('networkPorts', 6); b.intValue('networkSeven', 7)
+  b.intValue('networkEleven', 11); b.intValue('networkFive', 5); b.intValue('networkTwenty', 20)
+  b.intValue('networkHundred', 100); b.intValue('networkNineteen', 19)
+  b.intValue('networkFortyEight', 48)
+  b.doubleValue('networkMin', '0.0'); b.doubleValue('networkMax', '100.0')
+  const range = callStatement(b, 'networkRangeCall', 'networkRange', ['networkMin', 'networkMax'])
+  b.make('networkTotal', 'VariableDeclaration', { name: 'total', type: intType }, { initializer: 'networkTotalStart' })
+  b.intValue('networkTotalStart', 0)
+
+  // Charge d'un port : (minute × 7 + port × 11 + 5) mod 20.
+  b.binary('networkLoadMinute', '*', 'networkLoadMinuteRead', 'networkSeven'); b.ref('networkLoadMinuteRead', 'minute')
+  b.binary('networkLoadPort', '*', 'networkLoadPortRead', 'networkEleven'); b.ref('networkLoadPortRead', 'port')
+  b.binary('networkLoadSum', '+', 'networkLoadMinute', 'networkLoadPort')
+  b.binary('networkLoadOffset', '+', 'networkLoadSum', 'networkFive')
+  b.binary('networkLoadModulo', '%', 'networkLoadOffset', 'networkTwenty')
+  b.variable('networkLoadVar', 'load', intType, 'networkLoadModulo')
+  b.binary('networkHeatValue', '*', 'networkLoadHeatRead', 'networkFiveHeat'); b.ref('networkLoadHeatRead', 'load'); b.intValue('networkFiveHeat', 5)
+  callStatement(b, 'networkCellCall', 'networkCell', ['networkMinuteArg', 'networkPortArg', 'networkHeatValue']); b.ref('networkMinuteArg', 'minute'); b.ref('networkPortArg', 'port')
+  b.binary('networkPortSumNext', '+', 'networkPortSumRead', 'networkLoadPortSum'); b.ref('networkPortSumRead', 'portSum'); b.ref('networkLoadPortSum', 'load')
+  b.assign('networkPortSumStore', 'networkPortSumTarget', 'networkPortSumNext'); b.ref('networkPortSumTarget', 'portSum')
+  b.binary('networkTotalNext', '+', 'networkTotalRead', 'networkLoadTotal'); b.ref('networkTotalRead', 'total'); b.ref('networkLoadTotal', 'load')
+  b.assign('networkTotalStore', 'networkTotalTarget', 'networkTotalNext'); b.ref('networkTotalTarget', 'total')
+  b.block('networkPortBody', ['networkLoadVar', 'networkCellCallStatement', 'networkPortSumStore', 'networkTotalStore'])
+  const portLoop = b.countedLoop('networkPortLoop', 'port', 'networkPorts', ['networkPortBody'])
+  b.make('networkPortSum', 'VariableDeclaration', { name: 'portSum', type: intType }, { initializer: 'networkPortSumStart' })
+  b.intValue('networkPortSumStart', 0)
+  callStatement(b, 'networkBarCall', 'networkBar', ['networkMinuteBarArg', 'networkPortSumValue']); b.ref('networkMinuteBarArg', 'minute'); b.ref('networkPortSumValue', 'portSum')
+  b.block('networkMinuteBody', ['networkPortSum', portLoop, 'networkBarCallStatement'])
+  const minuteLoop = b.countedLoop('networkMinuteLoop', 'minute', 'networkMinutes', ['networkMinuteBody'])
+
+  // Charge globale : total / (8 × 6 × 19), plafonnée à 100.
+  b.binary('networkCapacity', '*', 'networkFortyEight', 'networkNineteen')
+  b.binary('networkScaled', '*', 'networkTotalValue', 'networkHundred'); b.ref('networkTotalValue', 'total')
+  b.binary('networkPercent', '/', 'networkScaled', 'networkCapacity')
+  b.math('networkLoadValue', 'clamp', ['networkPercent', 'networkZeroClamp', 'networkHundredClamp'])
+  b.intValue('networkZeroClamp', 0); b.intValue('networkHundredClamp', 100)
+  b.make('networkLoadDouble', 'CastExpression', { type: doubleType }, { argument: 'networkLoadValue' })
+  callStatement(b, 'networkLoadCall', 'networkValue', ['networkLoadDouble'])
+
+  b.root('networkMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'networkBody' })
+  b.stringValue('networkMessage', 'Network monitor')
+  b.print('networkPrint', 'networkMessage')
+  b.block('networkBody', ['networkTotal', range, minuteLoop, 'networkLoadCallStatement', 'networkPrint'])
+
+  return workspace(b.project, [
+    note('networkNote', 'Network monitor', 'Huit minutes et six ports. La heatmap affiche la charge de chaque port, les barres la somme des ports par minute et la progression la charge globale normalisée. Les trois widgets évoluent ensemble pendant le parcours.', 0, 1000, 900, 220),
+  ])
+}
+
+
+// Moniteur réseau : charge par port, requêtes par minute et charge globale.
 // Rover : exploration d'une carte, batterie, LED d'artefact et écran pixel.
 function roverSurvey() {
   const b = builder()
@@ -1906,6 +2803,16 @@ export const examples = [
   { id: 'coinChange', labelKey: 'examples.coinChange', category: 'medium', subcategory: 'dynamic', build: coinChange },
   { id: 'gaugeDemo', labelKey: 'examples.gaugeDemo', category: 'medium', subcategory: 'widgets', build: gaugeDemo },
   { id: 'carDashboard', labelKey: 'examples.carDashboard', category: 'medium', subcategory: 'widgets', build: carDashboard },
+  { id: 'trafficControl', labelKey: 'examples.trafficControl', category: 'hard', subcategory: 'simulation', build: trafficControl },
+  { id: 'dnaAnalyzer', labelKey: 'examples.dnaAnalyzer', category: 'hard', subcategory: 'widgets', build: dnaAnalyzer },
+  { id: 'signalProcessing', labelKey: 'examples.signalProcessing', category: 'hard', subcategory: 'widgets', build: signalProcessing },
+  { id: 'mandelbrotEscape', labelKey: 'examples.mandelbrotEscape', category: 'hard', subcategory: 'widgets', build: mandelbrotEscape },
+  { id: 'collatzAtlas', labelKey: 'examples.collatzAtlas', category: 'hard', subcategory: 'widgets', build: collatzAtlas },
+  { id: 'sortRace', labelKey: 'examples.sortRace', category: 'medium', subcategory: 'sorting', build: sortRace },
+  { id: 'heatDiffusion', labelKey: 'examples.heatDiffusion', category: 'medium', subcategory: 'widgets', build: heatDiffusion },
+  { id: 'imageConvolution', labelKey: 'examples.imageConvolution', category: 'medium', subcategory: 'widgets', build: imageConvolution },
+  { id: 'weatherStation', labelKey: 'examples.weatherStation', category: 'medium', subcategory: 'widgets', build: weatherStation },
+  { id: 'networkMonitor', labelKey: 'examples.networkMonitor', category: 'medium', subcategory: 'widgets', build: networkMonitor },
   { id: 'pixelScreens', labelKey: 'examples.pixelScreens', category: 'medium', subcategory: 'animation', build: pixelScreens },
   { id: 'rain', labelKey: 'examples.rain', category: 'medium', subcategory: 'animation', build: rain },
   { id: 'knapsack', labelKey: 'examples.knapsack', category: 'hard', subcategory: 'dynamic', build: knapsack },

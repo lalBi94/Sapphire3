@@ -87,4 +87,4 @@ L’application vérifie les **releases publiées** du dépôt `lalBi94/Sapphire
 - L’analyse reste conservatrice et ne prouve ni terminaison ni valeurs générales.
 - Les captures de `abstract/visual` datent d’une campagne antérieure ; les fonctionnalités récentes y sont décrites dans le texte.
 
-Dernier check-up : **495 tests Node et Python réussis**, build frontend et parcours navigateur vérifiés. Les vingt exemples passent Run et Debug dans le Web Worker ; les douze exemples transpilables sont exécutés en JavaScript et Python. Les dialogues et écritures natifs restent couverts par les tests de services, sans nouvelle vérification manuelle Neutralinojs. Détail dans `docs/PROJECT_ARCHIVE.md`.
+Dernier check-up : **496 tests Node et Python réussis**, build frontend et parcours navigateur vérifiés. Les trente exemples passent Run et Debug dans le Web Worker ; les douze exemples transpilables sont exécutés en JavaScript et Python. Les dialogues et écritures natifs restent couverts par les tests de services, sans nouvelle vérification manuelle Neutralinojs. Détail dans `docs/PROJECT_ARCHIVE.md`.
