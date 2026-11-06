@@ -10,7 +10,7 @@
   pointer-events: none;
 }
 
-.mascot-notification--with-minimap { left: calc(var(--space-panel) + 206px); }
+.mascot-notification--with-minimap { left: var(--space-panel); bottom: calc(var(--space-panel) + 146px); }
 
 .mascot-notification__robot {
   flex: 0 0 auto;
@@ -58,7 +58,6 @@
 
 .mascot-notification__bubble--leaving { pointer-events: none; animation: mascot-bubble-out 140ms var(--easing-ui) forwards; }
 
-.mascot-notification--with-minimap .mascot-notification__bubble { width: min(320px, calc(100vw - 330px)); min-width: 210px; }
 .mascot-notification__bubble--error,
 .mascot-notification__bubble--transpile_failed,
 .mascot-notification__bubble--shortcut_conflict { border-left-color: var(--color-diagnostic); }
@@ -141,7 +140,6 @@
 @media (max-width: 720px) {
   .mascot-notification { flex-direction: column; align-items: flex-start; gap: 4px; }
   .mascot-notification__bubble { order: -1; width: min(320px, calc(100vw - 32px)); }
-  .mascot-notification--with-minimap .mascot-notification__bubble { width: min(320px, calc(100vw - 222px)); }
   .mascot-notification__robot { width: 74px; height: 74px; }
 }
 

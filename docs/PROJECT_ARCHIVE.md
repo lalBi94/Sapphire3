@@ -2,6 +2,11 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Mascotte au-dessus de la mini-carte — 6 novembre 2026
+
+- Le robot se place désormais **au-dessus de la mini-carte**, aligné sur son bord gauche, avec un écart de 8 px. La bulle reste à sa droite sur les écrans larges et au-dessus sur les écrans étroits ; elle ne recouvre plus la mini-carte. Sans mini-carte, le robot revient en bas à gauche du canvas.
+- Contrôle navigateur sur l'exemple **Fibonacci** : mini-carte à `left: 16px`, `bottom: 16px`, robot à `left: 16px`, `bottom: ~162px` ; la bulle d'import s'affiche correctement à droite. Aucun test automatisé supplémentaire, changement CSS de présentation uniquement. Non revérifié dans Neutralinojs.
+
 ## Vitesse de simulation — 6 novembre 2026
 
 - Le panneau Simulation propose **×1**, **×2**, **×3** et une saisie **×N** de 1 à 100. La valeur est bornée et arrondie ; elle peut être changée pendant l'exécution, en pause ou après la fin, et reste locale à la session. Le choix s'applique à l'animation de la trace sans modifier la trace, le résultat, les contrats ou l'AST.
