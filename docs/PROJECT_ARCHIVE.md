@@ -5,7 +5,8 @@
 ## Mascotte au-dessus de la mini-carte — 6 novembre 2026
 
 - Le robot se place désormais **au-dessus de la mini-carte**, aligné sur son bord gauche, avec un écart de 8 px. La bulle reste à sa droite sur les écrans larges et au-dessus sur les écrans étroits ; elle ne recouvre plus la mini-carte. Sans mini-carte, le robot revient en bas à gauche du canvas.
-- Contrôle navigateur sur l'exemple **Fibonacci** : mini-carte à `left: 16px`, `bottom: 16px`, robot à `left: 16px`, `bottom: ~162px` ; la bulle d'import s'affiche correctement à droite. Aucun test automatisé supplémentaire, changement CSS de présentation uniquement. Non revérifié dans Neutralinojs.
+- Le robot **lévite** avec une animation lente de 5 px et peut être **glissé au pointeur** : position absolute calculée dans le canvas, bornage à 8 px des bords, curseur `grab`/`grabbing`, animation suspendue pendant le geste. Un déplacement de moins de 4 px reste un clic et ouvre l'historique ; au-delà, le clic suivant n'est pas déclenché. La position reste locale à la session.
+- Contrôle navigateur sur l'exemple **Fibonacci** : animation `mascot-levitate` ; glisser de 150 px à droite et 100 px vers le haut déplace le robot en `left: 166px`, `bottom: 116px`, avec animation `none` pendant le geste puis reprise ; un clic après glisser n'ouvre pas l'historique, le clic suivant l'ouvre ; un glisser extrême est borné à `left: 1018px`, `bottom: 8px` sur un canvas de 1 112 × 636 px. Aucune erreur console. Non revérifié dans Neutralinojs.
 
 ## Vitesse de simulation — 6 novembre 2026
 

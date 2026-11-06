@@ -66,7 +66,7 @@ La CI GitHub Actions (`.github/workflows/ci.yml`) exécute l’installation verr
 - Barre compacte **Settings**, **Edit**, **View**, **Theme**, **Examples**, **Bookmarks**, **Windows**, Transpile et Run.
 - Fenêtre de paramètres, thèmes prédéfinis et personnalisés, huit langues (anglais par défaut, français, chinois, espagnol, arabe, japonais, hindi, russe), raccourcis clavier configurables.
 - Favoris personnels de fonctions et modules purs, gestionnaire de fenêtres flottantes, undo/redo structurel.
-- **Notifications par mascotte** : 16 expressions du robot au-dessus de la mini-carte, alignées sur son bord gauche, avec bulles en verre anthracite, actions et historique récent, file priorisée, remplacement des progressions et fermeture manuelle. Les dialogues bloquants et les panneaux de diagnostics restent inchangés.
+- **Notifications par mascotte** : 16 expressions du robot au-dessus de la mini-carte, alignées sur son bord gauche ; le robot lévite et peut être déplacé au pointeur. Bulles en verre anthracite, actions et historique récent, file priorisée, remplacement des progressions et fermeture manuelle. Les dialogues bloquants et les panneaux de diagnostics restent inchangés.
 
 ## Distribution et mises à jour
 

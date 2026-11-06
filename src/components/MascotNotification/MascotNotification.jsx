@@ -16,8 +16,14 @@ export default function MascotNotification({ hasMinimap = false }) {
   const { active, history, dismiss, clearHistory } = useNotifications()
   const [historyOpen, setHistoryOpen] = useState(false)
   const [closing, setClosing] = useState(false)
+  const [dragging, setDragging] = useState(false)
+  const [robotPosition, setRobotPosition] = useState(null)
   const rootRef = useRef(null)
+  const robotRef = useRef(null)
   const closeTimer = useRef(null)
+  const dragRef = useRef(null)
+  const draggingRef = useRef(false)
+  const suppressClickRef = useRef(false)
   const state = active ? mascotForType(active.type) : mascotStates.idle
   const isError = active?.type === 'error' || active?.type === 'transpile_failed' || active?.type === 'shortcut_conflict'
 
@@ -43,6 +49,74 @@ export default function MascotNotification({ hasMinimap = false }) {
     }
   }, [historyOpen])
 
+  // Capture le robot et mémorise sa position rendue dans le canvas.
+  function handleRobotPointerDown(event) {
+    if (event.button !== 0) return
+    const root = rootRef.current
+    const robot = robotRef.current
+    const parent = root?.offsetParent
+    if (!root || !robot || !parent) return
+    const parentRect = parent.getBoundingClientRect()
+    const rootRect = root.getBoundingClientRect()
+    const robotRect = robot.getBoundingClientRect()
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      left: rootRect.left - parentRect.left,
+      bottom: parentRect.bottom - rootRect.bottom,
+      width: robotRect.width,
+      height: robotRect.height,
+      areaWidth: parentRect.width,
+      areaHeight: parentRect.height,
+    }
+    draggingRef.current = false
+    suppressClickRef.current = false
+    try { event.currentTarget.setPointerCapture(event.pointerId) } catch { /* capture indisponible */ }
+  }
+
+  // Déplace le robot librement, en le maintenant dans les limites du canvas.
+  function handleRobotPointerMove(event) {
+    const drag = dragRef.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+    const dx = event.clientX - drag.startX
+    const dy = event.clientY - drag.startY
+    if (!draggingRef.current && Math.hypot(dx, dy) < 4) return
+    if (!draggingRef.current) {
+      draggingRef.current = true
+      setDragging(true)
+    }
+    suppressClickRef.current = true
+    const margin = 8
+    const left = Math.min(Math.max(margin, drag.left + dx), Math.max(margin, drag.areaWidth - drag.width - margin))
+    const bottom = Math.min(Math.max(margin, drag.bottom - dy), Math.max(margin, drag.areaHeight - drag.height - margin))
+    setRobotPosition({ left, bottom })
+  }
+
+  // Termine le glisser sans transformer le geste en ouverture d'historique.
+  function handleRobotPointerEnd(event) {
+    const drag = dragRef.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+    dragRef.current = null
+    if (draggingRef.current) {
+      suppressClickRef.current = true
+      draggingRef.current = false
+      setDragging(false)
+    }
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      try { event.currentTarget.releasePointerCapture(event.pointerId) } catch { /* capture déjà libérée */ }
+    }
+  }
+
+  // Ouvre ou referme l'historique, sauf après un vrai déplacement.
+  function handleRobotClick() {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false
+      return
+    }
+    setHistoryOpen((current) => !current)
+  }
+
   // Laisse la bulle se refermer brièvement avant de libérer la notification.
   function closeActive(id) {
     if (!id) return
@@ -63,18 +137,25 @@ export default function MascotNotification({ hasMinimap = false }) {
   return <div
     ref={rootRef}
     className={`mascot-notification${hasMinimap ? ' mascot-notification--with-minimap' : ''}`}
+    style={robotPosition ? { left: `${robotPosition.left}px`, bottom: `${robotPosition.bottom}px` } : undefined}
     data-canvas-ui
     onPointerDown={(event) => event.stopPropagation()}
     onKeyDown={(event) => event.stopPropagation()}
   >
     <button
+      ref={robotRef}
       type="button"
-      className={`mascot-notification__robot${active ? ' mascot-notification__robot--active' : ''}`}
+      className={`mascot-notification__robot${active ? ' mascot-notification__robot--active' : ''}${dragging ? ' mascot-notification__robot--dragging' : ''}`}
       aria-label={t(historyOpen ? 'mascot.closeHistory' : 'mascot.open')}
       title={t(historyOpen ? 'mascot.closeHistory' : 'mascot.open')}
-      onClick={() => setHistoryOpen((current) => !current)}
+      onClick={handleRobotClick}
+      onPointerDown={handleRobotPointerDown}
+      onPointerMove={handleRobotPointerMove}
+      onPointerUp={handleRobotPointerEnd}
+      onPointerCancel={handleRobotPointerEnd}
+      onLostPointerCapture={handleRobotPointerEnd}
     >
-      <img key={`${active?.id ?? 'idle'}:${active?.type ?? 'idle'}`} className="mascot-notification__image" src={state.src} alt="" aria-hidden="true" />
+      <img key={`${active?.id ?? 'idle'}:${active?.type ?? 'idle'}`} className="mascot-notification__image" src={state.src} alt="" aria-hidden="true" draggable={false} />
     </button>
 
     {historyOpen
