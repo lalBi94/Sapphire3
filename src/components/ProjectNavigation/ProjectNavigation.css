@@ -13,6 +13,13 @@
 .project-navigation__section { color: var(--color-text-muted); font-family: var(--font-display); font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
 .project-navigation__section:not(:first-child) { margin-top: var(--space-control); padding-top: var(--space-control); border-top: 1px solid var(--color-border); }
 /* Volet Examples : catégories et sous-catégories pliables, dans l'esprit des autres volets. */
+.project-navigation__examples-menu { width: 248px; }
+.project-navigation__example-search { display: flex; align-items: center; gap: 6px; margin-bottom: var(--space-small); padding: 0 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-input); }
+.project-navigation__example-search:focus-within { border-color: var(--color-selection-border); box-shadow: var(--shadow-selection); }
+.project-navigation__example-search svg { flex: 0 0 auto; color: var(--color-text-muted); }
+.project-navigation__example-search input { width: 100%; min-width: 0; padding: 7px 0; border: 0; outline: 0; background: transparent; color: var(--color-text); font: inherit; }
+.project-navigation__example-search input::placeholder { color: var(--color-text-muted); opacity: 1; }
+.project-navigation__search-empty { padding: 8px; color: var(--color-text-muted); font-size: 11px; }
 .project-navigation .project-navigation__group { margin: 0; }
 .project-navigation .project-navigation__group > summary,
 .project-navigation .project-navigation__subgroup > summary { display: flex; align-items: center; gap: 6px; box-sizing: border-box; width: 100%; min-width: 0; padding: 7px 8px; border-radius: var(--radius-small); text-decoration: none; text-underline-offset: 0; }

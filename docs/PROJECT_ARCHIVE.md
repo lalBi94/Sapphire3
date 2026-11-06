@@ -2,6 +2,13 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Recherche dans Examples — 6 novembre 2026
+
+- Le volet **Examples** possède un champ de recherche accessible (`searchbox`, libellé traduit) qui filtre immédiatement les 30 exemples. La recherche couvre le nom visible traduit, la catégorie, la sous-catégorie et l'identifiant stable ; la casse, les accents et la ponctuation de séparation sont ignorés. Plusieurs mots-clés doivent tous correspondre.
+- Les catégories et sous-catégories contenant des résultats s'ouvrent automatiquement pendant la recherche, avec leurs compteurs filtrés. Un état vide traduit remplace la liste sans résultat. Échap efface la requête avant de fermer le volet ; fermer Examples réinitialise la recherche. Aucun exemple, libellé ou contrat métier n'a été modifié.
+- **498 tests Node réussis** (+2 dans `tests/workspace/exampleSearch.test.js` : requête vide/multi-mots, nom/catégorie/sous-catégorie/identifiant/accents et absence de résultat), build frontend réussi, `git diff --check` réussi.
+- Contrôles navigateur : le champ apparaît dans Examples ; `traffic` ne laisse que **Traffic control** avec la catégorie **Hard 1** ouverte ; une requête sans résultat affiche le message traduit ; Échap vide le champ ; en français, `meteo` retrouve **Station météo** malgré l’accent. Aucune erreur console. Non revérifié dans Neutralinojs.
+
 ## Dix exemples graphiques — 6 novembre 2026
 
 - Catalogue porté à **30 exemples** : Simple 7, Medium 13, Hard 10. Les dix nouveaux sont **Traffic control**, **DNA analyzer**, **Signal processing**, **Mandelbrot escape**, **Collatz atlas**, **Sort race**, **Heat diffusion**, **Image convolution**, **Weather station** et **Network monitor**.

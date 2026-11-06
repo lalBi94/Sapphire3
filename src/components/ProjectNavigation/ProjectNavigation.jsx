@@ -5,6 +5,7 @@ import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
 import WindowMenu from '../WindowMenu/WindowMenu.jsx'
 import { supportedLanguages } from '../../utils/translations.js'
 import { exampleCategories, exampleSubcategories, examples } from '../../utils/examples.js'
+import { searchExamples } from '../../utils/exampleSearch.js'
 import { transpilationLanguages } from '../../utils/transpilation/index.js'
 import { describeBookmark } from '../../utils/logic/index.js'
 import { appVersion } from '../../utils/appInfo.js'
@@ -32,6 +33,7 @@ function ReplaceConfirmation({ titleKey, bodyKey, detail, confirmKey, onConfirm,
 export default function ProjectNavigation({ busy, message, error, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, onDismiss, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, onArrangeModules, distorted, onToggleDistortion, minimapVisible = true, onToggleMinimap, fullScreen = false, onToggleFullScreen, gridVisible = true, onToggleGrid, hiddenCards = [], onShowCard, onShowAllHidden, presentation = false, onTogglePresentation, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onRunGraphical, onDebugSp3, onTranspile, onCheckTranspile, selectedFunction = null, onOpenFunction, simulationRunning = false, simulationPaused = false, onPauseSimulation, onResumeSimulation, onStopSimulation, onOpenRepository, onOpenSettings, onQuit, updateAvailable = false, updateVersion = '', onInstallUpdate, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark, onOpenBookmarks }) {
   const navigationRef = useRef(null)
   const [insertingId, setInsertingId] = useState(null)
+  const [exampleQuery, setExampleQuery] = useState('')
   const [transpileChecks, setTranspileChecks] = useState({})
   const [checkingTranspile, setCheckingTranspile] = useState(false)
   const transpileCheckEpoch = useRef(0)
@@ -150,6 +152,14 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
     onTogglePresentation()
   }
 
+  // Filtre les exemples sur le nom visible, la catégorie, la sous-catégorie et l'identifiant.
+  const searchingExamples = exampleQuery.trim().length > 0
+  const filteredExamples = searchExamples(examples, exampleQuery, {
+    example: (example) => t(example.labelKey),
+    category: (id) => t(exampleCategories.find((entry) => entry.id === id)?.labelKey ?? id),
+    subcategory: (id) => id ? t(exampleSubcategories.find((entry) => entry.id === id)?.labelKey ?? id) : '',
+  })
+
   return <>
     <nav ref={navigationRef} className="project-navigation" aria-label={t('nav.aria')} onKeyDown={handleKeyDown}>
       {!presentation && <>
@@ -220,38 +230,59 @@ export default function ProjectNavigation({ busy, message, error, pendingImport,
           <ThemeMenu />
         </div>
       </details>
-      <details name="workspace-menu" onToggle={handleToggle}>
+      <details name="workspace-menu" onToggle={(event) => { handleToggle(event); if (!event.currentTarget.open) setExampleQuery('') }}>
         <summary><Library size={13} aria-hidden="true" />{t('nav.examples')}<ChevronDown size={12} aria-hidden="true" /></summary>
-        <div className="project-navigation__menu">
-          {exampleCategories.map((category) => {
-            const entries = examples.filter((example) => example.category === category.id)
-            if (entries.length === 0) return null
-            // Regroupe par sous-catégorie ; une catégorie sans sous-catégorie liste ses exemples directement.
-            const groups = []
-            for (const example of entries) {
-              const key = example.subcategory ?? ''
-              let group = groups.find((entry) => entry.key === key)
-              if (!group) { group = { key, items: [] }; groups.push(group) }
-              group.items.push(example)
-            }
-            const nested = groups.some((group) => group.key !== '')
-            const exampleButton = (example) => <button type="button" key={example.id} onClick={() => { closeMenus(); onOpenExample(example.id) }}>{t(example.labelKey)}</button>
-            return <details className="project-navigation__group" key={category.id}>
-              <summary><ChevronDown size={12} aria-hidden="true" /><span className="project-navigation__group-label">{t(category.labelKey)}</span><span className="project-navigation__group-count">{entries.length}</span></summary>
-              <div className="project-navigation__group-body">
-                {nested
-                  ? groups.map((group) => {
-                    const subcategory = exampleSubcategories.find((entry) => entry.id === group.key)
-                    if (!subcategory) return group.items.map(exampleButton)
-                    return <details className="project-navigation__subgroup" key={group.key}>
-                      <summary><ChevronDown size={11} aria-hidden="true" /><span className="project-navigation__group-label">{t(subcategory.labelKey)}</span><span className="project-navigation__group-count">{group.items.length}</span></summary>
-                      <div className="project-navigation__group-body">{group.items.map(exampleButton)}</div>
-                    </details>
-                  })
-                  : entries.map(exampleButton)}
-              </div>
-            </details>
-          })}
+        <div className="project-navigation__menu project-navigation__examples-menu">
+          <div className="project-navigation__example-search">
+            <Search size={14} aria-hidden="true" />
+            <input
+              type="search"
+              value={exampleQuery}
+              aria-label={t('examples.search')}
+              placeholder={t('examples.searchPlaceholder')}
+              autoComplete="off"
+              spellCheck={false}
+              onChange={(event) => setExampleQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape' && exampleQuery) {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  setExampleQuery('')
+                }
+              }}
+            />
+          </div>
+          {filteredExamples.length === 0
+            ? <p className="project-navigation__search-empty">{t('examples.searchEmpty')}</p>
+            : exampleCategories.map((category) => {
+              const entries = filteredExamples.filter((example) => example.category === category.id)
+              if (entries.length === 0) return null
+              // Regroupe par sous-catégorie ; une catégorie sans sous-catégorie liste ses exemples directement.
+              const groups = []
+              for (const example of entries) {
+                const key = example.subcategory ?? ''
+                let group = groups.find((entry) => entry.key === key)
+                if (!group) { group = { key, items: [] }; groups.push(group) }
+                group.items.push(example)
+              }
+              const nested = groups.some((group) => group.key !== '')
+              const exampleButton = (example) => <button type="button" key={example.id} onClick={() => { closeMenus(); onOpenExample(example.id) }}>{t(example.labelKey)}</button>
+              return <details className="project-navigation__group" key={category.id} open={searchingExamples ? true : undefined}>
+                <summary><ChevronDown size={12} aria-hidden="true" /><span className="project-navigation__group-label">{t(category.labelKey)}</span><span className="project-navigation__group-count">{entries.length}</span></summary>
+                <div className="project-navigation__group-body">
+                  {nested
+                    ? groups.map((group) => {
+                      const subcategory = exampleSubcategories.find((entry) => entry.id === group.key)
+                      if (!subcategory) return group.items.map(exampleButton)
+                      return <details className="project-navigation__subgroup" key={group.key} open={searchingExamples ? true : undefined}>
+                        <summary><ChevronDown size={11} aria-hidden="true" /><span className="project-navigation__group-label">{t(subcategory.labelKey)}</span><span className="project-navigation__group-count">{group.items.length}</span></summary>
+                        <div className="project-navigation__group-body">{group.items.map(exampleButton)}</div>
+                      </details>
+                    })
+                    : entries.map(exampleButton)}
+                </div>
+              </details>
+            })}
         </div>
       </details>
       <details name="workspace-menu" onToggle={handleToggle}>
