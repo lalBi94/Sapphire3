@@ -2,6 +2,13 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Bulle de simulation déplaçable — 6 novembre 2026
+
+- Le panneau de sortie de simulation n'est plus figé en bas à droite : son **en-tête** est une poignée de déplacement au pointeur (`pointerdown/move/up`, capture tolérante à son indisponibilité) et aux **flèches** quand il a le focus. La position reste bornée au canvas avec une marge de 8 px ; les boutons de l'en-tête sont exclus du geste.
+- La position est conservée tant que le composant reste monté, donc après fermeture et nouveau **Run** ; elle reste locale à la session et n'entre ni dans le `.sp3` ni dans une préférence.
+- Vérifications : `pnpm build` réussi. Contrôles navigateur sur l'exemple **Fibonacci** : panneau ouvert en bas à droite (360 × 146 dans un canvas de 1000 × 642), glisser de (−200, −150) appliqué en `left: 428px` / `top: 333.6px` avec `right`/`bottom` remis à `auto`, flèche gauche puis haut déplaçant de 16 px chacune, glisser extrême borné à 8 px des bords droit et bas, position inchangée après un `pointerdown` sur un bouton d'en-tête, position retrouvée après fermeture et nouveau Run, aucune erreur console.
+- Limite : déplacement simple seulement — pas d'aimantation aux bords, de pliage ni de redimensionnement ajoutés au panneau ; pas de nouvelle vérification native Neutralinojs.
+
 ## Palette d'emoji et symboles Lucide — 6 novembre 2026
 
 - Liste d'emoji resserrée à **24 entrées utiles** : sept valeurs décoratives ou redondantes retirées (`🔧`, `⭐`, `🔥`, `💡`, `❤️`, `✅`, `📐`) et onze ajoutées (`🔑`, `⏱️`, `📈`, `🎨`, `🔔`, `♻️`, `🧭`, `🏁`, `🧰`, `📡`, `🧬`).

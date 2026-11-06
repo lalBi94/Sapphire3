@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { FastForward, Pause, Play, Square, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import usePanelFront from '../../hooks/usePanelFront.jsx'
@@ -11,8 +11,66 @@ import './SimulationPanel.css'
 export default function SimulationPanel({ result, running = false, paused = false, stopped = false, currentStep = 0, free = false, speed = 1, onClose, onPause, onResume, onStop, onToggleFree, onSpeedChange }) {
   const { t } = useTranslation()
   const [speedDraft, setSpeedDraft] = useState(String(speed))
+  const [position, setPosition] = useState(null)
+  const gestureRef = useRef(null)
+  const panelRef = useRef(null)
   const front = usePanelFront({ title: result ? t('simulation.title') : null, onClose })
   if (!result) return null
+
+  // Mesure la bulle dans son canvas avant un déplacement.
+  function measure() {
+    const panel = panelRef.current
+    const parent = panel?.offsetParent
+    if (!parent) return null
+    const bounds = panel.getBoundingClientRect()
+    const area = parent.getBoundingClientRect()
+    return { x: bounds.left - area.left, y: bounds.top - area.top, width: bounds.width, height: bounds.height, areaWidth: area.width, areaHeight: area.height }
+  }
+
+  // Borne la nouvelle position au canvas, sans sortir la bulle par un bord.
+  function apply(origin, dx, dy) {
+    setPosition({
+      x: Math.min(Math.max(8, origin.areaWidth - origin.width - 8), Math.max(8, origin.x + dx)),
+      y: Math.min(Math.max(8, origin.areaHeight - origin.height - 8), Math.max(8, origin.y + dy)),
+    })
+  }
+
+  // Capture le geste depuis l'en-tête, hors boutons d'action.
+  function start(event) {
+    if (event.button !== 0 || gestureRef.current || event.target.closest('button')) return
+    const origin = measure()
+    if (!origin) return
+    event.preventDefault()
+    event.stopPropagation()
+    gestureRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, origin }
+    try { event.currentTarget.setPointerCapture(event.pointerId) } catch { /* capture indisponible */ }
+  }
+
+  // Suit le pointeur pendant le déplacement.
+  function move(event) {
+    const gesture = gestureRef.current
+    if (!gesture || gesture.pointerId !== event.pointerId) return
+    apply(gesture.origin, event.clientX - gesture.x, event.clientY - gesture.y)
+  }
+
+  // Libère le geste après relâchement, annulation ou perte de capture.
+  function end(event) {
+    if (gestureRef.current?.pointerId !== event.pointerId) return
+    gestureRef.current = null
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+  }
+
+  // Offre le même déplacement aux flèches du clavier.
+  function keyDown(event) {
+    if (event.target !== event.currentTarget) return
+    const directions = { ArrowLeft: [-16, 0], ArrowRight: [16, 0], ArrowUp: [0, -16], ArrowDown: [0, 16] }
+    const direction = directions[event.key]
+    if (!direction) return
+    const origin = measure()
+    if (!origin) return
+    event.preventDefault()
+    apply(origin, ...direction)
+  }
 
   // Applique un préréglage et garde la saisie personnalisée alignée.
   function chooseSpeed(value) {
@@ -32,8 +90,8 @@ export default function SimulationPanel({ result, running = false, paused = fals
   const paced = !free && !stopped && currentStep > 0 && Array.isArray(result.outputSteps)
   const visibleOutput = paced ? result.output.slice(0, result.outputSteps.filter((step) => step <= currentStep).length) : result.output
   return (
-    <aside className="simulation-panel" data-canvas-ui data-canvas-scroll aria-label={t('simulation.title')} style={front.zIndex ? { zIndex: front.zIndex } : undefined} onPointerDown={(event) => { front.bringToFront(); event.stopPropagation() }} onFocusCapture={front.bringToFront} onKeyDown={(event) => event.stopPropagation()}>
-      <header>
+    <aside ref={panelRef} className="simulation-panel" data-canvas-ui data-canvas-scroll aria-label={t('simulation.title')} style={{ ...(position ? { left: position.x, top: position.y, right: 'auto', bottom: 'auto' } : {}), ...(front.zIndex ? { zIndex: front.zIndex } : {}) }} onPointerDown={(event) => { front.bringToFront(); event.stopPropagation() }} onFocusCapture={front.bringToFront} onKeyDown={(event) => event.stopPropagation()}>
+      <header tabIndex={0} aria-label={t('details.move')} title={t('details.moveHint')} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onLostPointerCapture={end} onKeyDown={keyDown}>
         <h2>{t('simulation.title')}</h2>
         {(running || paused) && <button type="button" className="simulation-panel__control" aria-label={t('simulation.free')} aria-pressed={free} title={t('simulation.freeHint')} onClick={onToggleFree}><FastForward size={14} fill="currentColor" aria-hidden="true" />{t('simulation.free')}</button>}
         {running && <button type="button" className="simulation-panel__control" aria-label={t('simulation.pause')} title={t('simulation.pause')} onClick={onPause}><Pause size={14} fill="currentColor" aria-hidden="true" />{t('simulation.pause')}</button>}
