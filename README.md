@@ -2,7 +2,7 @@
 
 ![Espace de travail Sapphire 3 : deux modules reliés par une flèche, avec leurs blocs dépliés](docs/assets/sapphire3-workspace.png)
 
-Application **desktop Windows** de programmation visuelle, en bêta (`0.1.0-beta.2`). Chaque carte posée sur le canvas est une construction d'un langage typé, analysée par un moteur JavaScript pur et indépendant des langages cibles. Le texte reste possible, mais il n'est plus le point de départ.
+Application **desktop Windows** de programmation visuelle, en bêta (`0.1.0-beta.3`). Chaque carte posée sur le canvas est une construction d'un langage typé, analysée par un moteur JavaScript pur et indépendant des langages cibles. Le texte reste possible, mais il n'est plus le point de départ.
 
 ## Installation et démarrage
 
@@ -90,4 +90,4 @@ L’application vérifie les **releases publiées** du dépôt `lalBi94/Sapphire
 - L’analyse reste conservatrice et ne prouve ni terminaison ni valeurs générales.
 - Les captures de `abstract/visual` datent d’une campagne antérieure ; les fonctionnalités récentes y sont décrites dans le texte.
 
-Dernier check-up : **508 tests Node et Python réussis**, build frontend et parcours navigateur vérifiés. Les trente exemples passent Run et Debug dans le Web Worker ; les douze exemples transpilables sont exécutés en JavaScript et Python. Les notifications par mascotte, l’aimantation des modules et la vitesse de simulation sont couvertes par des tests purs et des contrôles navigateur. Les dialogues et écritures natifs restent couverts par les tests de services, sans nouvelle vérification manuelle Neutralinojs. Détail dans `docs/PROJECT_ARCHIVE.md`.
+Dernier check-up : **508 tests Node et Python réussis**, build frontend et parcours navigateur vérifiés. Les trente exemples passent Run et Debug dans le Web Worker ; les douze exemples transpilables sont exécutés en JavaScript et Python. Les notifications par mascotte, l’aimantation des modules et la vitesse de simulation sont couvertes par des tests purs et des contrôles navigateur. Pour la bêta 0.1.0-beta.3, le paquet Windows a été audité et lancé dans Neutralinojs avec un profil isolé ; première sauvegarde native, Ctrl+S et création d’une sauvegarde de secours vérifiés. Détail dans `docs/PROJECT_ARCHIVE.md`.

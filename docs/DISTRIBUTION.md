@@ -76,7 +76,7 @@ Appliquer une vérification proportionnée et réelle :
 2. `pnpm build` : compilation Vite de production.
 3. `pnpm dist:win` : construction complète et archive.
 4. Audit de l'archive : liste des entrées, absence de dossier parent, présence des licences et notices.
-5. Audit de `resources.neu` : uniquement `dist/index.html`, `dist/assets/*` et `neutralino.config.json` ; ni sources, ni source maps, ni fixtures `.sp3`, ni dossier `verify`.
+5. Audit de `resources.neu` : uniquement `dist/index.html`, `dist/assets/*`, les licences embarquées `dist/fonts/licenses/OFL-*.txt` et `neutralino.config.json` ; ni sources, ni source maps, ni fixtures `.sp3`, ni dossier `verify`.
 6. Lancement de `Sapphire3.exe` extrait du paquet, dans la fenêtre Neutralinojs.
 7. Vérification native des fichiers `.sp3` : première sauvegarde vers un chemin choisi, puis `Ctrl+S` sur le fichier existant avec modification de l'horodatage et absence de fichier temporaire résiduel.
 8. Contrôle de la version affichée par `VERSION.txt` et des métadonnées de l'exécutable.

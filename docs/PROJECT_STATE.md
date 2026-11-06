@@ -2,6 +2,8 @@
 
 ## Présentation et périmètre
 
+- Version corrective préparée **0.1.0-beta.3** : regroupe ProgressBar, BarChart/Heatmap, les trente exemples et leur recherche, la mascotte de notification, l'aimantation et la vitesse de simulation. **508 tests réussis**, build Vite et paquet Windows construits ; archive auditée, lancement et sauvegardes natives vérifiés avec un profil temporaire isolé. Notes dans `docs/releases/v0.1.0-beta.3.md`, détail dans `docs/PROJECT_ARCHIVE.md`.
+
 - Cartes **BarChart** et **Heatmap** : modules cachés ordinaires, sans nouveau type logique, création par menu, bascule aperçu/code persistée, liens de dépendance et suivi Run/Debug. BarChart utilise un `int[]`, `SET_VALUE(index, value)`, `SET_DATA(values)` et `CLEAR()` (zéros, longueur conservée), avec barres signées, dégradé/halo du thème et au plus 64 valeurs affichées. Heatmap utilise un `int[]` en grille fixe 12×8 par défaut (dimensions source 1..32), `SET_CELL(x, y, value)` et `CLEAR()` ; l'intensité est la magnitude relative à la plus grande cellule, du fond à la couleur primaire du thème. **Aucune lecture à 24 fps pour Heatmap**, même avec un Screen ; elle suit seulement le pas de Run/Debug. Les deux restent exclus de la transpilation et de l'export SVG comme les widgets précédents. **Dix exemples graphiques** ont été ajoutés : trafic, ADN, traitement du signal, Mandelbrot, Collatz, course de tris, diffusion thermique, convolution d'image, station météo et moniteur réseau. Aucun Sparkline n'a été ajouté. Vérifications détaillées dans `docs/PROJECT_ARCHIVE.md` ; pas de nouvelle vérification native Neutralinojs.
 
 - Application desktop Windows : React 19, Vite 8, JavaScript/JSX, CSS, pnpm et Neutralinojs 6.10.0.
