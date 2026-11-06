@@ -39,10 +39,15 @@ const expectedOutput = {
   imageConvolution: ['Image convolution'],
   weatherStation: ['Weather station'],
   networkMonitor: ['Network monitor'],
+  coral: ['Coral growth'],
+  labyrinth: ['Labyrinth'],
+  starfield: ['Starfield'],
+  colorFlow: ['Color flow'],
+  rgbMixer: ['RGB mixer'],
 }
 
 test('bibliothèque d’exemples : chaque projet est valide, analysable et s’exécute', () => {
-  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'recursion', 'arrays', 'foreach', 'sorting', 'maths', 'imports', 'pointers', 'higherOrder', 'quickSort', 'coinChange', 'gaugeDemo', 'carDashboard', 'trafficControl', 'dnaAnalyzer', 'signalProcessing', 'mandelbrotEscape', 'collatzAtlas', 'sortRace', 'heatDiffusion', 'imageConvolution', 'weatherStation', 'networkMonitor', 'pixelScreens', 'rain', 'knapsack', 'calculus', 'gameOfLife', 'roverSurvey', 'signalLab'])
+  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'recursion', 'arrays', 'foreach', 'sorting', 'maths', 'imports', 'pointers', 'higherOrder', 'quickSort', 'coinChange', 'gaugeDemo', 'carDashboard', 'trafficControl', 'dnaAnalyzer', 'signalProcessing', 'mandelbrotEscape', 'collatzAtlas', 'sortRace', 'heatDiffusion', 'imageConvolution', 'weatherStation', 'networkMonitor', 'pixelScreens', 'rain', 'knapsack', 'calculus', 'gameOfLife', 'roverSurvey', 'signalLab', 'coral', 'labyrinth', 'starfield', 'colorFlow', 'rgbMixer'])
   assert.deepEqual(exampleCategories.map((category) => category.id), ['simple', 'medium', 'hard'])
   for (const example of examples) {
     assert.ok(exampleCategories.some((category) => category.id === example.category), `${example.id}: catégorie connue`)
@@ -267,6 +272,37 @@ test('exemple jeu de la vie : écran 90×56, règles de Conway et cycle infini',
   assert.equal(result.screens.lifeScreen.width, 90)
   assert.equal(result.screens.lifeScreen.height, 56)
   assert.equal(transpileProgram(workspace.project).code, 'TRANSPILE_SCREEN_UNSUPPORTED')
+})
+
+test('nouveaux exemples écran : résolutions, images et budgets bornés', () => {
+  const expectations = {
+    coral: { width: 72, height: 40, frames: 62 },
+    labyrinth: { width: 72, height: 40, frames: 109 },
+    starfield: { width: 64, height: 36, frames: 60 },
+    colorFlow: { width: 96, height: 54, frames: 55 },
+    rgbMixer: { width: 48, height: 28, frames: 25 },
+  }
+  const results = new Map()
+  for (const [id, expected] of Object.entries(expectations)) {
+    const workspace = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === id).build()))
+    const screen = workspace.presentation.cards.find((card) => card.type === 'screen')
+    assert.deepEqual({ width: screen.screenWidth, height: screen.screenHeight }, { width: expected.width, height: expected.height }, id)
+    const result = simulateProgram(workspace.project)
+    results.set(id, result)
+    assert.equal(result.ok, true, `${id}: ${result.errorCode ?? ''}`)
+    assert.equal(result.screenFrames.length, expected.frames, id)
+    assert.ok(result.steps < 10000, `${id}: budget de pas`)
+    assert.ok(result.screenFrames.length <= 240, `${id}: images d'écran`)
+    assert.ok(result.screenFrames.every((frame) => Object.values(frame).every((state) => state.pixels.length === expected.width * expected.height * 4)), `${id}: tampon complet`)
+  }
+  // Le flux de couleurs est une boucle fermée ; les croissances d'automate se relancent à la fin.
+  assert.equal(findFrameCycle(results.get('colorFlow').screenFrames, 'flowScreen'), 54)
+  // Le mélangeur expose les barres, la jauge et la LED RVB à chaque image.
+  const mixer = results.get('rgbMixer')
+  assert.equal(mixer.screenFrameProgresses.length, mixer.screenFrames.length)
+  assert.equal(mixer.screenFrameGauges.length, mixer.screenFrames.length)
+  assert.equal(mixer.screenFrameRgbLeds.length, mixer.screenFrames.length)
+  assert.ok(Object.keys(mixer.rgbLeds).length === 1)
 })
 
 test('les douze exemples transpilables : JavaScript et Python reproduisent la simulation', () => {

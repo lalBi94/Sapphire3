@@ -2,6 +2,15 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Nouvelles simulations d'écran — 6 novembre 2026
+
+- Cinq exemples ajoutés, tous adossés au nœud **Screen** : **Coral growth**, **Labyrinth**, **Starfield**, **Color flow** et **RGB mixer**. Le catalogue passe à **35 exemples** (Simple 7, Medium 17, Hard 11).
+- **Coral growth** (72×40, Medium/Automates) : règle B2/S12345, 34 cellules de départ, 62 images, 2 806 pas. **Labyrinth** (72×40, Hard/Automates) : règle B3/S1234, 109 images, 4 780 pas. Les deux utilisent `arrayConvolve` + `arrayLookup` pour traiter toute la grille en deux opérations, puis blit et présentation.
+- **Starfield** (64×36, Medium/Animation) : décalage d'une ligne par `arraySlice` + `arrayConcat`, huit étoiles tirées par `randomInt` à chaque image, 60 images, 7 013 pas. **Color flow** (96×54, Medium/Animation) : neuf bandes construites par `arrayFill`/`arrayConcat`, défilement d'une ligne par image, boucle fermée de **54 images**, 2 419 pas. **RGB mixer** (48×28, Medium/Widgets) : trois barres de progression 0–255, jauge de luminosité 0–100, LED RVB et quatre bandes écran (rouge, vert, bleu, mélange), boucle de **24 images**, 3 170 pas.
+- Aucun exemple ne dépasse les limites : **moins de 10 000 pas**, au plus **109 images d'écran** (plafond 240), dimensions ≤ 96×54 (plafond 128×128), tampons complets `largeur × hauteur × 4`.
+- Vérifications : **516 tests réussis** dont le nouveau test dédié (résolutions, nombre d'images, budgets, tampon complet, cycle 54 de Color flow, états synchronisés du mélangeur) et les tests existants (validité, sorties, annotations sans chevauchement) ; build Vite réussi. Contrôles navigateur : **Color flow** ouvert et lancé (canvas 96×54, palette de bandes visible, aucune erreur console) et **Coral growth** (canvas 72×40, 672 cellules colorées sur un échantillon d'image). Les cinq nouveaux noms apparaissent dans le volet Examples.
+- Limites : les croissances d'automate ne sont pas périodiques ; à la fin de la lecture, la relance d'écran existante rejoue la simulation. Starfield est volontairement aléatoire. Aucune nouvelle vérification native Neutralinojs.
+
 ## Bulle de simulation déplaçable — 6 novembre 2026
 
 - Le panneau de sortie de simulation n'est plus figé en bas à droite : son **en-tête** est une poignée de déplacement au pointeur (`pointerdown/move/up`, capture tolérante à son indisponibilité) et aux **flèches** quand il a le focus. La position reste bornée au canvas avec une marge de 8 px ; les boutons de l'en-tête sont exclus du geste.

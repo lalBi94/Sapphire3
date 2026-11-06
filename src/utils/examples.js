@@ -2,6 +2,7 @@ import { createProject, createModule, createNode } from './logic/index.js'
 import { createScreenModule, screenDefaults } from './screenNode.js'
 import { createGaugeModule, gaugeDefaults } from './gaugeNode.js'
 import { createLedModule, ledDefaults } from './ledNode.js'
+import { createRgbLedModule, rgbLedDefaults } from './rgbLedNode.js'
 import { createProgressModule, progressDefaults } from './progressNode.js'
 import { createBarChartModule, barChartDefaults } from './barChartNode.js'
 import { createHeatmapModule } from './heatmapNode.js'
@@ -2783,6 +2784,450 @@ function knapsack() {
   return workspace(b.project, [note('knapsackNote', 'Knapsack', 'Sac à dos 0/1 par programmation dynamique : `dp[c]` garde la meilleure valeur atteignable avec la capacité `c`. Pour chaque objet, la capacité est parcourue de haut en bas afin de ne le compter qu’une fois. `bestValue([1, 3, 4, 5], [1, 4, 5, 7], 7)` renvoie 9. $$dp[c] \\leftarrow \\max(dp[c],\\; dp[c - w] + v)$$', 0, 520, 620, 240)])
 }
 
+// Déclare un tableau d'entiers constant nommé, utilisable par référence.
+function intArrayConstant(b, name, values) {
+  b.root(`${name}Decl`, 'ConstantDeclaration', { name, type: intArrayType }, { initializer: `${name}Init` })
+  b.make(`${name}Init`, 'ArrayLiteral', { elementType: intType }, { elements: values.map((value, index) => {
+    b.intValue(`${name}Value${index}`, value)
+    return `${name}Value${index}`
+  }) })
+}
+
+// Simulation d'écran à automate cellulaire : convolution des voisins, table de
+// transition de 18 entrées, blit puis présentation, une image par génération.
+function automatonScreen({ id, title, width, height, frames, rule, kernel, seeds, palette, noteText }) {
+  const b = builder()
+  const screen = createScreenModule(`${id}Screen`, `${title} screen`, 1, { width, height })
+  b.project.modules.push(screen.module)
+  b.project.nodes.push(...screen.nodes)
+  b.useModule(`${id}App`, title)
+  const app = b.project.modules.find((module) => module.id === `${id}App`)
+  const exported = (name) => screen.module.exports.find((entry) => entry.name === name).nodeId
+  importFunction(app, `${id}BlitImport`, screen.module.id, exported('SCREEN_SP3_BLIT_1'), 'blit')
+  importFunction(app, `${id}PresentImport`, screen.module.id, exported('SCREEN_SP3_PRESENT_1'), 'present')
+
+  // Grille pleine, compteurs et tableau suivant : aucun pas par cellule.
+  b.root(`${id}Grid`, 'VariableDeclaration', { name: 'grid', type: intArrayType }, { initializer: `${id}GridInit` })
+  b.math(`${id}GridInit`, 'arrayFill', [`${id}CellCount`, `${id}Zero`])
+  b.intValue(`${id}CellCount`, width * height)
+  b.intValue(`${id}Zero`, 0)
+  b.root(`${id}Counts`, 'VariableDeclaration', { name: 'counts', type: intArrayType })
+  b.root(`${id}Next`, 'VariableDeclaration', { name: 'next', type: intArrayType })
+  intArrayConstant(b, `${id}Kernel`, kernel)
+  intArrayConstant(b, `${id}Rule`, rule)
+  intArrayConstant(b, `${id}Palette`, palette)
+
+  // Cellules de départ, posées une seule fois avant la boucle.
+  const seedStatements = seeds.map(([x, y], index) => {
+    const prefix = `${id}Seed${index}`
+    b.make(`${prefix}Cell`, 'ArrayAccess', {}, { array: `${prefix}Grid`, index: `${prefix}Index` })
+    b.ref(`${prefix}Grid`, 'grid')
+    b.intValue(`${prefix}Index`, y * width + x)
+    b.make(`${prefix}Value`, 'Literal', { type: intType, value: '1' })
+    b.make(`${prefix}Statement`, 'AssignmentStatement', {}, { target: `${prefix}Cell`, value: `${prefix}Value` })
+    return `${prefix}Statement`
+  })
+
+  b.math(`${id}CountsCall`, 'arrayConvolve', [`${id}GridRead`, `${id}Width`, `${id}Height`, `${id}KernelRead`, `${id}KernelWidth`, `${id}KernelHeight`])
+  b.ref(`${id}GridRead`, 'grid')
+  b.intValue(`${id}Width`, width)
+  b.intValue(`${id}Height`, height)
+  b.ref(`${id}KernelRead`, `${id}Kernel`)
+  b.intValue(`${id}KernelWidth`, 3)
+  b.intValue(`${id}KernelHeight`, 3)
+  b.assign(`${id}CountsAssign`, `${id}CountsTarget`, `${id}CountsCall`)
+  b.ref(`${id}CountsTarget`, 'counts')
+  b.math(`${id}LookupCall`, 'arrayLookup', [`${id}CountsRead`, `${id}GridLookup`, `${id}RuleRead`])
+  b.ref(`${id}CountsRead`, 'counts')
+  b.ref(`${id}GridLookup`, 'grid')
+  b.ref(`${id}RuleRead`, `${id}Rule`)
+  b.assign(`${id}NextAssign`, `${id}NextTarget`, `${id}LookupCall`)
+  b.ref(`${id}NextTarget`, 'next')
+  b.assign(`${id}GridAssign`, `${id}GridTarget`, `${id}NextRead`)
+  b.ref(`${id}GridTarget`, 'grid')
+  b.ref(`${id}NextRead`, 'next')
+
+  b.make(`${id}BlitStatement`, 'ExpressionStatement', {}, { expression: `${id}BlitCall` })
+  b.call(`${id}BlitCall`, `${id}BlitCallee`, [`${id}BlitGrid`, `${id}BlitPalette`])
+  b.make(`${id}BlitCallee`, 'Reference', {}, {}, { target: { kind: 'import', importId: `${id}BlitImport` } })
+  b.ref(`${id}BlitGrid`, 'grid')
+  b.ref(`${id}BlitPalette`, `${id}Palette`)
+  b.make(`${id}PresentStatement`, 'ExpressionStatement', {}, { expression: `${id}PresentCall` })
+  b.call(`${id}PresentCall`, `${id}PresentCallee`, [])
+  b.make(`${id}PresentCallee`, 'Reference', {}, {}, { target: { kind: 'import', importId: `${id}PresentImport` } })
+
+  const loop = b.countedLoop(`${id}Frame`, 'frame', `${id}FrameCount`, [
+    `${id}CountsAssign`, `${id}NextAssign`, `${id}GridAssign`, `${id}BlitStatement`, `${id}PresentStatement`,
+  ])
+  b.intValue(`${id}FrameCount`, frames)
+  b.root(`${id}Main`, 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: `${id}Body` })
+  b.stringValue(`${id}Message`, title)
+  b.print(`${id}Print`, `${id}Message`)
+  b.block(`${id}Body`, [...seedStatements, loop, `${id}Print`])
+
+  return workspace(b.project, [note(`${id}Note`, title, noteText, 0, 520, 620, 220)])
+}
+
+// Champ d'étoiles : l'écran défile d'une ligne par image, puis huit étoiles
+// colorées apparaissent en bas avec une colonne tirée au hasard.
+function starfield() {
+  const b = builder()
+  const width = 64
+  const height = 36
+  const frames = 60
+  const screen = createScreenModule('starScreen', 'Starfield screen', 1, { width, height })
+  b.project.modules.push(screen.module)
+  b.project.nodes.push(...screen.nodes)
+  b.useModule('starApp', 'Starfield')
+  const app = b.project.modules.find((module) => module.id === 'starApp')
+  const exported = (name) => screen.module.exports.find((entry) => entry.name === name).nodeId
+  importFunction(app, 'starBlitImport', screen.module.id, exported('SCREEN_SP3_BLIT_1'), 'blit')
+  importFunction(app, 'starPresentImport', screen.module.id, exported('SCREEN_SP3_PRESENT_1'), 'present')
+
+  b.root('starGrid', 'VariableDeclaration', { name: 'grid', type: intArrayType }, { initializer: 'starGridInit' })
+  b.math('starGridInit', 'arrayFill', ['starCellCount', 'starZero'])
+  b.intValue('starCellCount', width * height)
+  b.intValue('starZero', 0)
+  intArrayConstant(b, 'starPalette', [0, 0, 0, 255, 235, 240, 255, 255, 120, 190, 255, 255, 255, 213, 71, 255])
+
+  // Décale la grille d'une ligne vers le haut, puis complète la dernière ligne.
+  b.math('starSlice', 'arraySlice', ['starGridRead', 'starSliceStart', 'starSliceEnd'])
+  b.ref('starGridRead', 'grid')
+  b.intValue('starSliceStart', width)
+  b.intValue('starSliceEnd', width * height)
+  b.math('starRowFill', 'arrayFill', ['starRowWidth', 'starRowZero'])
+  b.intValue('starRowWidth', width)
+  b.intValue('starRowZero', 0)
+  b.math('starJoin', 'arrayConcat', ['starSlice', 'starRowFill'])
+  b.assign('starShift', 'starShiftTarget', 'starJoin')
+  b.ref('starShiftTarget', 'grid')
+
+  const drops = []
+  for (let index = 0; index < 8; index += 1) {
+    const prefix = `starDrop${index}`
+    b.math(`${prefix}Column`, 'randomInt', [`${prefix}MinColumn`, `${prefix}MaxColumn`])
+    b.intValue(`${prefix}MinColumn`, 0)
+    b.intValue(`${prefix}MaxColumn`, width - 1)
+    b.binary(`${prefix}Index`, '+', `${prefix}Base`, `${prefix}Column`)
+    b.intValue(`${prefix}Base`, (height - 1) * width)
+    b.access(`${prefix}Cell`, `${prefix}Grid`, `${prefix}Index`)
+    b.ref(`${prefix}Grid`, 'grid')
+    b.math(`${prefix}Color`, 'randomInt', [`${prefix}MinColor`, `${prefix}MaxColor`])
+    b.intValue(`${prefix}MinColor`, 1)
+    b.intValue(`${prefix}MaxColor`, 3)
+    b.assign(`${prefix}Statement`, `${prefix}Cell`, `${prefix}Color`)
+    drops.push(`${prefix}Statement`)
+  }
+
+  b.make('starBlitStatement', 'ExpressionStatement', {}, { expression: 'starBlitCall' })
+  b.call('starBlitCall', 'starBlitCallee', ['starBlitGrid', 'starBlitPalette'])
+  b.make('starBlitCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'starBlitImport' } })
+  b.ref('starBlitGrid', 'grid')
+  b.ref('starBlitPalette', 'starPalette')
+  b.make('starPresentStatement', 'ExpressionStatement', {}, { expression: 'starPresentCall' })
+  b.call('starPresentCall', 'starPresentCallee', [])
+  b.make('starPresentCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'starPresentImport' } })
+
+  const loop = b.countedLoop('starFrame', 'frame', 'starFrameCount', ['starShift', ...drops, 'starBlitStatement', 'starPresentStatement'])
+  b.intValue('starFrameCount', frames)
+  b.root('starMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'starBody' })
+  b.stringValue('starMessage', 'Starfield')
+  b.print('starPrint', 'starMessage')
+  b.block('starBody', [loop, 'starPrint'])
+
+  return workspace(b.project, [
+    note('starNote', 'Starfield', `Écran ${width}×${height}. Chaque image décale la grille d'une ligne vers le haut, puis huit étoiles sont tirées au hasard sur la dernière ligne, dans trois couleurs. La grille est déplacée avec arraySlice et arrayConcat, sans boucle par pixel ; Run rejoue les images et relance la simulation à la fin pour renouveler le ciel.`, 0, 520, 620, 220),
+  ])
+}
+
+// Bandes de couleur qui défilent : grille statique construite par arrayFill,
+// décalage d'une ligne par image, boucle refermée après 54 images.
+function colorFlow() {
+  const b = builder()
+  const width = 96
+  const height = 54
+  const bandHeight = 6
+  const bands = height / bandHeight
+  const frames = 55
+  const screen = createScreenModule('flowScreen', 'Color flow screen', 1, { width, height })
+  b.project.modules.push(screen.module)
+  b.project.nodes.push(...screen.nodes)
+  b.useModule('flowApp', 'Color flow')
+  const app = b.project.modules.find((module) => module.id === 'flowApp')
+  const exported = (name) => screen.module.exports.find((entry) => entry.name === name).nodeId
+  importFunction(app, 'flowBlitImport', screen.module.id, exported('SCREEN_SP3_BLIT_1'), 'blit')
+  importFunction(app, 'flowPresentImport', screen.module.id, exported('SCREEN_SP3_PRESENT_1'), 'present')
+
+  // Neuf bandes de six lignes, concaténées sans boucle par cellule.
+  let joined = null
+  for (let band = 0; band < bands; band += 1) {
+    b.math(`flowBand${band}`, 'arrayFill', [`flowBandCells${band}`, `flowBandColor${band}`])
+    b.intValue(`flowBandCells${band}`, width * bandHeight)
+    b.intValue(`flowBandColor${band}`, band + 1)
+    if (band === 0) {
+      joined = 'flowBand0'
+      continue
+    }
+    b.math(`flowJoin${band}`, 'arrayConcat', [joined, `flowBand${band}`])
+    joined = `flowJoin${band}`
+  }
+  b.root('flowGrid', 'VariableDeclaration', { name: 'grid', type: intArrayType }, { initializer: joined })
+  intArrayConstant(b, 'flowPalette', [
+    8, 10, 18, 255,
+    18, 60, 90, 255,
+    22, 90, 120, 255,
+    30, 120, 140, 255,
+    40, 150, 150, 255,
+    60, 175, 140, 255,
+    90, 195, 120, 255,
+    130, 205, 100, 255,
+    180, 210, 85, 255,
+    235, 200, 80, 255,
+  ])
+
+  // La ligne ajoutée reprend la couleur de la bande suivante : boucle sans raccord.
+  b.math('flowSlice', 'arraySlice', ['flowGridRead', 'flowSliceStart', 'flowSliceEnd'])
+  b.ref('flowGridRead', 'grid')
+  b.intValue('flowSliceStart', width)
+  b.intValue('flowSliceEnd', width * height)
+  b.binary('flowBandIndex', '/', 'flowFrameValue', 'flowBandRows')
+  b.ref('flowFrameValue', 'frame')
+  b.intValue('flowBandRows', bandHeight)
+  b.binary('flowBandModulo', '%', 'flowBandIndex', 'flowBandCount')
+  b.intValue('flowBandCount', bands)
+  b.binary('flowColor', '+', 'flowBandModulo', 'flowColorOne')
+  b.intValue('flowColorOne', 1)
+  b.math('flowRowFill', 'arrayFill', ['flowRowWidth', 'flowColor'])
+  b.intValue('flowRowWidth', width)
+  b.math('flowScrolled', 'arrayConcat', ['flowSlice', 'flowRowFill'])
+  b.assign('flowShift', 'flowShiftTarget', 'flowScrolled')
+  b.ref('flowShiftTarget', 'grid')
+
+  b.make('flowBlitStatement', 'ExpressionStatement', {}, { expression: 'flowBlitCall' })
+  b.call('flowBlitCall', 'flowBlitCallee', ['flowBlitGrid', 'flowBlitPalette'])
+  b.make('flowBlitCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'flowBlitImport' } })
+  b.ref('flowBlitGrid', 'grid')
+  b.ref('flowBlitPalette', 'flowPalette')
+  b.make('flowPresentStatement', 'ExpressionStatement', {}, { expression: 'flowPresentCall' })
+  b.call('flowPresentCall', 'flowPresentCallee', [])
+  b.make('flowPresentCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'flowPresentImport' } })
+
+  const loop = b.countedLoop('flowFrame', 'frame', 'flowFrameCount', ['flowShift', 'flowBlitStatement', 'flowPresentStatement'])
+  b.intValue('flowFrameCount', frames)
+  b.root('flowMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'flowBody' })
+  b.stringValue('flowMessage', 'Color flow')
+  b.print('flowPrint', 'flowMessage')
+  b.block('flowBody', [loop, 'flowPrint'])
+
+  return workspace(b.project, [
+    note('flowNote', 'Color flow', `Écran ${width}×${height}. Neuf bandes de six lignes sont assemblées par arrayFill et arrayConcat, puis la grille défile d'une ligne par image. La couleur réinjectée suit la bande suivante : la 55e image égale la première, donc la lecture boucle sans raccord.`, 0, 520, 620, 220),
+  ])
+}
+
+// Mélangeur RVB : trois barres pour les canaux, une jauge de luminosité, une LED
+// RVB et un écran 48×28 qui montre les canaux et la couleur mélangée.
+function rgbMixer() {
+  const b = builder()
+  const width = 48
+  const height = 28
+  const bandCells = width * 7
+  const frames = 25
+  const screen = createScreenModule('mixScreen', 'Mixer screen', 1, { width, height })
+  const red = createProgressModule('mixRed', 'Red channel', 1, { min: 0, max: 255 })
+  const green = createProgressModule('mixGreen', 'Green channel', 2, { min: 0, max: 255 })
+  const blue = createProgressModule('mixBlue', 'Blue channel', 3, { min: 0, max: 255 })
+  const gauge = createGaugeModule('mixGauge', 'Brightness', 1, gaugeDefaults)
+  const led = createRgbLedModule('mixLed', 'Mixed color', 1, rgbLedDefaults)
+  b.project.modules.push(screen.module, red.module, green.module, blue.module, gauge.module, led.module)
+  b.project.nodes.push(...screen.nodes, ...red.nodes, ...green.nodes, ...blue.nodes, ...gauge.nodes, ...led.nodes)
+  b.useModule('mixApp', 'RGB mixer')
+  const app = b.project.modules.find((module) => module.id === 'mixApp')
+  const exported = (widget, name) => widget.module.exports.find((entry) => entry.name === name).nodeId
+  importFunction(app, 'mixBlitImport', screen.module.id, exported(screen, 'SCREEN_SP3_BLIT_1'), 'blit')
+  importFunction(app, 'mixPresentImport', screen.module.id, exported(screen, 'SCREEN_SP3_PRESENT_1'), 'present')
+  importFunction(app, 'mixRedImport', red.module.id, exported(red, red.functions.setValue), 'setRed')
+  importFunction(app, 'mixGreenImport', green.module.id, exported(green, green.functions.setValue), 'setGreen')
+  importFunction(app, 'mixBlueImport', blue.module.id, exported(blue, blue.functions.setValue), 'setBlue')
+  importFunction(app, 'mixGaugeImport', gauge.module.id, exported(gauge, gauge.functions.setValue), 'setBrightness')
+  importFunction(app, 'mixLedImport', led.module.id, exported(led, led.functions.setColor), 'setColor')
+
+  // Quatre bandes horizontales : rouge, vert, bleu, puis la couleur mélangée.
+  b.math('mixBandRed', 'arrayFill', ['mixBandCellsRed', 'mixBandColorRed'])
+  b.intValue('mixBandCellsRed', bandCells)
+  b.intValue('mixBandColorRed', 0)
+  b.math('mixBandGreen', 'arrayFill', ['mixBandCellsGreen', 'mixBandColorGreen'])
+  b.intValue('mixBandCellsGreen', bandCells)
+  b.intValue('mixBandColorGreen', 1)
+  b.math('mixBandBlue', 'arrayFill', ['mixBandCellsBlue', 'mixBandColorBlue'])
+  b.intValue('mixBandCellsBlue', bandCells)
+  b.intValue('mixBandColorBlue', 2)
+  b.math('mixBandMixed', 'arrayFill', ['mixBandCellsMixed', 'mixBandColorMixed'])
+  b.intValue('mixBandCellsMixed', bandCells)
+  b.intValue('mixBandColorMixed', 3)
+  b.math('mixJoin1', 'arrayConcat', ['mixBandRed', 'mixBandGreen'])
+  b.math('mixJoin2', 'arrayConcat', ['mixJoin1', 'mixBandBlue'])
+  b.math('mixJoin3', 'arrayConcat', ['mixJoin2', 'mixBandMixed'])
+  b.root('mixGrid', 'VariableDeclaration', { name: 'grid', type: intArrayType }, { initializer: 'mixJoin3' })
+  // Palette RGBA mutable : chaque couleur commence noire, seuls les canaux utiles changent.
+  b.root('mixPalette', 'VariableDeclaration', { name: 'mixPalette', type: intArrayType }, { initializer: 'mixPaletteInit' })
+  b.make('mixPaletteInit', 'ArrayLiteral', { elementType: intType }, { elements: [0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255].map((value, index) => {
+    b.intValue(`mixPaletteValue${index}`, value)
+    return `mixPaletteValue${index}`
+  }) })
+
+  // Canal r, g ou b : motif de 24 images refermé sur lui-même.
+  const channel = (prefix, offset) => {
+    b.binary(`${prefix}Times`, '*', `${prefix}FrameRead`, `${prefix}Step`)
+    b.ref(`${prefix}FrameRead`, 'frame')
+    b.intValue(`${prefix}Step`, 10)
+    b.binary(`${prefix}Shifted`, '+', `${prefix}Times`, `${prefix}Offset`)
+    b.intValue(`${prefix}Offset`, offset)
+    b.binary(`${prefix}Value`, '%', `${prefix}Shifted`, `${prefix}Modulo`)
+    b.intValue(`${prefix}Modulo`, 240)
+    b.variable(`${prefix}Variable`, prefix, intType, `${prefix}Value`)
+    return `${prefix}Variable`
+  }
+
+  // Écrit une composante de la palette par son index plat.
+  const paletteWrite = (prefix, index, value) => {
+    b.access(`${prefix}Cell`, `${prefix}Array`, `${prefix}Index`)
+    b.ref(`${prefix}Array`, 'mixPalette')
+    b.intValue(`${prefix}Index`, index)
+    b.assign(`${prefix}Statement`, `${prefix}Cell`, value)
+    return `${prefix}Statement`
+  }
+
+  const r = channel('mixR', 0)
+  const g = channel('mixG', 80)
+  const bl = channel('mixBlueValue', 160)
+  b.make('mixRDouble', 'CastExpression', { type: doubleType }, { argument: 'mixRRead' })
+  b.ref('mixRRead', 'mixR')
+  b.make('mixGDouble', 'CastExpression', { type: doubleType }, { argument: 'mixGRead' })
+  b.ref('mixGRead', 'mixG')
+  b.make('mixBDouble', 'CastExpression', { type: doubleType }, { argument: 'mixBRead' })
+  b.ref('mixBRead', 'mixBlueValue')
+  b.binary('mixSum', '+', 'mixSumLeft', 'mixSumRight')
+  b.binary('mixSumLeft', '+', 'mixSumR', 'mixSumG')
+  b.ref('mixSumR', 'mixR')
+  b.ref('mixSumG', 'mixG')
+  b.ref('mixSumRight', 'mixBlueValue')
+  b.binary('mixScaled', '*', 'mixSum', 'mixHundred')
+  b.intValue('mixHundred', 100)
+  b.binary('mixBrightnessValue', '/', 'mixScaled', 'mixMaximum')
+  b.intValue('mixMaximum', 765)
+  b.make('mixBrightnessDouble', 'CastExpression', { type: doubleType }, { argument: 'mixBrightnessValue' })
+
+  const redCall = callStatement(b, 'mixRedCall', 'mixRedImport', ['mixRDouble'])
+  const greenCall = callStatement(b, 'mixGreenCall', 'mixGreenImport', ['mixGDouble'])
+  const blueCall = callStatement(b, 'mixBlueCall', 'mixBlueImport', ['mixBDouble'])
+  const brightnessCall = callStatement(b, 'mixBrightnessCall', 'mixGaugeImport', ['mixBrightnessDouble'])
+  b.ref('mixLedR', 'mixR')
+  b.ref('mixLedG', 'mixG')
+  b.ref('mixLedB', 'mixBlueValue')
+  const ledCall = callStatement(b, 'mixLedCall', 'mixLedImport', ['mixLedR', 'mixLedG', 'mixLedB'])
+  // Chaque composante écrite dans la palette a sa propre référence.
+  b.ref('mixChannelR1', 'mixR')
+  b.ref('mixChannelG1', 'mixG')
+  b.ref('mixChannelB1', 'mixBlueValue')
+  b.ref('mixChannelR2', 'mixR')
+  b.ref('mixChannelG2', 'mixG')
+  b.ref('mixChannelB2', 'mixBlueValue')
+
+  b.make('mixBlitStatement', 'ExpressionStatement', {}, { expression: 'mixBlitCall' })
+  b.call('mixBlitCall', 'mixBlitCallee', ['mixBlitGrid', 'mixBlitPalette'])
+  b.make('mixBlitCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'mixBlitImport' } })
+  b.ref('mixBlitGrid', 'grid')
+  b.ref('mixBlitPalette', 'mixPalette')
+  b.make('mixPresentStatement', 'ExpressionStatement', {}, { expression: 'mixPresentCall' })
+  b.call('mixPresentCall', 'mixPresentCallee', [])
+  b.make('mixPresentCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'mixPresentImport' } })
+
+  const body = [
+    r, g, bl,
+    paletteWrite('mixPaletteRed', 0, 'mixChannelR1'),
+    paletteWrite('mixPaletteGreen', 5, 'mixChannelG1'),
+    paletteWrite('mixPaletteBlue', 10, 'mixChannelB1'),
+    paletteWrite('mixPaletteMixedR', 12, 'mixChannelR2'),
+    paletteWrite('mixPaletteMixedG', 13, 'mixChannelG2'),
+    paletteWrite('mixPaletteMixedB', 14, 'mixChannelB2'),
+    redCall, greenCall, blueCall, brightnessCall, ledCall,
+    'mixBlitStatement', 'mixPresentStatement',
+  ]
+  const loop = b.countedLoop('mixFrame', 'frame', 'mixFrameCount', body)
+  b.intValue('mixFrameCount', frames)
+  b.root('mixMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'mixBody' })
+  b.stringValue('mixMessage', 'RGB mixer')
+  b.print('mixPrint', 'mixMessage')
+  b.block('mixBody', [loop, 'mixPrint'])
+
+  return workspace(b.project, [
+    note('mixNote', 'RGB mixer', `Écran ${width}×${height}. Trois canaux parcourent 0–255 sur 24 images ; les barres de progression les affichent, la jauge calcule la luminosité et la LED RVB montre la couleur obtenue. L'écran présente quatre bandes — rouge, vert, bleu, mélange — sans un pas par pixel.`, 0, 1500, 900, 220),
+  ])
+}
+
+// Corail : automate cellulaire B2/S12345, qui développe une structure organique
+// dense puis se stabilise ; le motif de départ est un petit amas asymétrique.
+function coralGrowth() {
+  const blob = [
+    [36, 22], [35, 28], [37, 24], [39, 28], [30, 28], [32, 21], [40, 20], [34, 20],
+    [30, 26], [40, 27], [38, 20], [36, 24], [32, 28], [30, 27], [31, 20], [37, 26],
+    [39, 27], [39, 26], [30, 23], [31, 25], [34, 22], [38, 22], [39, 25], [32, 24],
+    [36, 23], [33, 27], [36, 23], [37, 25], [34, 25], [32, 20], [36, 24], [35, 22],
+    [34, 20], [38, 21],
+  ]
+  const seeds = []
+  const seen = new Set()
+  for (const [x, y] of blob) {
+    const key = `${x},${y}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    seeds.push([x, y])
+  }
+  return automatonScreen({
+    id: 'coral',
+    title: 'Coral growth',
+    width: 72,
+    height: 40,
+    frames: 62,
+    kernel: [1, 1, 1, 1, 0, 1, 1, 1, 1],
+    rule: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0],
+    seeds,
+    palette: [5, 10, 16, 255, 255, 190, 120, 255],
+    noteText: 'Écran 72×40. Règle B2/S12345 : une cellule morte naît avec deux voisines, une cellule vivante survit avec une à cinq. L’amas initial se développe en structure organique dense, puis se fige après une soixantaine de générations. La convolution et la table de transition traitent toute la grille en une opération, suivies d’un blit et d’une présentation.',
+  })
+}
+
+// Labyrinthe : automate B3/S1234, qui creuse des couloirs jusqu'à un motif stable.
+function labyrinth() {
+  const blob = [
+    [36, 22], [35, 28], [37, 24], [39, 28], [30, 28], [32, 21], [40, 20], [34, 20],
+    [30, 26], [40, 27], [38, 20], [36, 24], [32, 28], [30, 27], [31, 20], [37, 26],
+    [39, 27], [39, 26], [30, 23], [31, 25], [34, 22], [38, 22], [39, 25], [32, 24],
+    [36, 23], [33, 27], [36, 23], [37, 25], [34, 25], [32, 20], [36, 24], [35, 22],
+    [34, 20], [38, 21],
+  ]
+  const seeds = []
+  const seen = new Set()
+  for (const [x, y] of blob) {
+    const key = `${x},${y}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    seeds.push([x, y])
+  }
+  return automatonScreen({
+    id: 'labyrinth',
+    title: 'Labyrinth',
+    width: 72,
+    height: 40,
+    frames: 109,
+    kernel: [1, 1, 1, 1, 0, 1, 1, 1, 1],
+    rule: [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
+    seeds,
+    palette: [4, 8, 14, 255, 120, 200, 255, 255],
+    noteText: 'Écran 72×40. Règle B3/S1234 : une cellule morte naît avec trois voisines, une cellule vivante survit avec une à quatre. Les couloirs se creusent génération après génération jusqu’à un labyrinthe stable, atteint en une centaine d’images. Chaque génération tient en une convolution, une lecture de table, un blit et une présentation.',
+  })
+}
+
 // Trois niveaux de difficulté, du plus simple au plus avancé.
 export const exampleCategories = [
   { id: 'simple', labelKey: 'examples.category.simple' },
@@ -2822,6 +3267,11 @@ export const examples = [
   { id: 'gameOfLife', labelKey: 'examples.gameOfLife', category: 'hard', subcategory: 'automata', build: gameOfLife },
   { id: 'roverSurvey', labelKey: 'examples.roverSurvey', category: 'hard', subcategory: 'simulation', build: roverSurvey },
   { id: 'signalLab', labelKey: 'examples.signalLab', category: 'hard', subcategory: 'simulation', build: signalLab },
+  { id: 'coral', labelKey: 'examples.coral', category: 'medium', subcategory: 'automata', build: coralGrowth },
+  { id: 'labyrinth', labelKey: 'examples.labyrinth', category: 'hard', subcategory: 'automata', build: labyrinth },
+  { id: 'starfield', labelKey: 'examples.starfield', category: 'medium', subcategory: 'animation', build: starfield },
+  { id: 'colorFlow', labelKey: 'examples.colorFlow', category: 'medium', subcategory: 'animation', build: colorFlow },
+  { id: 'rgbMixer', labelKey: 'examples.rgbMixer', category: 'medium', subcategory: 'widgets', build: rgbMixer },
 ]
 
 // Sous-catégories facultatives à l'intérieur d'une catégorie du volet Examples.
