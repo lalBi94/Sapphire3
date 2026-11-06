@@ -2,7 +2,7 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
-## Préparation corrective 0.1.0-beta.3 — 6 novembre 2026
+## Publication corrective 0.1.0-beta.3 — 6 novembre 2026
 
 - Version de `package.json` et du README passée à **0.1.0-beta.3**, notes dédiées dans `docs/releases/v0.1.0-beta.3.md`. Reprise des changements effectivement présents depuis la bêta précédente ; aucune nouvelle fonctionnalité ajoutée pendant la préparation. Site GitHub Pages laissé inchangé.
 - `pnpm test` : **508 réussites**, aucun échec, aucune annulation ni test ignoré ; exécutions Python comprises. Les exceptions de bornes et d'écriture sur constante affichées pendant la suite sont les cas négatifs attendus, leurs tests passent. Contrôles des marqueurs de conflit et tests focalisés sans correspondance ; `git diff --check` réussi.
@@ -11,6 +11,7 @@
 - ZIP : **5 510 581 octets**, SHA-256 **`bb366af302e11a159726ad53a7e55894758951ff88640790d396d051a3a3f723`**.
 - Contrôle natif depuis le ZIP extrait dans le dossier temporaire approuvé : frontend servi par `resources.neu`, profil WebView2 distinct et options de stockage/données locales à ce seul dossier de contrôle. Interface accessible avec `Version 0.1.0-beta.3`, menus et mascotte présents. Première sauvegarde via le dialogue Windows puis **Ctrl+S** : JSON `application: Sapphire 3`, `workspaceVersion: 2`, horodatage avancé, `.backup-1.sp3` créé et aucun temporaire résiduel. Le dialogue a utilisé son chemin par défaut dans Documents, pas le chemin temporaire saisi lors de la tentative ; après fermeture de la fenêtre, les deux fichiers de test nouvellement créés ont été déplacés dans le dossier temporaire de contrôle. Aucune préférence ni donnée de production remplacée.
 - Deux lancements préliminaires avec un nom de configuration externe incorrect ont affiché la page par défaut Neutralinojs et ont été fermés ; ils ne sont pas comptés comme vérification de l'application. Le contrôle réussi utilise le paquet original avec les seules options natives `--data-location=app` / `--storage-location=app` pour isoler les fichiers de test. Pas de nouvelle campagne exhaustive des widgets ni de test d'installation par l'updater.
+- Sources et notes commitées en `3189d4375271899af7421b3f98333cf52dcdd669`, poussées sur le `master` du dépôt public selon la procédure de distribution. Brouillon créé avec un seul asset Windows ; taille et digest distant vérifiés puis ZIP retéléchargé et SHA-256 recalculé identique. Publication confirmée : **`isDraft: false`**, **`isPrerelease: true`**, `publishedAt: 2026-11-06T13:18:48Z`. Le tag distant `v0.1.0-beta.3` pointe sur ce même commit. URL : `https://github.com/lalBi94/Sapphire3/releases/tag/v0.1.0-beta.3`. Aucun manifeste distinct : le digest de l'asset est celui utilisé par l'updater.
 
 ## Publication GitHub Pages — 6 novembre 2026
 
