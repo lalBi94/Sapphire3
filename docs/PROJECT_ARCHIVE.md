@@ -2,6 +2,11 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Publication GitHub Pages — 6 novembre 2026
+
+- Publication explicitement demandée du site de présentation sur le dépôt existant `lalBi94/Sapphire3`. Branche distante `gh-pages` créée avec un commit racine indépendant (`ca31956`), dont l'arbre est uniquement le contenu de `abstract/` : site, captures, PDF et source LaTeX. Aucun push de `master`, aucune source applicative ni aucun historique applicatif dans cette branche.
+- Ajout de `abstract/index.html` redirigeant vers `visual/` et de `abstract/.nojekyll`. Les chemins relatifs vers le PDF et le LaTeX sont préservés. Configuration Pages passée du mode workflow au déploiement de branche (`gh-pages`, `/`) ; build demandé via l'API GitHub et exécution `42222000364` lancée. Configuration distante et arbre publié vérifiés ; contrôle local de la redirection et de son lien réussi.
+
 ## Présentation du site statique — 6 novembre 2026
 
 - Refonte locale des trois pages de `abstract/visual/` : accueil avec aperçu réel et accès directs, typographie et cartes harmonisées, introductions documentaires, sommaire latéral actif et progression de lecture. Conservation des textes originaux, des 42 captures et des données d'annotation. Aucun changement du code de l'application, aucune dépendance ajoutée, aucun push ni déploiement GitHub Pages.

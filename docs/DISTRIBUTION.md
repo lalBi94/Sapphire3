@@ -4,7 +4,7 @@
 
 ## 1. Périmètre
 
-Le circuit décrit ici s'applique à l'application desktop Windows : frontend React/Vite compilé, conteneur Neutralinojs, ZIP portable et release GitHub. Il ne concerne pas un futur site web, qui demanderait un hébergement et des commandes de déploiement définis séparément.
+Le circuit décrit ici s'applique à l'application desktop Windows : frontend React/Vite compilé, conteneur Neutralinojs, ZIP portable et release GitHub. Il ne concerne pas le site statique de présentation : GitHub Pages sert séparément la branche `gh-pages` du même dépôt, qui contient uniquement un instantané de `abstract/` placé à sa racine, sans historique des sources applicatives. L'entrée `https://lalbi94.github.io/Sapphire3/` redirige vers `visual/` ; le PDF et la source LaTeX restent à côté pour préserver les liens relatifs. Le fichier `.nojekyll` désactive la transformation Jekyll. Une publication du site ne pousse pas `master` et ne déclenche pas de release Windows ; elle demande une autorisation explicite de publication.
 
 Le dépôt de développement et de distribution est **`lalBi94/Sapphire3`** (public). Les sources restent sur la branche `master` ; aucune source n'est dupliquée dans un autre dépôt.
 
