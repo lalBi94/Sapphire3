@@ -4,6 +4,16 @@
 .simulation-panel header button { display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: var(--radius-control); color: var(--color-text-muted); background: transparent; cursor: pointer; }
 .simulation-panel header button:hover { background: var(--color-hover); color: var(--color-text); }
 .simulation-panel__status { margin: 0 0 8px; color: var(--color-text-muted); }
+.simulation-panel__speed { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin: 0 0 8px; color: var(--color-text-muted); font-size: 10px; }
+.simulation-panel__speed > span { margin-right: 2px; }
+.simulation-panel__speed button { width: auto; padding: 3px 6px; border: 1px solid var(--color-border); border-radius: var(--radius-small); color: var(--color-text-muted); background: transparent; font: inherit; cursor: pointer; }
+.simulation-panel__speed button:hover { border-color: var(--color-border-hover); color: var(--color-text); }
+.simulation-panel__speed button[aria-pressed="true"] { border-color: var(--color-primary); color: var(--color-primary); background: var(--color-yellow-soft); }
+.simulation-panel__speed button:focus-visible,
+.simulation-panel__speed-custom:focus-within { outline: 2px solid var(--color-focus); outline-offset: 1px; }
+.simulation-panel__speed-custom { display: inline-flex; align-items: center; gap: 3px; padding: 2px 5px; border: 1px solid var(--color-border); border-radius: var(--radius-small); color: var(--color-text-muted); }
+.simulation-panel__speed-custom input { width: 42px; padding: 1px 3px; border: 0; border-radius: 2px; color: var(--color-text); background: var(--color-surface-raised); font: inherit; }
+.simulation-panel__speed-custom input:focus { outline: none; }
 /* Boutons d'action (pause, reprise, arrêt) : libellés, à droite du titre. */
 .simulation-panel header button.simulation-panel__control { display: inline-flex; width: auto; padding: 0 8px; gap: 5px; }
 .simulation-panel header button.simulation-panel__control:hover { background: var(--color-hover); color: var(--color-text); }

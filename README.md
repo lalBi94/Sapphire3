@@ -46,6 +46,7 @@ La CI GitHub Actions (`.github/workflows/ci.yml`) exécute l’installation verr
 - Pointeurs exécutés **et transpilés** en JavaScript et Python (`&`, `*p`, écriture à travers un pointeur).
 - Initialisation globale des modules dans un **ordre topologique stable** selon les imports.
 - Simulation locale bornée, débogage pas à pas avec points d’arrêt, mémoire pédagogique, valeurs au survol et exécution d’une fonction choisie.
+- **Vitesse de simulation** : ×1, ×2, ×3 ou ×N (1 à 100) dans le panneau Simulation, ajustable pendant l’exécution. Le calcul temporel conserve la vitesse choisie même si le rendu ralentit.
 - Transpilation **JavaScript** et **Python** sur action explicite ; C, C++ et Java sont désactivés.
 
 ### Exécution hors du fil React
@@ -89,4 +90,4 @@ L’application vérifie les **releases publiées** du dépôt `lalBi94/Sapphire
 - L’analyse reste conservatrice et ne prouve ni terminaison ni valeurs générales.
 - Les captures de `abstract/visual` datent d’une campagne antérieure ; les fonctionnalités récentes y sont décrites dans le texte.
 
-Dernier check-up : **506 tests Node et Python réussis**, build frontend et parcours navigateur vérifiés. Les trente exemples passent Run et Debug dans le Web Worker ; les douze exemples transpilables sont exécutés en JavaScript et Python. Les notifications par mascotte et l’aimantation des modules sont couvertes par des tests purs et des contrôles navigateur. Les dialogues et écritures natifs restent couverts par les tests de services, sans nouvelle vérification manuelle Neutralinojs. Détail dans `docs/PROJECT_ARCHIVE.md`.
+Dernier check-up : **508 tests Node et Python réussis**, build frontend et parcours navigateur vérifiés. Les trente exemples passent Run et Debug dans le Web Worker ; les douze exemples transpilables sont exécutés en JavaScript et Python. Les notifications par mascotte, l’aimantation des modules et la vitesse de simulation sont couvertes par des tests purs et des contrôles navigateur. Les dialogues et écritures natifs restent couverts par les tests de services, sans nouvelle vérification manuelle Neutralinojs. Détail dans `docs/PROJECT_ARCHIVE.md`.

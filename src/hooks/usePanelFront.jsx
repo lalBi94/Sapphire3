@@ -81,6 +81,7 @@ export default function usePanelFront(options = {}) {
   const canClose = typeof onClose === 'function'
   const canCollapse = typeof setCollapsed === 'function'
   const canArrange = typeof arrange === 'function'
+  const hasTitle = Boolean(title)
 
   useEffect(() => {
     const listener = () => setRevision((current) => current + 1)
@@ -88,9 +89,9 @@ export default function usePanelFront(options = {}) {
     return () => { listeners.delete(listener) }
   }, [])
 
-  // Garde les dernières commandes accessibles aux entrées du registre.
+  // Garde les dernières commandes et le titre accessibles aux entrées du registre.
   useEffect(() => {
-    handlers.current = { bringToFront, onClose, setCollapsed, arrange, collapsed }
+    handlers.current = { title, bringToFront, onClose, setCollapsed, arrange, collapsed }
   })
 
   // Place cette fenêtre en tête de l'ordre partagé.
@@ -100,10 +101,10 @@ export default function usePanelFront(options = {}) {
   }
 
   useEffect(() => {
-    if (!title) return undefined
+    if (!hasTitle) return undefined
     registerWindow({
       id,
-      title,
+      get title() { return handlers.current.title ?? '' },
       collapsed,
       focus: () => {
         handlers.current.bringToFront()
@@ -114,7 +115,7 @@ export default function usePanelFront(options = {}) {
       arrange: canArrange ? (index, total) => handlers.current.arrange?.(index, total) : null,
     })
     return () => unregisterWindow(id)
-  }, [id, title, collapsed, canClose, canCollapse, canArrange])
+  }, [id, hasTitle, collapsed, canClose, canCollapse, canArrange])
 
   const position = order.indexOf(id)
   return { zIndex: position === -1 ? null : 10 + position, bringToFront }

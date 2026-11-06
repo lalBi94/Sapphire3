@@ -11,6 +11,7 @@ import CanvasStatus from '../CanvasStatus/CanvasStatus.jsx'
 import ModuleFunctions from '../ModuleFunctions/ModuleFunctions.jsx'
 import { semanticZoomLevel, semanticSearchZoomLevel } from '../../utils/semanticZoom.js'
 import { moduleSnapPixels, snapModuleRect } from '../../utils/moduleSnap.js'
+import { clampSimulationSpeed, simulationTargetStep } from '../../utils/simulationSpeed.js'
 import Minimap from '../Minimap/Minimap.jsx'
 import MascotNotification from '../MascotNotification/MascotNotification.jsx'
 import CanvasContextMenu from '../CanvasContextMenu/CanvasContextMenu.jsx'
@@ -71,6 +72,7 @@ export default function Canvas() {
   const [simulationResult, setSimulationResult] = useState(null)
   const [execution, setExecution] = useState(null)
   const [executionFree, setExecutionFree] = useState(false)
+  const [simulationSpeed, setSimulationSpeed] = useState(1)
   const [debugSession, setDebugSession] = useState(null)
   const [memoryOpen, setMemoryOpen] = useState(false)
   const [pointerGraphOpen, setPointerGraphOpen] = useState(false)
@@ -137,14 +139,25 @@ export default function Canvas() {
 
   useEffect(() => {
     if (!execution?.running) return undefined
-    const timer = window.setTimeout(() => {
-      setExecution((current) => {
-        if (!current || current.index >= current.trace.length - 1) return current ? { ...current, running: false } : null
-        return { ...current, index: current.index + 1 }
-      })
-    }, 420)
+    const startIndex = execution.index
+    const startedAt = performance.now()
+    let advancedTo = startIndex
+    let timer = 0
+    // Avance selon le temps écoulé, sans dépendre de la durée réelle d'un rendu.
+    function tick() {
+      const target = simulationTargetStep(startIndex, performance.now() - startedAt, simulationSpeed, execution.trace.length)
+      if (target > advancedTo) {
+        advancedTo = target
+        setExecution((current) => {
+          if (!current || target <= current.index) return current
+          return { ...current, index: target, running: target < current.trace.length - 1 }
+        })
+      }
+      timer = window.setTimeout(tick, 50)
+    }
+    timer = window.setTimeout(tick, 50)
     return () => window.clearTimeout(timer)
-  }, [execution])
+  }, [execution?.running, execution?.trace, simulationSpeed])
 
   // Les images d'écran sont rejouées directement par la carte, sans état React par frame.
   useEffect(() => {
@@ -517,7 +530,7 @@ export default function Canvas() {
         : { type: 'error', title: t('simulation.title'), message: failureLabel({ code: result.errorCode }, t), key: 'simulation', duration: 0 })
       startTransition(() => {
         setSimulationResult(result)
-        setExecution(result.ok && result.trace.length > 0 ? { trace: result.trace, index: 0, running: true, paused: false, stopped: false } : null)
+        setExecution(result.ok && result.trace.length > 0 ? { trace: result.trace, index: 0, running: result.trace.length > 1, paused: false, stopped: false } : null)
       })
     } catch (error) {
       if (isEngineCancelled(error) || epoch !== simulationEpochRef.current) return
@@ -618,6 +631,11 @@ export default function Canvas() {
   // Détache la sortie de la cadence des pas : elle s'affiche immédiatement, comme avant.
   function handleToggleExecutionFree() {
     setExecutionFree((current) => !current)
+  }
+
+  // Applique une vitesse d'animation bornée, y compris pendant une exécution en cours.
+  function handleSimulationSpeedChange(value) {
+    setSimulationSpeed(clampSimulationSpeed(value))
   }
 
   // Interrompt une simulation en cours d'animation sans effacer sa sortie déjà produite.
@@ -1197,7 +1215,7 @@ export default function Canvas() {
         <span>{transfers.notice.error ? diagnosticLabel(transfers.notice.error, t) : t(transfers.notice.message)}{transfers.notice.detail && ` · ${diagnosticLabel(transfers.notice.detail, t)}`}</span>
         <button type="button" aria-label={t('nav.dismiss')} onClick={transfers.dismiss}><X size={14} aria-hidden="true" /></button>
       </div>}
-      <SimulationPanel result={simulationResult} running={Boolean(execution?.running)} paused={Boolean(execution?.paused)} stopped={Boolean(execution?.stopped)} currentStep={execution ? execution.index + 1 : 0} free={executionFree} onToggleFree={handleToggleExecutionFree} onPause={handlePauseExecution} onResume={handleResumeExecution} onStop={handleStopExecution} onClose={() => { setSimulationResult(null); setExecution(null); setExecutionFree(false) }} />
+      <SimulationPanel result={simulationResult} running={Boolean(execution?.running)} paused={Boolean(execution?.paused)} stopped={Boolean(execution?.stopped)} currentStep={execution ? execution.index + 1 : 0} free={executionFree} speed={simulationSpeed} onSpeedChange={handleSimulationSpeedChange} onToggleFree={handleToggleExecutionFree} onPause={handlePauseExecution} onResume={handleResumeExecution} onStop={handleStopExecution} onClose={() => { setSimulationResult(null); setExecution(null); setExecutionFree(false) }} />
       {functionNode && <FunctionPanel key={`${functionTarget}:${functionSignature}`} index={document.index} functionNode={functionNode} result={functionResult?.functionId === functionTarget ? functionResult.result : null} onRun={handleRunFunction} onDebug={handleDebugFunction} onClose={handleCloseFunction} />}
       {debugSession?.project === document.project && <DebugPanel session={debugSession} index={document.index} onAction={handleDebugAction} onClose={() => setDebugSession(null)} memoryOpen={memoryOpen} onToggleMemory={() => { setMemoryOpen((current) => !current); setPointerGraphOpen(false) }} pointerGraphOpen={pointerGraphOpen} onTogglePointerGraph={() => { setPointerGraphOpen((current) => !current); setMemoryOpen(false) }} />}
       {debugSession?.project === document.project && memoryOpen && <MemoryPanel index={document.index} frame={debugFrame} reachability={debugSession.reachability} onClose={() => setMemoryOpen(false)} />}

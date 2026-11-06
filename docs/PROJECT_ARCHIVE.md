@@ -2,6 +2,14 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Vitesse de simulation — 6 novembre 2026
+
+- Le panneau Simulation propose **×1**, **×2**, **×3** et une saisie **×N** de 1 à 100. La valeur est bornée et arrondie ; elle peut être changée pendant l'exécution, en pause ou après la fin, et reste locale à la session. Le choix s'applique à l'animation de la trace sans modifier la trace, le résultat, les contrats ou l'AST.
+- L'avancement n'est plus un simple `setTimeout` par pas : `simulationTargetStep` calcule l'index visé à partir du temps écoulé et de la vitesse. Une boucle de 50 ms rafraîchit la cible et avance de plusieurs pas si nécessaire ; le rythme reste donc proche de ×N même quand React met plus de temps à rendre une étape. Arrêt, pause, reprise et relance repartent de l'index courant.
+- `usePanelFront` ne se réinscrit plus à chaque changement de titre : le registre lit le titre courant via le gestionnaire. Cela supprime une rafale de mises à jour du volet Windows quand la sélection suit une simulation rapide ; le volet **Windows** continue d'afficher **Simulation** et **Opération**.
+- **508 tests Node réussis** (506 existants + 2 dans `tests/workspace/simulationSpeed.test.js` : bornage, progression temporelle et limites de trace), build frontend réussi.
+- Contrôle navigateur avec **Fibonacci** (1 946 pas) : ×1 mesure quelques pas par seconde ; ×3 accélère visiblement ; ×10 a progressé de 28 pas en 1,2 s et ×100 de 702 pas en 3 s, sans erreur console. Le panneau affiche les quatre commandes, la saisie `10`/`100` est conservée après validation, le volet Windows liste correctement les fenêtres. Une première version en `requestAnimationFrame` a déclenché un avertissement React de profondeur de mise à jour sous forte accélération ; la boucle temporelle à 50 ms et la lecture différée des titres l'ont supprimé. Non revérifié dans Neutralinojs.
+
 ## Modules magnétiques — 6 novembre 2026
 
 - Aimantation limitée au glisser : les bords gauche/centre/droit et haut/milieu/bas du cadre déplacé — ou du cadre englobant la sélection — sont comparés aux mêmes repères des modules visibles voisins. Le repère le plus proche à moins de **8 px écran** l'emporte, le delta est appliqué aux coordonnées de présentation et une ligne guide verticale et/ou horizontale est affichée avec les couleurs du thème. Les annotations Comment/Image ne servent pas de cible et aucune carte verrouillée n'est déplacée.
