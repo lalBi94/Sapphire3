@@ -29,7 +29,7 @@ function loadLastFile() {
 }
 
 // Prépare les fichiers sans toucher au document actif avant validation et confirmation de remplacement.
-export default function useWorkspaceFiles({ project, cards, camera, selected, onReplace }) {
+export default function useWorkspaceFiles({ project, cards, camera, selected, exercise = null, onReplace }) {
   const { language, t } = useTranslation()
   const { notify } = useNotifications()
   const [busy, setBusy] = useState(false)
@@ -41,7 +41,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
   const operation = useRef(false)
   const lastSavedText = useRef(null)
   const lastRecoveryText = useRef(null)
-  const view = useRef({ camera, selected })
+  const view = useRef({ camera, selected, exercise })
   const booted = useRef(false)
 
   // Choisit l'expression et la durée adaptées à un message de fichier.
@@ -68,8 +68,8 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
 
   // Garde la caméra et la sélection les plus récentes pour la sérialisation différée de l'autosave.
   useEffect(() => {
-    view.current = { camera, selected }
-  }, [camera, selected])
+    view.current = { camera, selected, exercise }
+  }, [camera, selected, exercise])
 
   // Ajoute un chemin en tête de liste et le conserve pour les prochaines sessions.
   function rememberRecentFile(path) {
@@ -112,7 +112,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
     operation.current = true
     setBusy(true)
     try {
-      const text = serializeWorkspace(project, cards, camera, selected)
+      const text = serializeWorkspace(project, cards, camera, selected, exercise)
       const path = await exportWorkspaceFile(extension, text, language)
       if (path) {
         if (extension === 'sp3') {
@@ -170,7 +170,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
       operation.current = true
       setBusy(true)
       try {
-        const text = serializeWorkspace(project, cards, camera, selected)
+        const text = serializeWorkspace(project, cards, camera, selected, exercise)
         const saved = await writeWorkspaceFileWithBackup(currentPath, text)
         lastSavedText.current = text
         await discardRecovery()
@@ -190,10 +190,10 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, on
   // Écrit le document sans dialogue : fichier associé, ou copie de récupération pour un document sans chemin.
   async function autosaveWorkspace() {
     if (operation.current || pendingImport) return
-    const { camera: activeCamera, selected: activeSelected } = view.current
+    const { camera: activeCamera, selected: activeSelected, exercise: activeExercise } = view.current
     let text
     try {
-      text = serializeWorkspace(project, cards, activeCamera, activeSelected)
+      text = serializeWorkspace(project, cards, activeCamera, activeSelected, activeExercise)
     } catch (failure) {
       publishError({ prefix: 'errors.couldNotSave', failure })
       return

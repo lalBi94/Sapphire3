@@ -5,6 +5,7 @@ import { screenLimits } from './logic/mathNatives.js'
 import { barChartViews, heatmapViews, logicalCardTypes, gaugeViews, ledViews, rgbLedViews, moduleTypes, minimumModuleSize, progressViews, screenViews } from './moduleTypes.js'
 import { heatmapMaximumDimension } from './logic/heatmapState.js'
 import { isEmbeddedImage } from './embeddedImage.js'
+import { validateExercise } from './exercise.js'
 
 export const workspaceFileVersion = 2
 
@@ -175,9 +176,20 @@ function exportableCard(card, nodes) {
   return { ...rest, ...(hidden ? { hidden: true } : {}), ...(locked ? { locked: true } : {}), ...(emoji ? { emoji } : {}), ...(screenView && screenView !== 'screen' ? { screenView } : {}), ...(gaugeView && gaugeView !== 'gauge' ? { gaugeView } : {}), ...(progressView && progressView !== 'progress' ? { progressView } : {}), ...(barChartView && barChartView !== 'barChart' ? { barChartView } : {}), ...(heatmapView && heatmapView !== 'heatmap' ? { heatmapView } : {}), ...(ledView && ledView !== 'led' ? { ledView } : {}), ...(rgbLedView && rgbLedView !== 'rgbLed' ? { rgbLedView } : {}), expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) }
 }
 
+// Contrôle aussi le snapshot de départ d'un exercice, avec les mêmes règles que le document courant.
+function validateExerciseStarter(exercise) {
+  if (!exercise?.starter) return
+  validateProject(exercise.starter.project)
+  validatePresentation(exercise.starter.project, exercise.starter.presentation)
+}
+
 // Produit le même instantané JSON versionné pour les extensions .sp3 et .json.
-export function serializeWorkspace(project, cards, camera, selected = null) {
+export function serializeWorkspace(project, cards, camera, selected = null, exercise = null) {
   validateProject(project)
+  if (exercise !== null) {
+    validateExercise(exercise)
+    validateExerciseStarter(exercise)
+  }
   // Les identifiants de nœuds supprimés ne doivent pas survivre dans l'état de pliage exporté.
   const nodes = new Map(project.nodes.map((node) => [node.id, node]))
   const presentation = {
@@ -185,7 +197,8 @@ export function serializeWorkspace(project, cards, camera, selected = null) {
     camera, selected,
   }
   validatePresentation(project, presentation)
-  const result = serializeSource({ application: 'Sapphire 3', workspaceVersion: workspaceFileVersion, project, presentation })
+  const payload = { application: 'Sapphire 3', workspaceVersion: workspaceFileVersion, project, presentation, ...(exercise === null ? {} : { exercise }) }
+  const result = serializeSource(payload)
   if (result.json === null) throw workspaceError('The workspace contains data that cannot be exported as JSON.', 'WORKSPACE_NOT_SERIALIZABLE')
   return result.json
 }
@@ -204,6 +217,10 @@ export function deserializeWorkspace(text) {
     const migrated = migrateWorkspace(data)
     validateProject(migrated.project)
     validatePresentation(migrated.project, migrated.presentation)
+    if (migrated.exercise !== undefined) {
+      validateExercise(migrated.exercise)
+      validateExerciseStarter(migrated.exercise)
+    }
     if (serializeSource(migrated).json === null) throw workspaceError('The file contains unsupported JSON values.', 'WORKSPACE_NOT_SERIALIZABLE')
     return migrated
   }

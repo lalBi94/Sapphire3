@@ -2,6 +2,18 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Mode exercice local — 7 novembre 2026
+
+- Manifeste `exercise` optionnel dans le workspace v2 : `version`, `title`, `instructions`, `starter` (projet + présentation), `tests`. Validation stricte (titre, types, identifiants, arguments JSON, maximum 100 tests) et validation du `starter` comme un workspace complet à l'import/export. Aucun changement de version de fichier : les workspaces sans exercice restent identiques.
+- `src/utils/exercise.js` pur : création, validation, résolution de fonction par nom (ambiguïté refusée), comparaison stricte des sorties d'entrée et des valeurs de retour, résumé. `evaluateExercise` reçoit le lanceur en paramètre et reste testable sans worker.
+- `useExercise` exécute les tests séquentiellement via `runSimulation` et le worker existant, avec `AbortController` et annulation immédiate. Capture séparée de la sortie du point d'entrée et de la valeur de retour d'une fonction.
+- Panneau `ExercisePanel` : consignes, progression, Check/Cancel, résultats par test avec attendu/obtenu, mode édition (titre, consignes, ajout de tests par capture, suppression), Reset to starter confirmé et suppression confirmée de l'exercice. Ouverture automatique à l'import ; entrée **Exercise** dans la barre avec Open/Create/Check.
+- Snapshot de départ : capturé à la création de l'exercice. **Reset to starter** remplace projet et présentation, vide l'historique undo/redo et replace la caméra/sélection, sans supprimer le manifeste. Le panneau est masqué en mode présentation pour l'édition, mais reste consultable.
+- `functionInputs.js` extrait la conversion des entrées primitives partagée avec « Run this function », sans duplication.
+- Traductions des libellés et messages d'exercice dans les huit langues ; aucune traduction des noms saisis ni des types/opérateurs.
+- Vérifications : `tests/workspace/exercise.test.js` (8 tests) couvre manifeste invalide, évaluation entrée succès/échec/erreur, fonction succès/échec/absente/ambiguë, lanceur en échec sans interrompre les suivants, snapshot de départ et aller-retour workspace. Suite complète et build à jour. Navigateur : création depuis Thermostat, capture, Check `1 of 1`, ajout d'une carte (5→6), Reset (6→5), Check de nouveau réussi. Axe : zéro violation sur panneau élève et édition ; console sans erreur.
+- Limites : tests lisibles/modifiables, pas de verrouillage de zones, d'indices, de notation partielle, de soumission, de compte ni de serveur. Un test de fonction dépend du nom ; les arguments restent des primitives. Aucune nouvelle vérification native.
+
 ## Licence, installateur signable et audit d'accessibilité — 6 novembre 2026
 
 - **Licence** : ajout de `LICENSE` (MIT, « Sapphire 3 contributors »), champ `license` dans `package.json`, copie en `LICENSE.txt` dans le paquet, mention dans `CREDITS.md`, l'installateur et le README. Aucun changement de dépendance.

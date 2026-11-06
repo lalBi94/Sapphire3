@@ -73,6 +73,10 @@ La CI GitHub Actions (`.github/workflows/ci.yml`) exécute l’installation verr
 - Favoris personnels de fonctions et modules purs, gestionnaire de fenêtres flottantes, undo/redo structurel.
 - **Notifications par mascotte** : 16 expressions du robot au-dessus de la mini-carte, alignées sur son bord gauche ; le robot lévite et peut être déplacé au pointeur. Bulles en verre anthracite, actions et historique récent, file priorisée, remplacement des progressions et fermeture manuelle. Les dialogues bloquants et les panneaux de diagnostics restent inchangés.
 
+## Mode exercice
+
+Un `.sp3` peut contenir un **exercice** : titre, consignes, **snapshot de départ** et tests. L’enseignant prépare le squelette, crée l’exercice, capture les sorties attendues du point d’entrée ou les valeurs de retour de fonctions, puis enregistre le fichier. L’élève ouvre ce `.sp3` : le panneau s’ouvre, **Check** exécute les tests dans le Web Worker, affiche réussi/échoué avec attendu et obtenu, et **Reset to starter** restaure le squelette. Les tests restent visibles dans le JSON : c’est un outil d’entraînement, pas un examen surveillé. Détail et limites dans `docs/EXERCISES.md`.
+
 ## Distribution et mises à jour
 
 Pour un poste Windows, deux formats sont produits : un **installateur** `Sapphire3-<version>-windows-setup.exe` (installation par utilisateur, sans droit administrateur) et un **ZIP portable**. `pnpm dist:installer` construit les deux ; `pnpm dist:win` produit seulement le ZIP.
@@ -93,6 +97,7 @@ Un audit daté et reproductible est décrit dans `docs/ACCESSIBILITY.md` : axe-c
 
 - `docs/LOGIC_API.md` : contrats du moteur, types, génériques, lambdas, simulation et transpilation.
 - `docs/WORKSPACE_FILES.md` : format `.sp3`, versions, récupération et sauvegardes.
+- `docs/EXERCISES.md` : mode exercice, manifeste, tests et limites.
 - `docs/ACCESSIBILITY.md` : audit, corrections et limites d'accessibilité.
 - `docs/DISTRIBUTION.md` : paquet Windows, installateur, signature et publication.
 - `docs/PROJECT_STATE.md` : état vérifié et cartographie des fichiers.

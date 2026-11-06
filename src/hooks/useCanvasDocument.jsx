@@ -308,6 +308,17 @@ export default function useCanvasDocument() {
     dispatch({ type: 'presentation', id, patch: { emoji } })
   }
 
+  // Met à jour le manifeste d'exercice sans créer d'étape undo ni réanalyser le programme.
+  function setExercise(exercise) {
+    dispatch({ type: 'exercise', exercise })
+  }
+
+  // Restaure le squelette d'origine sans supprimer le manifeste d'exercice.
+  function restoreStarter(starter) {
+    if (!starter) return
+    dispatch({ type: 'restoreStarter', starter })
+  }
+
   // Charge un document validé et force le remontage des interactions locales des cartes.
   function replaceWorkspace(workspace) {
     dispatch({ type: 'replaceWorkspace', workspace })
@@ -323,5 +334,5 @@ export default function useCanvasDocument() {
     dispatch({ type: 'redo' })
   }
 
-  return { ...document, createCard, updateGeometry, arrangeModules, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, moveNodes, duplicateNode, duplicateSelection, deleteNode, deleteModule, deleteSelection, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, previewSymbolRename, applySymbolRename, setExpandedNodes, setCardHidden, setCardLocked, setCardEmoji, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
+  return { ...document, createCard, updateGeometry, arrangeModules, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, moveNodes, duplicateNode, duplicateSelection, deleteNode, deleteModule, deleteSelection, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, previewSymbolRename, applySymbolRename, setExpandedNodes, setCardHidden, setCardLocked, setCardEmoji, setExercise, restoreStarter, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
 }

@@ -1,0 +1,146 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { simulateProgram } from '../../src/utils/logic/index.js'
+import { createExercise, createEntryTest, createFunctionTest, evaluateExercise, findFunction, summarizeExercise, validateExercise } from '../../src/utils/exercise.js'
+import { serializeWorkspace, deserializeWorkspace } from '../../src/utils/workspaceFile.js'
+import { program, root, node, intType, booleanType } from '../logic/fixtures.js'
+
+const voidType = { kind: 'primitive', name: 'void' }
+let sequence = 0
+const ids = () => `test-${++sequence}`
+
+// Construit un projet minimal avec un point d'entrée et une fonction pure.
+function project() {
+  const source = program('m')
+  root(source, 'm', 'main', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'mainBody' })
+  node(source, 'm', 'mainBody', 'Block', {}, { statements: ['print'] })
+  node(source, 'm', 'print', 'PrintStatement', {}, { value: 'message' })
+  node(source, 'm', 'message', 'Literal', { type: { kind: 'primitive', name: 'string' }, value: 'ok' })
+  root(source, 'm', 'add', 'FunctionDeclaration', { name: 'add', type: intType }, { parameters: ['a', 'b'], body: 'addBody' })
+  node(source, 'm', 'a', 'Parameter', { name: 'a', type: intType })
+  node(source, 'm', 'b', 'Parameter', { name: 'b', type: intType })
+  node(source, 'm', 'addBody', 'Block', {}, { statements: ['return'] })
+  node(source, 'm', 'return', 'ReturnStatement', {}, { argument: 'sum' })
+  node(source, 'm', 'sum', 'BinaryExpression', { operator: '+' }, { left: 'left', right: 'right' })
+  node(source, 'm', 'left', 'Reference', {}, {}, { target: { kind: 'name', name: 'a' } })
+  node(source, 'm', 'right', 'Reference', {}, {}, { target: { kind: 'name', name: 'b' } })
+  return source
+}
+
+const run = (source) => (options) => simulateProgram(source, options)
+
+test('manifeste : création, validation et refus des formes invalides', () => {
+  const exercise = createExercise({ title: 'Add two numbers', instructions: 'Implement add.' })
+  assert.equal(exercise.version, 1)
+  assert.deepEqual(exercise.tests, [])
+  assert.equal(validateExercise(exercise), exercise)
+  for (const invalid of [
+    null,
+    { version: 2, title: 'x', instructions: '', tests: [] },
+    { version: 1, title: '', instructions: '', tests: [] },
+    { version: 1, title: 'x', instructions: 3, tests: [] },
+    { version: 1, title: 'x', instructions: '', tests: [{ id: 'a', kind: 'entry', title: 't', expectedOutput: 'no' }] },
+    { version: 1, title: 'x', instructions: '', tests: [{ id: 'a', kind: 'function', title: 't', functionName: 'add', args: [{}], expectedReturn: null }] },
+    { version: 1, title: 'x', instructions: '', tests: [{ id: 'a', kind: 'other', title: 't' }] },
+  ]) assert.throws(() => validateExercise(invalid))
+})
+
+test('évaluation du point d’entrée : succès, échec et erreur du moteur', async () => {
+  const source = project()
+  const exercise = { ...createExercise({ title: 'Entry' }), tests: [createEntryTest('prints ok', ['ok'], ids)] }
+  const passed = await evaluateExercise(source, exercise, run(source))
+  assert.deepEqual(passed, { total: 1, passed: 1, failed: 0, results: [{ id: 'test-1', title: 'prints ok', kind: 'entry', status: 'pass', expected: ['ok'], actual: ['ok'] }] })
+  assert.equal(summarizeExercise(passed).complete, true)
+  const failing = { ...exercise, tests: [createEntryTest('wrong', ['nope'], ids)] }
+  const failed = await evaluateExercise(source, failing, run(source))
+  assert.equal(failed.results[0].status, 'fail')
+  assert.deepEqual(failed.results[0].actual, ['ok'])
+  assert.equal(summarizeExercise(failed).complete, false)
+  const broken = { ...exercise, tests: [{ ...createEntryTest('missing entry', ['ok'], ids), kind: 'entry' }] }
+  const empty = program('m')
+  const error = await evaluateExercise(empty, broken, run(empty))
+  assert.equal(error.results[0].status, 'error')
+  assert.equal(error.results[0].errorCode, 'SIMULATION_ENTRY_MISSING')
+})
+
+test('évaluation de fonction : arguments, retour attendu et fonction absente', async () => {
+  const source = project()
+  const exercise = { ...createExercise({ title: 'Function' }), tests: [createFunctionTest('add 2 and 3', 'add', [2, 3], '5', ids)] }
+  const result = await evaluateExercise(source, exercise, run(source))
+  assert.equal(result.results[0].status, 'pass')
+  assert.equal(result.results[0].actual, '5')
+  const wrong = { ...exercise, tests: [createFunctionTest('wrong', 'add', [2, 3], '6', ids)] }
+  assert.equal((await evaluateExercise(source, wrong, run(source))).results[0].status, 'fail')
+  const missing = { ...exercise, tests: [createFunctionTest('missing', 'unknown', [], null, ids)] }
+  const error = await evaluateExercise(source, missing, run(source))
+  assert.equal(error.results[0].status, 'error')
+  assert.equal(error.results[0].errorCode, 'EXERCISE_FUNCTION_MISSING')
+  assert.deepEqual(findFunction(source, 'add'), { ok: true, id: 'add' })
+  assert.equal(findFunction(source, 'nope').ok, false)
+})
+
+test('évaluation : nom de fonction ambigu refusé sans choisir au hasard', async () => {
+  const source = project()
+  node(source, 'm', 'duplicate', 'FunctionDeclaration', { name: 'add', type: intType }, { parameters: [], body: 'empty' })
+  node(source, 'm', 'empty', 'Block', {}, { statements: [] })
+  assert.equal(findFunction(source, 'add').code, 'EXERCISE_FUNCTION_AMBIGUOUS')
+  const exercise = { ...createExercise({ title: 'Ambiguous' }), tests: [createFunctionTest('dup', 'add', [], null, ids)] }
+  const result = await evaluateExercise(source, exercise, run(source))
+  assert.equal(result.results[0].status, 'error')
+})
+
+test('évaluation : un lanceur qui échoue produit une erreur stable, sans interrompre les autres tests', async () => {
+  const source = project()
+  const exercise = { ...createExercise({ title: 'Failure' }), tests: [createEntryTest('first', ['ok'], ids), createEntryTest('second', ['ok'], ids)] }
+  let calls = 0
+  const result = await evaluateExercise(source, exercise, async () => {
+    calls += 1
+    if (calls === 1) throw Object.assign(new Error('boom'), { code: 'ENGINE_FAILED' })
+    return { ok: true, output: ['ok'] }
+  })
+  assert.equal(result.results[0].status, 'error')
+  assert.equal(result.results[1].status, 'pass')
+  assert.equal(result.passed, 1)
+})
+
+test('workspace : le manifeste est exporté, relu et validé', () => {
+  const source = project()
+  const exercise = { ...createExercise({ title: 'Round trip', instructions: 'Do it.' }), tests: [createEntryTest('prints ok', ['ok'], ids), createFunctionTest('add', 'add', [1, 2], '3', ids)] }
+  const card = { id: 'm', type: 'module', name: 'm', x: 0, y: 0, width: 320, height: 220, expandedNodeIds: [] }
+  const text = serializeWorkspace(source, [card], { x: 0, y: 0, zoomLevel: 0 }, null, exercise)
+  const restored = deserializeWorkspace(text)
+  assert.deepEqual(restored.exercise, exercise)
+  const without = deserializeWorkspace(serializeWorkspace(source, [card], { x: 0, y: 0, zoomLevel: 0 }))
+  assert.equal(without.exercise, undefined)
+  assert.throws(() => serializeWorkspace(source, [card], { x: 0, y: 0, zoomLevel: 0 }, null, { version: 1, title: '', instructions: '', tests: [] }))
+  const invalid = JSON.parse(text)
+  invalid.exercise.tests[0].expectedOutput = 'nope'
+  assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)))
+})
+
+test('snapshot de départ : validé, exporté et restauré sans perdre les tests', () => {
+  const source = project()
+  const card = { id: 'm', type: 'module', name: 'm', x: 0, y: 0, width: 320, height: 220, expandedNodeIds: [] }
+  const starter = { project: source, presentation: { cards: [card], camera: { x: 0, y: 0, zoomLevel: 0 }, selected: null } }
+  const exercise = { ...createExercise({ title: 'Starter', starter }), tests: [createEntryTest('prints ok', ['ok'], ids)] }
+  assert.deepEqual(exercise.starter, starter)
+  assert.throws(() => createExercise({ title: 'Bad', starter: { project: source } }))
+  const text = serializeWorkspace(source, [card], { x: 0, y: 0, zoomLevel: 0 }, null, exercise)
+  assert.deepEqual(deserializeWorkspace(text).exercise.starter, starter)
+  const invalid = JSON.parse(text)
+  invalid.exercise.starter.presentation.camera.zoomLevel = 99
+  assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)))
+})
+
+test('types booléens et arguments JSON restent explicites', async () => {
+  const source = program('m')
+  root(source, 'm', 'not', 'FunctionDeclaration', { name: 'not', type: booleanType }, { parameters: ['value'], body: 'body' })
+  node(source, 'm', 'value', 'Parameter', { name: 'value', type: booleanType })
+  node(source, 'm', 'body', 'Block', {}, { statements: ['return'] })
+  node(source, 'm', 'return', 'ReturnStatement', {}, { argument: 'negated' })
+  node(source, 'm', 'negated', 'UnaryExpression', { operator: 'not' }, { operand: 'operand' })
+  node(source, 'm', 'operand', 'Reference', {}, {}, { target: { kind: 'name', name: 'value' } })
+  const exercise = { ...createExercise({ title: 'Boolean' }), tests: [createFunctionTest('not false', 'not', [false], 'true', ids)] }
+  const result = await evaluateExercise(source, exercise, run(source))
+  assert.equal(result.results[0].status, 'pass')
+})

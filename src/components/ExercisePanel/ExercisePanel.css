@@ -1,0 +1,40 @@
+.exercise-panel__body { display: grid; gap: 12px; padding: 4px 2px 8px; font-size: 12px; }
+.exercise-panel__title { margin: 0; font-size: 15px; }
+.exercise-panel__instructions { margin: 0; color: var(--color-text); line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.exercise-panel__meta { margin: 0; color: var(--color-text-muted); font-size: 11px; }
+.exercise-panel__summary { margin: 0; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-control); color: var(--color-text-muted); }
+.exercise-panel__summary--pass { border-color: var(--color-primary); color: var(--color-primary); }
+.exercise-panel__error { margin: 0; color: var(--color-diagnostic); line-height: 1.5; overflow-wrap: anywhere; }
+.exercise-panel__empty { margin: 0; color: var(--color-text-muted); font-size: 11px; }
+.exercise-panel__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.exercise-panel__action { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-surface-raised); color: var(--color-text); font: inherit; cursor: pointer; }
+.exercise-panel__actions button, .exercise-panel__action { transition: background-color var(--duration-fast) var(--easing-ui), border-color var(--duration-fast) var(--easing-ui); }
+.exercise-panel__actions button { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: transparent; color: var(--color-text); font: inherit; cursor: pointer; }
+.exercise-panel__actions button:hover:not(:disabled), .exercise-panel__action:hover:not(:disabled) { background: var(--color-hover); border-color: var(--color-border-hover); }
+.exercise-panel__actions button:disabled, .exercise-panel__action:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
+.exercise-panel__primary { background: var(--color-primary) !important; border-color: transparent !important; color: var(--color-on-primary) !important; font-weight: 600; }
+.exercise-panel__primary:hover:not(:disabled) { background: var(--color-primary-hover) !important; }
+.exercise-panel__field { display: grid; gap: 5px; color: var(--color-text-muted); }
+.exercise-panel__field input, .exercise-panel__field textarea, .exercise-panel__field select, .exercise-panel__arguments input, .exercise-panel__arguments select { width: 100%; min-width: 0; padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-input); color: var(--color-text); font: inherit; user-select: text; }
+.exercise-panel__field textarea { resize: vertical; }
+.exercise-panel__arguments { display: grid; gap: 8px; }
+.exercise-panel__arguments label { display: grid; gap: 4px; color: var(--color-text-muted); font-size: 11px; }
+.exercise-panel__tests { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.exercise-panel__tests li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-small); }
+.exercise-panel__tests button { display: grid; place-items: center; padding: 4px; border: 0; border-radius: var(--radius-small); background: transparent; color: var(--color-text-muted); cursor: pointer; }
+.exercise-panel__tests button:hover { color: var(--color-diagnostic); background: var(--color-hover); }
+.exercise-panel__results { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.exercise-panel__results li { display: grid; gap: 6px; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-control); }
+.exercise-panel__results li[data-status='pass'] { border-color: color-mix(in srgb, var(--color-primary) 60%, transparent); }
+.exercise-panel__results li[data-status='fail'], .exercise-panel__results li[data-status='error'] { border-color: var(--color-diagnostic); }
+.exercise-panel__result-title { display: flex; align-items: center; gap: 6px; color: var(--color-text); }
+.exercise-panel__result-status { color: var(--color-text-muted); font-size: 11px; }
+.exercise-panel__results li[data-status='pass'] .exercise-panel__result-status { color: var(--color-primary); }
+.exercise-panel__results li[data-status='fail'] .exercise-panel__result-status, .exercise-panel__results li[data-status='error'] .exercise-panel__result-status { color: var(--color-diagnostic); }
+.exercise-panel__compare { display: grid; gap: 6px; }
+.exercise-panel__compare span { color: var(--color-text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+.exercise-panel__compare pre { margin: 2px 0 0; padding: 6px 8px; border-radius: var(--radius-small); background: var(--color-input); color: var(--color-text); font-family: var(--font-mono); font-size: 11px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.exercise-panel :is(button, input, textarea, select):focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.exercise-panel__danger { display: grid; gap: 8px; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--color-border); }
+.exercise-panel__danger p { margin: 0; color: var(--color-text-muted); font-size: 11px; line-height: 1.5; }
+.exercise-panel__danger .exercise-panel__danger-button { border-color: var(--color-diagnostic); color: var(--color-diagnostic); }

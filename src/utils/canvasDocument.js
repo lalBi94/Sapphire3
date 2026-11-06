@@ -40,13 +40,19 @@ function replaySourceMutation(state, action) {
 
 // Initialise un document local ; aucune donnée utilisateur n'est écrite sur disque.
 export function initialDocument() {
-  return withSource({ cards: [], revision: 0, mutationError: null }, createProject('workspace'))
+  return withSource({ cards: [], revision: 0, exercise: null, mutationError: null }, createProject('workspace'))
 }
 
 // Applique les changements atomiques en gardant les coordonnées séparées du modèle source.
 export function reduceDocument(state, action) {
   if (action.type === 'replaceWorkspace') {
-    return withSource({ cards: action.workspace.presentation.cards, revision: state.revision + 1, mutationError: null }, action.workspace.project)
+    return withSource({ cards: action.workspace.presentation.cards, revision: state.revision + 1, exercise: action.workspace.exercise ?? null, mutationError: null }, action.workspace.project)
+  }
+  if (action.type === 'exercise') {
+    return { ...state, exercise: action.exercise }
+  }
+  if (action.type === 'restoreStarter') {
+    return withSource({ ...state, cards: action.starter.presentation.cards, revision: state.revision + 1 }, action.starter.project)
   }
   if (action.type === 'createCard') {
     const card = action.card
@@ -162,6 +168,9 @@ export function reduceHistory(state, action) {
   if (action.type === 'replaceWorkspace') {
     return { past: [], present: reduceDocument(state.present, action), future: [] }
   }
+  if (action.type === 'restoreStarter') {
+    return { past: [], present: reduceDocument(state.present, action), future: [] }
+  }
   if (action.type === 'undo') {
     if (state.past.length === 0) return state
     const previous = state.past[state.past.length - 1]
@@ -175,6 +184,6 @@ export function reduceHistory(state, action) {
   const next = reduceDocument(state.present, action)
   if (next === state.present) return state
   if (['pasteNode', 'moveNode', 'moveNodes', 'duplicateNode'].includes(action.type) && next.project === state.present.project) return { ...state, present: next }
-  if (['geometry', 'text', 'presentation', 'layout'].includes(action.type)) return { ...state, present: next, future: [] }
+  if (['geometry', 'text', 'presentation', 'layout', 'exercise'].includes(action.type)) return { ...state, present: next, future: [] }
   return { past: [...state.past, state.present], present: next, future: [] }
 }

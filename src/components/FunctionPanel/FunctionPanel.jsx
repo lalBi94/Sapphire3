@@ -3,31 +3,8 @@ import { Bug, Play, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import usePanelFront from '../../hooks/usePanelFront.jsx'
 import { failureLabel } from '../../utils/translations.js'
+import { defaultValue, isEditableType, parseValue, primitiveName } from '../../utils/functionInputs.js'
 import './FunctionPanel.css'
-
-const numericTypes = new Set(['short int', 'short uint', 'int', 'uint', 'float', 'double'])
-const textTypes = new Set(['string', 'char'])
-
-// Nom primitif d'un type, ou null quand l'entrée n'est pas un primitif simple.
-function primitiveName(type) {
-  return type?.kind === 'primitive' ? type.name : null
-}
-
-// Valeur par défaut d'un champ selon son type déclaré.
-function defaultValue(type) {
-  const name = primitiveName(type)
-  if (name === 'boolean') return 'false'
-  if (textTypes.has(name)) return ''
-  return numericTypes.has(name) ? '0' : ''
-}
-
-// Convertit la saisie en valeur brute attendue par le moteur.
-function parseValue(type, raw) {
-  const name = primitiveName(type)
-  if (name === 'boolean') return raw === 'true'
-  if (numericTypes.has(name)) return raw.trim() === '' ? Number.NaN : Number(raw)
-  return raw
-}
 
 // Saisit les entrées d'une fonction et présente son résultat, sa sortie et ses variables.
 export default function FunctionPanel({ index, functionNode, result, onRun, onDebug, onClose }) {
@@ -39,7 +16,7 @@ export default function FunctionPanel({ index, functionNode, result, onRun, onDe
   const name = functionNode.properties?.name || t('details.block')
   const front = usePanelFront({ title: t('function.title', { name }), onClose })
   const [inputs, setInputs] = useState(() => parameters.map((parameter) => defaultValue(parameter.type)))
-  const unsupported = parameters.some((parameter) => !['boolean', ...textTypes, ...numericTypes].includes(primitiveName(parameter.type)))
+  const unsupported = parameters.some((parameter) => !isEditableType(parameter.type))
   const collect = () => parameters.map((parameter, position) => parseValue(parameter.type, inputs[position] ?? ''))
 
   // Met à jour une entrée sans valider la valeur : le moteur reste seul juge.

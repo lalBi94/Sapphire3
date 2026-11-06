@@ -29,6 +29,9 @@ import { layoutModules } from '../../utils/moduleLayout.js'
 import { buildDebugValues } from '../../utils/memorySpace.js'
 import ProjectNavigation from '../ProjectNavigation/ProjectNavigation.jsx'
 import useWorkspaceFiles from '../../hooks/useWorkspaceFiles.jsx'
+import useExercise from '../../hooks/useExercise.jsx'
+import ExercisePanel from '../ExercisePanel/ExercisePanel.jsx'
+import { createExercise } from '../../utils/exercise.js'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { useNotifications } from '../../contexts/NotificationContext.jsx'
 import { diagnosticLabel, nodeLine } from '../LogicTree/logicLabels.js'
@@ -60,6 +63,7 @@ import './Canvas.css'
 export default function Canvas() {
   const [contextMenu, setContextMenu] = useState(null)
   const [selection, setSelection] = useState([])
+  const [exerciseOpen, setExerciseOpen] = useState(false)
   const [activeCardId, setActiveCardId] = useState(null)
   const [growthRequest, setGrowthRequest] = useState({ moduleId: null, revision: 0 })
   const [canvasSize, setCanvasSize] = useState(() => ({ width: typeof window === 'undefined' ? 0 : window.innerWidth, height: typeof window === 'undefined' ? 0 : window.innerHeight }))
@@ -122,8 +126,17 @@ export default function Canvas() {
     observer.observe(element)
     return () => observer.disconnect()
   }, [canvasRef])
-  const files = useWorkspaceFiles({ project: document.project, cards: document.cards, camera, selected, onReplace: handleReplaceWorkspace })
+  const files = useWorkspaceFiles({ project: document.project, cards: document.cards, camera, selected, exercise: document.exercise, onReplace: handleReplaceWorkspace })
+  const exerciseState = useExercise({ project: document.project, exercise: document.exercise })
+  const exerciseRevisionRef = useRef(null)
   const transfers = useNodeTransfers({ project: document.project, index: document.index, selected, selectedNodeIds, readOnly: presentationMode, workspaceRef, onPaste: document.pasteNode, onMove: document.moveNodes, onDuplicate: document.duplicateNode, onTransferred: handleNodeTransferred })
+
+  // Ouvre automatiquement le panneau pour un exercice chargé, sans le rouvrir après fermeture manuelle.
+  useEffect(() => {
+    if (!document.exercise || exerciseRevisionRef.current === document.revision) return
+    exerciseRevisionRef.current = document.revision
+    setExerciseOpen(true)
+  }, [document.exercise, document.revision])
 
   useEffect(() => {
     simulationEpochRef.current += 1
@@ -289,6 +302,36 @@ export default function Canvas() {
     setGrowthRequest({ moduleId: null, revision: 0 })
     menuTriggerRef.current = null
     setContextMenu(null)
+  }
+
+  // Crée un manifeste vide et ouvre le panneau pour l'enseignant.
+  function handleCreateExercise() {
+    if (!document.exercise) document.setExercise(createExercise({
+      title: t('exercise.title'),
+      starter: { project: document.project, presentation: { cards: document.cards, camera, selected: selected ? { kind: selected.kind, id: selected.id } : null } },
+    }))
+    setExerciseOpen(true)
+  }
+
+  // Restaure le squelette fourni par l'enseignant et replace la vue comme à la création.
+  function handleResetExercise() {
+    if (!document.exercise?.starter) return
+    document.restoreStarter(document.exercise.starter)
+    restoreCamera(document.exercise.starter.presentation.camera)
+    setSelection(document.exercise.starter.presentation.selected ? [document.exercise.starter.presentation.selected] : [])
+    setExerciseOpen(true)
+  }
+
+  // Ouvre le panneau avant de vérifier pour que le résultat soit visible immédiatement.
+  function handleCheckExercise() {
+    setExerciseOpen(true)
+    exerciseState.check()
+  }
+
+  // Retire le manifeste sans toucher au programme ni aux cartes.
+  function handleRemoveExercise() {
+    document.setExercise(null)
+    setExerciseOpen(false)
   }
 
   // Place la carte touchée au-dessus des autres cartes sans modifier le document source.
@@ -1151,7 +1194,7 @@ export default function Canvas() {
       hiddenCards={hiddenCards} onShowCard={handleShowCard} onShowAllHidden={handleShowAllHidden}
       presentation={presentationMode} onTogglePresentation={handleTogglePresentation}
       hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onOpenSearch={search.show} onRunSimulation={handleRunSimulation} onRunGraphical={handleRunGraphical} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} selectedFunction={selectedFunction} onOpenFunction={handleOpenFunction} simulationRunning={Boolean(execution?.running)} simulationPaused={Boolean(execution?.paused)} onPauseSimulation={handlePauseExecution} onResumeSimulation={handleResumeExecution} onStopSimulation={handleStopExecution} onOpenRepository={() => openExternal(repositoryUrl)} onOpenSettings={() => setSettingsOpen(true)} onQuit={() => quitApplication()} updateAvailable={appUpdate.update.status === 'available'} updateVersion={appUpdate.update.release?.version ?? ''} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })} onCheckTranspile={getTranspileChecks}
-      bookmarks={bookmarks} modules={moduleChoices} canBookmark={bookmarkStatus(selected).can} onSaveBookmark={handleSaveBookmark} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark} onOpenBookmarks={() => setBookmarksOpen(true)} />
+      bookmarks={bookmarks} modules={moduleChoices} canBookmark={bookmarkStatus(selected).can} onSaveBookmark={handleSaveBookmark} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark} onOpenBookmarks={() => setBookmarksOpen(true)} exercise={document.exercise} onOpenExercise={() => setExerciseOpen(true)} onCreateExercise={handleCreateExercise} onCheckExercise={handleCheckExercise} />
     <button type="button" className="canvas-nav-toggle" aria-expanded={!navCollapsed} aria-label={t(navCollapsed ? 'nav.show' : 'nav.hide')} title={t(navCollapsed ? 'nav.show' : 'nav.hide')} onClick={() => setNavCollapsed((current) => !current)}>{navCollapsed ? <ChevronDown size={15} aria-hidden="true" /> : <ChevronUp size={15} aria-hidden="true" />}</button>
     <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label={t('canvas.aria')} tabIndex={0}
       onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerEnd} onPointerCancel={handlePointerEnd} onLostPointerCapture={handlePointerEnd} onKeyDown={handleKeyDown} onContextMenu={handleContextMenu}
@@ -1228,6 +1271,7 @@ export default function Canvas() {
         <button type="button" aria-label={t('nav.dismiss')} onClick={transfers.dismiss}><X size={14} aria-hidden="true" /></button>
       </div>}
       <SimulationPanel result={simulationResult} running={Boolean(execution?.running)} paused={Boolean(execution?.paused)} stopped={Boolean(execution?.stopped)} currentStep={execution ? execution.index + 1 : 0} free={executionFree} speed={simulationSpeed} onSpeedChange={handleSimulationSpeedChange} onToggleFree={handleToggleExecutionFree} onPause={handlePauseExecution} onResume={handleResumeExecution} onStop={handleStopExecution} onClose={() => { setSimulationResult(null); setExecution(null); setExecutionFree(false) }} />
+      {exerciseOpen && document.exercise && <ExercisePanel exercise={document.exercise} onChange={document.setExercise} index={document.index} state={exerciseState} onReset={document.exercise.starter ? handleResetExercise : undefined} onRemove={handleRemoveExercise} readOnly={presentationMode} onClose={() => setExerciseOpen(false)} />}
       {functionNode && <FunctionPanel key={`${functionTarget}:${functionSignature}`} index={document.index} functionNode={functionNode} result={functionResult?.functionId === functionTarget ? functionResult.result : null} onRun={handleRunFunction} onDebug={handleDebugFunction} onClose={handleCloseFunction} />}
       {debugSession?.project === document.project && <DebugPanel session={debugSession} index={document.index} onAction={handleDebugAction} onClose={() => setDebugSession(null)} memoryOpen={memoryOpen} onToggleMemory={() => { setMemoryOpen((current) => !current); setPointerGraphOpen(false) }} pointerGraphOpen={pointerGraphOpen} onTogglePointerGraph={() => { setPointerGraphOpen((current) => !current); setMemoryOpen(false) }} />}
       {debugSession?.project === document.project && memoryOpen && <MemoryPanel index={document.index} frame={debugFrame} reachability={debugSession.reachability} onClose={() => setMemoryOpen(false)} />}
