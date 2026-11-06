@@ -2,6 +2,14 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Palette d'emoji et symboles Lucide — 6 novembre 2026
+
+- Liste d'emoji resserrée à **24 entrées utiles** : sept valeurs décoratives ou redondantes retirées (`🔧`, `⭐`, `🔥`, `💡`, `❤️`, `✅`, `📐`) et onze ajoutées (`🔑`, `⏱️`, `📈`, `🎨`, `🔔`, `♻️`, `🧭`, `🏁`, `🧰`, `📡`, `🧬`).
+- **31 symboles Lucide** proposés en complément (`box`, `terminal`, `database`, `bug`, `flask`, `cpu`, `branch`, etc.), dans une seconde section. Un symbole est stocké comme le jeton `lucide:<clé>` dans la même clef `emoji`, rendu par son composant ; la limite de 16 unités de `workspaceFile.js` suffit aux jetons les plus longs (`lucide:fileCode`).
+- Présentation : choix en **deux sections titrées**, grille de **huit colonnes**, bouton sélectionné encadré (`aria-pressed`), zone défilante limitée à **232 px** avec barre fine, panneau contraint à la fenêtre (hauteur et position) et saisie libre conservée sous la liste.
+- Vérifications : **515 tests réussis** (dont le jeton Lucide conservé à l'aller-retour), build Vite réussi. Contrôles navigateur : **55 choix** (24 + 31), deux sections, grille à huit colonnes, `scrollHeight` 251 > `clientHeight` 232 donc défilement réel, aucune valeur retirée restante, sélection `Database` retrouvée à la réouverture, icônes rendues dans l'en-tête de carte, aucune erreur console.
+- Limites : pas de capture d'écran (fenêtre non visible pendant le contrôle) ni de nouvelle vérification native Neutralinojs ; les noms des symboles restent en anglais dans les libellés accessibles.
+
 ## LED RVB — 6 novembre 2026
 
 - Nouveau type de carte **`rgbLed`** (« RGB LED ») : clone de la LED à **trois canaux entiers** `int` de 0 à 255. Le voyant prend la couleur `rgb(r g b)` avec un halo dont l'amplitude suit le canal le plus lumineux ; les canaux sont bornés à l'affichage et répétés en petit sous le voyant. Accessibilité : libellé traduit avec les trois valeurs.

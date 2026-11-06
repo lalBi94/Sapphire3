@@ -224,6 +224,10 @@ test('emoji de carte : conservé à l’aller-retour et refusé s’il est mal f
   assert.equal(deserializeWorkspace(text).presentation.cards[0].emoji, '🚀')
   const empty = reduceDocument(document, { type: 'presentation', id: 'module', patch: { emoji: '' } })
   assert.equal(Object.hasOwn(JSON.parse(serializeWorkspace(empty.project, empty.cards, camera)).presentation.cards[0], 'emoji'), false, 'un emoji vide n’est pas écrit')
+  // Un symbole Lucide est stocké comme un jeton court, accepté comme l'emoji texte.
+  const withSymbol = reduceDocument(document, { type: 'presentation', id: 'module', patch: { emoji: 'lucide:terminal' } })
+  const symbolText = serializeWorkspace(withSymbol.project, withSymbol.cards, camera)
+  assert.equal(deserializeWorkspace(symbolText).presentation.cards[0].emoji, 'lucide:terminal')
   const invalid = JSON.parse(text)
   invalid.presentation.cards[0].emoji = 5
   assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)), { message: 'Invalid card emoji.' })
