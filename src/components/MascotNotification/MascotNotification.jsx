@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Trash2, X } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { useNotifications } from '../../contexts/NotificationContext.jsx'
@@ -10,6 +10,25 @@ function historyTime(timestamp, language) {
   return new Date(timestamp).toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' })
 }
 
+// Place la bulle à côté du robot sans jamais dépasser le canvas.
+function bubblePlacement(position) {
+  const margin = 8
+  const gap = 10
+  const roomRight = position.areaWidth - position.left - position.width - gap - margin
+  const roomLeft = position.left - gap - margin
+  const toLeft = roomRight < 220 && roomLeft > roomRight
+  const roomUp = position.areaHeight - position.bottom - margin
+  const roomDown = position.bottom + position.height - margin
+  const upward = roomUp >= 220 || roomUp >= roomDown
+  return {
+    position: 'absolute',
+    ...(toLeft ? { right: `calc(100% + ${gap}px)`, left: 'auto' } : { left: `calc(100% + ${gap}px)`, right: 'auto' }),
+    ...(upward ? { bottom: 0, top: 'auto' } : { top: 0, bottom: 'auto' }),
+    maxWidth: `${Math.round(Math.max(160, Math.min(360, toLeft ? roomLeft : roomRight)))}px`,
+    maxHeight: `${Math.round(Math.max(140, Math.min(420, upward ? roomUp : roomDown)))}px`,
+  }
+}
+
 // Affiche le robot, la notification courante et l'historique récent.
 export default function MascotNotification({ hasMinimap = false }) {
   const { t, language } = useTranslation()
@@ -18,6 +37,7 @@ export default function MascotNotification({ hasMinimap = false }) {
   const [closing, setClosing] = useState(false)
   const [dragging, setDragging] = useState(false)
   const [robotPosition, setRobotPosition] = useState(null)
+  const [metrics, setMetrics] = useState(null)
   const rootRef = useRef(null)
   const robotRef = useRef(null)
   const closeTimer = useRef(null)
@@ -26,6 +46,9 @@ export default function MascotNotification({ hasMinimap = false }) {
   const suppressClickRef = useRef(false)
   const state = active ? mascotForType(active.type) : mascotStates.idle
   const isError = active?.type === 'error' || active?.type === 'transpile_failed' || active?.type === 'shortcut_conflict'
+  // La bulle est positionnée hors du flux pour rester visible, même après un déplacement.
+  const bubbleBase = robotPosition ?? metrics
+  const bubbleStyle = bubbleBase ? bubblePlacement(bubbleBase) : undefined
 
   useEffect(() => {
     setClosing(false)
@@ -48,6 +71,45 @@ export default function MascotNotification({ hasMinimap = false }) {
       document.removeEventListener('keydown', handleKey)
     }
   }, [historyOpen])
+
+  // Mesure la position du robot et la borne au canvas, y compris après un redimensionnement.
+  useLayoutEffect(() => {
+    function measure() {
+      const root = rootRef.current
+      const parent = root?.offsetParent
+      const robot = robotRef.current
+      if (!root || !parent || !robot) return
+      const area = parent.getBoundingClientRect()
+      const rootRect = root.getBoundingClientRect()
+      const robotRect = robot.getBoundingClientRect()
+      setMetrics({
+        left: rootRect.left - area.left,
+        bottom: area.bottom - rootRect.bottom,
+        areaWidth: area.width,
+        areaHeight: area.height,
+        width: robotRect.width,
+        height: robotRect.height,
+      })
+      setRobotPosition((current) => current ? {
+        ...current,
+        left: Math.min(Math.max(8, current.left), Math.max(8, area.width - robotRect.width - 8)),
+        bottom: Math.min(Math.max(8, current.bottom), Math.max(8, area.height - robotRect.height - 8)),
+        areaWidth: area.width,
+        areaHeight: area.height,
+        width: robotRect.width,
+        height: robotRect.height,
+      } : current)
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    const parent = rootRef.current?.offsetParent
+    const observer = typeof ResizeObserver === 'function' && parent ? new ResizeObserver(measure) : null
+    observer?.observe(parent)
+    return () => {
+      window.removeEventListener('resize', measure)
+      observer?.disconnect()
+    }
+  }, [hasMinimap])
 
   // Capture le robot et mémorise sa position rendue dans le canvas.
   function handleRobotPointerDown(event) {
@@ -90,7 +152,7 @@ export default function MascotNotification({ hasMinimap = false }) {
     const margin = 8
     const left = Math.min(Math.max(margin, drag.left + dx), Math.max(margin, drag.areaWidth - drag.width - margin))
     const bottom = Math.min(Math.max(margin, drag.bottom - dy), Math.max(margin, drag.areaHeight - drag.height - margin))
-    setRobotPosition({ left, bottom })
+    setRobotPosition({ left, bottom, areaWidth: drag.areaWidth, areaHeight: drag.areaHeight, width: drag.width, height: drag.height })
   }
 
   // Termine le glisser sans transformer le geste en ouverture d'historique.
@@ -159,7 +221,7 @@ export default function MascotNotification({ hasMinimap = false }) {
     </button>
 
     {historyOpen
-      ? <section className="mascot-notification__bubble mascot-notification__history" role="dialog" aria-label={t('mascot.history')}>
+      ? <section className="mascot-notification__bubble mascot-notification__history" role="dialog" aria-label={t('mascot.history')} style={bubbleStyle}>
         <header className="mascot-notification__header">
           <strong>{t('mascot.history')}</strong>
           <button type="button" className="mascot-notification__icon" aria-label={t('mascot.closeHistory')} onClick={() => setHistoryOpen(false)}><X size={14} aria-hidden="true" /></button>
@@ -176,7 +238,7 @@ export default function MascotNotification({ hasMinimap = false }) {
           </li>)}</ol>}
         {history.length > 0 && <button type="button" className="mascot-notification__clear" onClick={clearHistory}><Trash2 size={13} aria-hidden="true" />{t('mascot.clearHistory')}</button>}
       </section>
-      : active && <section key={active.id} className={`mascot-notification__bubble mascot-notification__bubble--${active.type}${closing ? ' mascot-notification__bubble--leaving' : ''}`} role={isError ? 'alert' : 'status'} aria-live={isError ? 'assertive' : 'polite'}>
+      : active && <section key={active.id} className={`mascot-notification__bubble mascot-notification__bubble--${active.type}${closing ? ' mascot-notification__bubble--leaving' : ''}`} role={isError ? 'alert' : 'status'} aria-live={isError ? 'assertive' : 'polite'} style={bubbleStyle}>
         <header className="mascot-notification__header">
           {active.title && <strong>{active.title}</strong>}
           <button type="button" className="mascot-notification__icon" aria-label={t('mascot.dismiss')} onClick={() => closeActive(active.id)}><X size={14} aria-hidden="true" /></button>

@@ -2,6 +2,13 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Bulle de la mascotte toujours visible — 6 novembre 2026
+
+- La bulle du robot n'est plus un simple enfant du flux : elle est positionnée en absolu par rapport au robot. Le placement choisit la droite ou la gauche du robot selon l'espace restant, s'aligne vers le haut (bulle ancrée en bas) ou vers le bas (ancrée en haut) selon la place, et borne sa largeur (160–360 px) et sa hauteur (140–420 px) à l'espace réellement disponible. `overflow-y: auto` prend le relais si le contenu dépasse.
+- La position par défaut est mesurée au montage et lors d'un redimensionnement (`ResizeObserver` sur le canvas et `resize`), afin que la bulle soit bornée même sans déplacement. La position du robot est également re-bornée après un redimensionnement.
+- Vérifications : `pnpm build` réussi, aucune erreur console. Contrôles navigateur dans les quatre coins du canvas : bulle à droite et alignée en haut en haut à gauche (`108–460 × 14–90`), à gauche et en haut en haut à droite (`540–892 × 14–90`), à droite et en bas en bas à gauche (`108–460 × 563–639`), à gauche et en bas en bas à droite (`540–892 × 563–639`), toujours **dans le canvas**. La position par défaut reste à droite du robot (`116–468 × 555–631`).
+- Limite : contrôle à une seule taille de fenêtre (1000 × 643) ; le calcul borne les petites fenêtres par des minima de 160 × 140 px, sans test sous 480 px.
+
 ## Nouvelles simulations d'écran — 6 novembre 2026
 
 - Cinq exemples ajoutés, tous adossés au nœud **Screen** : **Coral growth**, **Labyrinth**, **Starfield**, **Color flow** et **RGB mixer**. Le catalogue passe à **35 exemples** (Simple 7, Medium 17, Hard 11).
