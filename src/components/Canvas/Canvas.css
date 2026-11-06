@@ -37,6 +37,29 @@
   cursor: grabbing;
 }
 
+/* Guides d'alignement affichés pendant le déplacement magnétique d'un module. */
+.canvas-alignment-guide {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--color-primary) 82%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-primary) 45%, transparent);
+}
+
+.canvas-alignment-guide--vertical {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  margin-left: -0.5px;
+}
+
+.canvas-alignment-guide--horizontal {
+  right: 0;
+  left: 0;
+  height: 1px;
+  margin-top: -0.5px;
+}
+
 .canvas:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: -1px;

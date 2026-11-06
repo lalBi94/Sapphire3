@@ -36,6 +36,7 @@ La CI GitHub Actions (`.github/workflows/ci.yml`) exécute l’installation verr
 - Cartes spéciales **Screen**, **Gauge**, **ProgressBar** et **LED**, adossées à des modules cachés normaux, avec aperçu ou code et lecture des images à 24 fps.
 - **BarChart** : tableau `int[]`, barres avec dégradé/halo, `SET_VALUE`, `SET_DATA`, `CLEAR`. **Heatmap** : grille fixe `int[]`, `SET_CELL(x, y, value)`, `CLEAR`, intensité simple du thème et suivi par pas sans lecture à 24 fps. Les deux proposent aussi la vue code du module caché.
 - Liens intermodules, vue graphique simplifiée, graphe de contrôle, dépendances et recherche de blocs.
+- **Modules magnétiques** : pendant un glisser, bords et centres s’alignent sur les modules voisins avec des guides visuels. La case **Magnetic modules** de View/Settings désactive l’aimant sans auto-arrangement global.
 
 ### Langage et moteur
 - Typage statique strict : primitifs, tableaux, pointeurs, signatures de fonction, type `void` réservé aux retours.
@@ -88,4 +89,4 @@ L’application vérifie les **releases publiées** du dépôt `lalBi94/Sapphire
 - L’analyse reste conservatrice et ne prouve ni terminaison ni valeurs générales.
 - Les captures de `abstract/visual` datent d’une campagne antérieure ; les fonctionnalités récentes y sont décrites dans le texte.
 
-Dernier check-up : **502 tests Node et Python réussis**, build frontend et parcours navigateur vérifiés. Les trente exemples passent Run et Debug dans le Web Worker ; les douze exemples transpilables sont exécutés en JavaScript et Python. Les notifications par mascotte sont couvertes par quatre tests purs et des contrôles navigateur. Les dialogues et écritures natifs restent couverts par les tests de services, sans nouvelle vérification manuelle Neutralinojs. Détail dans `docs/PROJECT_ARCHIVE.md`.
+Dernier check-up : **506 tests Node et Python réussis**, build frontend et parcours navigateur vérifiés. Les trente exemples passent Run et Debug dans le Web Worker ; les douze exemples transpilables sont exécutés en JavaScript et Python. Les notifications par mascotte et l’aimantation des modules sont couvertes par des tests purs et des contrôles navigateur. Les dialogues et écritures natifs restent couverts par les tests de services, sans nouvelle vérification manuelle Neutralinojs. Détail dans `docs/PROJECT_ARCHIVE.md`.

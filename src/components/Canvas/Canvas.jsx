@@ -10,6 +10,7 @@ import useAppUpdate from '../../hooks/useAppUpdate.jsx'
 import CanvasStatus from '../CanvasStatus/CanvasStatus.jsx'
 import ModuleFunctions from '../ModuleFunctions/ModuleFunctions.jsx'
 import { semanticZoomLevel, semanticSearchZoomLevel } from '../../utils/semanticZoom.js'
+import { moduleSnapPixels, snapModuleRect } from '../../utils/moduleSnap.js'
 import Minimap from '../Minimap/Minimap.jsx'
 import MascotNotification from '../MascotNotification/MascotNotification.jsx'
 import CanvasContextMenu from '../CanvasContextMenu/CanvasContextMenu.jsx'
@@ -64,6 +65,8 @@ export default function Canvas() {
   const [distorted, setDistorted] = useState(true)
   const [minimapVisible, setMinimapVisible] = useState(true)
   const [gridVisible, setGridVisible] = useState(true)
+  const [magnetEnabled, setMagnetEnabled] = useState(true)
+  const [alignmentGuides, setAlignmentGuides] = useState({ vertical: [], horizontal: [] })
   const [fullScreen, setFullScreen] = useState(false)
   const [simulationResult, setSimulationResult] = useState(null)
   const [execution, setExecution] = useState(null)
@@ -980,36 +983,59 @@ export default function Canvas() {
     notify({ type: 'locked_card', message: t(locked ? 'notification.cardLocked' : 'notification.cardUnlocked', { name: card.name }), duration: 4000 })
   }
 
+  // Évite de rerendre le canvas lorsqu'aucun guide d'alignement ne change.
+  function updateAlignmentGuides(next) {
+    setAlignmentGuides((current) => current.vertical.join('|') === next.vertical.join('|') && current.horizontal.join('|') === next.horizontal.join('|') ? current : next)
+  }
+
   // Mémorise les positions initiales des modules sélectionnés pour un déplacement groupé.
   function handleModuleMoveStart(moduleId) {
     const ids = selectedModuleIds.includes(moduleId) ? selectedModuleIds : [moduleId]
     const origins = new Map()
     for (const id of ids) {
       const card = document.cards.find((entry) => entry.id === id)
-      if (card && !card.locked) origins.set(id, { x: card.x, y: card.y })
+      if (card && !card.locked) origins.set(id, { x: card.x, y: card.y, width: card.width, height: card.height })
     }
     groupMoveRef.current = origins.size > 0 ? { id: moduleId, origins } : null
+    updateAlignmentGuides({ vertical: [], horizontal: [] })
   }
 
-  // Applique le même delta aux cartes de modules sélectionnées, sans déplacer une carte verrouillée.
+  // Applique le même delta aux cartes sélectionnées et aimante leur cadre aux modules voisins.
   function handleModuleMove(moduleId, x, y) {
     if (!Number.isFinite(x) || !Number.isFinite(y)) return
-    const group = groupMoveRef.current?.id === moduleId
-      ? groupMoveRef.current.origins
+    const groupOrigins = groupMoveRef.current?.id === moduleId ? groupMoveRef.current.origins : null
+    const group = groupOrigins
+      ? groupOrigins
       : new Map((selectedModuleIds.includes(moduleId) ? selectedModuleIds : [moduleId]).map((id) => {
         const card = document.cards.find((entry) => entry.id === id)
-        return card && !card.locked ? [id, { x: card.x, y: card.y }] : null
+        return card && !card.locked ? [id, { x: card.x, y: card.y, width: card.width, height: card.height }] : null
       }).filter(Boolean))
     const origin = group.get(moduleId)
     if (!origin) return
-    const dx = x - origin.x
-    const dy = y - origin.y
+    let dx = x - origin.x
+    let dy = y - origin.y
+    let guides = { vertical: [], horizontal: [] }
+    if (groupOrigins && magnetEnabled) {
+      const rects = [...group.values()].map((start) => ({ x: start.x + dx, y: start.y + dy, width: start.width, height: start.height }))
+      const left = Math.min(...rects.map((rect) => rect.x))
+      const top = Math.min(...rects.map((rect) => rect.y))
+      const right = Math.max(...rects.map((rect) => rect.x + rect.width))
+      const bottom = Math.max(...rects.map((rect) => rect.y + rect.height))
+      const moving = { x: left, y: top, width: right - left, height: bottom - top }
+      const candidates = visibleCards.filter((card) => logicalCardTypes.includes(card.type) && !group.has(card.id))
+      const snapped = snapModuleRect(moving, candidates, moduleSnapPixels / zoom)
+      dx += snapped.x - moving.x
+      dy += snapped.y - moving.y
+      guides = snapped.guides
+    }
     for (const [id, start] of group) document.updateGeometry(id, { x: start.x + dx, y: start.y + dy })
+    updateAlignmentGuides(guides)
   }
 
   // Termine le geste groupé ; le prochain clic repart des positions courantes.
   function handleModuleMoveEnd() {
     groupMoveRef.current = null
+    updateAlignmentGuides({ vertical: [], horizontal: [] })
   }
 
   // Duplique toutes les cibles sélectionnées et sélectionne l'ensemble des copies.
@@ -1095,6 +1121,7 @@ export default function Canvas() {
       onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={() => handleRecenter(getModulesBounds())}
       distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)}
       minimapVisible={minimapVisible} onToggleMinimap={() => setMinimapVisible((current) => !current)}
+      magnetEnabled={magnetEnabled} onToggleMagnet={() => setMagnetEnabled((current) => !current)}
       fullScreen={fullScreen} onToggleFullScreen={handleToggleFullScreen} gridVisible={gridVisible} onToggleGrid={() => setGridVisible((current) => !current)} onArrangeModules={handleArrangeModules}
       hiddenCards={hiddenCards} onShowCard={handleShowCard} onShowAllHidden={handleShowAllHidden}
       presentation={presentationMode} onTogglePresentation={handleTogglePresentation}
@@ -1151,6 +1178,8 @@ export default function Canvas() {
         expansionState={['module', 'screen'].includes(card.type) && document.index.modules.has(card.id) ? getExpansionState(card.id) : null} onToggleExpansion={(id) => handleExpansion(id, getExpansionState(id) !== 'collapse')}>
         {semanticLevel === 'detail' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} selectedIds={selectedIds} readOnly={presentationMode} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} onReorder={(id, offset) => document.reorderNode(id, offset)} unusedIds={unusedIds} pureIds={pureIds.functions} breakpoints={breakpoints} onToggleBreakpoint={handleToggleBreakpoint} debugValues={debugValues} genericCalls={genericCalls} dropTarget={transfers.dropTarget} />}
       </CanvasModule>)}
+      {alignmentGuides.vertical.map((guide) => <div key={`vertical:${guide}`} className="canvas-alignment-guide canvas-alignment-guide--vertical" style={{ left: `calc(50% + ${(guide - camera.x) * zoom}px)` }} aria-hidden="true" />)}
+      {alignmentGuides.horizontal.map((guide) => <div key={`horizontal:${guide}`} className="canvas-alignment-guide canvas-alignment-guide--horizontal" style={{ top: `calc(50% + ${(guide - camera.y) * zoom}px)` }} aria-hidden="true" />)}
       <CanvasStatus camera={camera} zoom={zoom} semanticLevel={semanticLevel} hiddenCount={hiddenCards.length} onShowAllHidden={handleShowAllHidden} onRecenter={() => handleRecenter(getModulesBounds())} />
       {engineWork && <div className="canvas-engine-status" data-canvas-ui role="status" onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
         <div className="canvas-engine-status__body">
@@ -1183,7 +1212,7 @@ export default function Canvas() {
         onNew={files.handleNew} onOpenSp3={files.handleOpenSp3} onSave={files.handleSave} onSaveAs={files.saveAs} onImport={files.handleImport} onExportSvg={handleExportSvg}
         recentFiles={files.recentFiles} onOpenRecent={files.handleOpenRecent}
         project={document.project} currentPath={files.currentPath} diagnostics={document.analysis?.diagnostics ?? []} referenceCount={document.analysis?.semantic?.references?.length ?? 0} unusedCount={unusedIds.size}
-        distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)} minimapVisible={minimapVisible} onToggleMinimap={() => setMinimapVisible((current) => !current)} navVisible={!navCollapsed} onToggleNav={() => setNavCollapsed((current) => !current)} hiddenCards={hiddenCards} onShowAllHidden={handleShowAllHidden} onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={() => handleRecenter(getModulesBounds())}
+        distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)} minimapVisible={minimapVisible} onToggleMinimap={() => setMinimapVisible((current) => !current)} magnetEnabled={magnetEnabled} onToggleMagnet={() => setMagnetEnabled((current) => !current)} navVisible={!navCollapsed} onToggleNav={() => setNavCollapsed((current) => !current)} hiddenCards={hiddenCards} onShowAllHidden={handleShowAllHidden} onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={() => handleRecenter(getModulesBounds())}
         bookmarks={bookmarks} canBookmark={bookmarkStatus(selected).can} onSaveBookmark={handleSaveBookmark} onOpenBookmarks={() => setBookmarksOpen(true)} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark}
         onOpenRepository={() => openExternal(repositoryUrl)} update={appUpdate.update} onCheckUpdate={() => appUpdate.check()} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })} onQuit={() => quitApplication()} />}
       {nodeGraph && <NodeGraphPanel project={document.project} index={document.index} target={nodeGraph.target} mode={nodeGraph.mode} onSelect={handleSelect} onClose={() => setNodeGraph(null)} />}

@@ -2,6 +2,13 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Modules magnétiques — 6 novembre 2026
+
+- Aimantation limitée au glisser : les bords gauche/centre/droit et haut/milieu/bas du cadre déplacé — ou du cadre englobant la sélection — sont comparés aux mêmes repères des modules visibles voisins. Le repère le plus proche à moins de **8 px écran** l'emporte, le delta est appliqué aux coordonnées de présentation et une ligne guide verticale et/ou horizontale est affichée avec les couleurs du thème. Les annotations Comment/Image ne servent pas de cible et aucune carte verrouillée n'est déplacée.
+- Le calcul est pur dans `src/utils/moduleSnap.js` et testé séparément. L'état de l'aimant est une préférence de session, désactivable par **View → Display → Magnetic modules** ou **Settings → Workspace → Modules magnétiques** ; il n'est pas persisté et ne déclenche aucun auto-arrangement global. Aucun changement du format `.sp3`, de la source logique ou de l'AST.
+- **506 tests Node réussis** (502 existants + 4 dans `tests/workspace/moduleSnap.test.js` : bord gauche, bords/centres et hauteurs, repère le plus proche, seuil dépassé), build frontend réussi.
+- Contrôle navigateur sur `pnpm dev:web` avec l'exemple **Imports** : glisser le module `app` à 3 px du bord droit de `library` l'aligne exactement à `left: 949px`, avec guide vertical sur `x = 949` et guide horizontal sur `y = 358` ; les deux guides disparaissent au relâchement. Aimant décoché depuis View : le même geste laisse `left: 946px` sans guide. La case de Settings pilote le même état et reste synchronisée avec View. Aucune erreur console. Capture visuelle des deux guides vérifiée. Non revérifié dans Neutralinojs.
+
 ## Notifications par mascotte — 6 novembre 2026
 
 - Ajout d'un système central sans dépendance : `NotificationContext` fournit `notify`, `dismiss`, `clear` et `clearHistory` ; le réducteur pur `notifications.js` normalise type, priorité, durée, actions et clé, choisit la bulle visible par priorité puis ancienneté, remplace une progression de même clé, ignore un doublon identique pendant 2,5 s et borne l'historique à 20 entrées. Les erreurs critiques, avertissements, conflits de raccourcis, échecs de transpilation et mises à jour disponibles restent ouverts jusqu'à interaction.
