@@ -380,6 +380,7 @@ const messages = {
   'examples.starfield': ['Starfield', 'Champ d’étoiles', '星空', 'Campo de estrellas', 'حقل النجوم', 'スターフィールド', 'तारों का क्षेत्र', 'Звёздное поле'],
   'examples.colorFlow': ['Color flow', 'Flux de couleurs', '色彩流动', 'Flujo de color', 'تدفق الألوان', 'カラーフロー', 'रंग प्रवाह', 'Поток цвета'],
   'examples.rgbMixer': ['RGB mixer', 'Mélangeur RGB', 'RGB 混色器', 'Mezclador RGB', 'مازج RGB', 'RGB ミキサー', 'RGB मिक्सर', 'RGB-микшер'],
+  'examples.rgbLedDemo': ['RGB LED', 'LED RVB', 'RGB 发光二极管', 'LED RGB', 'مصباح RGB', 'RGB LED', 'RGB LED', 'RGB-светодиод'],
   'examples.category.simple': ['Simple', 'Simple', '简单', 'Sencillo', 'بسيط', '基本', 'सरल', 'Простые'],
   'examples.category.medium': ['Medium', 'Moyen', '中等', 'Intermedio', 'متوسط', '中級', 'मध्यम', 'Средние'],
   'examples.category.hard': ['Hard', 'Difficile', '困难', 'Difícil', 'صعب', '上級', 'कठिन', 'Сложные'],

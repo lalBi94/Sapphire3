@@ -44,10 +44,11 @@ const expectedOutput = {
   starfield: ['Starfield'],
   colorFlow: ['Color flow'],
   rgbMixer: ['RGB mixer'],
+  rgbLedDemo: ['Red', 'Yellow', 'Green', 'Cyan', 'Blue', 'Magenta', 'White'],
 }
 
 test('bibliothèque d’exemples : chaque projet est valide, analysable et s’exécute', () => {
-  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'recursion', 'arrays', 'foreach', 'sorting', 'maths', 'imports', 'pointers', 'higherOrder', 'quickSort', 'coinChange', 'gaugeDemo', 'carDashboard', 'trafficControl', 'dnaAnalyzer', 'signalProcessing', 'mandelbrotEscape', 'collatzAtlas', 'sortRace', 'heatDiffusion', 'imageConvolution', 'weatherStation', 'networkMonitor', 'pixelScreens', 'rain', 'knapsack', 'calculus', 'gameOfLife', 'roverSurvey', 'signalLab', 'coral', 'labyrinth', 'starfield', 'colorFlow', 'rgbMixer'])
+  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'recursion', 'arrays', 'foreach', 'sorting', 'maths', 'imports', 'rgbLedDemo', 'pointers', 'higherOrder', 'quickSort', 'coinChange', 'gaugeDemo', 'carDashboard', 'trafficControl', 'dnaAnalyzer', 'signalProcessing', 'mandelbrotEscape', 'collatzAtlas', 'sortRace', 'heatDiffusion', 'imageConvolution', 'weatherStation', 'networkMonitor', 'pixelScreens', 'rain', 'knapsack', 'calculus', 'gameOfLife', 'roverSurvey', 'signalLab', 'coral', 'labyrinth', 'starfield', 'colorFlow', 'rgbMixer'])
   assert.deepEqual(exampleCategories.map((category) => category.id), ['simple', 'medium', 'hard'])
   for (const example of examples) {
     assert.ok(exampleCategories.some((category) => category.id === example.category), `${example.id}: catégorie connue`)
@@ -60,6 +61,26 @@ test('bibliothèque d’exemples : chaque projet est valide, analysable et s’e
     const result = simulateProgram(workspace.project)
     assert.equal(result.ok, true, `${example.id}: ${result.errorCode ?? ''}`)
     assert.deepEqual(result.output, expectedOutput[example.id], example.id)
+  }
+})
+
+test('exemple LED RVB : séquence de sept couleurs, module appelant et état final', () => {
+  const example = examples.find((entry) => entry.id === 'rgbLedDemo')
+  assert.equal(example.category, 'simple')
+  assert.equal(example.subcategory, 'widgets')
+  const workspace = deserializeWorkspace(JSON.stringify(example.build()))
+  assert.equal(workspace.project.modules.length, 2)
+  assert.deepEqual(workspace.presentation.cards.map((card) => card.type), ['rgbLed', 'module', 'comment'])
+  assert.equal(workspace.project.modules[1].imports[0].moduleId, 'rgbDemoLed')
+  const result = simulateProgram(workspace.project)
+  assert.equal(result.ok, true, result.errorCode)
+  assert.deepEqual(result.output, expectedOutput.rgbLedDemo)
+  assert.deepEqual(result.rgbLeds.rgbDemoLed, { red: 255, green: 255, blue: 255 })
+  for (const [red, green, blue] of [[255, 0, 0], [255, 255, 0], [0, 255, 0], [0, 255, 255], [0, 0, 255], [255, 0, 255], [255, 255, 255]]) {
+    assert.ok(result.rgbLedFrames.some((frame) => {
+      const state = frame.rgbDemoLed
+      return state?.red === red && state.green === green && state.blue === blue
+    }), `couleur ${red},${green},${blue} observée`)
   }
 })
 

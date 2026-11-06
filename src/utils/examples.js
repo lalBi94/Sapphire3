@@ -3024,6 +3024,38 @@ function colorFlow() {
   ])
 }
 
+// Montre le pilotage d'une LED RVB par un module ordinaire, sans autre widget.
+function rgbLedDemo() {
+  const b = builder()
+  const led = createRgbLedModule('rgbDemoLed', 'RGB LED', 1, rgbLedDefaults)
+  b.project.modules.push(led.module)
+  b.project.nodes.push(...led.nodes)
+  const app = b.useModule('rgbDemoApp', 'Color sequence')
+  const setColor = led.module.exports.find((entry) => entry.name === led.functions.setColor)
+  importFunction(app, 'rgbDemoSetColor', led.module.id, setColor.nodeId, 'setColor')
+
+  const colors = [
+    ['Red', 255, 0, 0],
+    ['Yellow', 255, 255, 0],
+    ['Green', 0, 255, 0],
+    ['Cyan', 0, 255, 255],
+    ['Blue', 0, 0, 255],
+    ['Magenta', 255, 0, 255],
+    ['White', 255, 255, 255],
+  ]
+  const statements = []
+  colors.forEach(([name, ...channels], index) => {
+    const prefix = `rgbDemoColor${index}`
+    const argumentsIds = channels.map((value, channel) => b.intValue(`${prefix}Channel${channel}`, value))
+    statements.push(callStatement(b, prefix, 'rgbDemoSetColor', argumentsIds))
+    b.stringValue(`${prefix}Name`, name)
+    statements.push(b.print(`${prefix}Print`, `${prefix}Name`))
+  })
+  b.root('rgbDemoMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'rgbDemoBody' })
+  b.block('rgbDemoBody', statements)
+  return workspace(b.project, [note('rgbDemoNote', 'RGB LED', 'Lancez Run pour parcourir rouge, jaune, vert, cyan, bleu, magenta puis blanc. Le module Color sequence importe setColor(red, green, blue) ; chaque canal est un int entre 0 et 255. La carte affiche les trois valeurs et suit les pas de simulation ou de debug. Modifiez les arguments des appels pour essayer vos propres couleurs ; aucun écran ni matériel externe n’est nécessaire.', 0, 520, 1120, 220)])
+}
+
 // Mélangeur RVB : trois barres pour les canaux, une jauge de luminosité, une LED
 // RVB et un écran 48×28 qui montre les canaux et la couleur mélangée.
 function rgbMixer() {
@@ -3244,6 +3276,7 @@ export const examples = [
   { id: 'sorting', labelKey: 'examples.sorting', category: 'simple', subcategory: 'sorting', build: sorting },
   { id: 'maths', labelKey: 'examples.maths', category: 'simple', subcategory: 'operations', build: maths },
   { id: 'imports', labelKey: 'examples.imports', category: 'simple', subcategory: 'modules', build: imports },
+  { id: 'rgbLedDemo', labelKey: 'examples.rgbLedDemo', category: 'simple', subcategory: 'widgets', build: rgbLedDemo },
   { id: 'pointers', labelKey: 'examples.pointers', category: 'medium', subcategory: 'pointers', build: pointers },
   { id: 'higherOrder', labelKey: 'examples.higherOrder', category: 'medium', subcategory: 'functions', build: higherOrder },
   { id: 'quickSort', labelKey: 'examples.quickSort', category: 'medium', subcategory: 'sorting', build: quickSort },
