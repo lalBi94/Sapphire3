@@ -6,6 +6,10 @@ Application **desktop Windows** de programmation visuelle, en bêta (`0.1.0-beta
 
 ## Installation et démarrage
 
+Pour un poste Windows sans Node.js, utilisez l’**installateur** `Sapphire3-<version>-windows-setup.exe` (installation par utilisateur, sans droit administrateur) ou le **ZIP portable**. Les deux contiennent la même application ; l’installateur ajoute les raccourcis et la désinstallation. Tant qu’aucun certificat de signature n’est configuré, le paquet est explicitement non signé.
+
+Pour développer :
+
 Prérequis : Node.js compatible avec Vite 8 (22.12+ ou 24+), pnpm 11.5 et Windows avec WebView2.
 
 ```sh
@@ -23,6 +27,7 @@ pnpm dev
 - `pnpm build` : compile le frontend dans `dist/`.
 - `pnpm desktop:start` : compile puis ouvre le frontend compilé dans Neutralinojs, sans Vite.
 - `pnpm dist:win` : construit le paquet portable Windows et son ZIP dans `build/release/`.
+- `pnpm dist:installer` : construit le ZIP puis l'installateur Windows (`ISCC.exe` requis).
 - `pnpm docs:ast` : recompile le rapport LaTeX `abstract/ARCHITECTURE_AST.pdf`.
 
 La CI GitHub Actions (`.github/workflows/ci.yml`) exécute l’installation verrouillée, les contrôles de qualité, les tests et le build sur chaque pull request.
@@ -70,12 +75,26 @@ La CI GitHub Actions (`.github/workflows/ci.yml`) exécute l’installation verr
 
 ## Distribution et mises à jour
 
+Pour un poste Windows, deux formats sont produits : un **installateur** `Sapphire3-<version>-windows-setup.exe` (installation par utilisateur, sans droit administrateur) et un **ZIP portable**. `pnpm dist:installer` construit les deux ; `pnpm dist:win` produit seulement le ZIP.
+
+La signature Authenticode est préparée dans `scripts/sign-windows.ps1`. **Aucun certificat n'est fourni** : sans certificat configuré, les fichiers sont explicitement non signés et ne doivent pas être présentés comme prêts pour un établissement. Voir `docs/DISTRIBUTION.md`.
+
 L’application vérifie les **releases publiées** du dépôt `lalBi94/Sapphire3`. L’installation demande confirmation, vérifie la version, la taille et l’empreinte SHA-256 de l’archive, puis un helper `updater.ps1` embarqué remplace les fichiers distribués après fermeture. Les données et préférences de l’utilisateur ne sont jamais remplacées.
+
+## Licence
+
+Sapphire 3 est distribué sous **licence MIT** (`LICENSE`). Les composants tiers et leurs licences sont listés dans `CREDITS.md` et dans le dossier `licenses/` du paquet Windows.
+
+## Accessibilité
+
+Un audit daté et reproductible est décrit dans `docs/ACCESSIBILITY.md` : axe-core sur le canvas, les menus, les propriétés, la simulation et les paramètres, plus des vérifications clavier. Les états audités ne présentent aucune violation axe. Limite assumée : le graphe spatial n'est pas entièrement perceptible au lecteur d'écran ; la hiérarchie du panneau de propriétés et la recherche de blocs servent de palliatif.
 
 ## Documentation
 
 - `docs/LOGIC_API.md` : contrats du moteur, types, génériques, lambdas, simulation et transpilation.
 - `docs/WORKSPACE_FILES.md` : format `.sp3`, versions, récupération et sauvegardes.
+- `docs/ACCESSIBILITY.md` : audit, corrections et limites d'accessibilité.
+- `docs/DISTRIBUTION.md` : paquet Windows, installateur, signature et publication.
 - `docs/PROJECT_STATE.md` : état vérifié et cartographie des fichiers.
 - `abstract/visual/index.html`, `documentation.html`, `ast.html` : documentation visuelle du projet.
 - `abstract/ARCHITECTURE_AST.tex` / `.pdf` : rapport d’architecture.

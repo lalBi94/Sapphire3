@@ -26,7 +26,8 @@ export default function CanvasStatus({ camera, zoom, semanticLevel = 'detail', h
         <span>X <output>{formatValue(camera.x)}</output></span>
         <span>Y <output>{formatValue(camera.y)}</output></span>
       </span>
-      <span className="canvas-status__zoom" aria-label={t('nav.zoom')}>
+      <span className="canvas-status__zoom">
+        <span className="visually-hidden">{t('nav.zoom')} </span>
         {formatValue(zoom * 100)} %
       </span>
       <span className="canvas-status__semantic" title={t('canvas.semanticHint')}>{t(`canvas.semantic.${semanticLevel}`)}</span>

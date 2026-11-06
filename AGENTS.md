@@ -95,7 +95,7 @@ Un fichier = une responsabilité principale. Ne pas multiplier les fichiers ou l
 - Utiliser des noms sémantiques (`--color-surface`, `--color-text`, `--color-primary`) plutôt que de recopier des couleurs en dur dans les composants.
 - Réutiliser les éléments et interactions déjà présents ; ne pas refaire l'identité visuelle sans demande.
 - Préférer CSS pour les animations simples ; ajouter une bibliothèque d'animation uniquement si le besoin le justifie.
-- Conserver une interface responsive et accessible : éléments interactifs sémantiques, labels, navigation clavier et états de focus visibles.
+- Conserver une interface responsive et accessible : éléments interactifs sémantiques, labels, navigation clavier et états de focus visibles. Viser WCAG 2.2 AA pour les composants HTML, documenter les limites du canvas dans `docs/ACCESSIBILITY.md` et rejouer l'audit axe-core après un changement transversal d'interface.
 
 ## Données, réseau et capacités natives
 

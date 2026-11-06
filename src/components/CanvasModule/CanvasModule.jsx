@@ -172,6 +172,9 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
 
   const definition = moduleTypes[module.type]
   const name = module.name || t(definition.labelKey)
+  // Les annotations portent un libellé distinct pour ne pas dupliquer le nom d'un module dans les repères d'accessibilité.
+  const annotationLabel = definition.hasText ? t('card.comment') : definition.hasImage ? t('card.image') : null
+  const cardLabel = annotationLabel ? `${name} · ${annotationLabel}` : name
   // Une carte écran montre son écran par défaut, ou le code de son module caché.
   const screenView = module.screenView === 'code' ? 'code' : 'screen'
   // Une carte jauge montre son aperçu par défaut, ou le code de son module caché.
@@ -376,7 +379,8 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
   return (
     <section
       className={`canvas-module canvas-module--${module.type}${definition.hasEmoji ? ' canvas-module--emoji' : ''}${module.locked ? ' canvas-module--locked' : ''}${isMoving ? ' canvas-module--moving' : ''}${selected ? ' canvas-module--selected' : ''}${dropState ? ` canvas-module--drop-${dropState}` : ''}`}
-      aria-label={name}
+      role="group"
+      aria-label={cardLabel}
       data-source-module={definition.hasText || definition.hasImage ? undefined : module.id}
       data-card-id={module.id}
       data-card-type={module.type}
@@ -528,7 +532,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         </button>}
       </header>
       {definition.hasLed ? (
-        <div className="canvas-module__content" data-canvas-scroll>
+        <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>
           {!contentVisible
             ? null
             : ledView === 'code'
@@ -536,7 +540,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
               : <LedCard card={module} state={ledState} frames={ledFrames} playing={ledPlaying} />}
         </div>
       ) : definition.hasRgbLed ? (
-        <div className="canvas-module__content" data-canvas-scroll>
+        <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>
           {!contentVisible
             ? null
             : rgbLedView === 'code'
@@ -544,7 +548,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
               : <RgbLedCard card={module} state={rgbLedState} frames={rgbLedFrames} playing={rgbLedPlaying} />}
         </div>
       ) : definition.hasGauge ? (
-        <div className="canvas-module__content" data-canvas-scroll>
+        <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>
           {!contentVisible
             ? null
             : gaugeView === 'code'
@@ -552,7 +556,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
               : <GaugeCard card={module} state={gaugeState} frames={gaugeFrames} playing={gaugePlaying} />}
         </div>
       ) : definition.hasProgress ? (
-        <div className="canvas-module__content" data-canvas-scroll>
+        <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>
           {!contentVisible
             ? null
             : progressView === 'code'
@@ -560,13 +564,13 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
               : <ProgressCard card={module} state={progressState} frames={progressFrames} playing={progressPlaying} />}
         </div>
       ) : definition.hasHeatmap ? (
-        <div className="canvas-module__content" data-canvas-scroll>
+        <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>
           {!contentVisible ? null : heatmapView === 'code'
             ? (deferContent ? null : structuredContent)
             : <HeatmapCard card={module} dimensions={heatmapDimensions} state={heatmapState} />}
         </div>
       ) : definition.hasBarChart ? (
-        <div className="canvas-module__content" data-canvas-scroll>
+        <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>
           {!contentVisible
             ? null
             : barChartView === 'code'
@@ -574,7 +578,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
               : <BarChartCard card={module} state={barChartState} frames={barChartFrames} playing={barChartPlaying} />}
         </div>
       ) : definition.hasScreen ? (
-        <div className="canvas-module__content" data-canvas-scroll>
+        <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>
           {!contentVisible
             ? null
             : screenView === 'code'

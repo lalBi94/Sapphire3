@@ -2,6 +2,16 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Licence, installateur signable et audit d'accessibilité — 6 novembre 2026
+
+- **Licence** : ajout de `LICENSE` (MIT, « Sapphire 3 contributors »), champ `license` dans `package.json`, copie en `LICENSE.txt` dans le paquet, mention dans `CREDITS.md`, l'installateur et le README. Aucun changement de dépendance.
+- **Métadonnées Windows** : `neutralino.config.json` expose `applicationName`, `author`, `description`, `copyright` ; vérifiées sur `Sapphire3.exe` (`ProductName: Sapphire 3`, `CompanyName: Sapphire 3 contributors`).
+- **Installateur** : `installer/Sapphire3.iss` + `scripts/build-installer.mjs` + `pnpm dist:installer`. Installation par utilisateur dans `%LOCALAPPDATA%\Programs\Sapphire 3`, `PrivilegesRequired=lowest`, page de licence, avertissement WebView2, raccourcis, désinstallation sans toucher aux `.sp3` ni préférences. Compilé avec Inno Setup 7.1.1 (`ISCC.exe`), installé silencieusement dans un dossier temporaire, fichiers attendus présents, puis désinstallé : dossier supprimé. Taille et SHA-256 affichés à chaque construction.
+- **Signature** : `scripts/sign-windows.ps1` accepte un PFX ou une empreinte, horodate en RFC 3161 et vérifie avec `Get-AuthenticodeSignature`. `build-windows.mjs` signe l'exécutable **avant** le ZIP ; `build-installer.mjs` signe ensuite l'installateur. Sans certificat, message explicite « Paquet NON signé, à ne pas distribuer tel quel ». Test avec certificat auto-signé : signature appliquée, signataire présent, statut `UnknownError` dû à la racine non approuvée, script en échec comme prévu. **Aucun certificat de CA n'est fourni** ; la publication institutionnelle exige un certificat OV/EV ou Azure Trusted Signing.
+- **Accessibilité** : audit `axe-core` 4.10.2 sur six états (canvas vide, Settings, projet Thermostat avec propriétés, menu de nœud, simulation, fenêtre de paramètres) : **zéro violation**. Corrections : contraste de `v0.1.0-beta.3` (4,42 → ≥ 4,5), `h1` masqué dans `main`, libellé du zoom sans `aria-label` sur un `span` sans rôle, `tabIndex` sur les zones défilables des cartes, `role="group"` et noms distincts pour les annotations. Documentation et procédure de rejeu dans `docs/ACCESSIBILITY.md`.
+- **Limites consignées** : pas de test NVDA/JAWS/VoiceOver, pas de test axe en CI, canvas spatial non entièrement perceptible au lecteur d'écran, pas de simulation de daltonisme. L'installateur et la fenêtre native n'ont pas été audités au lecteur d'écran.
+- Vérifications : `pnpm test` **525 réussis**, `pnpm build` et `pnpm dist:installer` réussis. Le premier essai du script de signature a échoué sur l'encodage PowerShell 5.1 d'un tiret non ASCII ; le script a été réécrit en ASCII et retesté.
+
 ## Difficultés revues et dix exemples avec widgets — 6 novembre 2026
 
 - Treize classements revus selon les notions du programme, sans modifier les exemples concernés : Fibonacci/récursion/tri à bulles → Medium ; tri rapide/rendu de monnaie → Hard ; jauge → Simple ; trafic/ADN/Collatz → Medium ; diffusion/convolution/corail/champ d'étoiles → Hard. Catalogue final : **46 entrées**, **Simple 6 / Medium 23 / Hard 17**.

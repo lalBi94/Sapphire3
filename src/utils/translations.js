@@ -1,5 +1,6 @@
 // Catalogue unique : chaque entrée contient le texte anglais, puis français, chinois, espagnol, arabe, japonais, hindi et russe.
 const messages = {
+  'app.title': ['Sapphire 3 visual programming workspace', 'Espace de programmation visuelle Sapphire 3', 'Sapphire 3 可视化编程工作区', 'Espacio de programación visual Sapphire 3', 'مساحة عمل البرمجة المرئية Sapphire 3', 'Sapphire 3 ビジュアルプログラミング・ワークスペース', 'Sapphire 3 विज़ुअल प्रोग्रामिंग कार्यक्षेत्र', 'Визуальная среда программирования Sapphire 3'],
   'nav.edit': ['Edit', 'Édition', '编辑', 'Editar', 'تحرير', '編集', 'संपादित करें', 'Правка'],
   'nav.view': ['View', 'Affichage', '视图', 'Ver', 'عرض', '表示', 'देखें', 'Вид'],
   'nav.theme': ['Theme', 'Thème', '主题', 'Tema', 'المظهر', 'テーマ', 'थीम', 'Тема'],

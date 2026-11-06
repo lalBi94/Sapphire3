@@ -1,6 +1,10 @@
 {
   "applicationId": "local.sapphire3.app",
   "version": "0.1.0",
+  "applicationName": "Sapphire 3",
+  "author": "Sapphire 3 contributors",
+  "description": "Visual programming workspace with an independent typed AST",
+  "copyright": "Copyright (c) 2026 Sapphire 3 contributors",
   "defaultMode": "window",
   "port": 0,
   "documentRoot": "/dist/",

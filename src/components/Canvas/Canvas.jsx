@@ -1156,6 +1156,7 @@ export default function Canvas() {
     <main ref={canvasRef} className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label={t('canvas.aria')} tabIndex={0}
       onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerEnd} onPointerCancel={handlePointerEnd} onLostPointerCapture={handlePointerEnd} onKeyDown={handleKeyDown} onContextMenu={handleContextMenu}
       onDragStart={transfers.handleDragStart} onDragOver={transfers.handleDragOver} onDrop={transfers.handleDrop} onDragEnd={transfers.handleDragEnd}>
+      <h1 className="visually-hidden">{t('app.title')}</h1>
       <CanvasGrid camera={camera} zoom={zoom} distorted={distorted} gridVisible={gridVisible} />
       <CanvasLinks cards={visibleCards} links={moduleLinks} camera={camera} zoom={zoom} />
       {semanticCards.map((card) => <CanvasModule key={`${document.revision}:${card.id}`} module={card} camera={camera} zoom={zoom}
