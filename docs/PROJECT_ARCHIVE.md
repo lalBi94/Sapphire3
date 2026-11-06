@@ -2,6 +2,12 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Adoucissement de la jauge — 6 novembre 2026
+
+- L'anneau de la carte **Gauge** rejoint sa nouvelle valeur par un lerp bref au lieu de sauter : le facteur est corrigé du temps écoulé (`1 - 0.62^(ms / 16,7)`), ce qui garde le même ressenti si le rendu ralentit, sans jamais dépasser la cible. La convergence mesurée est monotone : 38 % du trajet après une image, 91 % après cinq, 99 % après dix, stabilisation complète en **13 images (≈ 217 ms)** à 60 fps.
+- Le nombre et le pourcentage restent les valeurs exactes du pas courant ; seul le tracé de l'arc est interpolé. L'anneau se rétracte aussi en douceur vers zéro. La boucle `requestAnimationFrame` s'arrête d'elle-même au seuil de 0,2 % et son nettoyage l'annule au démontage ou à un changement de cible. `prefers-reduced-motion: reduce` rétablit un saut immédiat.
+- Vérifications : `pnpm build` réussi (avertissement de taille de bundle inchangé) ; exemple **Gauge** ouvert et simulé dans le navigateur, valeurs traversées jusqu'à **100 %**, arc et textes mis à jour, aucune erreur console. Limite : la fenêtre de l'application n'était pas visible pendant le contrôle, donc `requestAnimationFrame` a été fortement ralenti et les images intermédiaires n'ont pas pu être capturées ; la convergence a été vérifiée par calcul sur les mêmes constantes, pas par capture image par image.
+
 ## Publication corrective 0.1.0-beta.3 — 6 novembre 2026
 
 - Version de `package.json` et du README passée à **0.1.0-beta.3**, notes dédiées dans `docs/releases/v0.1.0-beta.3.md`. Reprise des changements effectivement présents depuis la bêta précédente ; aucune nouvelle fonctionnalité ajoutée pendant la préparation. Site GitHub Pages laissé inchangé.

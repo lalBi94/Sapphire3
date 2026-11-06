@@ -23,12 +23,27 @@ function formatValue(value) {
   return String(Math.round(value * 100) / 100)
 }
 
+// Ratio 0..1 d'un état de jauge, borné à sa plage déclarée.
+function ratioOf(current) {
+  const min = current?.min ?? 0
+  const max = current?.max ?? 100
+  const value = current?.value ?? min
+  return max > min ? Math.min(1, Math.max(0, (value - min) / (max - min))) : 0
+}
+
+// Réduction du mouvement demandée par le système.
+function reducedMotion() {
+  return Boolean(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+}
+
 // Jauge circulaire pilotée par le module caché, avec dégradé et halo du thème.
 // Pendant la lecture des écrans, elle suit les états capturés au même rythme de 24 fps.
 export default function GaugeCard({ card, state = null, frames = null, playing = false }) {
   const { t } = useTranslation()
   const [frameIndex, setFrameIndex] = useState(0)
+  const [shownRatio, setShownRatio] = useState(() => ratioOf(frames?.[0]?.[card.id] ?? state))
   const playbackRef = useRef(0)
+  const shownRef = useRef(shownRatio)
 
   // Une nouvelle série d'images repart de la première.
   useEffect(() => {
@@ -51,10 +66,39 @@ export default function GaugeCard({ card, state = null, frames = null, playing =
   const min = current?.min ?? 0
   const max = current?.max ?? 100
   const value = current?.value ?? min
-  const ratio = max > min ? Math.min(1, Math.max(0, (value - min) / (max - min))) : 0
+  const ratio = ratioOf(current)
   const percent = Math.round(ratio * 100)
   const label = card.name || t('card.gauge')
   const ticks = Array.from({ length: 11 }, (_, index) => index / 10)
+
+  // L'anneau rejoint sa nouvelle valeur en douceur ; le texte garde la valeur exacte.
+  useEffect(() => {
+    const target = ratio
+    if (Math.abs(target - shownRef.current) < 0.001 || reducedMotion()) {
+      shownRef.current = target
+      setShownRatio(target)
+      return undefined
+    }
+    let frame = 0
+    let previous = 0
+    const step = (time) => {
+      const elapsed = previous ? Math.min(64, time - previous) : 16
+      previous = time
+      // Facteur par image corrigé du temps écoulé, pour un adoucissement régulier.
+      const factor = 1 - Math.pow(0.62, elapsed / 16.7)
+      const next = shownRef.current + (target - shownRef.current) * factor
+      if (Math.abs(target - next) < 0.002) {
+        shownRef.current = target
+        setShownRatio(target)
+        return
+      }
+      shownRef.current = next
+      setShownRatio(next)
+      frame = window.requestAnimationFrame(step)
+    }
+    frame = window.requestAnimationFrame(step)
+    return () => window.cancelAnimationFrame(frame)
+  }, [ratio])
 
   return <div className="gauge-card" data-canvas-scroll>
     <svg className="gauge-card__svg" viewBox="0 0 200 200" role="img" aria-label={t('gauge.value', { name: label, value: formatValue(value), max: formatValue(max) })}>
@@ -71,8 +115,8 @@ export default function GaugeCard({ card, state = null, frames = null, playing =
         const inner = { x: 100 + (outer.x - 100) * 0.84, y: 100 + (outer.y - 100) * 0.84 }
         return <line key={tick} className="gauge-card__tick" x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y} />
       })}
-      {ratio > 0.001 && <path className="gauge-card__value" d={arcPath(0, ratio)} stroke={`url(#gauge-arc-${card.id})`} />}
-      {ratio > 0.001 && <path className="gauge-card__glow" d={arcPath(0, ratio)} stroke={`url(#gauge-arc-${card.id})`} />}
+      {shownRatio > 0.001 && <path className="gauge-card__value" d={arcPath(0, shownRatio)} stroke={`url(#gauge-arc-${card.id})`} />}
+      {shownRatio > 0.001 && <path className="gauge-card__glow" d={arcPath(0, shownRatio)} stroke={`url(#gauge-arc-${card.id})`} />}
       <text className="gauge-card__readout" x="100" y="94" textAnchor="middle">{formatValue(value)}</text>
       <text className="gauge-card__percent" x="100" y="116" textAnchor="middle">{percent}%</text>
       <text className="gauge-card__range" x="34" y="168" textAnchor="middle">{formatValue(min)}</text>
