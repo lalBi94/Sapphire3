@@ -6,6 +6,7 @@ import { getMathNative } from './mathNatives.js'
 import { createScreenStateReader, sameScreenStates } from './screenState.js'
 import { createGaugeStateReader } from './gaugeState.js'
 import { createLedStateReader } from './ledState.js'
+import { createRgbLedStateReader } from './rgbLedState.js'
 import { createProgressStateReader } from './progressState.js'
 import { createBarChartStateReader } from './barChartState.js'
 import { createHeatmapStateReader } from './heatmapState.js'
@@ -52,6 +53,9 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   // LED : un état booléen par pas pour suivre le focus de nœud.
   const ledReader = (project.modules ?? []).some((module) => module.led) ? createLedStateReader(project) : null
   const ledFrames = []
+  // LED RVB : trois canaux entiers par pas, même suivi que les voyants.
+  const rgbLedReader = (project.modules ?? []).some((module) => module.rgbLed) ? createRgbLedStateReader(project) : null
+  const rgbLedFrames = []
   // Barres de progression : même suivi par pas que les jauges.
   const progressReader = (project.modules ?? []).some((module) => module.progress) ? createProgressStateReader(project) : null
   const progressFrames = []
@@ -65,6 +69,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   // États de jauge et de LED alignés sur les images d'écran, pour les animer au même rythme.
   const screenFrameGauges = []
   const screenFrameLeds = []
+  const screenFrameRgbLeds = []
   const screenFrameProgresses = []
   const screenFrameBarCharts = []
   const maximumScreenFrames = 240
@@ -118,6 +123,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     trace.push(node.id)
     if (gaugeReader && gaugeFrames.length < maximumGaugeFrames) gaugeFrames.push(gaugeReader(global.values))
     if (ledReader && ledFrames.length < maximumGaugeFrames) ledFrames.push(ledReader(global.values))
+    if (rgbLedReader && rgbLedFrames.length < maximumGaugeFrames) rgbLedFrames.push(rgbLedReader(global.values))
     if (progressReader && progressFrames.length < maximumGaugeFrames) progressFrames.push(progressReader(global.values))
     if (barChartReader && barChartFrames.length < maximumGaugeFrames) barChartFrames.push(barChartReader(global.values))
     if (heatmapReader && heatmapFrames.length < maximumGaugeFrames) heatmapFrames.push(heatmapReader(global.values))
@@ -137,6 +143,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     screenFrames.push(current)
     if (gaugeReader) screenFrameGauges.push(gaugeReader(global.values))
     if (ledReader) screenFrameLeds.push(ledReader(global.values))
+    if (rgbLedReader) screenFrameRgbLeds.push(rgbLedReader(global.values))
     if (progressReader) screenFrameProgresses.push(progressReader(global.values))
     if (barChartReader) screenFrameBarCharts.push(barChartReader(global.values))
   }
@@ -540,6 +547,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       screenFrames.push(lastScreens)
       if (gaugeReader) screenFrameGauges.push(gaugeReader(global.values))
       if (ledReader) screenFrameLeds.push(ledReader(global.values))
+      if (rgbLedReader) screenFrameRgbLeds.push(rgbLedReader(global.values))
       if (progressReader) screenFrameProgresses.push(progressReader(global.values))
       if (barChartReader) screenFrameBarCharts.push(barChartReader(global.values))
     }
@@ -569,6 +577,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       screens: screenReader ? screenReader(global.values) : {},
       gauges: gaugeReader ? gaugeReader(global.values) : {},
       leds: ledReader ? ledReader(global.values) : {},
+      rgbLeds: rgbLedReader ? rgbLedReader(global.values) : {},
       progresses: progressReader ? progressReader(global.values) : {},
       barCharts: barChartReader ? barChartReader(global.values) : {},
       heatmaps: heatmapReader ? heatmapReader(global.values) : {},
@@ -578,17 +587,19 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       ...(screenReader ? { screenFrames } : {}),
       ...(screenFrameGauges.length ? { screenFrameGauges } : {}),
       ...(screenFrameLeds.length ? { screenFrameLeds } : {}),
+      ...(screenFrameRgbLeds.length ? { screenFrameRgbLeds } : {}),
       ...(screenFrameProgresses.length ? { screenFrameProgresses } : {}),
       ...(screenFrameBarCharts.length ? { screenFrameBarCharts } : {}),
       ...(gaugeReader ? { gaugeFrames } : {}),
       ...(ledReader ? { ledFrames } : {}),
+      ...(rgbLedReader ? { rgbLedFrames } : {}),
       ...(progressReader ? { progressFrames } : {}),
       ...(barChartReader ? { barChartFrames } : {}),
     }
   } catch (error) {
     const errorCode = error?.code ?? 'SIMULATION_FAILED'
     debug?.record(lastInstructionId, lastEnvironment, lastScopes, 'error', errorCode)
-    return { ok: false, output, outputSteps, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, screens: screenReader ? screenReader(global.values) : {}, gauges: gaugeReader ? gaugeReader(global.values) : {}, leds: ledReader ? ledReader(global.values) : {}, progresses: progressReader ? progressReader(global.values) : {}, barCharts: barChartReader ? barChartReader(global.values) : {}, heatmaps: heatmapReader ? heatmapReader(global.values) : {}, ...(heatmapReader ? { heatmapFrames } : {}), ...(debug ? { debugFrames: debug.frames } : {}), ...(screenReader ? { screenFrames } : {}), ...(screenFrameGauges.length ? { screenFrameGauges } : {}), ...(screenFrameLeds.length ? { screenFrameLeds } : {}), ...(screenFrameProgresses.length ? { screenFrameProgresses } : {}), ...(screenFrameBarCharts.length ? { screenFrameBarCharts } : {}), ...(gaugeReader ? { gaugeFrames } : {}), ...(ledReader ? { ledFrames } : {}), ...(progressReader ? { progressFrames } : {}), ...(barChartReader ? { barChartFrames } : {}) }
+    return { ok: false, output, outputSteps, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, screens: screenReader ? screenReader(global.values) : {}, gauges: gaugeReader ? gaugeReader(global.values) : {}, leds: ledReader ? ledReader(global.values) : {}, rgbLeds: rgbLedReader ? rgbLedReader(global.values) : {}, progresses: progressReader ? progressReader(global.values) : {}, barCharts: barChartReader ? barChartReader(global.values) : {}, heatmaps: heatmapReader ? heatmapReader(global.values) : {}, ...(heatmapReader ? { heatmapFrames } : {}), ...(debug ? { debugFrames: debug.frames } : {}), ...(screenReader ? { screenFrames } : {}), ...(screenFrameGauges.length ? { screenFrameGauges } : {}), ...(screenFrameLeds.length ? { screenFrameLeds } : {}), ...(screenFrameRgbLeds.length ? { screenFrameRgbLeds } : {}), ...(screenFrameProgresses.length ? { screenFrameProgresses } : {}), ...(screenFrameBarCharts.length ? { screenFrameBarCharts } : {}), ...(gaugeReader ? { gaugeFrames } : {}), ...(ledReader ? { ledFrames } : {}), ...(rgbLedReader ? { rgbLedFrames } : {}), ...(progressReader ? { progressFrames } : {}), ...(barChartReader ? { barChartFrames } : {}) }
   }
 }
 

@@ -2,6 +2,14 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## LED RVB — 6 novembre 2026
+
+- Nouveau type de carte **`rgbLed`** (« RGB LED ») : clone de la LED à **trois canaux entiers** `int` de 0 à 255. Le voyant prend la couleur `rgb(r g b)` avec un halo dont l'amplitude suit le canal le plus lumineux ; les canaux sont bornés à l'affichage et répétés en petit sous le voyant. Accessibilité : libellé traduit avec les trois valeurs.
+- Module caché normal : globales `RGBLED_SP3_GLOBAL_RED_<N>`, `..._GREEN_<N>`, `..._BLUE_<N>` et exports `RGBLED_SP3_SET_COLOR_<N>(red, green, blue)`, `GET_RED_<N>`, `GET_GREEN_<N>`, `GET_BLUE_<N>`. Aucun nouveau type logique ni construction.
+- Câblage complet : création par le menu contextuel, carte et bascule aperçu/code (`rgbLedView`), états `rgbLeds`, `rgbLedFrames`, `screenFrameRgbLeds`, debug (`rgbLeds`), liens de dépendance, sérialisation/validation `.sp3`, import de source logique seule, catalogue de huit langues et refus de transpilation (`TRANSPILE_RGB_LED_UNSUPPORTED`).
+- Vérifications : **515 tests réussis** (dont `tests/logic/rgbLed.test.js` et `tests/workspace/rgbLed.test.js`, plus la régression d'états partagés) ; build Vite réussi. Dans l'application : « Create RGB LED » apparaît dans le menu, la carte noire s'affiche à `0 · 0 · 0`, le libellé annonce les canaux et la bascule montre le code du module avec les sept symboles attendus. Banc d'essai temporaire (supprimé ensuite) pour cinq états : rouge `rgb(255 0 0)`, vert, bleu `10 · 120 · 255`, valeurs `300`/`-20` bornées à `255`/`0`, état absent à zéro ; dégradé et halo calculés par `color-mix`, aucune erreur console.
+- Limites : pas d'exemple dédié ni de panneau de propriétés ; la carte reste absente de l'export SVG et non transpilable ; pas de nouvelle vérification native Neutralinojs.
+
 ## Adoucissement de la jauge — 6 novembre 2026
 
 - L'anneau de la carte **Gauge** rejoint sa nouvelle valeur par un lerp bref au lieu de sauter : le facteur est corrigé du temps écoulé (`1 - 0.62^(ms / 16,7)`), ce qui garde le même ressenti si le rendu ralentit, sans jamais dépasser la cible. La convergence mesurée est monotone : 38 % du trajet après une image, 91 % après cinq, 99 % après dix, stabilisation complète en **13 images (≈ 217 ms)** à 60 fps.

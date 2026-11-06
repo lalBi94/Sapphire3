@@ -4,6 +4,7 @@ import { createGaugeModule } from '../../src/utils/gaugeNode.js'
 import { createProgressModule } from '../../src/utils/progressNode.js'
 import { createBarChartModule } from '../../src/utils/barChartNode.js'
 import { createLedModule } from '../../src/utils/ledNode.js'
+import { createRgbLedModule } from '../../src/utils/rgbLedNode.js'
 import { readGaugeStates } from '../../src/utils/logic/gaugeState.js'
 import { readProgressStates } from '../../src/utils/logic/progressState.js'
 import { createProject, createNode, simulateProgram, createDebugSession } from '../../src/utils/logic/index.js'
@@ -46,6 +47,7 @@ for (const [name, factory, field, suffix] of [
   ['ProgressBar', createProgressModule, 'progresses', 'GET_VALUE_1'],
   ['BarChart', createBarChartModule, 'barCharts', 'CLEAR_1'],
   ['LED', createLedModule, 'leds', 'GET_VALUE_1'],
+  ['RGB LED', createRgbLedModule, 'rgbLeds', 'GET_RED_1'],
 ]) {
   test(`${name} : tous les arrêts identiques partagent le même état de debug`, () => {
     const widget = factory('w', name, 1)

@@ -187,6 +187,11 @@ export default function Canvas() {
     ?? (execution ? simulationResult?.ledFrames?.[Math.min(execution.index, (simulationResult?.ledFrames?.length ?? 1) - 1)] : null)
     ?? simulationResult?.leds
     ?? {}
+  // LED RVB : mêmes états par pas que les jauges et voyants.
+  const rgbLedStates = debugFrame?.rgbLeds
+    ?? (execution ? simulationResult?.rgbLedFrames?.[Math.min(execution.index, (simulationResult?.rgbLedFrames?.length ?? 1) - 1)] : null)
+    ?? simulationResult?.rgbLeds
+    ?? {}
   // Barres de progression : même suivi par pas que les jauges et LED.
   const progressStates = debugFrame?.progresses
     ?? (execution ? simulationResult?.progressFrames?.[Math.min(execution.index, (simulationResult?.progressFrames?.length ?? 1) - 1)] : null)
@@ -560,11 +565,13 @@ export default function Canvas() {
           screens: result.screens,
           gauges: result.gauges,
           leds: result.leds,
+          rgbLeds: result.rgbLeds,
           progresses: result.progresses,
           barCharts: result.barCharts,
           screenFrames: result.screenFrames,
           screenFrameGauges: result.screenFrameGauges ?? [],
           screenFrameLeds: result.screenFrameLeds ?? [],
+          screenFrameRgbLeds: result.screenFrameRgbLeds ?? [],
           screenFrameProgresses: result.screenFrameProgresses ?? [],
           screenFrameBarCharts: result.screenFrameBarCharts ?? [],
         } : current)
@@ -1173,6 +1180,7 @@ export default function Canvas() {
         heatmapDimensions={document.index.modules.get(card.id)?.heatmap}
         heatmapState={debugFrame?.heatmaps?.[card.id] ?? (execution ? simulationResult?.heatmapFrames?.[Math.min(execution.index, (simulationResult?.heatmapFrames?.length ?? 1) - 1)]?.[card.id] : null) ?? simulationResult?.heatmaps?.[card.id] ?? null}
         onLedViewChange={(id, ledView) => document.updateGeometry(id, { ledView })}
+        onRgbLedViewChange={(id, rgbLedView) => document.updateGeometry(id, { rgbLedView })}
         screenState={screenPlayback ? null : screenStates[card.id] ?? null}
         screenFrames={screenPlayback ? simulationResult.screenFrames : null}
         screenPlaying={screenPlayback && Boolean(execution?.running)}
@@ -1188,6 +1196,9 @@ export default function Canvas() {
         ledState={ledStates[card.id] ?? null}
         ledFrames={screenPlayback ? simulationResult.screenFrameLeds ?? null : null}
         ledPlaying={screenPlayback && Boolean(execution?.running)}
+        rgbLedState={rgbLedStates[card.id] ?? null}
+        rgbLedFrames={screenPlayback ? simulationResult.screenFrameRgbLeds ?? null : null}
+        rgbLedPlaying={screenPlayback && Boolean(execution?.running)}
         readOnly={presentationMode}
         onRename={document.renameCard} onTextChange={document.updateComment} onImageChange={document.updateImage} onEmojiChange={document.setCardEmoji}
         onToggleLock={handleToggleLock}

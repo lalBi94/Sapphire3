@@ -2,6 +2,7 @@
 import { readScreenStates } from './screenState.js'
 import { readGaugeStates } from './gaugeState.js'
 import { readLedStates } from './ledState.js'
+import { readRgbLedStates } from './rgbLedState.js'
 import { readProgressStates } from './progressState.js'
 import { readBarChartStates } from './barChartState.js'
 import { readHeatmapStates } from './heatmapState.js'
@@ -16,6 +17,7 @@ export function createDebugRecorder(analysis, global, output, uninitialized) {
   let previousScreens = null
   let previousGauges = null
   let previousLeds = null
+  let previousRgbLeds = null
   let previousProgresses = null
   let previousBarCharts = null
   let previousHeatmaps = null
@@ -154,6 +156,7 @@ export function createDebugRecorder(analysis, global, output, uninitialized) {
     const compacted = compactScreens(readScreenStates(analysis.source, global.values))
     const gauges = readGaugeStates(analysis.source, global.values)
     const leds = readLedStates(analysis.source, global.values)
+    const rgbLeds = readRgbLedStates(analysis.source, global.values)
     const progresses = readProgressStates(analysis.source, global.values)
     const barCharts = readBarChartStates(analysis.source, global.values)
     const heatmaps = readHeatmapStates(analysis.source, global.values)
@@ -163,18 +166,22 @@ export function createDebugRecorder(analysis, global, output, uninitialized) {
     if (heatmapsChanged) retained.units += Object.values(heatmaps).reduce((sum, map) => sum + map.values.length, 0)
     const gaugesChanged = !previousGauges || JSON.stringify(previousGauges) !== JSON.stringify(gauges)
     const ledsChanged = !previousLeds || JSON.stringify(previousLeds) !== JSON.stringify(leds)
+    const rgbLedsChanged = !previousRgbLeds || JSON.stringify(previousRgbLeds) !== JSON.stringify(rgbLeds)
     const progressesChanged = !previousProgresses || JSON.stringify(previousProgresses) !== JSON.stringify(progresses)
     const barChartsChanged = !previousBarCharts || JSON.stringify(previousBarCharts) !== JSON.stringify(barCharts)
     const frameGauges = gaugesChanged ? gauges : previousGauges
     const frameLeds = ledsChanged ? leds : previousLeds
+    const frameRgbLeds = rgbLedsChanged ? rgbLeds : previousRgbLeds
     const frameProgresses = progressesChanged ? progresses : previousProgresses
     const frameBarCharts = barChartsChanged ? barCharts : previousBarCharts
     previousGauges = frameGauges
     previousLeds = frameLeds
+    previousRgbLeds = frameRgbLeds
     previousProgresses = frameProgresses
     previousBarCharts = frameBarCharts
     if (gaugesChanged) retained.units += Object.keys(gauges).length * 3
     if (ledsChanged) retained.units += Object.keys(leds).length
+    if (rgbLedsChanged) retained.units += Object.keys(rgbLeds).length * 3
     if (progressesChanged) retained.units += Object.keys(progresses).length * 3
     if (barChartsChanged) retained.units += Object.values(barCharts).reduce((sum, chart) => sum + chart.values.length, 0)
     const count = 1 + retained.units + localScopes.length + activeScopes.length + compacted.units
@@ -184,7 +191,7 @@ export function createDebugRecorder(analysis, global, output, uninitialized) {
       nodeId, status, errorCode,
       scopeIds: activeScopes.map((scope) => scope.instanceId),
       callStack: activeScopes.filter((scope) => scope.scopeId.startsWith('function:')).map((scope) => ({ instanceId: scope.instanceId, nodeId: scope.nodeId })),
-      globals, localScopes, output: frameOutput, gauges: frameGauges, leds: frameLeds, progresses: frameProgresses, barCharts: frameBarCharts,
+      globals, localScopes, output: frameOutput, gauges: frameGauges, leds: frameLeds, rgbLeds: frameRgbLeds, progresses: frameProgresses, barCharts: frameBarCharts,
       heatmaps: frameHeatmaps,
       ...(compacted.base ? { screenBase: compacted.base } : {}),
       ...(compacted.patch ? { screenPatch: compacted.patch } : {}),

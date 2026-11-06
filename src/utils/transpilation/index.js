@@ -32,6 +32,11 @@ function hasLed(source) {
   return Array.isArray(source?.modules) && source.modules.some((module) => module?.led)
 }
 
+// Une LED RVB SP3 est aussi un widget d'interface, avec trois canaux.
+function hasRgbLed(source) {
+  return Array.isArray(source?.modules) && source.modules.some((module) => module?.rgbLed)
+}
+
 // Une barre de progression SP3 est un widget d'interface : même refus explicite qu'une jauge.
 function hasProgress(source) {
   return Array.isArray(source?.modules) && source.modules.some((module) => module?.progress)
@@ -81,6 +86,17 @@ function ledFailure(source, target, analysis = null) {
   }
 }
 
+// Produit le refus stable opposé à toute transpilation contenant une LED RVB.
+function rgbLedFailure(source, target, analysis = null) {
+  return {
+    ok: false,
+    target,
+    code: 'TRANSPILE_RGB_LED_UNSUPPORTED',
+    diagnostics: [{ code: 'TRANSPILE_RGB_LED_UNSUPPORTED', severity: 'error', message: 'Une LED RVB SP3 rend le programme non transpilable.', location: { projectId: source?.id ?? null, moduleId: null, nodeId: null, field: null } }],
+    ...(analysis ? { analysis } : {}),
+  }
+}
+
 // Produit le refus stable opposé à toute transpilation contenant un écran.
 function screenFailure(source, target, analysis = null) {
   return {
@@ -101,6 +117,7 @@ export function transpileSelection(source, selection, { target = 'javascript', a
   if (hasBarChart(source)) return barChartFailure(source, target, analysis)
   if (Array.isArray(source?.modules) && source.modules.some((module) => module?.heatmap)) return heatmapFailure(source, target, analysis)
   if (hasLed(source)) return ledFailure(source, target, analysis)
+  if (hasRgbLed(source)) return rgbLedFailure(source, target, analysis)
   return backends[target](analysis, { selection })
 }
 
@@ -118,6 +135,7 @@ export function transpileProgram(source, options = {}) {
   if (hasBarChart(source)) return barChartFailure(source, target, analysis)
   if (Array.isArray(source?.modules) && source.modules.some((module) => module?.heatmap)) return heatmapFailure(source, target, analysis)
   if (hasLed(source)) return ledFailure(source, target, analysis)
+  if (hasRgbLed(source)) return rgbLedFailure(source, target, analysis)
   if (hasBlockingDiagnostics(analysis.diagnostics)) return { ok: false, target, code: '', diagnostics: analysis.diagnostics, analysis }
   options.onProgress?.({ phase: 'generate', target, current: 1, total: 1 })
   const generated = backend(analysis)

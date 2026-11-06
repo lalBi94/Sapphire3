@@ -9,6 +9,7 @@ export const moduleTypes = {
   barChart: { label: 'Bar chart', labelKey: 'card.barChart', targetLabelKey: 'canvas.barChart', actionKey: 'nav.createBarChart', width: 420, height: 220, renamable: true, hasBarChart: true },
   heatmap: { label: 'Heatmap', labelKey: 'card.heatmap', targetLabelKey: 'canvas.heatmap', actionKey: 'nav.createHeatmap', width: 380, height: 280, renamable: true, hasHeatmap: true },
   led: { label: 'LED', labelKey: 'card.led', targetLabelKey: 'canvas.led', actionKey: 'nav.createLed', width: 220, height: 170, renamable: true, hasLed: true },
+  rgbLed: { label: 'RGB LED', labelKey: 'card.rgbLed', targetLabelKey: 'canvas.rgbLed', actionKey: 'nav.createRgbLed', width: 240, height: 190, renamable: true, hasRgbLed: true },
   comment: { label: 'Comment', labelKey: 'card.comment', targetLabelKey: 'canvas.note', actionKey: 'nav.createComment', width: 320, height: 220, renamable: true, hasText: true },
   image: { label: 'Image', labelKey: 'card.image', targetLabelKey: 'canvas.image', actionKey: 'nav.createImage', width: 420, height: 260, renamable: true, hasImage: true },
 }
@@ -35,3 +36,6 @@ export const heatmapViews = ['heatmap', 'code']
 
 // Vues possibles d'une carte LED : le voyant, ou le code de son module caché.
 export const ledViews = ['led', 'code']
+
+// Vues possibles d'une LED RVB : le voyant coloré, ou le code de son module caché.
+export const rgbLedViews = ['rgbLed', 'code']

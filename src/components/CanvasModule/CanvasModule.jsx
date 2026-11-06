@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Activity, ChartColumn, ChevronsDownUp, ChevronsUpDown, Code2, Gauge, Lightbulb, Lock, Monitor, Smile } from 'lucide-react'
+import { Activity, ChartColumn, ChevronsDownUp, ChevronsUpDown, Code2, Gauge, Lightbulb, Lock, Monitor, Palette, Smile } from 'lucide-react'
 import { minimumModuleSize, moduleTypes } from '../../utils/moduleTypes.js'
 import { isEmbeddedImage } from '../../utils/embeddedImage.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
@@ -10,6 +10,7 @@ import ProgressCard from '../ProgressCard/ProgressCard.jsx'
 import BarChartCard from '../BarChartCard/BarChartCard.jsx'
 import HeatmapCard from '../HeatmapCard/HeatmapCard.jsx'
 import LedCard from '../LedCard/LedCard.jsx'
+import RgbLedCard from '../RgbLedCard/RgbLedCard.jsx'
 import CommentText from '../CommentText/CommentText.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './CanvasModule.css'
@@ -70,7 +71,7 @@ function ModuleEmoji({ emoji, onChange }) {
 }
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, progressState = null, progressFrames = null, progressPlaying = false, onProgressViewChange, barChartState = null, barChartFrames = null, barChartPlaying = false, onBarChartViewChange, heatmapState = null, heatmapDimensions, onHeatmapViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, progressState = null, progressFrames = null, progressPlaying = false, onProgressViewChange, barChartState = null, barChartFrames = null, barChartPlaying = false, onBarChartViewChange, heatmapState = null, heatmapDimensions, onHeatmapViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, rgbLedState = null, rgbLedFrames = null, rgbLedPlaying = false, onRgbLedViewChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -122,6 +123,8 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
   const heatmapView = module.heatmapView === 'code' ? 'code' : 'heatmap'
   // Une carte LED montre son voyant par défaut, ou le code de son module caché.
   const ledView = module.ledView === 'code' ? 'code' : 'led'
+  // Une LED RVB suit la même bascule, avec son propre aperçu coloré.
+  const rgbLedView = module.rgbLedView === 'code' ? 'code' : 'rgbLed'
   // La bascule d'en-tête promet l'action inverse de l'état actuel du pliage.
   const expansionLabel = t(expansionState === 'collapse' ? 'canvas.collapseAll' : 'canvas.expandAll')
   // Le zoom sémantique remplace les instructions par les fonctions, puis masque le contenu au niveau modules.
@@ -432,6 +435,17 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         >
           {ledView === 'code' ? <Lightbulb size={13} strokeWidth={2} aria-hidden="true" /> : <Code2 size={13} strokeWidth={2} aria-hidden="true" />}
         </button>}
+        {definition.hasRgbLed && semanticLevel !== 'modules' && !readOnly && <button
+          type="button"
+          className="canvas-module__view"
+          aria-label={t(rgbLedView === 'code' ? 'rgbLed.viewRgbLed' : 'rgbLed.viewCode')}
+          aria-pressed={rgbLedView === 'code'}
+          title={t(rgbLedView === 'code' ? 'rgbLed.viewRgbLed' : 'rgbLed.viewCode')}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => { event.stopPropagation(); onRgbLedViewChange?.(module.id, rgbLedView === 'code' ? 'rgbLed' : 'code') }}
+        >
+          {rgbLedView === 'code' ? <Palette size={13} strokeWidth={2} aria-hidden="true" /> : <Code2 size={13} strokeWidth={2} aria-hidden="true" />}
+        </button>}
         {module.locked && !readOnly && <button
           type="button"
           className="canvas-module__lock"
@@ -460,6 +474,14 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
             : ledView === 'code'
               ? (deferContent ? null : structuredContent)
               : <LedCard card={module} state={ledState} frames={ledFrames} playing={ledPlaying} />}
+        </div>
+      ) : definition.hasRgbLed ? (
+        <div className="canvas-module__content" data-canvas-scroll>
+          {!contentVisible
+            ? null
+            : rgbLedView === 'code'
+              ? (deferContent ? null : structuredContent)
+              : <RgbLedCard card={module} state={rgbLedState} frames={rgbLedFrames} playing={rgbLedPlaying} />}
         </div>
       ) : definition.hasGauge ? (
         <div className="canvas-module__content" data-canvas-scroll>

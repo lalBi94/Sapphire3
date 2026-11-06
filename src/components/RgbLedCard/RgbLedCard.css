@@ -1,0 +1,35 @@
+.rgb-led-card { display: grid; place-items: center; align-content: center; gap: 10px; height: 100%; min-height: 0; padding: 12px; }
+
+/* Voyant RVB : la couleur vient des canaux, le halo suit le plus lumineux. */
+.rgb-led-card__lamp {
+  width: clamp(34px, 40%, 76px);
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--rgb-led-color) 55%, var(--color-border));
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 36% 30%,
+    color-mix(in srgb, white 45%, var(--rgb-led-color)),
+    var(--rgb-led-color) 58%,
+    color-mix(in srgb, black 32%, var(--rgb-led-color))
+  );
+  box-shadow:
+    0 0 var(--rgb-led-spread) color-mix(in srgb, var(--rgb-led-color) 62%, transparent),
+    inset 0 0 10px rgb(255 255 255 / 18%);
+  transition: background var(--duration-fast) var(--easing-ui), box-shadow var(--duration-fast) var(--easing-ui), border-color var(--duration-fast) var(--easing-ui);
+}
+
+.rgb-led-card__values {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rgb-led-card__lamp { transition: none; }
+}
+
+/* Contraste renforcé : couleur pleine, sans halo ni dégradé. */
+@media (prefers-contrast: more), (forced-colors: active) {
+  .rgb-led-card__lamp { background: var(--rgb-led-color); box-shadow: none; border-color: currentColor; }
+}

@@ -33,7 +33,7 @@ La CI GitHub Actions (`.github/workflows/ci.yml`) exécute l’installation verr
 - Canvas plein écran navigable, zoom jusqu’à 400 %, quadrillage courbé, mini-carte et cadrage des modules.
 - **Zoom sémantique** : instructions détaillées au-dessus de 21 %, liste des fonctions racines de 10 à 21 %, puis seules les cartes de modules et les relations intermodules à 10 % et moins.
 - Modules, annotations **Comment** (avec formules KaTeX entre `$$ … $$`) et cartes **Image** intégrées localement.
-- Cartes spéciales **Screen**, **Gauge**, **ProgressBar** et **LED**, adossées à des modules cachés normaux, avec aperçu ou code et lecture des images à 24 fps.
+- Cartes spéciales **Screen**, **Gauge**, **ProgressBar**, **LED** et **RGB LED**, adossées à des modules cachés normaux, avec aperçu ou code et lecture des images à 24 fps. La LED RVB expose trois canaux entiers 0–255 (`RGBLED_SP3_SET_COLOR`, `GET_RED`, `GET_GREEN`, `GET_BLUE`).
 - **BarChart** : tableau `int[]`, barres avec dégradé/halo, `SET_VALUE`, `SET_DATA`, `CLEAR`. **Heatmap** : grille fixe `int[]`, `SET_CELL(x, y, value)`, `CLEAR`, intensité simple du thème et suivi par pas sans lecture à 24 fps. Les deux proposent aussi la vue code du module caché.
 - Liens intermodules, vue graphique simplifiée, graphe de contrôle, dépendances et recherche de blocs.
 - **Modules magnétiques** : pendant un glisser, bords et centres s’alignent sur les modules voisins avec des guides visuels. La case **Magnetic modules** de View/Settings désactive l’aimant sans auto-arrangement global.
@@ -86,7 +86,7 @@ L’application vérifie les **releases publiées** du dépôt `lalBi94/Sapphire
 - Modèle objet, classes et structures non décidés ; `TypeDeclaration` reste un alias transparent.
 - Lambdas à corps expression unique, non génériques ; `&` sur un paramètre de lambda refusé.
 - Les sauvegardes de secours ne tournent qu’à l’enregistrement direct, pas à l’autosauvegarde ni lors d’un « Enregistrer sous ».
-- C, C++ et Java indisponibles ; les cartes Screen/Gauge/ProgressBar/BarChart/Heatmap/LED ne sont pas transpilables.
+- C, C++ et Java indisponibles ; les cartes Screen/Gauge/ProgressBar/BarChart/Heatmap/LED/RGB LED ne sont pas transpilables.
 - L’analyse reste conservatrice et ne prouve ni terminaison ni valeurs générales.
 - Les captures de `abstract/visual` datent d’une campagne antérieure ; les fonctionnalités récentes y sont décrites dans le texte.
 

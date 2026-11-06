@@ -6,6 +6,7 @@ import { createProgressModule, progressDefaults } from '../utils/progressNode.js
 import { createBarChartModule, barChartDefaults } from '../utils/barChartNode.js'
 import { createHeatmapModule } from '../utils/heatmapNode.js'
 import { createLedModule, ledDefaults } from '../utils/ledNode.js'
+import { createRgbLedModule, rgbLedDefaults } from '../utils/rgbLedNode.js'
 import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol, deleteSourceTargets, duplicateSourceTargets, moveSourceNodes } from '../utils/logic/index.js'
 import { initialDocument, reduceHistory } from '../utils/canvasDocument.js'
 
@@ -73,6 +74,14 @@ export default function useCanvasDocument() {
       const ledName = `${name} ${index}`
       const led = createLedModule(id, ledName, index, ledDefaults)
       dispatch({ type: 'createLed', card: { id, type, name: ledName, ...position, width: definition.width, height: definition.height, expandedNodeIds: [] }, led })
+      return
+    }
+    if (type === 'rgbLed') {
+      const id = crypto.randomUUID()
+      const index = Math.max(0, ...document.project.modules.map((module) => Number(module.rgbLed?.index) || 0)) + 1
+      const rgbLedName = `${name} ${index}`
+      const rgbLed = createRgbLedModule(id, rgbLedName, index, rgbLedDefaults)
+      dispatch({ type: 'createRgbLed', card: { id, type, name: rgbLedName, ...position, width: definition.width, height: definition.height, expandedNodeIds: [] }, rgbLed })
       return
     }
     dispatch({ type: 'createCard', card: { id: crypto.randomUUID(), type, name, ...(definition.hasText ? { text: '' } : {}), ...(definition.hasImage ? { image: '', caption: '' } : {}), ...position, width: definition.width, height: definition.height, expandedNodeIds: [] } })
