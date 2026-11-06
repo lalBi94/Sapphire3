@@ -7,9 +7,11 @@
   <meta name="description" content="Description détaillée du modèle logique de Sapphire 3 : source JSON v1, trois relations indépendantes, constructions et slots, typage statique strict, portées, diagnostics, analyse, simulation et transpilation.">
   <link rel="stylesheet" href="assets/site.css">
 </head>
-<body>
+<body class="page page-ast">
+  <a class="skip-link" href="#contenu">Aller au contenu</a>
   <header class="site-header">
     <p class="mark">Sapphire<span>3</span></p>
+    <span class="header-status"><span aria-hidden="true"></span>Modèle logique</span>
     <nav aria-label="Navigation du site">
       <a href="index.html">Projet</a>
       <a href="documentation.html">Documentation visuelle</a>
@@ -17,8 +19,8 @@
     </nav>
   </header>
 
-  <main>
-    <section>
+  <main id="contenu">
+    <section class="page-intro">
       <p class="kicker">Modèle logique · format v1</p>
       <h1>Ce que Sapphire 3 stocke vraiment</h1>
       <p class="lede">
@@ -26,6 +28,12 @@
         typé, sérialisé en JSON, indépendant de tout langage cible, validé par un moteur qui ignore l'existence de
         React, du DOM et de la fenêtre. Cette page décrit ce modèle, ses règles et ses refus.
       </p>
+      <ul class="meta-chips">
+        <li>10 sections</li>
+        <li>Format source v1</li>
+        <li>508 tests</li>
+        <li data-reading-time>Lecture rapide</li>
+      </ul>
       <div class="notes-soft">
         <p style="margin-bottom:6px"><b>Documents de référence</b></p>
         <ul style="margin-bottom:0">
@@ -48,7 +56,10 @@
       </ol>
     </section>
 
-    <section id="principe">
+    <div class="doc-layout">
+      <aside class="doc-rail" aria-label="Sommaire de la page"></aside>
+      <div class="doc-content">
+        <section id="principe">
       <h2>1 · Principe et périmètre</h2>
       <p>
         L'interface est une vue sur un document. Un module est une portée&nbsp;; une carte est la représentation
@@ -590,6 +601,9 @@
         </ul>
       </div>
     </section>
+
+      </div>
+    </div>
 
     <footer class="site-footer">
       <p>Sapphire 3 · modèle logique v1. Les noms de champs, codes de diagnostic, bornes de types et règles

@@ -2,6 +2,13 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Présentation du site statique — 6 novembre 2026
+
+- Refonte locale des trois pages de `abstract/visual/` : accueil avec aperçu réel et accès directs, typographie et cartes harmonisées, introductions documentaires, sommaire latéral actif et progression de lecture. Conservation des textes originaux, des 42 captures et des données d'annotation. Aucun changement du code de l'application, aucune dépendance ajoutée, aucun push ni déploiement GitHub Pages.
+- Captures documentaires agrandissables par clic ou activation clavier, fermeture et restauration du focus par dialogue natif ; repères figés/libérés par boutons, notes ou clavier. Les liens de galerie conservent la navigation vers la documentation. Boutons de copie avec notification de résultat, retour en haut et animations respectant la réduction du mouvement.
+- Vérifications : `node --check abstract/visual/assets/site.js`, `git diff --check` ; analyse des trois HTML (balises équilibrées, identifiants uniques, liens locaux et ancres valides, texte initial conservé dans l'ordre). Contrôle Chromium à **375, 768 et 1280 px**, sans débordement horizontal, sommaire masqué aux petites largeurs et aligné au contenu à 1280 px. Aucun message console d'erreur sur les trois pages ; **120 notes / 120 repères**, aucune annotation manquante. Ouverture/fermeture de capture, restitution du focus, activation clavier synthétique, épinglage, section active après navigation, progression et retour en haut vérifiés. PDF servi avec statut HTTP 200.
+- Limites : nouvelle capture d'écran indisponible (onglet non visible pour l'outil). La copie réelle n'a pas abouti dans le navigateur de contrôle ; le message d'échec a été vérifié, pas la réussite du presse-papiers. La fermeture avec Échap n'a pas été confirmée par l'outil clavier ; elle reste fournie par le dialogue HTML natif. Suite applicative et build non relancés, le site statique étant indépendant du build Vite.
+
 ## Mascotte au-dessus de la mini-carte — 6 novembre 2026
 
 - Le robot se place désormais **au-dessus de la mini-carte**, aligné sur son bord gauche, avec un écart de 8 px. La bulle reste à sa droite sur les écrans larges et au-dessus sur les écrans étroits ; elle ne recouvre plus la mini-carte. Sans mini-carte, le robot revient en bas à gauche du canvas.

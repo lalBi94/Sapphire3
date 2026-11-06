@@ -7,9 +7,11 @@
   <meta name="description" content="Sapphire 3 : environnement de programmation visuelle pour Windows, fondé sur un AST indépendant des langages cibles. Présentation, documentation visuelle et architecture du modèle logique.">
   <link rel="stylesheet" href="assets/site.css">
 </head>
-<body>
+<body class="page page-home">
+  <a class="skip-link" href="#contenu">Aller au contenu</a>
   <header class="site-header">
     <p class="mark">Sapphire<span>3</span></p>
+    <span class="header-status"><span aria-hidden="true"></span>Desktop · beta</span>
     <nav aria-label="Navigation du site">
       <a href="index.html" aria-current="page">Projet</a>
       <a href="documentation.html">Documentation visuelle</a>
@@ -17,26 +19,53 @@
     </nav>
   </header>
 
-  <main>
+  <main id="contenu">
     <section class="hero" id="presentation">
-      <p class="kicker">Application desktop Windows · 0.1.0-beta.2</p>
-      <h1>Des blocs qui sont de vrai code, pas des dessins qui y ressemblent</h1>
-      <p class="lede">
-        Sapphire 3 est un environnement de programmation visuelle. Chaque carte posée sur le canvas est une
-        construction du langage&nbsp;: une fonction, une variable typée, une boucle, un appel. Elles forment un
-        arbre syntaxique indépendant du langage cible, qu'un moteur analyse, type et vérifie avant toute
-        génération. Le texte n'a jamais été supprimé&nbsp;: il a seulement cessé d'être le point de départ.
-      </p>
-      <ul class="chips">
-        <li>React 19</li>
-        <li>Vite 8</li>
-        <li>JavaScript / JSX</li>
-        <li>CSS natif</li>
-        <li>Neutralinojs</li>
-        <li>pnpm</li>
-        <li>AST indépendant des cibles</li>
-        <li>Typage statique strict</li>
-      </ul>
+      <div class="hero-layout">
+        <div class="hero-copy">
+          <p class="kicker">Application desktop Windows · 0.1.0-beta.2</p>
+          <h1>Des blocs qui sont de vrai code, pas des dessins qui y ressemblent</h1>
+          <p class="lede">
+            Sapphire 3 est un environnement de programmation visuelle. Chaque carte posée sur le canvas est une
+            construction du langage&nbsp;: une fonction, une variable typée, une boucle, un appel. Elles forment un
+            arbre syntaxique indépendant du langage cible, qu'un moteur analyse, type et vérifie avant toute
+            génération. Le texte n'a jamais été supprimé&nbsp;: il a seulement cessé d'être le point de départ.
+          </p>
+          <ul class="chips">
+            <li>React 19</li>
+            <li>Vite 8</li>
+            <li>JavaScript / JSX</li>
+            <li>CSS natif</li>
+            <li>Neutralinojs</li>
+            <li>pnpm</li>
+            <li>AST indépendant des cibles</li>
+            <li>Typage statique strict</li>
+          </ul>
+          <div class="hero-actions">
+            <a class="button button--primary" href="documentation.html">Explorer la documentation</a>
+            <a class="button button--ghost" href="ast.html">Comprendre le modèle AST</a>
+          </div>
+        </div>
+        <a class="hero-preview" href="documentation.html#projet" aria-label="Voir la capture du projet complet">
+          <div class="hero-preview__bar"><span></span><span></span><span></span><em>canvas · projet réel</em></div>
+          <img src="assets/shots/42-apercu.png" alt="Vue générale du canvas de Sapphire 3 avec deux modules reliés par une flèche courbe, une note et une carte image." width="1600" height="900">
+          <div class="hero-preview__caption"><span>Deux modules, une dépendance réelle</span><b>Voir la visite →</b></div>
+        </a>
+      </div>
+    </section>
+
+    <section class="stats" aria-label="Chiffres clés">
+      <div class="stat"><b>20</b><span>sections de documentation</span></div>
+      <div class="stat"><b>42</b><span>captures réelles annotées</span></div>
+      <div class="stat"><b>508</b><span>tests automatisés</span></div>
+      <div class="stat"><b>8</b><span>langues d'interface</span></div>
+    </section>
+
+    <section id="etat">
+      <div class="section-title">
+        <h2>État du projet</h2>
+        <span class="tag">Sans emphase</span>
+      </div>
       <div class="grid">
         <div class="card">
           <h3>Ce qui fonctionne aujourd'hui</h3>

@@ -236,7 +236,7 @@
 | `tests/transpilation/javascript.test.js` | Génération JavaScript et exécution réelle du fichier produit avec Node |
 | `tests/workspace/*.test.js` | Tests purs du format complet, validation et restauration sans perte |
 | `docs/LOGIC_API.md` | Référence des contrats, slots, règles de portée et points d'extension |
-| `abstract/visual/index.html`, `documentation.html`, `ast.html`, `assets/` | Documentation visuelle publique : présentation, vingt sections annotées et modèle AST, mise à jour avec les capacités livrées |
+| `abstract/visual/index.html`, `documentation.html`, `ast.html`, `assets/` | Site statique de présentation : contenu préservé, mise en page responsive anthracite/jaune/violet, sommaire latéral actif, progression de lecture, captures agrandissables et annotées, copie de code avec notification. Sans dépendance ni publication GitHub Pages pour cette refonte ; vérifications dans `PROJECT_ARCHIVE.md` |
 | `abstract/ARCHITECTURE_AST.tex`, `abstract/ARCHITECTURE_AST.pdf` | Rapport technique français ; source LaTeX et PDF réellement compilé |
 | `scripts/build-ast-doc.ps1` | Compilation pdfLaTeX locale vers `build/latex/`, puis copie du PDF à la racine |
 | `scripts/build-windows.mjs`, `pnpm dist:win` | Configuration Neutralinojs de production, compilation Vite, paquet portable Windows, licences, ZIP et empreinte SHA-256 |

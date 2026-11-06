@@ -7,9 +7,11 @@
   <meta name="description" content="Documentation visuelle de Sapphire 3 : chaque aspect de l'application illustré par une capture réelle annotée, du canvas vide à la transpilation.">
   <link rel="stylesheet" href="assets/site.css">
 </head>
-<body>
+<body class="page page-doc">
+  <a class="skip-link" href="#contenu">Aller au contenu</a>
   <header class="site-header">
     <p class="mark">Sapphire<span>3</span></p>
+    <span class="header-status"><span aria-hidden="true"></span>Documentation</span>
     <nav aria-label="Navigation du site">
       <a href="index.html">Projet</a>
       <a href="documentation.html" aria-current="page">Documentation visuelle</a>
@@ -17,8 +19,8 @@
     </nav>
   </header>
 
-  <main>
-    <section>
+  <main id="contenu">
+    <section class="page-intro">
       <p class="kicker">Documentation visuelle</p>
       <h1>Parcourir l'application, capture par capture</h1>
       <p class="lede">
@@ -28,6 +30,12 @@
         repères jaunes sont posés en HTML&nbsp;: survolez une note (ou passez au clavier) pour encadrer la zone
         correspondante, cliquez le repère pour le figer.
       </p>
+      <ul class="meta-chips">
+        <li>20 sections</li>
+        <li>42 captures annotées</li>
+        <li>1600 × 900</li>
+        <li data-reading-time>Lecture rapide</li>
+      </ul>
       <ol class="toc">
         <li><a href="#canvas">1 · Le canvas et son cadre</a></li>
         <li><a href="#carte">2 · Poser une carte Module</a></li>
@@ -52,7 +60,10 @@
       </ol>
     </section>
 
-    <section id="canvas" class="shot-anchor">
+    <div class="doc-layout">
+      <aside class="doc-rail" aria-label="Sommaire de la page"></aside>
+      <div class="doc-content">
+        <section id="canvas" class="shot-anchor">
       <div class="section-title">
         <h2>1 · Le canvas et son cadre</h2>
         <span class="tag">Navigation</span>
@@ -922,6 +933,9 @@
       </table>
       <p><a href="ast.html">Continuer avec le modèle AST</a> — ce que tout cela devient quand on regarde le document lui-même.</p>
     </section>
+
+      </div>
+    </div>
 
     <footer class="site-footer">
       <p>Sapphire 3 · documentation visuelle · 42 captures réelles, 20 sections. Les captures précèdent les derniers incréments (généricité avancée, lambdas et fermetures, Web Worker, sauvegardes, workspace version 2, zoom sémantique), décrits dans le texte. Les repères d'annotation sont produits par la campagne de captures de l'application, en pourcentages de la vue 1600 × 900.</p>
