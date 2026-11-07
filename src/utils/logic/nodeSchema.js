@@ -3,6 +3,8 @@ const expression = { categories: ['expression'], required: true }
 const block = { kinds: ['Block'], required: true }
 
 export const moduleRootSlot = Object.freeze({ categories: ['declaration', 'statement'], many: true, required: true })
+// Une classe ne contient que des attributs et des méthodes, jamais des instructions libres.
+export const classMemberSlot = Object.freeze({ kinds: ['VariableDeclaration', 'ConstantDeclaration', 'FunctionDeclaration'], many: true, required: false })
 
 // Vérifie uniquement la compatibilité syntaxique, indépendamment de la portée et des types.
 export function acceptsNodeKind(slot, kind) {
@@ -28,7 +30,7 @@ export const nodeSchema = Object.freeze({
   BreakStatement: { category: 'statement', group: 'loop', slots: {} },
   ContinueStatement: { category: 'statement', group: 'loop', slots: {} },
   ExpressionStatement: { category: 'statement', group: 'statement', slots: { expression } },
-  AssignmentStatement: { category: 'statement', group: 'statement', slots: { target: { kinds: ['Reference', 'ArrayAccess', 'UnaryExpression'], required: true }, value: expression } },
+  AssignmentStatement: { category: 'statement', group: 'statement', slots: { target: { kinds: ['Reference', 'ArrayAccess', 'UnaryExpression', 'MemberExpression'], required: true }, value: expression } },
   BinaryExpression: { category: 'expression', group: 'operator', slots: { left: expression, right: expression } },
   UnaryExpression: { category: 'expression', group: 'operator', slots: { operand: expression } },
   Literal: { category: 'expression', group: 'value', declaresType: true, slots: {} },
@@ -41,6 +43,10 @@ export const nodeSchema = Object.freeze({
   ArrayLiteral: { category: 'expression', group: 'array', declaresElementType: true, slots: { elements: { categories: ['expression'], many: true, required: true } } },
   ArrayCreation: { category: 'expression', group: 'array', declaresElementType: true, slots: { size: expression, initializer: { ...expression, required: false } } },
   ArrayAccess: { category: 'expression', group: 'array', slots: { array: expression, index: expression } },
+  // Classes : instanciation, référence à l'instance courante et accès à un membre.
+  NewExpression: { category: 'expression', group: 'class', slots: { arguments: { categories: ['expression'], many: true, required: true } } },
+  ThisExpression: { category: 'expression', group: 'class', slots: {} },
+  MemberExpression: { category: 'expression', group: 'class', slots: { object: expression } },
 })
 
 export const binaryOperators = Object.freeze({

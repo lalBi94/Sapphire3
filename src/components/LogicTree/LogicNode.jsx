@@ -107,7 +107,7 @@ function LogicNode({ id, index, selectedId, selectedIds = null, readOnly = false
           {expanded ? <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" /> : <ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" />}
         </button> : <span className="logic-node__toggle-spacer" aria-hidden="true" />}
         <button type="button" className="logic-node__heading" draggable={!readOnly} title={readOnly ? undefined : debugValue ? undefined : t('transfer.dragHint')} onClick={handleSelect} aria-pressed={selected} onMouseEnter={showValueTip} onMouseLeave={hideValueTip} onFocus={showValueTip} onBlur={hideValueTip}>
-          <span>{kindLabel(node.kind, t)}{node.properties?.name ? ` · ${node.properties.name}` : ''}</span>
+          <span>{node.properties?.constructor === true ? t('class.constructor') : kindLabel(node.kind, t)}{node.properties?.name && node.properties?.constructor !== true ? ` · ${node.properties.name}` : ''}</span>
           {typeParameters.length > 0 && <span className="logic-node__generic" title={t('canvas.genericHint')} aria-label={t('canvas.genericHint')}>{`<${typeParameters.map((parameter) => parameter.name).join(', ')}>`}</span>}
           {inferredGenerics?.length > 0 && <span className="logic-node__generic-call" title={t('canvas.genericCallHint')}>{inferredGenerics.map((entry) => `${entry.name} = ${typeLabel(entry.type, t)}`).join(' · ')}</span>}
           {node.kind === 'FunctionDeclaration' && node.properties?.entryPoint === true && <span className="logic-node__entry-point">{t('canvas.startHere')}</span>}

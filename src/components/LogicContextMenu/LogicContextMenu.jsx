@@ -42,15 +42,17 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
   const [search, setSearch] = useState('')
   const [position, setPosition] = useState({ x, y })
   const [bounded, setBounded] = useState(false)
+  const [classScope, setClassScope] = useState(targetId.scope === 'private' ? 'private' : 'public')
   const menuRef = useRef(null)
   const moveRef = useRef(null)
   const searchRef = useRef(null)
-  const available = getAvailableActions(project, targetId, slotName || undefined, { index })
-  const selectedSlot = available.slot?.name ?? ''
-  const parent = targetId.kind === 'node' ? index.parents.get(targetId.id)?.[0] : null
   const targetModule = targetId.kind === 'module' ? project.modules.find((module) => module.id === targetId.id) : null
   const targetDefinition = targetModule?.kind === 'class' ? moduleTypes.class : moduleTypes.module
   const targetKind = targetModule?.kind === 'class' ? 'class' : 'module'
+  const effectiveTarget = targetModule?.kind === 'class' ? { ...targetId, scope: classScope } : targetId
+  const available = getAvailableActions(project, effectiveTarget, slotName || undefined, { index })
+  const selectedSlot = available.slot?.name ?? ''
+  const parent = targetId.kind === 'node' ? index.parents.get(targetId.id)?.[0] : null
   const canDuplicate = parent?.kind === 'module' || getNodeSchema(index.nodes.get(parent?.id)?.kind)?.slots?.[parent?.slot]?.many
   const searchTerm = search.trim()
   const searchActive = searchTerm.length > 0
@@ -140,7 +142,12 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
 
   // Libellé affiché d'une action : nom prédéfini (opération native) ou construction.
   function actionLabel(action) {
-    return action.preset?.name ?? kindLabel(action.kind, t)
+    return action.labelKey ? t(action.labelKey) : action.preset?.name ?? kindLabel(action.kind, t)
+  }
+
+  // Identité stable d'une action pour l'état sélectionné.
+  function actionKey(action) {
+    return action.preset?.constructor === true ? 'constructor' : action.preset?.name ?? action.kind
   }
 
   // Rapproche la saisie du libellé, du type, de la catégorie et du slot de l'action.
@@ -151,7 +158,7 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
       { text: actionLabel(action), weight: 1 },
       { text: kindLabel(action.kind, t), weight: 0.98 },
       { text: action.kind, weight: 0.78 },
-      { text: action.preset?.name ?? '', weight: 0.96 },
+      { text: action.labelKey ? t(action.labelKey) : action.preset?.name ?? '', weight: 0.96 },
       { text: groupLabel(group, t), weight: 0.72 },
       { text: group, weight: 0.5 },
       { text: slotLabel(action.slot, t), weight: 0.62 },
@@ -164,6 +171,13 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
     if (action.slot && action.slot !== selectedSlot) setSlotName(action.slot)
     setKind(action.kind)
     setPreset(action.preset ?? null)
+  }
+
+  // Change le scope d'insertion d'une classe et réinitialise la construction choisie.
+  function changeClassScope(scope) {
+    setClassScope(scope)
+    setKind('')
+    setPreset(null)
   }
 
   // Entrée choisit le meilleur résultat ; Échap efface d'abord la recherche avant de fermer.
@@ -196,7 +210,7 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
         {groupLabel(entry.id, t)}
       </button>
       {!collapsed && <>
-        {entry.actions.map((action) => <button type="button" role="menuitem" key={action.id} aria-pressed={kind === action.kind && (action.preset?.name ?? '') === (preset?.name ?? '')} onClick={() => selectAction(action)}><Plus className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{action.preset?.name ?? kindLabel(action.kind, t)}</button>)}
+        {entry.actions.map((action) => <button type="button" role="menuitem" key={action.id} data-selected={kind !== '' && actionKey(action) === actionKey({ kind, preset })} onClick={() => selectAction(action)}><Plus className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{actionLabel(action)}</button>)}
         {entry.children.map((child) => renderGroup(child, depth + 1))}
       </>}
     </Fragment>
@@ -213,6 +227,10 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
     <div ref={menuRef} className="logic-context-menu" data-canvas-ui data-canvas-scroll tabIndex={-1} aria-label={t('canvas.blockMenu')} style={menuStyle} onPointerDown={(event) => { event.stopPropagation(); handleMoveStart(event) }} onPointerMove={handleMove} onPointerUp={handleMoveEnd} onPointerCancel={handleMoveEnd} onLostPointerCapture={handleMoveEnd} onKeyDown={handleKeyDown}>
       <div className="logic-context-menu__columns">
       <div className="logic-context-menu__blocks">
+        {targetModule?.kind === 'class' && <div className="logic-context-menu__scope" role="group" aria-label={t('class.visibility')}>
+          <button type="button" aria-pressed={classScope === 'public'} onClick={() => changeClassScope('public')}>{t('class.public')}</button>
+          <button type="button" aria-pressed={classScope === 'private'} onClick={() => changeClassScope('private')}>{t('class.private')}</button>
+        </div>}
         {available.ok && available.actions.length > 0 && <div className="logic-context-menu__search" role="search">
           <Search size={14} aria-hidden="true" />
           <div className="logic-context-menu__search-field">
@@ -228,7 +246,7 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
             ? <p className="logic-context-menu__search-empty">{t('search.none', { term: searchTerm })}</p>
             : <>
               <p className="logic-context-menu__search-count" role="status">{t(searchMatches.length === 1 ? 'search.resultsOne' : 'search.results', { count: searchMatches.length })}</p>
-              {searchMatches.map(({ action }) => <button type="button" role="menuitem" key={action.id} aria-pressed={kind === action.kind && (action.preset?.name ?? '') === (preset?.name ?? '')} onClick={() => selectAction(action)}><Plus className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" /><span className="logic-context-menu__result-label">{actionLabel(action)}</span>{!selectedSlot && <span className="logic-context-menu__result-hint">{slotLabel(action.slot, t)}</span>}</button>)}
+              {searchMatches.map(({ action }) => <button type="button" role="menuitem" key={action.id} data-selected={kind !== '' && actionKey(action) === actionKey({ kind, preset })} onClick={() => selectAction(action)}><Plus className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" /><span className="logic-context-menu__result-label">{actionLabel(action)}</span>{!selectedSlot && <span className="logic-context-menu__result-hint">{slotLabel(action.slot, t)}</span>}</button>)}
             </>)}
           {available.ok && !searchActive && !selectedSlot && available.slots.map((slot) => <button type="button" role="menuitem" key={slot.name} disabled={slot.occupied || slot.malformed} onClick={() => { setSlotName(slot.name); setKind(''); setPreset(null) }}><CircleDot className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{slotLabel(slot.name, t)}{slot.occupied ? t('canvas.alreadyUsed') : slot.many ? t('canvas.several') : ''}</button>)}
           {available.ok && !searchActive && selectedSlot && groupedActions(available.actions).map((entry) => renderGroup(entry))}
@@ -238,7 +256,7 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
       <div className="logic-context-menu__actions logic-context-menu__node-actions" role="menu" aria-label={t('canvas.nodeActions')}>
         <div className="logic-context-menu__title">{t('canvas.nodeActions')}</div>
         {targetId.kind === 'node' && <button type="button" role="menuitem" onClick={() => onCopy(targetId)}><Copy className="menu-icon" size={16} aria-hidden="true" />{t('transfer.copy')}</button>}
-        <button type="button" role="menuitem" disabled={!hasClipboard} title={t('transfer.pasteHint')} onClick={() => onPaste(targetId)}><ClipboardPaste className="menu-icon" size={16} aria-hidden="true" />{t('transfer.paste')}</button>
+        <button type="button" role="menuitem" disabled={!hasClipboard} title={t('transfer.pasteHint')} onClick={() => onPaste(effectiveTarget)}><ClipboardPaste className="menu-icon" size={16} aria-hidden="true" />{t('transfer.paste')}</button>
         {targetId.kind === 'node' && <button type="button" role="menuitem" disabled={!canDuplicate} title={t(canDuplicate ? 'transfer.duplicateHint' : 'transfer.duplicateUnavailable')} onClick={() => onDuplicate(targetId)}><CopyPlus className="menu-icon" size={16} aria-hidden="true" />{t('transfer.duplicate')}</button>}
         <button type="button" role="menuitem" onClick={() => onOpenGraph(targetId, 'dependencies')}><Network className="menu-icon" size={16} aria-hidden="true" />{t('graph.dependencies')}</button>
         <button type="button" role="menuitem" onClick={() => onOpenGraph(targetId, 'cfg')}><GitBranch className="menu-icon" size={16} aria-hidden="true" />{t('graph.cfg')}</button>
@@ -253,7 +271,7 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
         {available.ok && available.target?.kind === 'module' && <DeleteAction targetId={available.target.id} kind={targetKind} onDelete={onDeleteModule} menu />}
       </div>
       </div>
-      {kind && <div className="logic-context-menu__form"><h3>{kindLabel(kind, t)}</h3><NodeForm key={`${selectedSlot}:${kind}:${preset?.name ?? ''}`} kind={kind} preset={preset} context={available} onSubmit={(draft) => onInsert(targetId, selectedSlot, draft)} /></div>}
+      {kind && <div className="logic-context-menu__form"><h3>{preset?.constructor === true ? t('class.constructor') : kindLabel(kind, t)}</h3><NodeForm key={`${selectedSlot}:${kind}:${preset?.name ?? ''}:${classScope}`} kind={kind} preset={preset} context={available} onSubmit={(draft) => onInsert(effectiveTarget, selectedSlot, draft)} /></div>}
     </div>
   )
 }

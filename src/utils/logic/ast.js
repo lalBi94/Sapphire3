@@ -1,6 +1,6 @@
 import { createDiagnostic, diagnosticCodes as codes } from './diagnostics.js'
 import { isId, isRecord, moduleKinds, sourceFormatVersion } from './model.js'
-import { getNodeSchema, moduleRootSlot, acceptsNodeKind } from './nodeSchema.js'
+import { getNodeSchema, moduleRootSlot, classMemberSlot, acceptsNodeKind } from './nodeSchema.js'
 import { isValidParameterType, typeFromRecord } from './primitives.js'
 import { isTypeParameterName, maximumTypeParameters } from './generics.js'
 
@@ -75,8 +75,12 @@ export function buildLogicalAst(source) {
     if (node.kind !== 'FunctionDeclaration' || typeof marker !== 'boolean') {
       report(codes.invalidEntryPoint, 'Le rôle de point d’entrée est un booléen réservé aux fonctions.', location)
     } else if (marker) {
-      if (entryPointFound) report(codes.duplicateEntryPoint, 'Un projet peut contenir zéro ou une seule fonction point d’entrée.', location)
-      entryPointFound = true
+      if (modules.get(node.moduleId)?.kind === moduleKinds.class) {
+        report(codes.invalidEntryPoint, 'Une méthode de classe ne peut pas être le point d’entrée du projet.', location)
+      } else {
+        if (entryPointFound) report(codes.duplicateEntryPoint, 'Un projet peut contenir zéro ou une seule fonction point d’entrée.', location)
+        entryPointFound = true
+      }
     }
   }
   const attached = new Set()
@@ -165,11 +169,12 @@ export function buildLogicalAst(source) {
       if (!Array.isArray(module[field])) report(codes.invalidStructure, `La collection ${field} doit être un tableau.`, { ...location, field })
     }
     const roots = Array.isArray(module.rootNodeIds) ? module.rootNodeIds : []
+    const rootSlot = module.kind === moduleKinds.class ? classMemberSlot : moduleRootSlot
     ast.modules.push({
       kind: 'Module', sourceId: module.id, name: module.name, moduleKind: module.kind,
       imports: Array.isArray(module.imports) ? module.imports : [],
       exports: Array.isArray(module.exports) ? module.exports : [],
-      body: roots.map((id, index) => buildNode(id, module.id, { ...location, field: `rootNodeIds[${index}]` }, moduleRootSlot)),
+      body: roots.map((id, index) => buildNode(id, module.id, { ...location, field: `rootNodeIds[${index}]` }, rootSlot)),
       detachedNodes: [],
     })
   }

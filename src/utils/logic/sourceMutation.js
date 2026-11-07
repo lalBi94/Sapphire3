@@ -85,6 +85,12 @@ export function insertSourceNodes(project, request, bundle, options = {}) {
       if (id !== null && !ids.has(id)) return failure('EXISTING_CHILD_FORBIDDEN')
     }
   }
+  if (context.classScope) {
+    const root = bundle.nodes.find((node) => node?.id === bundle.rootId)
+    if (root && !['public', 'private'].includes(root.properties?.visibility)) {
+      root.properties = { ...root.properties, visibility: context.classScope }
+    }
+  }
   const slotName = context.slot.name
   let modules = project.modules
   let nodes = project.nodes

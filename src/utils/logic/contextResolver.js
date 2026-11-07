@@ -1,5 +1,5 @@
 import { isId, isRecord } from './model.js'
-import { getNodeSchema, moduleRootSlot, acceptsNodeKind } from './nodeSchema.js'
+import { getNodeSchema, moduleRootSlot, classMemberSlot, acceptsNodeKind } from './nodeSchema.js'
 import { primitiveType, isArrayType, functionType, typeFromRecord } from './primitives.js'
 import { getMathNative } from './mathNatives.js'
 
@@ -49,12 +49,19 @@ export function createContextIndex(project, analysis = null) {
     scopes: new Map((analysis?.semantic.scopes ?? []).map((scope) => [scope.id, scope])),
     symbols: new Map((analysis?.semantic.symbols ?? []).map((symbol) => [symbol.id, symbol])),
     references: new Map((analysis?.semantic.references ?? []).map((reference) => [reference.nodeId, reference])),
+    contexts: analysis?.semantic.index?.contexts ?? new Map(),
+    classModules: analysis?.semantic.index?.classModules ?? new Map(),
+    classMembers: analysis?.semantic.index?.classMembers ?? new Map(),
   }
 }
 
 // Désambiguïse les identifiants source de module et de nœud, qui appartiennent à deux espaces distincts.
 export function normalizeTarget(index, targetId) {
-  if (isRecord(targetId) && ['module', 'node'].includes(targetId.kind) && isId(targetId.id)) return { kind: targetId.kind, id: targetId.id }
+  if (isRecord(targetId) && ['module', 'node'].includes(targetId.kind) && isId(targetId.id)) {
+    const target = { kind: targetId.kind, id: targetId.id }
+    if (targetId.kind === 'module' && ['public', 'private'].includes(targetId.scope)) target.scope = targetId.scope
+    return target
+  }
   if (!isId(targetId)) return null
   const module = index.modules.has(targetId)
   const node = index.nodes.has(targetId)
@@ -89,16 +96,27 @@ export function resolveContext(project, targetId, slotName, suppliedIndex = null
     current = parents[0]
   }
   if (current.id !== moduleId) return { ok: false, code: 'CONTEXT_AMBIGUOUS', index }
-  const definitions = target.kind === 'module' ? { rootNodeIds: moduleRootSlot } : getNodeSchema(record.kind)?.slots ?? {}
+  const classScope = target.kind === 'module' && record.kind === 'class' ? (target.scope === 'private' ? 'private' : 'public') : null
+  const definitions = target.kind === 'module'
+    ? classScope ? { members: classMemberSlot } : { rootNodeIds: moduleRootSlot }
+    : getNodeSchema(record.kind)?.slots ?? {}
   const slots = Object.entries(definitions).map(([name, definition]) => {
-    const value = target.kind === 'module' ? record.rootNodeIds : record.children?.[name]
+    const value = target.kind === 'module' ? (classScope ? [] : record.rootNodeIds) : record.children?.[name]
     const malformedOwner = target.kind === 'node' && record.children !== undefined && !isRecord(record.children)
     const malformed = malformedOwner || (definition.many ? value !== undefined && !Array.isArray(value) : Array.isArray(value))
     return { name, ...definition, occupied: !definition.many && value !== null && value !== undefined, malformed }
   })
   const slot = slots.find((entry) => entry.name === slotName) ?? (slotName === undefined && slots.length === 1 ? slots[0] : null)
   if (slotName !== undefined && !slot) return { ok: false, code: 'SLOT_NOT_FOUND', index, target, record, slots }
-  const context = { isModuleRoot: target.kind === 'module', functionId: null, loopDepth: 0, parameterList: false }
+  const targetContext = index.contexts.get(target.id) ?? null
+  const context = {
+    isModuleRoot: target.kind === 'module',
+    functionId: null,
+    loopDepth: 0,
+    parameterList: false,
+    classId: targetContext?.classMember ? null : targetContext?.classId ?? null,
+    classScope,
+  }
   for (const node of path) {
     if (node.kind === 'FunctionDeclaration' || node.kind === 'LambdaExpression') { context.functionId = node.id; context.loopDepth = 0 }
     if (['WhileStatement', 'ForStatement'].includes(node.kind)) context.loopDepth += 1
@@ -109,7 +127,7 @@ export function resolveContext(project, targetId, slotName, suppliedIndex = null
     : index.nodeScopes.get(target.id) ?? null
   if (record.kind === 'FunctionDeclaration' || record.kind === 'LambdaExpression') scopeId = [...index.scopes.values()].find((scope) => scope.ownerNodeId === record.id)?.id ?? scopeId
   const expectedType = getExpectedType(record, slot?.name, path, index)
-  return { ok: true, index, target, record, moduleId, path, slots, slot, context, scopeId, expectedType }
+  return { ok: true, index, target, record, moduleId, path, slots, slot, context, scopeId, expectedType, classScope }
 }
 
 // Déduit seulement les types déjà connus ; aucune valeur ni annotation de secours n'est introduite.

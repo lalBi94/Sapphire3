@@ -1,7 +1,7 @@
 import { walkAst } from './ast.js'
 
 export { createProject, createModule, createNode, moduleKinds, sourceFormatVersion } from './model.js'
-export { primitiveDefinitions, primitiveType, sameType, acceptsOperand, arrayType, isArrayType, arrayElementType, isValidElementType, pointerType, isPointerType, pointerPointee, isValidPointee, isValidParameterType, isValidReturnType, functionType, isFunctionType, typeFromRecord, genericType, isGenericType, containsGeneric } from './primitives.js'
+export { primitiveDefinitions, primitiveType, sameType, acceptsOperand, arrayType, isArrayType, arrayElementType, isValidElementType, pointerType, isPointerType, pointerPointee, isValidPointee, isValidParameterType, isValidReturnType, functionType, isFunctionType, typeFromRecord, genericType, isGenericType, containsGeneric, classType, isClassType } from './primitives.js'
 export { maximumTypeParameters, isTypeParameterName, declaredTypeParameters, typeParameterConstraint, substituteType } from './generics.js'
 export { buildLogicalAst, walkAst } from './ast.js'
 export { buildSemanticModel } from './semantics.js'

@@ -1,6 +1,12 @@
 .logic-context-menu { position: absolute; z-index: 100; display: flex; flex-direction: row; gap: var(--space-control); box-sizing: border-box; max-width: calc(100% - 16px); max-height: calc(100% - 16px); overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-panel); background: var(--panel-surface); box-shadow: var(--shadow-panel); padding: var(--space-small); cursor: default; }
 .logic-context-menu__columns { display: grid; grid-template-columns: minmax(150px, 206px) minmax(150px, 206px); grid-template-rows: minmax(0, 1fr); flex-shrink: 0; min-height: 0; }
 .logic-context-menu__blocks { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+/* Choix du scope d'une classe avant l'insertion d'un attribut ou d'une méthode. */
+.logic-context-menu__scope { display: flex; gap: 4px; padding: var(--space-small) var(--space-control) 0; }
+.logic-context-menu__scope button { flex: 1; padding: 5px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: transparent; color: var(--color-text-muted); font: inherit; cursor: pointer; }
+.logic-context-menu__scope button:hover { background: var(--color-hover); color: var(--color-text); }
+.logic-context-menu__scope button[aria-pressed='true'] { border-color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 16%, transparent); color: var(--color-text); }
+.logic-context-menu__scope button:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .logic-context-menu__node-actions { border-left: 1px solid var(--color-border); }
 .logic-context-menu { cursor: grab; touch-action: none; }
 .logic-context-menu:active { cursor: grabbing; }
@@ -29,7 +35,7 @@
 .logic-context-menu__actions button { box-sizing: border-box; display: flex; align-items: center; gap: var(--space-control); width: 100%; min-height: 32px; padding: 7px 9px; border: 1px solid transparent; border-radius: var(--radius-control); text-align: left; color: var(--color-text); background: transparent; font: inherit; font-size: 12px; cursor: pointer; }
 .logic-context-menu__actions button:hover:not(:disabled) { z-index: 2; background: var(--color-hover); border-color: var(--color-border-hover); }
 .logic-context-menu__actions button:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }
-.logic-context-menu__actions button[aria-pressed='true'] { background: color-mix(in srgb, var(--color-primary) 12%, transparent); color: var(--color-primary); box-shadow: inset 3px 0 0 var(--color-primary); font-weight: 600; }
+.logic-context-menu__actions button[data-selected='true'] { background: color-mix(in srgb, var(--color-primary) 12%, transparent); color: var(--color-primary); box-shadow: inset 3px 0 0 var(--color-primary); font-weight: 600; }
 .logic-context-menu__actions button:disabled { color: var(--color-text-muted); opacity: var(--opacity-disabled); cursor: not-allowed; }
 .logic-context-menu__actions .logic-context-menu__delete { margin-top: var(--space-small); border-top: 1px solid var(--color-border); color: var(--color-diagnostic); }
 .logic-context-menu p { margin: 8px; font-size: 11px; color: var(--color-text-muted); line-height: 1.5; }

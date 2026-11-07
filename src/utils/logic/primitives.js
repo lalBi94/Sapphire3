@@ -62,7 +62,21 @@ export function sameType(left, right) {
   if (left.kind === 'pointer') {
     return sameType(left.pointee, right.pointee)
   }
+  if (left.kind === 'class') {
+    return left.classId === right.classId
+  }
   return false
+}
+
+// Type d'une classe : identité stable par module de classe, nom lisible pour l'affichage.
+export function classType(classId, name = '') {
+  if (typeof classId !== 'string' || classId.length === 0) return null
+  return Object.freeze({ kind: 'class', classId, name })
+}
+
+// Reconnaît un type de classe sans le confondre avec un primitif ou un alias.
+export function isClassType(type) {
+  return type?.kind === 'class'
 }
 
 // Crée un type tableau avec le type d'élément donné.
@@ -131,6 +145,7 @@ export function isValidPointee(type) {
 export function isValidParameterType(type, depth = 0) {
   if (!type || depth > 20) return false
   if (type.kind === 'primitive') return type.name !== 'void'
+  if (type.kind === 'class') return true
   if (type.kind === 'array') return isValidElementType(type.elementType)
   if (type.kind === 'pointer') return isValidPointee(type.pointee)
   if (type.kind === 'function') {
@@ -145,6 +160,7 @@ export function isValidParameterType(type, depth = 0) {
 export function isValidReturnType(type, depth = 0) {
   if (!type || depth > 12) return false
   if (type.kind === 'primitive') return Boolean(getPrimitive(type.name))
+  if (type.kind === 'class') return true
   if (type.kind !== 'function' || !Array.isArray(type.parameters)) return false
   return type.parameters.every((parameter) => isValidParameterType(parameter, depth + 1)) && isValidReturnType(type.returnType, depth + 1)
 }
@@ -173,6 +189,9 @@ export function typeFromRecord(record, depth = 0) {
   if (record.kind === 'pointer') {
     const pointee = typeFromRecord(record.pointee, depth + 1)
     return isValidPointee(pointee) ? pointerType(pointee) : null
+  }
+  if (record.kind === 'class') {
+    return classType(record.classId, typeof record.name === 'string' ? record.name : '')
   }
   if (record.kind === 'function') {
     const parameters = Array.isArray(record.parameters)

@@ -2,7 +2,7 @@ import { primitiveDefinitions } from '../../utils/logic/index.js'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 
 // Réutilise le catalogue statique sans reconstruire une liste de types dans l'interface.
-export default function NodeTypeInput({ label, value, onChange, required, allowVoid = false, allowArray = false, allowPointer = false, allowFunction = false, allowNewFunctionType = false, genericNames = [], functionTypes = [], alias = false, emptyLabel = null }) {
+export default function NodeTypeInput({ label, value, onChange, required, allowVoid = false, allowArray = false, allowPointer = false, allowFunction = false, allowNewFunctionType = false, genericNames = [], functionTypes = [], classTypes = [], alias = false, emptyLabel = null }) {
   const { t } = useTranslation()
   const scalars = Object.entries(primitiveDefinitions).filter(([, type]) => allowVoid || type.category !== 'void')
   const elements = Object.entries(primitiveDefinitions).filter(([, type]) => type.category !== 'void')
@@ -15,6 +15,9 @@ export default function NodeTypeInput({ label, value, onChange, required, allowV
         {alias && <option value="@alias">{t('form.keepLink')}</option>}
         {scalars.map(([name]) => <option key={name} value={name}>{name}</option>)}
         {generics.map((name) => <option key={name} value={name}>{name}</option>)}
+        {classTypes.length > 0 && <optgroup label={t('form.classType')}>
+          {classTypes.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}
+        </optgroup>}
         {allowArray && elements.map(([name]) => <option key={`${name}[]`} value={`${name}[]`}>{name}[]</option>)}
         {allowArray && generics.map((name) => <option key={`${name}[]`} value={`${name}[]`}>{name}[]</option>)}
         {allowPointer && pointees.map(([name]) => <option key={`${name}*`} value={`${name}*`}>{name}*</option>)}

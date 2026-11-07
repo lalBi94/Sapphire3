@@ -19,6 +19,10 @@ export function typeFromName(name) {
       return null
     }
   }
+  if (name.startsWith('@class:')) {
+    const classId = name.slice('@class:'.length)
+    return classId ? { kind: 'class', classId } : null
+  }
   if (name.endsWith('[]')) {
     const elementName = name.slice(0, -2)
     const element = isTypeParameterName(elementName) ? genericType(elementName) : primitiveType(elementName)
@@ -44,6 +48,7 @@ export function typeNameFromType(type) {
     return pointee ? `${pointee}*` : ''
   }
   if (type.kind === 'function') return `@function:${JSON.stringify(type)}`
+  if (type.kind === 'class') return `@class:${type.classId}`
   return ''
 }
 
@@ -101,12 +106,14 @@ export function expressionSymbols(symbols, type, allowAnyType = false) {
 }
 
 // Prépare un brouillon UI à partir des seules propriétés existantes, sans valeur logique inventée.
-export function initialNodeForm(kind, node, expectedType, symbols, preset = null) {
+export function initialNodeForm(kind, node, expectedType, symbols, preset = null, classMember = false, classScope = 'public') {
   const properties = node?.properties ?? {}
   const target = node?.references?.target
   const symbol = symbols.find((entry) => target?.kind === 'import' ? entry.importId === target.importId : target?.kind === 'name' ? entry.name === target.name : entry.nodeId === target?.nodeId)
   const declared = properties.type
-  const typeName = declared?.kind === 'named' ? '@alias'
+  const constructor = kind === 'FunctionDeclaration' && (properties.constructor === true || preset?.constructor === true)
+  const typeName = constructor ? 'void'
+    : declared?.kind === 'named' ? '@alias'
     : declared ? typeNameFromType(declared)
     : (kind === 'Literal' || kind === 'CastExpression') && expectedType?.kind === 'primitive' ? expectedType.name
     : kind === 'LambdaExpression' && expectedType?.kind === 'function' ? typeNameFromType(expectedType.returnType)
@@ -117,14 +124,14 @@ export function initialNodeForm(kind, node, expectedType, symbols, preset = null
     : kind === 'ArrayAccess' && isValidElementType(expectedType) ? expectedType.name
     : properties.elementType?.kind === 'primitive' ? properties.elementType.name : ''
   return {
-    name: properties.name ?? '', typeName,
+    name: constructor ? 'constructor' : (properties.name ?? ''), typeName,
     operator: properties.operator ?? '', value: properties.value === undefined ? '' : Object.is(properties.value, -0) ? '-0' : String(properties.value),
     empty: properties.type?.name === 'string' && properties.value === '', symbolId: symbol?.id ?? (target ? '@unresolved' : ''),
     initializer: emptyExpression(), condition: emptyExpression(), expression: emptyExpression(),
     parameters: kind === 'LambdaExpression' && expectedType?.kind === 'function'
       ? expectedType.parameters.map((parameter) => ({ name: '', typeName: typeNameFromType(parameter) }))
-      : [], entryPoint: properties.entryPoint === true, allowIncomplete: false,
-    typeParameters: kind === 'FunctionDeclaration'
+      : [], entryPoint: constructor ? false : properties.entryPoint === true, allowIncomplete: false,
+    typeParameters: kind === 'FunctionDeclaration' && !constructor
       ? declaredTypeParameters(node).map((parameter) => ({ name: parameter.name, constraintName: parameter.constraint ? typeNameFromType(typeFromRecord(parameter.constraint)) : '' }))
       : [],
     functionTypeBuilder: { parameters: [{ typeName: '' }], returnTypeName: '' },
@@ -132,6 +139,11 @@ export function initialNodeForm(kind, node, expectedType, symbols, preset = null
     accessArray: emptyExpression(), accessIndex: emptyExpression(), indexTypeName: 'int',
     mathName: kind === 'MathCall' ? properties.name ?? preset?.name ?? '' : '',
     forEachArrayId: '', forEachCallbackId: '',
+    constructor,
+    classMember,
+    visibility: properties.visibility === 'private' ? 'private' : properties.visibility === 'public' ? 'public' : classScope,
+    newClassId: properties.classId ?? '', newArguments: [], newArgumentTypes: [],
+    memberObject: emptyExpression(), memberName: properties.name ?? '', memberThis: false,
   }
 }
 
@@ -193,22 +205,41 @@ export function nodeConfiguration(kind, form, symbols, initialNode = null) {
   const type = form.typeName === '@alias' ? initialNode?.properties.type : typeFromForm(form.typeName, form.functionTypeBuilder)
   if (schema.named) properties.name = initialNode && form.name === initialNode.properties.name ? form.name : form.name.trim()
   if (kind === 'FunctionDeclaration') {
-    if (form.entryPoint) properties.entryPoint = true
-    else delete properties.entryPoint
-    delete properties.generic
-    const typeParameters = (form.typeParameters ?? [])
-      .map((entry) => ({ name: entry.name.trim(), constraintName: entry.constraintName }))
-      .filter((entry) => entry.name !== '')
-    if (typeParameters.length > 0) {
-      properties.typeParameters = typeParameters.map((entry) => {
-        const constraint = entry.constraintName ? typeFromName(entry.constraintName) : null
-        return constraint && !containsGeneric(constraint) ? { name: entry.name, constraint } : { name: entry.name }
-      })
-    } else delete properties.typeParameters
+    if (form.constructor) {
+      properties.name = 'constructor'
+      properties.constructor = true
+      delete properties.entryPoint
+      delete properties.generic
+      delete properties.typeParameters
+    } else {
+      delete properties.constructor
+      if (form.entryPoint) properties.entryPoint = true
+      else delete properties.entryPoint
+      delete properties.generic
+      const typeParameters = (form.typeParameters ?? [])
+        .map((entry) => ({ name: entry.name.trim(), constraintName: entry.constraintName }))
+        .filter((entry) => entry.name !== '')
+      if (typeParameters.length > 0) {
+        properties.typeParameters = typeParameters.map((entry) => {
+          const constraint = entry.constraintName ? typeFromName(entry.constraintName) : null
+          return constraint && !containsGeneric(constraint) ? { name: entry.name, constraint } : { name: entry.name }
+        })
+      } else delete properties.typeParameters
+    }
   }
   if (schema.declaresType) {
     if (type) properties.type = type
     else delete properties.type
+  }
+  if (form.classMember) properties.visibility = form.visibility === 'private' ? 'private' : 'public'
+  else delete properties.visibility
+  if (kind === 'NewExpression') {
+    if (form.newClassId) properties.classId = form.newClassId
+    else delete properties.classId
+  }
+  if (kind === 'MemberExpression') {
+    if (form.memberName.trim()) properties.name = form.memberName.trim()
+    else delete properties.name
   }
   if (['ArrayLiteral', 'ArrayCreation'].includes(kind)) {
     const elementType = primitiveType(form.elementTypeName)
@@ -255,6 +286,12 @@ export function nodeConfiguration(kind, form, symbols, initialNode = null) {
   if (kind === 'CallExpression') {
     const symbol = symbols.find((entry) => entry.id === form.symbolId)
     if (symbol) children.callee = { kind: 'Reference', references: { target: symbolTarget(symbol) } }
+  }
+  if (kind === 'NewExpression') {
+    children.arguments = (form.newArguments ?? []).map((argument, index) => expressionDraft(argument, form.newArgumentTypes?.[index] ?? null, symbols) ?? { kind: 'Hole' })
+  }
+  if (kind === 'MemberExpression') {
+    children.object = form.memberThis ? { kind: 'ThisExpression' } : expressionDraft(form.memberObject, null, symbols)
   }
   if (kind === 'ArrayLiteral') {
     const elementType = primitiveType(form.elementTypeName)

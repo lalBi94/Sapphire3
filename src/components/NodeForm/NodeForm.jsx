@@ -24,7 +24,15 @@ function nativeGroups() {
 
 export default function NodeForm({ kind, initialNode = null, preset = null, context, onSubmit, showName = true }) {
   const { t } = useTranslation()
-  const [form, setForm] = useState(() => initialNodeForm(kind, initialNode, context.expectedType, getCallableSymbols(context), preset))
+  const targetModule = context.index.modules.get(context.moduleId)
+  const classMember = targetModule?.kind === 'class' && (
+    context.classScope ? context.target.kind === 'module'
+      : context.target.kind === 'node' && (context.index.parents.get(context.target.id) ?? []).some((parent) => parent.kind === 'module')
+  )
+  const classScope = context.classScope ?? (initialNode?.properties?.visibility === 'private' ? 'private' : 'public')
+  const classModules = [...context.index.modules.values()].filter((module) => module.kind === 'class')
+  const classTypes = classModules.map((module) => ({ value: `@class:${module.id}`, label: module.name }))
+  const [form, setForm] = useState(() => initialNodeForm(kind, initialNode, context.expectedType, getCallableSymbols(context), preset, classMember, classScope))
   const [error, setError] = useState(null)
 
   const schema = getNodeSchema(kind)
@@ -89,10 +97,30 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
   const operators = !isNew || !context.expectedType
     ? Object.entries(kind === 'BinaryExpression' ? binaryOperators : unaryOperators)
     : expressionOperators(kind === 'BinaryExpression' ? 'binary' : 'unary', context.expectedType)
+  const inClass = Boolean(context.context?.classId)
+  const allowClassTypes = ['VariableDeclaration', 'ConstantDeclaration', 'Parameter', 'FunctionDeclaration', 'LambdaExpression', 'PrintStatement'].includes(kind)
+  const selectedNewMembers = form.newClassId ? context.index.classMembers?.get(form.newClassId) : null
+  const selectedConstructor = selectedNewMembers?.constructor ? context.index.nodes.get(selectedNewMembers.constructor) : null
+  const newConstructorParams = selectedConstructor ? (selectedConstructor.children.parameters ?? []).map((id) => context.index.nodeTypes.get(id) ?? null) : []
 
   // Change une propriété de brouillon sans modifier le programme avant confirmation.
   function change(field, value) {
     setForm((current) => ({ ...current, [field]: value }))
+    setError(null)
+  }
+
+  // Réinitialise les arguments lorsqu'une autre classe est choisie.
+  function changeNewClass(classId) {
+    const members = classId ? context.index.classMembers?.get(classId) : null
+    const constructor = members?.constructor ? context.index.nodes.get(members.constructor) : null
+    const parameters = constructor ? (constructor.children.parameters ?? []).map((id) => context.index.nodeTypes.get(id) ?? null) : []
+    setForm((current) => ({ ...current, newClassId: classId, newArguments: parameters.map(() => emptyExpression()), newArgumentTypes: parameters }))
+    setError(null)
+  }
+
+  // Met à jour un argument d'instanciation sans toucher aux autres.
+  function changeNewArgument(index, value) {
+    setForm((current) => ({ ...current, newArguments: (current.newArguments ?? []).map((entry, position) => position === index ? value : entry) }))
     setError(null)
   }
 
@@ -112,7 +140,7 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
   // Les erreurs du moteur restent structurées ; l'interface affiche une explication courte.
   function handleSubmit(event) {
     event.preventDefault()
-    if (required && ((schema.named && !form.name.trim()) || (isNew && ['FunctionDeclaration', 'LambdaExpression'].includes(kind) && form.parameters.some((parameter) => !parameter.name.trim() || !parameter.typeName)) || (kind === 'FunctionDeclaration' && form.typeParameters.some((parameter) => !parameter.name.trim())) || (form.typeName === '@function:new' && (form.functionTypeBuilder.parameters.some((parameter) => !parameter.typeName) || !form.functionTypeBuilder.returnTypeName)) || (isNew && kind === 'ForEachStatement' && (!form.forEachArrayId || !form.forEachCallbackId)))) {
+    if (required && ((schema.named && !form.constructor && !form.name.trim()) || (isNew && ['FunctionDeclaration', 'LambdaExpression'].includes(kind) && form.parameters.some((parameter) => !parameter.name.trim() || !parameter.typeName)) || (kind === 'FunctionDeclaration' && !form.constructor && form.typeParameters.some((parameter) => !parameter.name.trim())) || (form.typeName === '@function:new' && (form.functionTypeBuilder.parameters.some((parameter) => !parameter.typeName) || !form.functionTypeBuilder.returnTypeName)) || (kind === 'NewExpression' && !form.newClassId) || (kind === 'MemberExpression' && !form.memberName.trim()) || (isNew && kind === 'ForEachStatement' && (!form.forEachArrayId || !form.forEachCallbackId)))) {
       setError({ key: kind === 'ForEachStatement' ? 'form.forEachRequired' : 'form.saveHint' })
       return
     }
@@ -124,22 +152,26 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
   if (!schema) return <p>{t('form.notAvailable')}</p>
   return (
     <form className="node-form" onSubmit={handleSubmit}>
-      {schema.named && showName && <label>{t('form.name')}<input aria-label={t('form.name')} value={form.name} onChange={(event) => change('name', event.target.value)} required={required} autoComplete="off" /></label>}
-      {(schema.declaresType || isNew && kind === 'PrintStatement') && <NodeTypeInput label={['FunctionDeclaration', 'LambdaExpression'].includes(kind) ? t('form.returnType') : t('form.type')} value={form.typeName} onChange={(value) => change('typeName', value)} required={required} allowVoid={['FunctionDeclaration', 'LambdaExpression'].includes(kind)} allowArray={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement') || (kind === 'FunctionDeclaration' && formGenerics.length > 0)} allowPointer={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement')} allowFunction={['VariableDeclaration', 'ConstantDeclaration', 'Parameter', 'FunctionDeclaration', 'LambdaExpression'].includes(kind)} allowNewFunctionType={['VariableDeclaration', 'ConstantDeclaration', 'Parameter', 'FunctionDeclaration', 'LambdaExpression'].includes(kind)} genericNames={['FunctionDeclaration', 'Parameter'].includes(kind) ? formGenerics : []} functionTypes={functionTypes} alias={initialNode?.properties.type?.kind === 'named'} />}
+      {schema.named && showName && !form.constructor && <label>{t('form.name')}<input aria-label={t('form.name')} value={form.name} onChange={(event) => change('name', event.target.value)} required={required} autoComplete="off" /></label>}
+      {form.classMember && <label>{t('class.visibility')}<select aria-label={t('class.visibility')} value={form.visibility} onChange={(event) => change('visibility', event.target.value)}>
+        <option value="public">{t('class.public')}</option>
+        <option value="private">{t('class.private')}</option>
+      </select></label>}
+      {(schema.declaresType && !form.constructor || isNew && kind === 'PrintStatement') && <NodeTypeInput label={['FunctionDeclaration', 'LambdaExpression'].includes(kind) ? t('form.returnType') : t('form.type')} value={form.typeName} onChange={(value) => change('typeName', value)} required={required} allowVoid={['FunctionDeclaration', 'LambdaExpression'].includes(kind)} allowArray={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement') || (kind === 'FunctionDeclaration' && formGenerics.length > 0)} allowPointer={['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(kind) || (isNew && kind === 'PrintStatement')} allowFunction={['VariableDeclaration', 'ConstantDeclaration', 'Parameter', 'FunctionDeclaration', 'LambdaExpression'].includes(kind)} allowNewFunctionType={['VariableDeclaration', 'ConstantDeclaration', 'Parameter', 'FunctionDeclaration', 'LambdaExpression'].includes(kind)} genericNames={['FunctionDeclaration', 'Parameter'].includes(kind) ? formGenerics : []} functionTypes={functionTypes} classTypes={allowClassTypes ? classTypes : []} alias={initialNode?.properties.type?.kind === 'named'} />}
       {form.typeName === '@function:new' && <fieldset>
         <legend>{t('form.functionSignature')}</legend>
         {form.functionTypeBuilder.parameters.map((parameter, index) => <div className="node-form__parameter" key={index}>
-          <NodeTypeInput label={t('form.parameterType', { number: index + 1 })} value={parameter.typeName} required={required} allowArray allowPointer allowFunction functionTypes={functionTypes} onChange={(value) => changeFunctionType('parameters', form.functionTypeBuilder.parameters.map((entry, position) => position === index ? { ...entry, typeName: value } : entry))} />
+          <NodeTypeInput label={t('form.parameterType', { number: index + 1 })} value={parameter.typeName} required={required} allowArray allowPointer allowFunction functionTypes={functionTypes} classTypes={classTypes} onChange={(value) => changeFunctionType('parameters', form.functionTypeBuilder.parameters.map((entry, position) => position === index ? { ...entry, typeName: value } : entry))} />
           <button type="button" onClick={() => changeFunctionType('parameters', form.functionTypeBuilder.parameters.filter((_, position) => position !== index))}><Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.removeInput')}</button>
         </div>)}
         <button type="button" onClick={() => changeFunctionType('parameters', [...form.functionTypeBuilder.parameters, { typeName: '' }])}><Plus size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.addInput')}</button>
-        <NodeTypeInput label={t('form.returnType')} value={form.functionTypeBuilder.returnTypeName} required={required} allowVoid allowFunction functionTypes={functionTypes} onChange={(value) => changeFunctionType('returnTypeName', value)} />
+        <NodeTypeInput label={t('form.returnType')} value={form.functionTypeBuilder.returnTypeName} required={required} allowVoid allowFunction functionTypes={functionTypes} classTypes={classTypes} onChange={(value) => changeFunctionType('returnTypeName', value)} />
         <InfoHint text={t('form.functionSignatureHint')} />
       </fieldset>}
       {['ArrayLiteral', 'ArrayCreation'].includes(kind) && (arrayElementType
         ? <p className="node-form__hint">{t('form.arrayElementsOfType', { type: arrayElementType.name })}</p>
         : <NodeTypeInput label={t('field.elementType')} value={form.elementTypeName} onChange={(value) => change('elementTypeName', value)} required={required} />)}
-      {kind === 'FunctionDeclaration' && <>
+      {kind === 'FunctionDeclaration' && !form.constructor && <>
         <div className="node-form__check-row">
           <label className="node-form__check"><input type="checkbox" checked={form.entryPoint} disabled={entryPointTaken && !form.entryPoint} onChange={(event) => change('entryPoint', event.target.checked)} />{t('form.startProgram')}</label>
           {entryPointTaken && !form.entryPoint && <InfoHint text={t('form.startProgramHint')} />}
@@ -148,7 +180,7 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
           <legend>{t('form.typeParameters')}</legend>
           {form.typeParameters.map((parameter, index) => <div className="node-form__parameter" key={index}>
             <label>{t('form.typeParameterName', { number: index + 1 })}<input aria-label={t('form.typeParameterName', { number: index + 1 })} value={parameter.name} required={required} onChange={(event) => change('typeParameters', form.typeParameters.map((entry, position) => position === index ? { ...entry, name: event.target.value } : entry))} /></label>
-            <NodeTypeInput label={t('form.typeParameterConstraint', { number: index + 1 })} value={parameter.constraintName} onChange={(value) => change('typeParameters', form.typeParameters.map((entry, position) => position === index ? { ...entry, constraintName: value } : entry))} allowArray allowPointer allowFunction emptyLabel={t('form.noConstraint')} functionTypes={functionTypes} />
+            <NodeTypeInput label={t('form.typeParameterConstraint', { number: index + 1 })} value={parameter.constraintName} onChange={(value) => change('typeParameters', form.typeParameters.map((entry, position) => position === index ? { ...entry, constraintName: value } : entry))} allowArray allowPointer allowFunction emptyLabel={t('form.noConstraint')} functionTypes={functionTypes} classTypes={classTypes} />
             <button type="button" onClick={() => change('typeParameters', form.typeParameters.filter((_, position) => position !== index))}><Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.removeTypeParameter')}</button>
           </div>)}
           <button type="button" onClick={addTypeParameter} disabled={form.typeParameters.length >= maximumTypeParameters}><Plus size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.addTypeParameter')}</button>
@@ -168,12 +200,27 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
         </select>
       </label>}
       {(kind === 'Reference' || (isNew && kind === 'CallExpression')) && <label>{t(kind === 'Reference' ? 'form.symbol' : 'form.function')}
-        <select aria-label={t(kind === 'Reference' ? 'form.symbol' : 'form.function')} value={form.symbolId || (unresolved ? '@unresolved' : '')} onChange={(event) => change('symbolId', event.target.value)} required={required}>
+        <select aria-label={t(kind === 'Reference' ? 'form.symbol' : 'form.function')} value={form.symbolId || (unresolved ? '@unresolved' : '')} onChange={(event) => change('symbolId', event.target.value)} required={kind === 'Reference' ? required : false}>
           <option value="">{t('form.chooseName')}</option>
           {unresolved && <option value="@unresolved">{t('form.keepLink')}</option>}
           {references.map((symbol) => <option key={symbol.id} value={symbol.id}>{symbolLabel(symbol)}</option>)}
         </select>
       </label>}
+      {kind === 'NewExpression' && <>
+        <label>{t('form.class')}
+          <select aria-label={t('form.class')} value={form.newClassId} onChange={(event) => changeNewClass(event.target.value)} required={required}>
+            <option value="">{t('form.chooseName')}</option>
+            {classModules.map((module) => <option key={module.id} value={module.id}>{module.name}</option>)}
+          </select>
+        </label>
+        {isNew && newConstructorParams.map((parameterType, index) => <ExpressionInput key={index} label={t('expression.argument', { label: t('kind.NewExpression'), number: index + 1 })} value={form.newArguments?.[index] ?? emptyExpression()} onChange={(value) => changeNewArgument(index, value)} type={parameterType} symbols={symbols} required={required} allowIncomplete={form.allowIncomplete} />)}
+      </>}
+      {kind === 'MemberExpression' && <>
+        {isNew && inClass && <label className="node-form__check"><input type="checkbox" checked={form.memberThis} onChange={(event) => change('memberThis', event.target.checked)} />{t('form.useThis')}</label>}
+        {isNew && !form.memberThis && <ExpressionInput label={t('slot.object')} value={form.memberObject} onChange={(value) => change('memberObject', value)} type={null} symbols={symbols} required={required} allowIncomplete={form.allowIncomplete} allowAnyType />}
+        <label>{t('form.memberName')}<input aria-label={t('form.memberName')} value={form.memberName} onChange={(event) => change('memberName', event.target.value)} required={required} autoComplete="off" /></label>
+      </>}
+      {kind === 'ThisExpression' && <InfoHint text={t('form.thisHint')} />}
       {isNew && ['VariableDeclaration', 'ConstantDeclaration'].includes(kind) && <ExpressionInput label={t('form.startingValue')} value={form.initializer} onChange={(value) => change('initializer', value)} type={type} symbols={symbols} required={kind === 'ConstantDeclaration' && required} allowIncomplete={form.allowIncomplete} />}
       {isNew && ['IfStatement', 'WhileStatement', 'ForStatement'].includes(kind) && <ExpressionInput label={t('form.condition')} value={form.condition} onChange={(value) => change('condition', value)} type={primitiveType('boolean')} symbols={symbols} required={kind !== 'ForStatement' && required} allowIncomplete={form.allowIncomplete} />}
       {isNew && kind === 'PrintStatement' && <ExpressionInput label={t('form.value')} value={form.expression} onChange={(value) => change('expression', value)} type={type} symbols={symbols} required={required} allowIncomplete={form.allowIncomplete} />}
@@ -181,7 +228,7 @@ export default function NodeForm({ kind, initialNode = null, preset = null, cont
       {isNew && ['FunctionDeclaration', 'LambdaExpression'].includes(kind) && <fieldset><legend>{t('form.parameters')}</legend>
         {form.parameters.map((parameter, index) => <div className="node-form__parameter" key={index}>
           <label>{t('form.parameterName', { number: index + 1 })}<input aria-label={t('form.parameterName', { number: index + 1 })} value={parameter.name} required={required} onChange={(event) => change('parameters', form.parameters.map((entry, position) => position === index ? { ...entry, name: event.target.value } : entry))} /></label>
-          <NodeTypeInput label={t('form.parameterType', { number: index + 1 })} value={parameter.typeName} required={required} allowArray allowPointer allowFunction genericNames={formGenerics} functionTypes={functionTypes} onChange={(value) => change('parameters', form.parameters.map((entry, position) => position === index ? { ...entry, typeName: value } : entry))} />
+          <NodeTypeInput label={t('form.parameterType', { number: index + 1 })} value={parameter.typeName} required={required} allowArray allowPointer allowFunction genericNames={formGenerics} functionTypes={functionTypes} classTypes={classTypes} onChange={(value) => change('parameters', form.parameters.map((entry, position) => position === index ? { ...entry, typeName: value } : entry))} />
           <button type="button" onClick={() => change('parameters', form.parameters.filter((_, position) => position !== index))}><Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.removeInput')}</button>
         </div>)}
         <button type="button" onClick={() => change('parameters', [...form.parameters, { name: '', typeName: '' }])}><Plus size={16} strokeWidth={1.75} aria-hidden="true" />{t('form.addInput')}</button>

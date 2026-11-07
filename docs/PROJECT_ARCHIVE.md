@@ -2,6 +2,18 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Classes, scopes et instances — 7 novembre 2026
+
+- Une classe est un module `kind: 'class'` dont la racine n'accepte que des attributs, des constantes, des méthodes et un constructeur. Les deux scopes **Public** et **Private** sont portés par `properties.visibility` sur chaque membre ; l'arbre de la carte les affiche séparément et chaque scope a son propre bouton d'ajout.
+- Le constructeur est une `FunctionDeclaration` avec `properties.constructor: true`, nommée `constructor`, de retour `void`, unique et sans point d'entrée. Le formulaire dédié ne montre ni nom, ni type de retour, ni point d'entrée, ni paramètres de type ; il conserve les paramètres et la visibilité.
+- Nouveaux nœuds `NewExpression`, `ThisExpression` et `MemberExpression`. `NewExpression` porte `classId` et les arguments du constructeur ; `ThisExpression` n'est admis que dans une méthode ou un constructeur ; `MemberExpression` lit un attribut ou appelle une méthode. `CallExpression` accepte un `MemberExpression` comme callee, et `AssignmentStatement` accepte un `MemberExpression` comme cible.
+- Le type `{kind:'class', classId}` est annotable sur les variables, constantes, paramètres, retours et signatures de fonction. Les tableaux et pointeurs de classes restent refusés. Les membres privés et les constructeurs privés sont contrôlés à l'analyse ; un accès privé hors de sa classe produit `TYPE_MISMATCH`, `this` hors méthode produit `PLACEMENT_ILLEGAL`.
+- La simulation crée l'instance, initialise les attributs, exécute le constructeur puis lie `this` aux appels de méthodes. Les modules de classe sont ignorés lors de l'initialisation globale. Les objets s'affichent sous la forme `Classe { champ: valeur }`.
+- La transpilation JavaScript/Python refuse toute source contenant une classe avec `TRANSPILE_CLASS_UNSUPPORTED`, en attendant une génération d'instance dédiée. L'interface de module (exports/imports) est masquée pour une classe, et les favoris ne proposent plus une classe comme destination.
+- `pnpm test` : **555 réussis** (+6 dans `tests/logic/classes.test.js` : instanciation/constructeur/attributs/méthodes/`this`, aller-retour workspace, refus de transpilation, accès privé hors classe, instruction libre refusée dans une classe, `this` hors méthode). `pnpm build` réussi.
+- Contrôles navigateur : carte Class avec scopes Public/Private, menu limité aux variables/fonctions/constructeur, formulaire Constructeur sans nom/retour/point d'entrée, visibilité privée conservée, type de classe proposé dans le sélecteur, formulaire `NewExpression` avec classe et arguments. Audit axe-core : **0 violation** sur la carte, le menu et le formulaire Constructeur.
+- Limites : aucun héritage, aucune interface, aucun membre statique ni polymorphisme ; pas de tableaux/pointeurs de classes ; transpilation refusée ; la reachability de debug ignore les modules de classe, même si la simulation exécute leurs méthodes.
+
 ## Classes, premier incrément — 7 novembre 2026
 
 - `moduleKinds` accepte désormais `class` en plus de `module`. Une carte **Class** crée un module source `kind: 'class'` ; son identifiant, son nom, sa géométrie, son emoji et son verrou restent ceux d’une carte logique. `moduleTypes.class` porte le libellé, l’action **Create class**, les dimensions 340 × 240 et `sourceKind: 'class'`.

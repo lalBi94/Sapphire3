@@ -103,7 +103,7 @@ export function analyzeReachability(project, analysis = analyzeProgram(project))
     return new Set(['normal'])
   }
 
-  const globalExits = sequence(project.modules.flatMap((module) => module.rootNodeIds))
+  const globalExits = sequence(project.modules.filter((module) => module.kind !== 'class').flatMap((module) => module.rootNodeIds))
   const entry = declarations.find((node) => node.properties.entryPoint === true)
   if (globalExits.has('normal')) schedule(entry?.id)
   for (let position = 0; position < pendingFunctions.length; position += 1) {

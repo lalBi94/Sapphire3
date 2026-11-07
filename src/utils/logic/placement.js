@@ -4,5 +4,6 @@ export function getPlacementIssue(kind, context) {
   if (kind === 'Parameter' && !context.parameterList) return 'Paramètre en dehors de la liste d’une fonction.'
   if (kind === 'ReturnStatement' && !context.functionId) return 'Retour en dehors d’une fonction.'
   if (['BreakStatement', 'ContinueStatement'].includes(kind) && context.loopDepth === 0) return 'Instruction de boucle en dehors d’une boucle.'
+  if (kind === 'ThisExpression' && !context.classId) return 'this est réservé aux méthodes et au constructeur d’une classe.'
   return null
 }

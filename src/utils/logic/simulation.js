@@ -27,6 +27,8 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   const references = new Map(analysis.semantic.references.map((reference) => [reference.nodeId, reference]))
   const types = new Map(analysis.semantic.nodeTypes.map((entry) => [entry.nodeId, entry.type]))
   const functions = new Map(analysis.semantic.symbols.filter((symbol) => symbol.kind === 'FunctionDeclaration').map((symbol) => [symbol.nodeId, nodes.get(symbol.nodeId)]))
+  const classMembers = analysis.semantic.index?.classMembers ?? new Map()
+  const classModules = analysis.semantic.index?.classModules ?? new Map()
   // Contraintes vérifiables attachées aux nœuds, lues sur la valeur du symbole déclaré.
   const contracts = []
   for (const node of project.nodes) {
@@ -172,6 +174,55 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     throw simulationError('SIMULATION_UNINITIALIZED', 'A value was changed before it was initialized.')
   }
 
+  // Retrouve la valeur de this dans la chaîne lexicale, sans fuite entre appels.
+  function readThis(environment) {
+    let current = environment
+    while (current) {
+      if (current.thisValue !== undefined) return current.thisValue
+      current = current.parent
+    }
+    throw simulationError('SIMULATION_THIS', 'this is not available in this context.')
+  }
+
+  // Retrouve un membre déclaré dans une classe, avec sa visibilité.
+  function classMember(classId, name) {
+    const members = classMembers.get(classId)
+    const memberId = members?.public.get(name) ?? members?.private.get(name)
+    return memberId ? nodes.get(memberId) ?? null : null
+  }
+
+  // Résout un accès membre sur une instance de classe.
+  function resolveMember(node, environment) {
+    const object = valueOf(nodes.get(node.children.object), environment)
+    if (!object || object.classValue !== true) throw simulationError('SIMULATION_MEMBER', 'Member access requires a class instance.')
+    const name = node.properties?.name
+    const member = classMember(object.classId, name)
+    if (!member) throw simulationError('SIMULATION_MEMBER', `Unknown member: ${name}.`)
+    if (member.kind === 'FunctionDeclaration') return { kind: 'method', node: member, object, name }
+    return { kind: 'field', object, name, value: object.fields.get(name) }
+  }
+
+  // Crée une instance, initialise ses attributs puis exécute son constructeur.
+  function newObject(node, environment) {
+    const classId = node.properties?.classId
+    const classModule = classModules.get(classId)
+    const members = classMembers.get(classId)
+    if (!classModule || !members) throw simulationError('SIMULATION_CLASS', 'The class cannot be resolved.')
+    const object = { classValue: true, classId, className: classModule.name ?? '', fields: new Map() }
+    for (const scope of ['public', 'private']) {
+      for (const [name, memberId] of members[scope]) {
+        const member = nodes.get(memberId)
+        if (member?.kind !== 'VariableDeclaration' && member?.kind !== 'ConstantDeclaration') continue
+        object.fields.set(name, member.children.initializer ? valueOf(nodes.get(member.children.initializer), environment) : uninitialized)
+      }
+    }
+    const constructor = members.constructor ? nodes.get(members.constructor) : null
+    const args = (node.children.arguments ?? []).map((id) => valueOf(nodes.get(id), environment))
+    if (constructor) executeFunction(constructor, args, object)
+    else if (args.length > 0) throw simulationError('SIMULATION_CONSTRUCTOR', 'This class has no constructor for these arguments.')
+    return object
+  }
+
   // Réutilise les contrôles numériques statiques sur les valeurs calculées à l'exécution.
   function checked(result) {
     if (result.code) throw simulationError(result.code, `${result.code}: ${result.message}`)
@@ -259,9 +310,20 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       return target === types.get(node.children.argument)?.name ? value : checked(convertConstant(value, target))
     }
     if (node.kind === 'CallExpression') {
-      // Le callee est évalué comme une valeur : fonction déclarée, lambda ou variable de type fonction.
-      const callee = valueOf(nodes.get(node.children.callee), environment)
+      const calleeNode = nodes.get(node.children.callee)
       const args = (node.children.arguments ?? []).map((id) => valueOf(nodes.get(id), environment))
+      // Appel de méthode : le membre est résolu sur l'instance, puis exécuté avec this.
+      if (calleeNode?.kind === 'MemberExpression') {
+        const member = resolveMember(calleeNode, environment)
+        if (member.kind === 'method') return executeFunction(member.node, args, member.object)
+        if (member.value?.lambdaValue === true) return executeLambda(member.value.lambda, member.value.environment, args)
+        const target = member.value?.functionValue === true ? functions.get(member.value.nodeId) : null
+        if (!target) throw simulationError('SIMULATION_REFERENCE', 'The called member is not a function.')
+        return executeFunction(target, args)
+      }
+      // Le callee est évalué comme une valeur : fonction déclarée, lambda ou variable de type fonction.
+      const callee = valueOf(calleeNode, environment)
+      if (callee?.methodValue === true) return executeFunction(callee.node, args, callee.object)
       if (callee?.lambdaValue === true) return executeLambda(callee.lambda, callee.environment, args)
       const target = callee?.functionValue === true ? functions.get(callee.nodeId) : null
       if (!target) throw simulationError('SIMULATION_REFERENCE', 'The called function cannot be resolved.')
@@ -303,6 +365,13 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       const array = valueOf(nodes.get(node.children.array), environment)
       if (!Array.isArray(array)) throw simulationError('SIMULATION_REFERENCE', 'The indexed value is not an array.')
       return readElement(array, arrayIndex(valueOf(nodes.get(node.children.index), environment), array))
+    }
+    if (node.kind === 'NewExpression') return newObject(node, environment)
+    if (node.kind === 'ThisExpression') return readThis(environment)
+    if (node.kind === 'MemberExpression') {
+      const member = resolveMember(node, environment)
+      if (member.kind === 'field') return member.value
+      return { methodValue: true, node: member.node, object: member.object, label: `fn ${member.name}` }
     }
     throw simulationError('SIMULATION_UNSUPPORTED', `Unsupported expression: ${node.kind}.`)
   }
@@ -405,6 +474,12 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     }
     if (node.kind === 'AssignmentStatement') {
       const target = nodes.get(node.children.target)
+      if (target?.kind === 'MemberExpression') {
+        const member = resolveMember(target, environment)
+        if (member.kind !== 'field') throw simulationError('SIMULATION_MEMBER', 'A method cannot be assigned.')
+        member.object.fields.set(member.name, valueOf(nodes.get(node.children.value), environment))
+        return
+      }
       if (target?.kind === 'ArrayAccess') {
         const array = valueOf(nodes.get(target.children.array), environment)
         if (!Array.isArray(array)) throw simulationError('SIMULATION_REFERENCE', 'The indexed value is not an array.')
@@ -519,10 +594,11 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   }
 
   // Isole chaque appel du contexte de l'appelant et borne la récursion avant la pile JavaScript.
-  function executeFunction(node, args) {
+  function executeFunction(node, args, thisValue = null) {
     callDepth += 1
     if (callDepth > 200) throw simulationError('SIMULATION_CALL_LIMIT', 'Simulation call depth limit reached.')
     const current = environment(global, `function:${node.id}`, node.id)
+    if (thisValue) current.thisValue = thisValue
     if (callDepth === 1) functionScope = current
     activeScopes.push(current)
     for (const [index, parameterId] of (node.children.parameters ?? []).entries()) current.values.set(parameterId, args[index])
@@ -558,6 +634,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   let lastInstructionId = null
   try {
     for (const module of moduleInitializationOrder(project, analysis)) {
+      if (module.kind === 'class') continue
       for (const id of module.rootNodeIds) {
         const node = nodes.get(id)
         if (node && node.kind !== 'FunctionDeclaration') executeStatement(node, global)
@@ -610,17 +687,25 @@ function typeText(type) {
   if (type.kind === 'array') return `${typeText(type.elementType) ?? '?'}[]`
   if (type.kind === 'pointer') return `${typeText(type.pointee) ?? '?'}*`
   if (type.kind === 'function') return `(${type.parameters.map((parameter) => typeText(parameter) ?? '?').join(', ')}) -> ${typeText(type.returnType) ?? '?'}`
+  if (type.kind === 'class') return type.name || 'class'
   return type.kind
 }
 
 // Rend une valeur de simulation lisible sans perdre la distinction booléenne.
-function formatValue(value) {
+function formatValue(value, seen = new Set()) {
   if (value && typeof value === 'object' && value.pointer === true) return value.label
   if (value && typeof value === 'object' && value.functionValue === true) return value.label
   if (value && typeof value === 'object' && value.lambdaValue === true) return value.label
+  if (value && typeof value === 'object' && value.methodValue === true) return value.label
+  if (value && typeof value === 'object' && value.classValue === true) {
+    if (seen.has(value)) return `${value.className || 'class'} { … }`
+    const next = new Set(seen).add(value)
+    const fields = [...value.fields].map(([name, fieldValue]) => `${name}: ${formatValue(fieldValue, next)}`).join(', ')
+    return `${value.className || 'class'} { ${fields} }`
+  }
   if (value === undefined) return 'undefined'
   if (typeof value === 'boolean') return value ? 'true' : 'false'
   if (typeof value === 'symbol') return 'uninitialized'
-  if (Array.isArray(value)) return `[${value.map(formatValue).join(', ')}]`
+  if (Array.isArray(value)) return `[${value.map((entry) => formatValue(entry, seen)).join(', ')}]`
   return String(value)
 }

@@ -267,7 +267,7 @@ export default function Canvas() {
   // Fonctions et modules purs : pastille discrète et seuls favoris enregistrables.
   const pureIds = useMemo(() => getPureIds(document.project, document.analysis), [document.project, document.analysis])
   // Modules visibles proposés comme destination d'insertion d'un favori.
-  const moduleChoices = document.cards.filter((card) => moduleCardTypes.includes(card.type)).map((card) => ({ id: card.id, name: card.name }))
+  const moduleChoices = document.cards.filter((card) => card.type === 'module').map((card) => ({ id: card.id, name: card.name }))
   const functionNode = functionTarget ? document.index.nodes.get(functionTarget) ?? null : null
   const functionSignature = functionNode ? (functionNode.children.parameters ?? []).map((id) => `${document.index.nodes.get(id)?.properties?.name}:${JSON.stringify(document.index.nodes.get(id)?.properties?.type)}`).join('|') : ''
   // Les nœuds qui contiennent autre chose ne dépendent que de la source analysée.
@@ -472,7 +472,7 @@ export default function Canvas() {
   // Indique si une cible peut être enregistrée comme favori, et si elle est pure.
   function bookmarkStatus(target) {
     if (!target) return { show: false, can: false }
-    if (target.kind === 'module' && document.cards.some((card) => card.id === target.id && !moduleCardTypes.includes(card.type) && logicalCardTypes.includes(card.type))) return { show: false, can: false }
+    if (target.kind === 'module' && document.cards.some((card) => card.id === target.id && (!moduleCardTypes.includes(card.type) || card.type === 'class') && logicalCardTypes.includes(card.type))) return { show: false, can: false }
     if (target.kind === 'module') return { show: true, can: pureIds.modules.has(target.id) }
     if (target.kind === 'node' && document.index.nodes.get(target.id)?.kind === 'FunctionDeclaration') return { show: true, can: pureIds.functions.has(target.id) }
     return { show: false, can: false }

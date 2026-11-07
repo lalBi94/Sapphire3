@@ -2,7 +2,7 @@ import { createDiagnostic, diagnosticCodes as codes } from './diagnostics.js'
 import { isRecord } from './model.js'
 import { binaryOperators, unaryOperators, getNodeSchema } from './nodeSchema.js'
 import { getMathNative } from './mathNatives.js'
-import { getPrimitive, primitiveType, isNumeric, sameType, acceptsOperand, arrayType, isArrayType, pointerType, pointerPointee, functionType, typeFromRecord, genericType, isGenericType, containsGeneric, isValidParameterType } from './primitives.js'
+import { getPrimitive, primitiveType, isNumeric, sameType, acceptsOperand, arrayType, isArrayType, pointerType, pointerPointee, functionType, typeFromRecord, genericType, isGenericType, containsGeneric, isValidParameterType, classType, isClassType } from './primitives.js'
 import { declaredTypeParameters, substituteType, typeParameterConstraint } from './generics.js'
 import { validateLiteral, convertConstant, evaluateBinary, evaluateUnary } from './numericConstants.js'
 
@@ -23,7 +23,7 @@ function guaranteesReturn(node) {
 
 // Vérifie les annotations et les expressions sans inférence de déclarations ni type de secours.
 export function analyzeTypes(semantic, projectId) {
-  const { nodes, referenceSymbols, typeSymbols, contexts } = semantic.index
+  const { nodes, referenceSymbols, typeSymbols, contexts, classMembers, classModules } = semantic.index
   const diagnostics = []
   const annotations = new Map()
   const annotationActive = new Set()
@@ -101,6 +101,10 @@ export function analyzeTypes(semantic, projectId) {
     } else if (isRecord(sourceType) && sourceType.kind === 'function') {
       type = typeFromRecord(sourceType)
       if (!type) report(codes.invalidType, 'Une signature de fonction doit avoir des paramètres typés non void et un retour primitif.', node, 'properties.type')
+    } else if (isRecord(sourceType) && sourceType.kind === 'class') {
+      const classModule = classModules.get(sourceType.classId)
+      if (!classModule) report(codes.invalidType, 'Classe inconnue ou absente du projet.', node, 'properties.type')
+      else type = classType(sourceType.classId, classModule.name)
     } else if (isRecord(sourceType) && sourceType.kind === 'named') {
       const symbol = typeSymbols.get(node.sourceId)
       if (symbol && nodes.has(symbol.nodeId)) type = annotation(nodes.get(symbol.nodeId))
@@ -121,6 +125,10 @@ export function analyzeTypes(semantic, projectId) {
     }
     if (type?.kind === 'function' && !['VariableDeclaration', 'ConstantDeclaration', 'Parameter', 'FunctionDeclaration', 'LambdaExpression'].includes(node.kind)) {
       report(codes.invalidType, 'Un type fonction n’est autorisé que pour une variable, une constante, un paramètre ou le retour d’une fonction.', node, 'properties.type')
+      type = null
+    }
+    if (type?.kind === 'class' && !['VariableDeclaration', 'ConstantDeclaration', 'Parameter', 'FunctionDeclaration', 'LambdaExpression'].includes(node.kind)) {
+      report(codes.invalidType, 'Un type de classe n’est autorisé que pour une variable, une constante, un paramètre ou le retour d’une fonction.', node, 'properties.type')
       type = null
     }
     annotationActive.delete(node.sourceId)
@@ -253,6 +261,82 @@ export function analyzeTypes(semantic, projectId) {
       if (sameType(type, initialType) && constants.has(initializer?.sourceId)) constants.set(node.sourceId, constants.get(initializer.sourceId))
     }
     return type
+  }
+
+  // Résout un membre de classe en vérifiant la visibilité depuis le contexte courant.
+  function memberInfo(node) {
+    const object = child(node, 'object')
+    const objectType = resolve(object?.sourceId)
+    if (!objectType || !isClassType(objectType)) {
+      report(codes.typeMismatch, 'L’accès à un membre exige une instance de classe.', node, 'children.object')
+      return null
+    }
+    const name = node.properties?.name
+    if (typeof name !== 'string' || name.length === 0) {
+      report(codes.incomplete, 'Nom de membre manquant.', node, 'properties.name')
+      return null
+    }
+    const members = classMembers.get(objectType.classId)
+    const memberId = members?.public.get(name) ?? members?.private.get(name)
+    if (!memberId) {
+      report(codes.typeMismatch, `Membre inconnu dans cette classe : ${name}.`, node, 'properties.name')
+      return null
+    }
+    const visibility = members.public.has(name) ? 'public' : 'private'
+    const contextClassId = contexts.get(node.sourceId)?.classId ?? null
+    if (visibility === 'private' && contextClassId !== objectType.classId) {
+      report(codes.typeMismatch, 'Ce membre est privé et n’est accessible que dans sa classe.', node, 'properties.name')
+      return null
+    }
+    const memberNode = nodes.get(memberId)
+    const type = memberNode ? declaration(memberNode) : null
+    return type ? { type, memberNode, visibility, memberId } : null
+  }
+
+  // Type d'un accès membre : attribut, méthode ou constructeur.
+  function member(node) {
+    return memberInfo(node)?.type ?? null
+  }
+
+  // this n'a de sens que dans une méthode ou un constructeur de classe.
+  function thisExpression(node) {
+    const classId = contexts.get(node.sourceId)?.classId ?? null
+    const classModule = classId ? classModules.get(classId) : null
+    if (!classModule) {
+      report(codes.illegalPlacement, 'this est réservé aux méthodes et au constructeur d’une classe.', node)
+      return null
+    }
+    return classType(classId, classModule.name)
+  }
+
+  // Vérifie la classe, le constructeur et les arguments d'une instanciation.
+  function newExpression(node) {
+    const classId = node.properties?.classId
+    const classModule = classId ? classModules.get(classId) : null
+    if (!classModule) {
+      report(codes.invalidType, 'Classe inconnue pour cette instanciation.', node, 'properties.classId')
+      return null
+    }
+    const args = Array.isArray(node.children.arguments) ? node.children.arguments : []
+    const members = classMembers.get(classId)
+    const constructorId = members?.constructor ?? null
+    if (!constructorId) {
+      if (args.length > 0) report(codes.typeMismatch, 'Cette classe ne déclare aucun constructeur pour ces arguments.', node, 'children.arguments')
+    } else {
+      const constructor = nodes.get(constructorId)
+      const signature = constructor ? declaration(constructor) : null
+      if (signature?.kind === 'function') {
+        if (signature.parameters.length !== args.length) report(codes.typeMismatch, 'Nombre d’arguments incompatible avec le constructeur.', node, 'children.arguments')
+        args.forEach((argument, index) => {
+          if (signature.parameters[index]) expect(signature.parameters[index], resolve(argument.sourceId), node, `children.arguments[${index}]`)
+        })
+        const contextClassId = contexts.get(node.sourceId)?.classId ?? null
+        if (members.constructorVisibility === 'private' && contextClassId !== classId) {
+          report(codes.typeMismatch, 'Le constructeur de cette classe est privé.', node, 'properties.classId')
+        }
+      }
+    }
+    return classType(classId, classModule.name)
   }
 
   // Retrouve la cible directe d'un appel générique, y compris via un import.
@@ -490,6 +574,9 @@ export function analyzeTypes(semantic, projectId) {
     else if (node.kind === 'ArrayLiteral') type = arrayLiteral(node)
     else if (node.kind === 'ArrayCreation') type = arrayCreation(node)
     else if (node.kind === 'ArrayAccess') type = arrayAccess(node)
+    else if (node.kind === 'NewExpression') type = newExpression(node)
+    else if (node.kind === 'ThisExpression') type = thisExpression(node)
+    else if (node.kind === 'MemberExpression') type = member(node)
     active.delete(nodeId)
     if (!resolved.has(nodeId)) resolved.set(nodeId, type)
     return resolved.get(nodeId)
@@ -508,9 +595,21 @@ export function analyzeTypes(semantic, projectId) {
     }
     if (node.kind === 'FunctionDeclaration') {
       const result = annotation(node)
-      if (result && result.name !== 'void' && !guaranteesReturn(child(node, 'body'))) {
+      if (node.properties?.constructor === true) {
+        if (node.properties.name !== 'constructor') report(codes.invalidStructure, 'Le constructeur doit être nommé constructor.', node, 'properties.name')
+        if (result && result.name !== 'void') report(codes.invalidType, 'Le constructeur ne déclare pas de type de retour.', node, 'properties.type')
+        if (node.properties.entryPoint === true) report(codes.invalidEntryPoint, 'Le constructeur ne peut pas être le point d’entrée du projet.', node, 'properties.entryPoint')
+      } else if (result && result.name !== 'void' && !guaranteesReturn(child(node, 'body'))) {
         report(codes.missingReturn, 'Une fonction non void doit retourner une valeur sur tous les chemins vérifiés.', node, 'children.body')
       }
+    }
+    if (node.properties?.visibility !== undefined) {
+      if (!['public', 'private'].includes(node.properties.visibility)) report(codes.invalidStructure, 'La visibilité doit être public ou private.', node, 'properties.visibility')
+      if (!contexts.get(node.sourceId)?.classMember) report(codes.invalidStructure, 'La visibilité est réservée aux membres d’une classe.', node, 'properties.visibility')
+    }
+    if (Object.hasOwn(node.properties ?? {}, 'constructor')) {
+      if (typeof node.properties.constructor !== 'boolean') report(codes.invalidStructure, 'Le marqueur constructeur doit être un booléen.', node, 'properties.constructor')
+      else if (node.properties.constructor && (node.kind !== 'FunctionDeclaration' || !contexts.get(node.sourceId)?.classMember)) report(codes.invalidStructure, 'Le constructeur est réservé aux méthodes d’une classe.', node, 'properties.constructor')
     }
     if (node.kind === 'ReturnStatement') {
       const owner = nodes.get(contexts.get(node.sourceId)?.functionId)
@@ -525,7 +624,11 @@ export function analyzeTypes(semantic, projectId) {
     if (node.kind === 'AssignmentStatement') {
       const target = child(node, 'target')
       const dereference = target?.kind === 'UnaryExpression'
-      if (target && !dereference && !['Reference', 'ArrayAccess'].includes(target.kind)) report(codes.illegalPlacement, 'La cible d’affectation doit être une variable, un élément de tableau ou un déréférencement.', node, 'children.target')
+      if (target && !dereference && !['Reference', 'ArrayAccess', 'MemberExpression'].includes(target.kind)) report(codes.illegalPlacement, 'La cible d’affectation doit être une variable, un élément de tableau, un membre de classe ou un déréférencement.', node, 'children.target')
+      if (target?.kind === 'MemberExpression') {
+        const info = memberInfo(target)
+        if (info && info.memberNode?.kind !== 'VariableDeclaration') report(codes.illegalPlacement, 'Seul un attribut modifiable peut être la cible d’une affectation.', node, 'children.target')
+      }
       // Un déréférencement d'écriture vise la valeur stockée ; l'adresse d'une constante reste intouchable.
       if (dereference) {
         if (target.properties.operator !== '*') report(codes.illegalPlacement, 'Seul le déréférencement peut être une cible d’affectation.', node, 'children.target')

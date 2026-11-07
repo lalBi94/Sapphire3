@@ -46,6 +46,7 @@ export default function ExpressionInput({ label, value = emptyExpression(), onCh
   const isList = type?.kind === 'array'
   const isPointer = isPointerType(type)
   const isFunction = type?.kind === 'function'
+  const isClass = type?.kind === 'class'
   // Les modes qui imposent un type concret (littéral, opération, conversion) ne sont proposés que si ce slot en attend un.
   const concrete = Boolean(type)
 
@@ -55,9 +56,9 @@ export default function ExpressionInput({ label, value = emptyExpression(), onCh
       <label>{t('form.value')}
         <select aria-label={t('expression.expression', { label })} value={value.mode} onChange={handleModeChange} required={required} disabled={!concrete && !allowAnyType}>
           <option value="">{required ? t('form.chooseName') : t('form.leaveEmpty')}</option>
-          {concrete && !isList && !isPointer && !isFunction && <option value="literal">{t('expression.literal')}</option>}<option value="reference">{t('expression.reference')}</option>
-          {nested && concrete && !isList && !isPointer && !isFunction && expressionOperators('binary', type).length > 0 && <option value="binary">{t('expression.binary')}</option>}
-          {nested && concrete && !isList && !isFunction && expressionOperators('unary', type).length > 0 && <option value="unary">{t('expression.unary')}</option>}
+          {concrete && !isList && !isPointer && !isFunction && !isClass && <option value="literal">{t('expression.literal')}</option>}<option value="reference">{t('expression.reference')}</option>
+          {nested && concrete && !isList && !isPointer && !isFunction && !isClass && expressionOperators('binary', type).length > 0 && <option value="binary">{t('expression.binary')}</option>}
+          {nested && concrete && !isList && !isFunction && !isClass && expressionOperators('unary', type).length > 0 && <option value="unary">{t('expression.unary')}</option>}
           {nested && isList && <option value="arrayLiteral">{t('expression.arrayLiteral')}</option>}
           {nested && isList && <option value="arrayCreation">{t('expression.arrayCreation')}</option>}
           {nested && isValidElementType(type) && <option value="arrayAccess">{t('expression.arrayAccess')}</option>}

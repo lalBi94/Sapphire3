@@ -109,10 +109,43 @@ function LogicTree({ module, index, selectedId, selectedIds = null, readOnly = f
     onExpandedChange([...next])
   }
 
+  // Rend un nœud racine avec les mêmes propriétés dans les deux scopes.
+  function renderNode(id, position) {
+    return <LogicNode key={`${id}:${position}`} id={id} index={index} selectedId={selectedId} selectedIds={selectedIds} readOnly={readOnly} activeExecutionId={activeExecutionId} onSelect={onSelect} ancestors={[]} expandedIds={expandedIds} onToggle={handleToggle} onOpenActions={onOpenActions} dropTarget={dropTarget} onReorder={onReorder} unusedIds={unusedIds} pureIds={pureIds} breakpoints={breakpoints} onToggleBreakpoint={onToggleBreakpoint} debugValues={debugValues} genericCalls={genericCalls} />
+  }
+
+  // Ouvre le menu d'insertion sur le scope public ou privé d'une classe.
+  function handleAddMember(event, scope) {
+    event.stopPropagation()
+    onOpenActions?.(event, { kind: 'module', id: module.id, scope })
+  }
+
+  if (module.kind === 'class') {
+    const publicIds = module.rootNodeIds.filter((id) => index.nodes.get(id)?.properties?.visibility !== 'private')
+    const privateIds = module.rootNodeIds.filter((id) => index.nodes.get(id)?.properties?.visibility === 'private')
+    const scopes = [
+      { id: 'public', label: t('class.public'), addLabel: t('class.addPublic'), ids: publicIds },
+      { id: 'private', label: t('class.private'), addLabel: t('class.addPrivate'), ids: privateIds },
+    ]
+    return (
+      <div className="logic-tree logic-tree--class" data-canvas-scroll>
+        {scopes.map((scope) => <section className="logic-tree__scope" key={scope.id}>
+          <header className="logic-tree__scope-header">
+            <span>{scope.label}</span>
+            {!readOnly && <button type="button" className="logic-tree__scope-add" aria-label={scope.addLabel} title={scope.addLabel} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => handleAddMember(event, scope.id)}>+</button>}
+          </header>
+          {scope.ids.length === 0
+            ? <p className="logic-tree__scope-empty">{t('canvas.addFirst')}</p>
+            : scope.ids.map((id, position) => renderNode(id, position))}
+        </section>)}
+      </div>
+    )
+  }
+
   return (
     <div className="logic-tree" data-canvas-scroll>
       {module.rootNodeIds.length === 0 && <p className="logic-tree__empty">{t('canvas.addFirst')}</p>}
-      {module.rootNodeIds.map((id, position) => <LogicNode key={`${id}:${position}`} id={id} index={index} selectedId={selectedId} selectedIds={selectedIds} readOnly={readOnly} activeExecutionId={activeExecutionId} onSelect={onSelect} ancestors={[]} expandedIds={expandedIds} onToggle={handleToggle} onOpenActions={onOpenActions} dropTarget={dropTarget} onReorder={onReorder} unusedIds={unusedIds} pureIds={pureIds} breakpoints={breakpoints} onToggleBreakpoint={onToggleBreakpoint} debugValues={debugValues} genericCalls={genericCalls} />)}
+      {module.rootNodeIds.map((id, position) => renderNode(id, position))}
     </div>
   )
 }

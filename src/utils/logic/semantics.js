@@ -1,5 +1,5 @@
 import { createDiagnostic, diagnosticCodes as codes } from './diagnostics.js'
-import { isId, isRecord } from './model.js'
+import { isId, isRecord, moduleKinds } from './model.js'
 import { getNodeSchema } from './nodeSchema.js'
 import { getPlacementIssue } from './placement.js'
 
@@ -25,6 +25,8 @@ export function buildSemanticModel(ast) {
   const symbolByNode = new Map()
   const importSymbols = new Map()
   const moduleIndex = new Map(ast.modules.map((module) => [module.sourceId, module]))
+  const classModules = new Map(ast.modules.filter((module) => module.moduleKind === moduleKinds.class).map((module) => [module.sourceId, module]))
+  const classMembers = new Map()
 
   // Ajoute une erreur sémantique au nœud ou au champ de module concerné.
   function report(code, message, moduleId, nodeId = null, field = null) {
@@ -63,7 +65,7 @@ export function buildSemanticModel(ast) {
     scopeByNode.set(node.sourceId, scopeId)
     contexts.set(node.sourceId, context)
     const schema = getNodeSchema(node.kind)
-    if (schema?.named && isId(node.properties.name)) {
+    if (!context.classMember && schema?.named && isId(node.properties.name)) {
       const symbol = { id: `node:${node.sourceId}`, name: node.properties.name, nodeId: node.sourceId, moduleId: node.moduleId, scopeId, kind: node.kind }
       declare(symbol)
       symbolByNode.set(node.sourceId, symbol)
@@ -73,8 +75,9 @@ export function buildSemanticModel(ast) {
 
     if (node.kind === 'FunctionDeclaration' || node.kind === 'LambdaExpression') {
       const inner = addScope(`${node.kind === 'LambdaExpression' ? 'lambda' : 'function'}:${node.sourceId}`, node.moduleId, node.sourceId, scopeId)
-      for (const parameter of node.children.parameters ?? []) collect(parameter, inner, { functionId: node.sourceId, loopDepth: 0, parameterList: true })
-      collect(node.children.body, inner, { functionId: node.sourceId, loopDepth: 0 }, true)
+      const innerContext = { functionId: node.sourceId, loopDepth: 0, classId: context.classId ?? null, classMember: false }
+      for (const parameter of node.children.parameters ?? []) collect(parameter, inner, { ...innerContext, parameterList: true })
+      collect(node.children.body, inner, innerContext, true)
       return
     }
     let childScope = scopeId
@@ -82,7 +85,8 @@ export function buildSemanticModel(ast) {
     if (node.kind === 'ForStatement') childScope = addScope(`for:${node.sourceId}`, node.moduleId, node.sourceId, scopeId)
     // Le bloc lui-même est inspectable dans sa portée propre.
     scopeByNode.set(node.sourceId, childScope)
-    const childContext = { ...context, parameterList: false, isModuleRoot: false }
+    // Un initialiseur d'attribut n'utilise pas this ; seules les méthodes reçoivent le contexte de classe.
+    const childContext = { ...context, parameterList: false, isModuleRoot: false, classMember: false, ...(context.classMember ? { classId: null } : {}) }
     if (['WhileStatement', 'ForStatement'].includes(node.kind)) childContext.loopDepth += 1
     for (const child of Object.values(node.children).flat().filter(Boolean)) collect(child, childScope, childContext)
   }
@@ -90,11 +94,32 @@ export function buildSemanticModel(ast) {
   for (const module of ast.modules) {
     const scopeId = addScope(`module:${module.sourceId}`, module.sourceId, null, null)
     moduleScopes.set(module.sourceId, scopeId)
-    for (const node of module.body) collect(node, scopeId, { functionId: null, loopDepth: 0, isModuleRoot: true })
+    const isClass = module.moduleKind === moduleKinds.class
+    if (isClass) {
+      const members = { public: new Map(), private: new Map(), constructor: null, constructorVisibility: null }
+      const names = new Set()
+      for (const node of module.body) {
+        if (!['VariableDeclaration', 'ConstantDeclaration', 'FunctionDeclaration'].includes(node.kind) || !isId(node.properties.name)) continue
+        const name = node.properties.name
+        const visibility = node.properties.visibility === 'private' ? 'private' : 'public'
+        if (names.has(name)) report(codes.conflict, `Membre de classe conflictuel : ${name}.`, module.sourceId, node.sourceId, 'properties.name')
+        names.add(name)
+        members[visibility].set(name, node.sourceId)
+        if (node.kind === 'FunctionDeclaration' && node.properties.constructor === true) {
+          if (members.constructor) report(codes.conflict, 'Une classe ne peut avoir qu’un constructeur.', module.sourceId, node.sourceId, 'properties.constructor')
+          else {
+            members.constructor = node.sourceId
+            members.constructorVisibility = visibility
+          }
+        }
+      }
+      classMembers.set(module.sourceId, members)
+    }
+    for (const node of module.body) collect(node, scopeId, { functionId: null, loopDepth: 0, isModuleRoot: true, classId: isClass ? module.sourceId : null, classMember: isClass })
     // Les fragments détachés restent analysables mais ne publient pas de symboles au module.
     for (const node of module.detachedNodes) {
       const detachedScope = addScope(`detached:${node.sourceId}`, module.sourceId, node.sourceId, scopeId)
-      collect(node, detachedScope, { functionId: null, loopDepth: 0 })
+      collect(node, detachedScope, { functionId: null, loopDepth: 0, classId: null, classMember: false })
     }
   }
 
@@ -179,8 +204,8 @@ export function buildSemanticModel(ast) {
   }
 
   return {
-    model: { scopes, symbols, references, nodeScopes: [...scopeByNode].map(([nodeId, scopeId]) => ({ nodeId, scopeId })), nodeTypes: [] },
+    model: { scopes, symbols, references, nodeScopes: [...scopeByNode].map(([nodeId, scopeId]) => ({ nodeId, scopeId })), nodeTypes: [], classes: [...classModules.values()].map((module) => ({ id: module.sourceId, name: module.name })) },
     diagnostics,
-    index: { nodes, scopeByNode, contexts, symbolByNode, referenceSymbols, typeSymbols },
+    index: { nodes, scopeByNode, contexts, symbolByNode, referenceSymbols, typeSymbols, classModules, classMembers },
   }
 }

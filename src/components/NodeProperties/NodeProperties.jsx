@@ -122,7 +122,7 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
     setContractArguments([])
   }
 
-  const title = selected.kind === 'module' ? t('details.module') : record ? kindLabel(record.kind, t) : t('details.block')
+  const title = selected.kind === 'module' ? (record?.kind === 'class' ? t('card.class') : t('details.module')) : record ? kindLabel(record.kind, t) : t('details.block')
   const trail = selected.kind === 'node' ? nodeTrail(index, selected.id, t) : []
 
   // Copie un rapport texte regroupant version, cible sélectionnée et diagnostics pour le signalement.
@@ -181,7 +181,8 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
         {schema?.named && <RenameSymbol key={`${record.id}:${record.properties.name}`} record={record} index={index} onPreview={onPreviewSymbolRename} onApply={onApplySymbolRename} />}
         <NodeForm key={`${record.id}:${JSON.stringify([record.properties, record.references])}`} kind={record.kind} initialNode={record} context={context} showName={!schema.named} onSubmit={(patch) => onConfigure(record.id, patch)} />
       </> : <p>{t('details.addParts')}</p>}
-      {selected.kind === 'module' && <ModuleInterface key={record.id} module={record} project={project} analysis={index.analysis} index={index} onExport={onExport} onImport={onImport} onRemoveImport={onRemoveImport} />}
+      {selected.kind === 'module' && record.kind === 'class' && <p className="node-properties__hint">{t('details.classHint')}</p>}
+      {selected.kind === 'module' && record.kind !== 'class' && <ModuleInterface key={record.id} module={record} project={project} analysis={index.analysis} index={index} onExport={onExport} onImport={onImport} onRemoveImport={onRemoveImport} />}
       {contractable && (availableContractKinds.length > 0 || (record.contracts ?? []).length > 0) && <section className="node-properties__contracts" aria-label={t('contracts.title')}>
         <h3>{t('contracts.title')} <InfoHint text={t('contracts.hint')} /></h3>
         {(record.contracts ?? []).length === 0
@@ -226,7 +227,7 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
     </div>
     {mutationError && <p role="alert">{diagnosticLabel(mutationError, t)}</p>}
     {diagnostics.length === 0 ? <p>{t('details.noIssues')}</p> : <ul className="node-properties__diagnostics">{diagnostics.map((entry, position) => <li key={position}><strong>{diagnosticLabel(entry.code, t)}</strong>{entry.location.field && <small>{slotLabel(entry.location.field, t)}</small>}</li>)}</ul>}
-    {context.ok && record && <div className="node-properties__danger"><DeleteAction key={`${selected.kind}:${record.id}`} targetId={record.id} kind={selected.kind} onDelete={selected.kind === 'module' ? onDeleteModule : onDelete} onPreview={selected.kind === 'node' ? () => deletionImpact(project, { kind: 'node', id: record.id }, { analysis: index.analysis, index }) : undefined} /></div>}
+    {context.ok && record && <div className="node-properties__danger"><DeleteAction key={`${selected.kind}:${record.id}`} targetId={record.id} kind={selected.kind === 'module' && record.kind === 'class' ? 'class' : selected.kind} onDelete={selected.kind === 'module' ? onDeleteModule : onDelete} onPreview={selected.kind === 'node' ? () => deletionImpact(project, { kind: 'node', id: record.id }, { analysis: index.analysis, index }) : undefined} /></div>}
     <ProjectHierarchyMemo project={project} index={index} selected={selected} onSelect={onSelect} t={t} />
   </FloatingPanel>
 }

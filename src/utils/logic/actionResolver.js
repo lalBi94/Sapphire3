@@ -20,7 +20,7 @@ export function getAvailableActions(project, targetId, slotName, options = {}) {
     if (context.expectedType?.name === 'void') continue
     for (const kind of Object.keys(nodeSchema)) {
       if (kind === 'Hole' || !acceptsNodeKind(slot, kind) || getPlacementIssue(kind, insertionContext)) continue
-      if (context.record.kind === 'CallExpression' && slot.name === 'callee' && !['Reference', 'LambdaExpression'].includes(kind)) continue
+      if (context.record.kind === 'CallExpression' && slot.name === 'callee' && !['Reference', 'LambdaExpression', 'MemberExpression'].includes(kind)) continue
       // Un tableau ne peut remplir qu'un emplacement qui attend un tableau ; le choix reste libre sinon.
       if (['ArrayLiteral', 'ArrayCreation'].includes(kind) && context.expectedType && !isArrayType(context.expectedType)) continue
       // Chaque opération native est proposée séparément, dans sa sous-catégorie (Maths, Texte, Tableaux).
@@ -29,6 +29,10 @@ export function getAvailableActions(project, targetId, slotName, options = {}) {
         continue
       }
       actions.push({ id: `${slot.name}:${kind}`, kind, slot: slot.name, category: nodeSchema[kind].category })
+    }
+    // Une classe accepte un seul constructeur, proposé comme méthode spéciale.
+    if (context.classScope && !context.index.classMembers?.get(context.moduleId)?.constructor) {
+      actions.push({ id: `${slot.name}:constructor`, kind: 'FunctionDeclaration', slot: slot.name, category: 'declaration', group: 'function', labelKey: 'class.constructor', preset: { constructor: true } })
     }
   }
   return { ...context, actions }

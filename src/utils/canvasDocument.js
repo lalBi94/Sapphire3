@@ -140,15 +140,16 @@ export function reduceDocument(state, action) {
     const cards = result.duplicatedModules.map((entry, position) => {
       const source = state.cards.find((card) => card.id === entry.sourceModuleId)
       const spec = action.cards[position] ?? {}
+      const cardType = source?.type === 'class' ? 'class' : 'module'
       return {
         ...spec,
         id: entry.moduleId,
         name: entry.name,
-        type: 'module',
+        type: cardType,
         x: spec.x ?? 0,
         y: spec.y ?? 0,
-        width: spec.width ?? moduleTypes.module.width,
-        height: spec.height ?? moduleTypes.module.height,
+        width: spec.width ?? moduleTypes[cardType].width,
+        height: spec.height ?? moduleTypes[cardType].height,
         expandedNodeIds: (source?.expandedNodeIds ?? []).map((id) => entry.nodeIdMap[id]).filter(Boolean),
       }
     })
