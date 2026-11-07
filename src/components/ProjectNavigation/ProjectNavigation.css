@@ -74,16 +74,35 @@
 .project-navigation__destinations p { margin: 4px; }
 .project-navigation button:hover:not(:disabled) { background: var(--color-hover); border-color: var(--color-border); }
 .project-navigation__run { color: var(--color-primary) !important; border-color: color-mix(in srgb, var(--color-primary) 45%, transparent) !important; }
+/* Simulation en cours : dégradé animé et halo dans les couleurs du thème. */
+@keyframes run-gradient-flow {
+  from { background-position: 0% 50%; }
+  to { background-position: 200% 50%; }
+}
 .project-navigation button.project-navigation__run:hover:not(:disabled),
 .project-navigation button.project-navigation__run--running,
 .project-navigation button.project-navigation__run--running:hover:not(:disabled) {
   border-color: var(--color-primary) !important;
-  background: var(--color-primary);
-  color: var(--color-on-primary) !important;
+  background-color: var(--color-surface-raised);
+  background-image: linear-gradient(110deg, color-mix(in srgb, var(--color-primary) 35%, var(--color-surface-raised)), color-mix(in srgb, var(--color-selection) 35%, var(--color-surface-raised)), color-mix(in srgb, var(--color-primary) 35%, var(--color-surface-raised)));
+  background-size: 220% 100%;
+  color: var(--color-text) !important;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--color-primary) 35%, transparent);
+  animation: run-gradient-flow 2.4s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .project-navigation button.project-navigation__run:hover:not(:disabled),
+  .project-navigation button.project-navigation__run--running { animation: none; }
 }
 @media (prefers-contrast: more), (forced-colors: active) {
   .project-navigation button.project-navigation__run:hover:not(:disabled),
-  .project-navigation button.project-navigation__run--running { background: var(--color-primary); border-color: currentColor; color: var(--color-on-primary) !important; }
+  .project-navigation button.project-navigation__run--running {
+    background-image: none;
+    background: var(--color-primary);
+    border-color: currentColor;
+    color: var(--color-on-primary) !important;
+    box-shadow: none;
+  }
 }
 .project-navigation__run-controls { display: flex; align-items: center; flex-shrink: 0; }
 /* Bouton d'arrêt à côté de Run, visible seulement pendant une simulation. */

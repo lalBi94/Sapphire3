@@ -136,6 +136,78 @@ body {
   :root { --surface-floating: var(--color-surface-raised); --blur-panel: 0px; }
 }
 
+/* Bordure lumineuse animée des panneaux : dégradé conique autour du cadre. */
+@property --panel-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes panel-angle-turn {
+  to { --panel-angle: 360deg; }
+}
+
+:is(
+  .project-navigation__menu,
+  .project-navigation__confirmation,
+  .floating-panel,
+  .debug-panel,
+  .simulation-panel,
+  .transpile-panel,
+  .logic-context-menu,
+  .canvas-context-menu,
+  .canvas-status,
+  .minimap,
+  .node-search,
+  .function-panel,
+  .module-emoji__popover
+) {
+  border-color: transparent !important;
+  background: var(--panel-surface);
+  animation: panel-angle-turn 7s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root { --duration-fast: 0ms; }
+
+  :is(
+    .project-navigation__menu,
+    .project-navigation__confirmation,
+    .floating-panel,
+    .debug-panel,
+    .simulation-panel,
+    .transpile-panel,
+    .logic-context-menu,
+    .canvas-context-menu,
+    .canvas-status,
+    .minimap,
+    .node-search,
+    .function-panel,
+    .module-emoji__popover
+  ) {
+    animation: none;
+  }
+}
+
+@media (prefers-contrast: more), (forced-colors: active) {
+  :is(
+    .project-navigation__menu,
+    .project-navigation__confirmation,
+    .floating-panel,
+    .debug-panel,
+    .simulation-panel,
+    .transpile-panel,
+    .logic-context-menu,
+    .canvas-context-menu,
+    .canvas-status,
+    .minimap,
+    .node-search,
+    .function-panel,
+    .module-emoji__popover
+  ) {
+    border-color: currentColor !important;
+    background: var(--surface-floating);
+    animation: none;
+    box-shadow: none;
+  }
 }
