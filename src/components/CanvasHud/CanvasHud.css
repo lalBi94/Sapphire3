@@ -1,0 +1,106 @@
+/* HUD d'arrière-plan : télémétrie discrète, astuces et artefacts techniques. */
+.canvas-hud {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1.55;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  opacity: 0.55;
+}
+
+.canvas-hud__corner {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: min(260px, 34vw);
+  padding-inline-start: 8px;
+  border-inline-start: 1px solid color-mix(in srgb, var(--color-primary) 32%, transparent);
+}
+
+.canvas-hud__corner--tl { top: 12px; inset-inline-start: 14px; }
+.canvas-hud__corner--ml { top: max(84px, 38%); inset-inline-start: 14px; }
+
+.canvas-hud__corner--tr,
+.canvas-hud__corner--mr {
+  align-items: flex-end;
+  text-align: end;
+  padding-inline-start: 0;
+  padding-inline-end: 8px;
+  border-inline-start: 0;
+  border-inline-end: 1px solid color-mix(in srgb, var(--color-primary) 32%, transparent);
+}
+
+.canvas-hud__corner--tr { top: 12px; inset-inline-end: 14px; }
+.canvas-hud__corner--mr { top: max(84px, 38%); inset-inline-end: 14px; }
+
+.canvas-hud__eyebrow { color: var(--color-primary); letter-spacing: 0.14em; }
+
+.canvas-hud__online { display: inline-flex; align-items: center; gap: 5px; }
+
+.canvas-hud__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-pure);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--color-pure) 70%, transparent);
+  animation: canvas-hud-pulse 2.8s ease-in-out infinite;
+}
+
+.canvas-hud__signal { color: color-mix(in srgb, var(--color-text-muted) 70%, transparent); }
+
+.canvas-hud__rail {
+  position: absolute;
+  top: 50%;
+  font-size: 8px;
+  letter-spacing: 0.22em;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--color-text-muted) 62%, transparent);
+}
+
+.canvas-hud__rail--left {
+  left: 3px;
+  writing-mode: vertical-rl;
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.canvas-hud__rail--right {
+  right: 3px;
+  writing-mode: vertical-rl;
+  transform: translateY(-50%);
+}
+
+.canvas-hud__watermark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-display);
+  font-size: clamp(100px, 18vw, 260px);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  white-space: nowrap;
+  color: var(--color-text);
+  opacity: 0.08;
+}
+
+@keyframes canvas-hud-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas-hud__dot { animation: none; }
+}
+
+@media (prefers-contrast: more), (forced-colors: active) {
+  .canvas-hud { opacity: 0.75; }
+  .canvas-hud__watermark { opacity: 0.05; }
+}

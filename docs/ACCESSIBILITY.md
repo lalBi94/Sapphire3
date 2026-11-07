@@ -24,7 +24,7 @@
 
 | État | Violations axe-core |
 | --- | --- |
-| Canvas vide, barre supérieure fermée | 0 |
+| Canvas vide avec HUD d’arrière-plan, barre supérieure fermée | 0 |
 | Workspace **Weather station** (5 cartes, BarChart, Heatmap, Run actif) | 0 |
 | Panneau de propriétés d'un nœud | 0 |
 | Recherche de blocs (`Ctrl+F`) | 0 |
@@ -42,6 +42,8 @@ Les résultats `incomplete` ont aussi été examinés. Après corrections, il ne
 **Rejeu après la refonte Void / Acid (7 novembre 2026)** : 0 violation sur le canvas vide, le workspace **Arrays**, la fenêtre **Paramètres** et le volet **Theme**. La géométrie et les surfaces opaques sont conservées ; la **palette Sapphire par défaut** garde ses contrastes audités, et la **palette Void / Acid optionnelle** a été vérifiée : texte principal `#E8EDF2` sur `#06070A`, texte atténué `#9CA7B5` sur `#0C0F14`, acide `#B6FF2E` sur `#06070A` et texte sombre sur acide. Les `incomplete` restants concernent des textes posés sur des visuels ou des dégradés fonctionnels.
 
 **Rejeu après l'ajout des variantes sombre et claire (7 novembre 2026)** : 0 violation axe-core sur la fenêtre **Paramètres → Theme** et le menu **Theme** de la barre, en apparence sombre puis claire, avec **Sapphire** puis **Void / Acid**. Les `incomplete` restants sont les textes du statut de canvas posés sur le fond dégradé. Les contrastes des variantes claires sont dérivés et vérifiés par calcul : texte principal ≥ 14,9:1 sur les surfaces claires, texte atténué ≥ 5,0:1, accents, accents secondaires, statuts et familles de nœuds ≥ 4,5:1, texte sur accent ≥ 4,5:1, y compris sur les teintes douces utilisées en sélection. Les overrides d'un thème personnalisé s'appliquent aux deux variantes.
+
+**HUD d’arrière-plan (7 novembre 2026)** : les artefacts texte du canvas sont **décoratifs et ambiants**, marqués `aria-hidden="true"` et sans équivalent interactif ; l’information essentielle (version, compteurs, zoom, thème, grille, aimantation, raccourcis) reste disponible dans la barre, le statut de canvas, les paramètres et le catalogue de raccourcis. Axe-core ne relève **aucune violation** sur le canvas avec HUD en sombre et en clair ; les textes à faible opacité apparaissent en `color-contrast` **incomplet**, ce qui est attendu pour cette couche volontairement discrète. Le HUD est ignoré en mouvement réduit (animation du voyant) et renforcé en contraste élevé.
 
 ## B. Matrice WCAG 2.2 — niveau A et AA
 

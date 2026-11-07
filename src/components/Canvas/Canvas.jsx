@@ -1,6 +1,7 @@
 import { startTransition, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp, X } from 'lucide-react'
 import CanvasGrid from '../CanvasGrid/CanvasGrid.jsx'
+import CanvasHud from '../CanvasHud/CanvasHud.jsx'
 import useCanvasPan from '../../hooks/useCanvasPan.jsx'
 import useCanvasDocument from '../../hooks/useCanvasDocument.jsx'
 import useNodeTransfers from '../../hooks/useNodeTransfers.jsx'
@@ -1211,6 +1212,7 @@ export default function Canvas() {
       onDragStart={transfers.handleDragStart} onDragOver={transfers.handleDragOver} onDrop={transfers.handleDrop} onDragEnd={transfers.handleDragEnd}>
       <h1 className="visually-hidden">{t('app.title')}</h1>
       <CanvasGrid camera={camera} zoom={zoom} distorted={distorted} gridVisible={gridVisible} />
+      <CanvasHud camera={camera} zoom={zoom} semanticLevel={semanticLevel} moduleCount={document.index.modules.size} nodeCount={document.index.nodes.size} gridVisible={gridVisible} magnetEnabled={magnetEnabled} />
       <CanvasLinks cards={visibleCards} links={moduleLinks} camera={camera} zoom={zoom} />
       {semanticCards.map((card) => <CanvasModule key={`${document.revision}:${card.id}`} module={card} camera={camera} zoom={zoom}
         semanticLevel={semanticLevel}
