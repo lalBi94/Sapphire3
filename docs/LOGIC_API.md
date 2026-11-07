@@ -103,6 +103,15 @@ La catégorie de module `main` est retirée : une ancienne source v1 l'utilisant
 
 ## Portées, imports et types
 
+Les méthodes extraites restent liées à leur instance, y compris lorsqu'elles sont
+stockées dans une variable ou un attribut de type fonction, ou utilisées comme
+callback `ForEach`. Un appel évalue d'abord sa cible (et son récepteur), puis ses
+arguments dans l'ordre. Une lecture d'attribut jamais initialisé échoue avec
+`SIMULATION_UNINITIALIZED`, comme une lecture de variable non initialisée.
+La duplication d'un module de classe remappe ses annotations vers son propre
+nouvel identifiant et les `new` internes visant la classe copiée ; les classes
+extérieures restent partagées.
+
 - Une portée par module ; une par fonction, partagée par ses paramètres et son bloc principal ; une par bloc imbriqué et par `for`.
 - Un espace de noms commun aux valeurs et aux types. Les déclarations d'une portée sont collectées avant résolution ; pas de temporal dead zone ni d'analyse d'initialisation/ordre d'exécution à ce stade.
 - Un nom peut masquer une déclaration d'une portée externe. Un doublon dans la même portée est une erreur ; la première déclaration reste choisie pour permettre l'inspection.

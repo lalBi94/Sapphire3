@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { analyzeProgram, createModule, createNode, createProject, simulateProgram } from '../../src/utils/logic/index.js'
+import { analyzeProgram, createModule, createNode, createProject, duplicateSourceTargets, simulateProgram } from '../../src/utils/logic/index.js'
 import { transpileProgram } from '../../src/utils/transpilation/index.js'
 import { deserializeWorkspace, serializeWorkspace } from '../../src/utils/workspaceFile.js'
 
@@ -94,6 +94,63 @@ test('classes : instanciation, constructeur, attributs, méthodes et this', () =
   assert.deepEqual(result.output, ['6', '42'])
 })
 
+test('classes : une lecture d’attribut non initialisé échoue sans imprimer un symbole interne', () => {
+  const project = counterProject()
+  project.nodes.find((node) => node.id === 'secretField').children.initializer = null
+  project.nodes = project.nodes.filter((node) => node.id !== 'secretValue')
+  assert.equal(analyzeProgram(project).canGenerate, true)
+  const result = simulateProgram(project)
+  assert.equal(result.ok, false)
+  assert.equal(result.errorCode, 'SIMULATION_UNINITIALIZED')
+  assert.deepEqual(result.output, ['6'])
+})
+
+test('classes : le récepteur et la méthode sont évalués avant les arguments', () => {
+  const project = counterProject()
+  project.nodes.find((node) => node.id === 'increment').children.parameters = ['amount']
+  add(project, 'counter', 'amount', 'Parameter', { name: 'amount', type: intType })
+  project.nodes.find((node) => node.id === 'incrementExpression').children.arguments = ['argument']
+  add(project, 'app', 'argument', 'Literal', { type: intType, value: 1 })
+  const result = simulateProgram(project)
+  assert.equal(result.ok, true, result.errorCode)
+  assert.ok(result.trace.indexOf('incrementMember') < result.trace.indexOf('argument'))
+  assert.ok(result.trace.indexOf('counterRef') < result.trace.indexOf('argument'))
+  assert.deepEqual(result.output, ['6', '42'])
+})
+
+test('classes : ForEach conserve this sur une méthode passée comme callback', () => {
+  const project = counterProject()
+  project.nodes.find((node) => node.id === 'increment').children.parameters = ['item']
+  add(project, 'counter', 'item', 'Parameter', { name: 'item', type: intType })
+  const statement = project.nodes.find((node) => node.id === 'incrementCall')
+  statement.kind = 'ForEachStatement'
+  statement.children = { array: 'items', callback: 'incrementMember' }
+  project.nodes = project.nodes.filter((node) => node.id !== 'incrementExpression')
+  add(project, 'app', 'items', 'ArrayLiteral', { elementType: intType }, { elements: ['first', 'second', 'third'] })
+  for (const [id, value] of [['first', 1], ['second', 2], ['third', 3]]) add(project, 'app', id, 'Literal', { type: intType, value })
+  const analysis = analyzeProgram(project)
+  assert.deepEqual(analysis.diagnostics, [])
+  const result = simulateProgram(project)
+  assert.equal(result.ok, true, result.errorCode)
+  assert.deepEqual(result.output, ['8', '42'])
+})
+
+test('classes : une méthode liée stockée dans un attribut fonction reste appelable', () => {
+  const project = counterProject()
+  root(project, 'counter', 'savedField', 'VariableDeclaration', { name: 'saved', visibility: 'public', type: { kind: 'function', parameters: [], returnType: voidType } }, { initializer: null })
+  project.nodes.find((node) => node.id === 'mainBody').children.statements.splice(1, 0, 'saveMethod')
+  add(project, 'app', 'saveMethod', 'AssignmentStatement', {}, { target: 'savedTarget', value: 'boundMethod' })
+  add(project, 'app', 'savedTarget', 'MemberExpression', { name: 'saved' }, { object: 'savedObject' })
+  reference(project, 'app', 'savedObject', 'counterDecl')
+  add(project, 'app', 'boundMethod', 'MemberExpression', { name: 'increment' }, { object: 'boundObject' })
+  reference(project, 'app', 'boundObject', 'counterDecl')
+  project.nodes.find((node) => node.id === 'incrementMember').properties.name = 'saved'
+  assert.deepEqual(analyzeProgram(project).diagnostics, [])
+  const result = simulateProgram(project)
+  assert.equal(result.ok, true, result.errorCode)
+  assert.deepEqual(result.output, ['6', '42'])
+})
+
 test('classes : le workspace conserve les scopes, les instances et les types de classe', () => {
   const project = counterProject()
   const cards = project.modules.map((module) => ({
@@ -113,6 +170,22 @@ test('classes : le workspace conserve les scopes, les instances et les types de 
   const result = simulateProgram(workspace.project)
   assert.equal(result.ok, true, result.errorCode)
   assert.deepEqual(result.output, ['6', '42'])
+})
+
+test('classes : dupliquer une classe remappe son propre type de retour', () => {
+  const project = counterProject()
+  root(project, 'counter', 'self', 'FunctionDeclaration', { name: 'self', type: classCounterType, visibility: 'public' }, { parameters: [], body: 'selfBody' })
+  add(project, 'counter', 'selfBody', 'Block', {}, { statements: ['selfReturn'] })
+  add(project, 'counter', 'selfReturn', 'ReturnStatement', {}, { argument: 'selfThis' })
+  add(project, 'counter', 'selfThis', 'ThisExpression')
+  let sequence = 0
+  const result = duplicateSourceTargets(project, [{ kind: 'module', id: 'counter' }], { idFactory: () => `copy:${++sequence}` })
+  assert.equal(result.ok, true, result.code)
+  const copied = result.project.modules.find((module) => module.id !== 'counter' && module.kind === 'class')
+  const method = result.project.nodes.find((node) => node.moduleId === copied.id && node.properties.name === 'self')
+  assert.equal(method.properties.type.classId, copied.id)
+  assert.deepEqual(result.analysis.diagnostics, [])
+  assert.equal(project.nodes.find((node) => node.id === 'self').properties.type.classId, 'counter')
 })
 
 test('classes : la transpilation reste refusée tant que la cible ne porte pas les instances', () => {

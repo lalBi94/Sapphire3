@@ -79,6 +79,16 @@ function duplicateModule(project, sourceModuleId, idFactory, index, usedNames) {
     if (target?.kind === 'import' && importIds.has(target.importId)) target.importId = importIds.get(target.importId)
   }
 
+  // Une classe copiée doit se désigner elle-même, même dans une signature imbriquée.
+  function remapClassType(type, depth = 0) {
+    if (!isRecord(type) || depth > 20) return
+    if (source.kind === 'class' && type.kind === 'class' && type.classId === sourceModuleId) type.classId = moduleId
+    if (type.kind === 'function') {
+      for (const parameter of Array.isArray(type.parameters) ? type.parameters : []) remapClassType(parameter, depth + 1)
+      remapClassType(type.returnType, depth + 1)
+    }
+  }
+
   let clonedNodes
   try {
     clonedNodes = nodes.map((sourceNode) => {
@@ -88,6 +98,8 @@ function duplicateModule(project, sourceModuleId, idFactory, index, usedNames) {
       node.children = Object.fromEntries(Object.entries(node.children ?? {}).map(([slot, value]) => [slot, Array.isArray(value) ? value.map((id) => nodeIds.get(id) ?? id) : value == null ? value : nodeIds.get(value) ?? value]))
       remapTarget(node.references?.target)
       remapTarget(node.properties?.type?.target)
+      remapClassType(node.properties?.type)
+      if (source.kind === 'class' && node.kind === 'NewExpression' && node.properties?.classId === sourceModuleId) node.properties.classId = moduleId
       if (node.kind === 'FunctionDeclaration' && node.properties?.entryPoint === true) node.properties.entryPoint = false
       return node
     })

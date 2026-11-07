@@ -44,6 +44,8 @@ Ne propose ni n'implémente de fonctionnalité supplémentaire sans demande expl
 - Consulter `package.json`, `neutralino.config.json` et les points d'entrée lorsque la tâche les concerne ; **ne jamais supposer** les scripts, chemins ou API disponibles.
 - Identifier où se trouve déjà la responsabilité demandée et respecter les conventions compatibles avec ce document.
 - Si la mémoire contredit les sources, **le code est la référence** ; corriger la mémoire après vérification.
+- Lors d'une revue, corriger les défauts reproductibles avec des tests de non-régression ; ne pas confondre encapsulation par classes et gain de vitesse. Préserver les exemples transpilables et les comportements déjà valides.
+- La documentation publique vit dans `abstract/visual/` et le rapport dans `abstract/ARCHITECTURE_AST.tex` (PDF via `pnpm docs:ast`). Aligner les descriptions sur les sources sans renouveler les captures sauf demande explicite ; distinguer la release publiée du code courant.
 - Distinguer les faits observés, les fonctionnalités demandées et les hypothèses. Ne jamais présenter une intention comme une fonctionnalité terminée.
 - Limiter les modifications au périmètre demandé ; éviter les refontes opportunistes.
 

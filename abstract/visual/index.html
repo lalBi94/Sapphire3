@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sapphire 3 — programmation visuelle fondée sur un AST</title>
-  <meta name="description" content="Sapphire 3 : environnement de programmation visuelle pour Windows, fondé sur un AST indépendant des langages cibles. Présentation, documentation visuelle et architecture du modèle logique.">
+  <meta name="description" content="Sapphire 3 : environnement desktop de programmation visuelle, avec classes, simulation locale et AST indépendant des langages cibles. Présentation, documentation et architecture.">
   <link rel="stylesheet" href="assets/site.css">
 </head>
 <body class="page page-home">
@@ -24,6 +24,8 @@
       <div class="hero-layout">
         <div class="hero-copy">
           <p class="kicker">Application desktop Windows, Linux et macOS · 0.1.0-beta.6</p>
+          <p>Windows vérifié ; paquets Linux et macOS construits mais non testés à l'exécution.
+          Le texte décrit le code courant, qui peut être plus récent que la release publiée.</p>
           <h1>Des blocs qui sont de vrai code, pas des dessins qui y ressemblent</h1>
           <p class="lede">
             Sapphire 3 est un environnement de programmation visuelle. Chaque carte posée sur le canvas est une
@@ -57,7 +59,7 @@
     <section class="stats" aria-label="Chiffres clés">
       <div class="stat"><b>20</b><span>sections de documentation</span></div>
       <div class="stat"><b>42</b><span>captures réelles annotées</span></div>
-      <div class="stat"><b>545</b><span>tests automatisés</span></div>
+      <div class="stat"><b>52</b><span>exemples locaux</span></div>
       <div class="stat"><b>8</b><span>langues d'interface</span></div>
     </section>
 
@@ -70,7 +72,10 @@
         <div class="card">
           <h3>Ce qui fonctionne aujourd'hui</h3>
           <p>
-            Canvas navigable, zoom sémantique et cartes Module, notes et images. Le langage couvre les fonctions et
+            Canvas navigable, zoom sémantique et cartes Module, Class, notes et images. Les classes proposent
+            des membres public/private, un constructeur, des instances avec <code>new</code>, <code>this</code>
+            et des types de classe. Pas d'héritage ni de polymorphisme ; les classes ne sont pas encore transpilées.
+            Le langage couvre les fonctions et
             types déclarés à la racine d'un module, conditions, boucles, <code>ForEach</code>, affectations, appels,
             tableaux, typage statique strict, références de fonction, pointeurs avec adresse, déréférencement et
             écriture, génériques avancés (plusieurs paramètres <code>T</code>, <code>U</code>, tableaux génériques
@@ -83,10 +88,11 @@
             fixes suivies par pas sans horloge de lecture, les contrats vérifiables, le gestionnaire de fenêtres, le constructeur
             de signatures de fonction, les thèmes prédéfinis et personnalisés, huit langues, l'import/export
             <code>.sp3</code>/JSON, l'autosauvegarde, la récupération des documents neufs, trois sauvegardes de
-            secours et un workspace version 2 migré depuis la version 1. Le <b>mode exercice</b> ajoute un manifeste
-            dans le <code>.sp3</code> : consignes, snapshot de départ, tests d'entrée ou de fonction exécutés par
+            secours et un workspace version 3 : dossier choisi, <code>workspace.sp3</code>, images liées et export ZIP,
+            avec migration des versions 1 et 2. Le <b>mode exercice</b> ajoute un manifeste
+            dans le document : consignes, snapshot de départ, tests d'entrée ou de fonction exécutés par
             <b>Check</b>, retour du robot, verrou d'édition par mot de passe haché (PBKDF2) et enregistrement d'une
-            solution <code>.sp3</code> lorsque tous les tests passent.
+            solution ZIP lorsque tous les tests passent. Les thèmes ont une apparence sombre et claire commune.
           </p>
         </div>
         <div class="card">
@@ -143,7 +149,7 @@
         <p><b>Le code est écrit avec des assistants.</b> Sapphire 3 est un projet conduit en dialogue avec des
         outils d'assistance au développement (OpenCode, DeepSeek V3.2, ChatGPT Sol&nbsp;6.1, GLM 3.2, Nemotron de
         NVIDIA)&nbsp;: c'est un mode de fabrication assumé, pas un détail caché. Ce qui l'encadre&nbsp;: chaque
-        incrément est relu, testé (545 tests Node et Python, runner Node natif, sans dépendance de test) et
+        incrément est relu, testé (suite Node et Python, runner Node natif, sans dépendance de test) et
         validé dans l'interface avant d'être retenu ; la CI GitHub Actions rejoue tests et build sur chaque pull
         request. Le vocabulaire, les contrats et les limites sont décidés par le projet, pas par le générateur.</p>
         <p style="margin-bottom:0"><b>Cette documentation évolue avec le projet.</b> Elle décrit l'état atteint, pas
@@ -163,7 +169,7 @@
           <tr><td>Style</td><td>CSS natif + jetons dans <code>src/styles/tokens.css</code></td><td>Sept palettes prédéfinies et thèmes personnalisés, variables sémantiques, pas de charge distant de police ou de feuille de style</td></tr>
           <tr><td>Icônes</td><td><code>lucide-react ^1.64.0</code></td><td>Utilisés comme glyphes décoratifs, toujours accompagnés d'un libellé ou d'<code>aria-label</code></td></tr>
           <tr><td>Moteur logique</td><td>JavaScript pur dans <code>src/utils/logic/</code></td><td>Sans React, sans DOM, sans API native&nbsp;; source JSON versionnée, importable et testable seul</td></tr>
-          <tr><td>Tests</td><td><code>node --test</code></td><td>545 tests&nbsp;: scénarios valides, invalides, incomplets, localisations, non-mutation, conservation JSON, migrations, sauvegardes, widgets graphiques, exercices et verrou PBKDF2, notifications par mascotte, aimantation des modules et vitesse de simulation</td></tr>
+          <tr><td>Tests</td><td><code>node --test</code></td><td>Scénarios Node et Python : valides, invalides, incomplets, classes, localisations, non-mutation, conservation JSON, migrations, sauvegardes, widgets graphiques, exercices et verrou PBKDF2, notifications par mascotte, aimantation des modules et vitesse de simulation</td></tr>
           <tr><td>Documentation AST</td><td>LaTeX → PDF</td><td><code>abstract/ARCHITECTURE_AST.tex</code> et son PDF, compilés par <code>pnpm docs:ast</code></td></tr>
         </tbody>
       </table>

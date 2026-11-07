@@ -2,6 +2,18 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Revue de cohérence et cas limites — 7 novembre 2026
+
+- Périmètre : revue ciblée des incréments récents (classes, exemples et dépendances), des contrats de simulation et duplication, des services Worker et mise à jour, de la CI, du site et du rapport AST. Le dépôt était propre au départ. L'historique ne permet pas d'attribuer avec certitude chaque ligne à un modèle ; la revue porte sur le code, pas son auteur.
+- Le socle reste cohérent : moteur sans React/DOM, services natifs séparés, registre central des cartes, analyse conservant les sources invalides et refus explicite de transpilation des classes. Aucune réécriture générale ni dépendance ajoutée.
+- Défauts corrigés dans `simulation.js` : une lecture d'attribut non initialisé pouvait exposer la sentinelle interne ; une méthode liée comme callback `ForEach` ou stockée dans un attribut fonction n'était pas exécutable ; le chemin spécial d'appel de membre sautait l'évaluation normale du callee. Le chemin commun évalue désormais la cible avant les arguments et conserve l'instance liée.
+- Défaut corrigé dans `selectionActions.js` : une classe dupliquée conservait son ancien `classId` dans son propre type de retour, pouvant faire refuser sa copie ou référencer la mauvaise classe. Remappage récursif des signatures et des instanciations internes, sans modifier la source originale.
+- Cinq tests de non-régression ajoutés dans `tests/logic/classes.test.js` : attribut non initialisé, ordre récepteur/arguments, callback lié, attribut fonction contenant une méthode et duplication avec retour de sa propre classe.
+- Documentation : `AGENTS.md` précise la revue par défauts reproductibles et les chemins de documentation publique ; README, site `abstract/visual/`, rapport `.tex` et PDF recompilé décrivent les classes, le workspace v3, les solutions ZIP et les apparences sombre/claire. Les captures existantes n'ont pas été remplacées. Le site distingue code courant, release et plateformes non testées. Les nombres de tests périmés ont été retirés du site plutôt que présentés comme actuels.
+- Mémoire : état courant distinct de l'historique de release ; correction des descriptions obsolètes des exercices, du modèle objet et de la mise à jour multiplateforme. Aucun gain de vitesse attribué aux classes sans mesure.
+- Vérifications exécutées : `pnpm test` **563 réussis**, `pnpm build` réussi (avertissement existant de chunk > 500 ko), `pnpm docs:ast` réussi (PDF de 8 pages), analyse des quatre pages HTML et de leurs liens/ressources locaux : aucune cible manquante.
+- Limites de revue : aucune nouvelle campagne navigateur, accessibilité ou exécution Neutralinojs/Linux/macOS ; aucun changement d'UI applicative ou d'API native. Les limites connues du debug/reachability des classes et de la transpilation restent inchangées. Ce n'est pas une garantie d'absence de défauts dans tout le projet.
+
 ## Flèches de dépendance des classes — 7 novembre 2026
 
 - `getModuleLinks` produit désormais les mêmes flèches pour les classes que pour les imports ordinaires : un module qui instancie une classe (`NewExpression.classId`) ou qui cite son type `{kind:'class', classId}` sur une variable, une constante, un paramètre, un retour, une lambda ou une signature reçoit une flèche depuis la carte de classe.

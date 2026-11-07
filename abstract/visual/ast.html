@@ -31,7 +31,7 @@
       <ul class="meta-chips">
         <li>10 sections</li>
         <li>Format source v1</li>
-        <li>545 tests</li>
+        <li>Tests Node et Python</li>
         <li data-reading-time>Lecture rapide</li>
       </ul>
       <div class="notes-soft">
@@ -77,15 +77,15 @@
           <h3>Le moteur est pur</h3>
           <p><code>src/utils/logic/</code> n'importe ni React, ni DOM, ni Neutralinojs. Les fonctions ne modifient
           pas leurs entrées&nbsp;; elles renvoient de nouvelles sources et des résultats dérivés. Il est testé seul,
-          par 545 tests Node et Python sans dépendance de test.</p>
+          par une suite de tests Node et Python sans dépendance de test.</p>
         </div>
         <div class="card">
           <h3>Périmètre volontairement borné</h3>
-          <p>Pas de classes, pas de structures, pas de sous-modules, pas de surcharge, pas d'inférence de
+          <p>Classes avec membres public/private, constructeur, instances, <code>new</code>, <code>this</code>
+          et types de classe. Pas d'héritage, de polymorphisme, de structures, de sous-modules, de surcharge ni d'inférence de
           secours. La généricité accepte plusieurs paramètres de type et des contraintes exactes, sans
           génériques locaux ni tableaux imbriqués. Une
-          direction objet est évoquée, aucun contrat n'est décidé&nbsp;: rien de tout cela n'est simulé dans le
-          format.</p>
+          classe est simulée localement, mais sa transpilation est refusée explicitement.</p>
         </div>
       </div>
     </section>
@@ -583,7 +583,7 @@
           <tr><td>Les identifiants viennent de l'appelant et ne sont jamais régénérés</td><td>Une sélection, une référence ou une position reste valable après une modification.</td></tr>
           <tr><td>Un nœud a au plus un parent syntaxique</td><td><code>SYNTAX_MULTIPLE_PARENTS</code> et <code>SYNTAX_CYCLE</code> sont des erreurs dures, pas des avertissements.</td></tr>
           <tr><td>Les résultats dérivés sont des instantanés en lecture seule</td><td>Les panneaux d'analyse ne peuvent pas écrire dans le document par accident.</td></tr>
-          <tr><td>La conservation JSON prime sur la normalisation</td><td>Le format source v1 conserve les champs inconnus et diagnostique une version future. L'enveloppe workspace version 1 est migrée explicitement vers la version 2 à la lecture&nbsp;; une version future est refusée avant remplacement.</td></tr>
+          <tr><td>La conservation JSON prime sur la normalisation</td><td>Le format source v1 conserve les champs inconnus et diagnostique une version future. Les workspaces versions 1 et 2 sont migrés vers la version 3 à la lecture : document interne et images liées dans un dossier choisi. Une version future est refusée avant remplacement.</td></tr>
         </tbody>
       </table>
       <p>

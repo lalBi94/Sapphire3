@@ -311,18 +311,9 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     }
     if (node.kind === 'CallExpression') {
       const calleeNode = nodes.get(node.children.callee)
-      const args = (node.children.arguments ?? []).map((id) => valueOf(nodes.get(id), environment))
-      // Appel de méthode : le membre est résolu sur l'instance, puis exécuté avec this.
-      if (calleeNode?.kind === 'MemberExpression') {
-        const member = resolveMember(calleeNode, environment)
-        if (member.kind === 'method') return executeFunction(member.node, args, member.object)
-        if (member.value?.lambdaValue === true) return executeLambda(member.value.lambda, member.value.environment, args)
-        const target = member.value?.functionValue === true ? functions.get(member.value.nodeId) : null
-        if (!target) throw simulationError('SIMULATION_REFERENCE', 'The called member is not a function.')
-        return executeFunction(target, args)
-      }
-      // Le callee est évalué comme une valeur : fonction déclarée, lambda ou variable de type fonction.
       const callee = valueOf(calleeNode, environment)
+      const args = (node.children.arguments ?? []).map((id) => valueOf(nodes.get(id), environment))
+      // Le callee est évalué comme une valeur : fonction déclarée, lambda ou variable de type fonction.
       if (callee?.methodValue === true) return executeFunction(callee.node, args, callee.object)
       if (callee?.lambdaValue === true) return executeLambda(callee.lambda, callee.environment, args)
       const target = callee?.functionValue === true ? functions.get(callee.nodeId) : null
@@ -370,7 +361,10 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     if (node.kind === 'ThisExpression') return readThis(environment)
     if (node.kind === 'MemberExpression') {
       const member = resolveMember(node, environment)
-      if (member.kind === 'field') return member.value
+      if (member.kind === 'field') {
+        if (member.value === uninitialized) throw simulationError('SIMULATION_UNINITIALIZED', 'A field was read before it was initialized.')
+        return member.value
+      }
       return { methodValue: true, node: member.node, object: member.object, label: `fn ${member.name}` }
     }
     throw simulationError('SIMULATION_UNSUPPORTED', `Unsupported expression: ${node.kind}.`)
@@ -464,6 +458,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
         step(node)
         observe(node, environment)
         if (callback?.lambdaValue === true) executeLambda(callback.lambda, callback.environment, [element])
+        else if (callback?.methodValue === true) executeFunction(callback.node, [element], callback.object)
         else {
           const target = callback?.functionValue === true ? functions.get(callback.nodeId) : null
           if (!target) throw simulationError('SIMULATION_REFERENCE', 'ForEach expects a function callback.')
