@@ -9,7 +9,8 @@
 - Nouveaux scripts : `build-linux.mjs`, `build-macos.mjs`, `build-common.mjs`, `archive.py`. Nouvelles commandes `dist:linux`, `dist:mac`, `dist:all`. Les archives conservent les permissions Unix (`755` pour les binaires).
 - `pnpm test` : **543 réussis**. `pnpm dist:all` réussi : ZIP Windows **5 541 832 octets** (SHA-256 `6c39e74241a13551c8a206964f5545cb8956c151c2bafef289e79ddbd90556c3`), Linux x64 **5 424 521 octets** (`1b2deb842fc7e39df6ca93349d4dbfbc60fd0f672c6ccc2f967491278b7023de`), Linux ARM64 **5 459 026 octets** (`17cce9ececdbafeb5b842d5e8dca87b5738e7e4baabcd8943f4caea5c3f805c2`), macOS Universal **6 308 732 octets** (`9591f7f29a58a2cfe1b920a9050369dec1be3f61fd9076a8b369746442dbe9f5`). Installateur Windows via Inno Setup 7.1.1 : **7 106 571 octets** (`5b5f1a4f7e79082efa3cb31b35173b02cef6a2dbf1f10cdc561d812860e33bfb`).
 - Audits : 15 entrées Windows, binaire Linux `755`, exécutable macOS `755`, binaires ELF x86-64/AArch64 et Mach-O universel. Build natif Windows extrait du ZIP lancé : interface affichée, titre `Sapphire 3`.
-- **Aucune signature Authenticode ni notarisation Apple** : aucun certificat configuré. Les paquets Linux et macOS sont compilés mais **non testés à l’exécution** sur leur système cible. Aucune release, aucun tag et aucun push effectués dans cette étape.
+- **Aucune signature Authenticode ni notarisation Apple** : aucun certificat configuré. Les paquets Linux et macOS sont compilés mais **non testés à l’exécution** sur leur système cible.
+- Publication GitHub effectuée en **pré-release** avec le tag **`v0.1.0-beta.6`** sur `ac208b951980a7648f3feb650a6fadb5a7406c5f` et les cinq assets. Release distante vérifiée : `prerelease=true`, `draft=false`, tailles et digests conformes. Assets retéléchargés depuis GitHub et SHA-256 recalculés : identiques aux fichiers locaux.
 
 ## Préparation de la bêta 0.1.0-beta.5 — 7 novembre 2026
 
