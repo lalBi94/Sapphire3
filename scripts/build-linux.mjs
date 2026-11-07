@@ -2,8 +2,10 @@ import { cp, mkdir, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { createArchive, readPackage, reportArchive, root, writeCommonFiles } from './build-common.mjs'
+import { buildPresenceBinaries, presenceBinaryPath } from './build-presence.mjs'
 
 const { version } = await readPackage()
+await buildPresenceBinaries()
 const neutralinoOutput = path.join(root, 'build', 'neutralino', 'sapphire3')
 const resourcesFile = path.join(neutralinoOutput, 'resources.neu')
 if (!existsSync(resourcesFile)) {
@@ -23,6 +25,7 @@ for (const { arch, source } of binaries) {
   await mkdir(stagingDirectory, { recursive: true })
   await cp(source, path.join(stagingDirectory, 'Sapphire3'))
   await cp(resourcesFile, path.join(stagingDirectory, 'resources.neu'))
+  await cp(presenceBinaryPath('linux', arch), path.join(stagingDirectory, 'discord-presence'))
   await cp(path.join(root, 'src', 'assets', 'branding', '03_DESKTOP', 'Linux', 'hicolor'), path.join(stagingDirectory, 'share', 'icons', 'hicolor'), { recursive: true })
   await mkdir(path.join(stagingDirectory, 'share', 'applications'), { recursive: true })
   await writeFile(path.join(stagingDirectory, 'share', 'applications', 'sapphire3.desktop'), `[Desktop Entry]
@@ -45,6 +48,6 @@ Categories=Development;IDE;
 
   const archivePath = path.join(root, 'build', 'release', `${releaseFolder}.tar.gz`)
   await rm(archivePath, { force: true })
-  createArchive('tar.gz', stagingDirectory, archivePath, { prefix: releaseFolder, executable: 'Sapphire3' })
+  createArchive('tar.gz', stagingDirectory, archivePath, { prefix: releaseFolder, executable: ['Sapphire3', 'discord-presence'] })
   await reportArchive(archivePath)
 }

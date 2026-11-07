@@ -8,6 +8,7 @@ import useNodeTransfers from '../../hooks/useNodeTransfers.jsx'
 import useNodeSearch from '../../hooks/useNodeSearch.jsx'
 import useGlobalKeybinds from '../../hooks/useGlobalKeybinds.jsx'
 import useAppUpdate from '../../hooks/useAppUpdate.jsx'
+import useDiscordPresence from '../../hooks/useDiscordPresence.jsx'
 import CanvasStatus from '../CanvasStatus/CanvasStatus.jsx'
 import ModuleFunctions from '../ModuleFunctions/ModuleFunctions.jsx'
 import { semanticZoomLevel, semanticSearchZoomLevel } from '../../utils/semanticZoom.js'
@@ -26,6 +27,7 @@ import { logicalCardTypes, moduleCardTypes, moduleTypes } from '../../utils/modu
 import { expandableNodeIdsByModule, expandAllNodeIds, isFullyExpanded } from '../../utils/nodeTree.js'
 import { scrollNodeIntoCard } from '../../utils/cardScroll.js'
 import { buildWorkspaceSvg } from '../../utils/workspaceSvg.js'
+import { buildDiscordActivity } from '../../utils/discordPresence.js'
 import { layoutModules } from '../../utils/moduleLayout.js'
 import { buildDebugValues } from '../../utils/memorySpace.js'
 import ProjectNavigation from '../ProjectNavigation/ProjectNavigation.jsx'
@@ -109,6 +111,22 @@ export default function Canvas() {
   const document = useCanvasDocument()
   const search = useNodeSearch()
   const appUpdate = useAppUpdate()
+  // Activité Discord dérivée des états existants, sans second moteur ni donnée personnelle.
+  const discordMode = debugSession || engineWork?.kind === 'debug' ? 'debug'
+    : engineWork?.kind === 'simulation' || execution?.running || execution?.paused || execution?.stopped ? 'simulation'
+      : engineWork?.kind === 'transpile' || transpilationResult ? 'transpile'
+        : document.exercise ? 'exercise'
+          : document.project.modules.length > 0 ? 'editing' : 'ready'
+  const discordActivity = useMemo(() => buildDiscordActivity({
+    mode: discordMode,
+    modules: document.project.modules.length,
+    nodes: document.project.nodes.length,
+    target: transpilationResult?.target,
+    running: execution?.running,
+    paused: execution?.paused,
+    stopped: execution?.stopped,
+  }), [discordMode, document.project.modules.length, document.project.nodes.length, transpilationResult?.target, execution?.running, execution?.paused, execution?.stopped])
+  const discordPresence = useDiscordPresence(discordActivity)
   // La sélection est une liste : la première cible pilote les panneaux, les autres les opérations groupées.
   const selectedTargets = useMemo(() => (Array.isArray(selection) ? selection : []).filter((target) => target?.kind === 'module' ? document.index.modules.has(target.id) : target?.kind === 'node' ? document.index.nodes.has(target.id) : false), [selection, document.index])
   const selected = selectedTargets[0] ?? null
@@ -1303,7 +1321,8 @@ export default function Canvas() {
         project={document.project} currentFolder={files.currentFolder} diagnostics={document.analysis?.diagnostics ?? []} referenceCount={document.analysis?.semantic?.references?.length ?? 0} unusedCount={unusedIds.size}
         distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)} minimapVisible={minimapVisible} onToggleMinimap={() => setMinimapVisible((current) => !current)} magnetEnabled={magnetEnabled} onToggleMagnet={() => setMagnetEnabled((current) => !current)} navVisible={!navCollapsed} onToggleNav={() => setNavCollapsed((current) => !current)} hiddenCards={hiddenCards} onShowAllHidden={handleShowAllHidden} onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={() => handleRecenter(getModulesBounds())}
         bookmarks={bookmarks} canBookmark={bookmarkStatus(selected).can} onSaveBookmark={handleSaveBookmark} onOpenBookmarks={() => setBookmarksOpen(true)} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark}
-        onOpenRepository={() => openExternal(repositoryUrl)} update={appUpdate.update} onCheckUpdate={() => appUpdate.check()} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })} onQuit={() => quitApplication()} />}
+        onOpenRepository={() => openExternal(repositoryUrl)} update={appUpdate.update} onCheckUpdate={() => appUpdate.check()} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })} onQuit={() => quitApplication()}
+        discordEnabled={discordPresence.enabled} onToggleDiscord={discordPresence.setEnabled} />}
       {nodeGraph && <NodeGraphPanel project={document.project} index={document.index} target={nodeGraph.target} mode={nodeGraph.mode} onSelect={handleSelect} onClose={() => setNodeGraph(null)} />}
       {!presentationMode && selected && !selectedScreen && <NodeProperties key={document.revision} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onPreviewSymbolRename={document.previewSymbolRename} onApplySymbolRename={document.applySymbolRename} onSelect={handleSelect} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onExport={document.exportFunction} onImport={document.importFunction} onRemoveImport={document.removeImport} onContracts={document.setNodeContracts} onClose={() => setSelection([])} onExportImage={handleExportNodeImage} onExportNodeJson={handleExportNodeJson} mutationError={document.mutationError} />}
       {!presentationMode && selectedScreenCard && selectedScreenModule && <ScreenProperties key={selectedScreenCard.id} card={selectedScreenCard} module={selectedScreenModule} state={screenStates[selectedScreenCard.id] ?? null} links={selectedScreenCallers} onRename={document.renameCard} onSelect={handleSelect} onClose={() => setSelection([])} />}

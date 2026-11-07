@@ -75,6 +75,7 @@ Contenu distribué de référence :
 
 ```text
 Sapphire3.exe
+discord-presence.exe
 resources.neu
 updater.ps1
 VERSION.txt
@@ -89,7 +90,7 @@ licenses/
 
 ### Identité et icônes
 
-- Les originaux et déclinaisons sont versionnés dans `src/assets/branding/`. Seules les variantes utilisées sont embarquées ; aucune bannière ni intégration Discord/PWA n'est ajoutée.
+- Les originaux et déclinaisons sont versionnés dans `src/assets/branding/`. Seules les variantes utilisées sont embarquées ; aucune bannière ni intégration PWA n'est ajoutée. Discord Rich Presence est traitée séparément au point 4.4.
 - `neutralino.config.json` désigne le PNG 512 px via `applicationIcon` : la CLI Neutralinojs 11.8.0 génère et injecte l'ICO multirésolution de l'exécutable Windows avant signature. Le PNG 256 px sert à la fenêtre native. Les binaires de runtime de `bin/` restent inchangés.
 - En production, le PNG de fenêtre est copié vers `dist/branding/app-icon.png` et la configuration de production pointe vers cette ressource interne. Le favicon et l'icône Apple Touch sont traités par Vite depuis leurs sources.
 - L'installateur utilise `03_DESKTOP/Windows/sapphire3-windows.ico` via `SetupIconFile`. Les raccourcis et l'entrée de désinstallation utilisent l'icône embarquée dans `Sapphire3.exe` ; aucun visuel de bannière d'installation n'est changé.
@@ -99,9 +100,9 @@ licenses/
 
 ### 4.1 Distribution Linux et macOS
 
-- `scripts/build-linux.mjs` prépare deux dossiers `Sapphire3-<version>-linux-x64/` et `Sapphire3-<version>-linux-arm64/` à partir des binaires Neutralinojs `sapphire3-linux_x64` et `sapphire3-linux_arm64`. Chaque dossier contient `Sapphire3`, `resources.neu`, `VERSION.txt`, `CREDITS.md`, `LICENSE.txt`, `LIRE-MOI.txt`, `README.txt` et `licenses/`.
-- `scripts/build-macos.mjs` prépare `Sapphire3-<version>-macos-universal/` avec un bundle `Sapphire 3.app` (`Contents/MacOS/Sapphire 3`, `Contents/MacOS/resources.neu`, `Contents/Info.plist`) et les notices. Le binaire `sapphire3-mac_universal` est utilisé lorsque Neutralinojs le fournit.
-- `scripts/archive.py` crée les `.tar.gz` et `.zip` en conservant les permissions Unix : binaire Linux et exécutable du bundle macOS en `755`, fichiers de données en `644`.
+- `scripts/build-linux.mjs` prépare deux dossiers `Sapphire3-<version>-linux-x64/` et `Sapphire3-<version>-linux-arm64/` à partir des binaires Neutralinojs `sapphire3-linux_x64` et `sapphire3-linux_arm64`. Chaque dossier contient `Sapphire3`, `discord-presence`, `resources.neu`, `VERSION.txt`, `CREDITS.md`, `LICENSE.txt`, `LIRE-MOI.txt`, `README.txt` et `licenses/`.
+- `scripts/build-macos.mjs` prépare `Sapphire3-<version>-macos-universal/` avec un bundle `Sapphire 3.app` (`Contents/MacOS/Sapphire 3`, `Contents/MacOS/discord-presence-x64`, `Contents/MacOS/discord-presence-arm64`, `Contents/MacOS/resources.neu`, `Contents/Info.plist`) et les notices. Le binaire `sapphire3-mac_universal` est utilisé lorsque Neutralinojs le fournit.
+- `scripts/archive.py` crée les `.tar.gz` et `.zip` en conservant les permissions Unix : binaires Linux (`Sapphire3`, `discord-presence`), exécutables du bundle macOS (`Sapphire 3`, `discord-presence-x64`, `discord-presence-arm64`) en `755`, fichiers de données en `644`.
 - Les commandes `dist:linux` et `dist:mac` sont exécutées depuis l'environnement Windows de construction (ou un runner `windows-latest`) : elles réutilisent les binaires Neutralinojs multi-OS et `scripts/archive.py`. Une construction native sur runner Linux/macOS reste à ajouter.
 - Les paquets Linux et macOS sont **compilés** dans l'environnement de construction Windows mais **ne sont pas testés à l'exécution** sur leur système cible dans ce circuit. Leur prise en charge réelle doit être vérifiée sur Linux et macOS avant d'être annoncée comme validée.
 - Linux dépend de WebKitGTK 4.1 et des bibliothèques système de la distribution. macOS 11 ou ultérieur est visé ; le bundle n'est ni signé ni notarié sans certificat Apple.
@@ -156,6 +157,16 @@ Un certificat neuf peut conserver un avertissement SmartScreen tant que sa répu
 - mêmes fichiers que le ZIP, y compris `updater.ps1`.
 
 Inno Setup 6 ou 7 est requis sur la machine de construction (`ISCC.exe`), pas sur les postes des utilisateurs.
+
+### 4.4 Sidecar Discord Rich Presence
+
+- Source : `native/discord-presence/` (Go standard library uniquement). Build : `pnpm presence:build`, qui produit `build/presence/windows-x64/discord-presence.exe`, `linux-x64`, `linux-arm64`, `macos-x64` et `macos-arm64`.
+- Go 1.27+ est requis **uniquement sur la machine de construction**. Les utilisateurs reçoivent un binaire statique ; aucun runtime Go, Node ou Python n'est nécessaire.
+- Windows : compilation `-H windowsgui` (aucune console), copie à côté de `Sapphire3.exe`, signature avec le même certificat que l'exécutable si configuré.
+- Linux : `discord-presence` est copié dans chaque archive et marqué exécutable avec `Sapphire3`.
+- macOS : les deux architectures sont copiées dans `Contents/MacOS/` et marquées exécutables ; le service choisit selon `NL_ARCH`.
+- `pnpm presence:test` exécute les tests Go. La CI installe Go via `actions/setup-go` avant `pnpm presence:build` et `pnpm presence:test`.
+- Détails fonctionnels, assets Discord et limites : `docs/DISCORD_PRESENCE.md`.
 
 ## 5. Vérifications avant publication
 

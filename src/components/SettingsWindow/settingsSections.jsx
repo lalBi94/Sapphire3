@@ -158,7 +158,7 @@ export function BookmarksSection({ bookmarks = [], canBookmark, onSaveBookmark, 
 }
 
 // Application : version courante, état de mise à jour et lien vers le dépôt.
-export function ApplicationSection({ onOpenRepository, update, onCheckUpdate, onInstallUpdate }) {
+export function ApplicationSection({ onOpenRepository, update, onCheckUpdate, onInstallUpdate, discordEnabled = true, onToggleDiscord = () => {} }) {
   const { t } = useTranslation()
   const status = update?.status ?? 'idle'
   const release = update?.release ?? null
@@ -176,6 +176,8 @@ export function ApplicationSection({ onOpenRepository, update, onCheckUpdate, on
       <strong>Sapphire 3</strong>
     </div>
     <p className="settings-section__row"><span>{t('nav.version')}</span><strong>{appVersion}</strong></p>
+    <label className="settings-check"><input type="checkbox" checked={discordEnabled} onChange={(event) => onToggleDiscord(event.target.checked)} />{t('settings.discordPresence')}</label>
+    <p className="settings-section__hint">{t('settings.discordPresenceHint')}</p>
     <p className="settings-section__row"><span>{t('update.status')}</span><strong>{statusText}</strong></p>
     <div className="settings-section__actions">
       <button type="button" disabled={status === 'checking' || status === 'unavailable' || status === 'unsupported'} onClick={onCheckUpdate}><RefreshCw size={14} aria-hidden="true" />{status === 'checking' ? t('update.checking') : t('update.check')}</button>

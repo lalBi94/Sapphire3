@@ -34,6 +34,8 @@ pnpm dev
 - `pnpm dist:all` : construit les archives Windows, Linux et macOS.
 - `pnpm dist:installer` : construit le ZIP puis l'installateur Windows (`ISCC.exe` requis).
 - `pnpm docs:ast` : recompile le rapport LaTeX `abstract/ARCHITECTURE_AST.pdf`.
+- `pnpm presence:build` : compile le sidecar Discord pour Windows, Linux et macOS (Go 1.27+ requis à la construction).
+- `pnpm presence:test` : exécute les tests Go du sidecar Discord.
 
 La CI GitHub Actions (`.github/workflows/ci.yml`) exécute l’installation verrouillée, les contrôles de qualité, les tests et le build sur chaque pull request.
 
@@ -79,6 +81,7 @@ La CI GitHub Actions (`.github/workflows/ci.yml`) exécute l’installation verr
 - Géométrie **Void / Acid** (rectangles à coins biseautés, focus net) avec la **palette Sapphire 3 par défaut** (anthracite, jaune, violet) ; la palette **Void / Acid** reste disponible comme thème. L'apparence sombre ou claire est une préférence globale appliquée à chaque thème. La grille courbée du canvas est conservée.
 - **HUD d’arrière-plan** discret sur le canvas : version, état du workspace, compteurs de modules et de nœuds, zoom, niveau sémantique, thème, grille, aimantation et codes d’artefact. Couche décorative non interactive, traduite, qui suit le thème et reste derrière les cartes ; **View → Display → Text artifacts** la masque ou la réaffiche.
 - **Classes** : carte **Class**, module source `class`, scopes **Public** et **Private**, attributs/constantes/méthodes/constructeur, instanciation `new`, type de classe annotable, `this` dans les méthodes et le constructeur, accès privés contrôlés. Pas encore d’héritage ni de polymorphisme ; la transpilation des classes est refusée.
+- **Discord Rich Presence** optionnelle : activité générique (édition, simulation, debug, transpilation, exercice), logo officiel, chronomètre et deux boutons GitHub. Aucun compte, token, backend ni nom de fichier publié ; réglage dans **Settings → About → Application**. Sidecar natif inclus dans les paquets desktop ; Windows validé, Linux/macOS à vérifier à l’exécution.
 - **52 exemples locaux**, de Simple à Hard : algorithmes, widgets et simulations. Thermostat, Spring et Reactor control encapsulent leur état dans des classes ; les exemples algorithmiques et transpilables conservent leur approche directe. Les classes participent aux mêmes flèches de dépendance que les modules.
 - Favoris personnels de fonctions et modules purs, gestionnaire de fenêtres flottantes, undo/redo structurel.
 - **Notifications par mascotte** : 16 expressions du robot au-dessus de la mini-carte, alignées sur son bord gauche ; le robot peut être déplacé au pointeur et reprend la teinte du thème actif (identité pour Sapphire). Bulles opaques à bordure d’accent, actions et historique récent, file priorisée, remplacement des progressions et fermeture manuelle. Les dialogues bloquants et les panneaux de diagnostics restent inchangés.

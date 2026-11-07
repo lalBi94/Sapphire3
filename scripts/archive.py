@@ -16,7 +16,7 @@ def archive_name(relative, prefix):
 
 
 # Crée une archive ZIP en conservant les permissions Unix utiles.
-def write_zip(source, output, prefix, executable, executable_mode, file_mode, dir_mode):
+def write_zip(source, output, prefix, executables, executable_mode, file_mode, dir_mode):
     with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as archive:
         for path in iter_entries(source):
             relative = path.relative_to(source).as_posix()
@@ -27,7 +27,7 @@ def write_zip(source, output, prefix, executable, executable_mode, file_mode, di
                 archive.writestr(info, b'')
                 continue
             info = zipfile.ZipInfo(name)
-            mode = executable_mode if executable and relative == executable else file_mode
+            mode = executable_mode if relative in executables else file_mode
             info.external_attr = (mode & 0xFFFF) << 16
             info.compress_type = zipfile.ZIP_DEFLATED
             with path.open('rb') as stream:
@@ -35,7 +35,7 @@ def write_zip(source, output, prefix, executable, executable_mode, file_mode, di
 
 
 # Crée une archive tar.gz en conservant les permissions Unix utiles.
-def write_tar(source, output, prefix, executable, executable_mode, file_mode, dir_mode):
+def write_tar(source, output, prefix, executables, executable_mode, file_mode, dir_mode):
     with tarfile.open(output, 'w:gz') as archive:
         for path in iter_entries(source):
             relative = path.relative_to(source).as_posix()
@@ -49,7 +49,7 @@ def write_tar(source, output, prefix, executable, executable_mode, file_mode, di
                 info.mode = dir_mode
                 archive.addfile(info)
                 continue
-            info.mode = executable_mode if executable and relative == executable else file_mode
+            info.mode = executable_mode if relative in executables else file_mode
             with path.open('rb') as stream:
                 archive.addfile(info, stream)
 
@@ -60,7 +60,7 @@ def main():
     parser.add_argument('--source', required=True)
     parser.add_argument('--output', required=True)
     parser.add_argument('--prefix', default='')
-    parser.add_argument('--executable', default='')
+    parser.add_argument('--executable', action='append', default=[])
     parser.add_argument('--executable-mode', default='755')
     parser.add_argument('--file-mode', default='644')
     parser.add_argument('--dir-mode', default='755')
@@ -75,12 +75,13 @@ def main():
         output.unlink()
 
     executable_mode = int(args.executable_mode, 8)
+    executables = set(args.executable)
     file_mode = int(args.file_mode, 8)
     dir_mode = int(args.dir_mode, 8)
     if args.format == 'zip':
-        write_zip(source, output, args.prefix, args.executable, executable_mode, file_mode, dir_mode)
+        write_zip(source, output, args.prefix, executables, executable_mode, file_mode, dir_mode)
     else:
-        write_tar(source, output, args.prefix, args.executable, executable_mode, file_mode, dir_mode)
+        write_tar(source, output, args.prefix, executables, executable_mode, file_mode, dir_mode)
 
 
 if __name__ == '__main__':

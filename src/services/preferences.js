@@ -21,6 +21,7 @@ async function getStorageClient() {
 
 // Lit la valeur dans le cache local ; la copie durable est rechargée au démarrage par hydratePreferences.
 export function readPreference(key) {
+  if (typeof window === 'undefined') return null
   try {
     return window.localStorage.getItem(key)
   } catch (error) {
@@ -31,6 +32,7 @@ export function readPreference(key) {
 
 // Écrit le cache local immédiatement puis la copie durable native, sans bloquer l'interface.
 export function writePreference(key, value) {
+  if (typeof window === 'undefined') return
   try {
     window.localStorage.setItem(key, value)
   } catch (error) {

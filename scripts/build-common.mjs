@@ -30,13 +30,14 @@ export async function copyLicenses(stagingDirectory) {
   await copyLicense(path.join(root, 'node_modules', '@neutralinojs', 'lib', 'LICENSE'), path.join(licensesDirectory, 'neutralinojs-lib-MIT.txt'))
   await copyLicense(path.join(root, 'scripts', 'licenses', 'neutralinojs.txt'), path.join(licensesDirectory, 'neutralinojs-MIT.txt'))
   await copyLicense(path.join(root, 'scripts', 'licenses', 'libtrashcan.txt'), path.join(licensesDirectory, 'libtrashcan-MIT.txt'))
+  await copyLicense(path.join(root, 'scripts', 'licenses', 'go.txt'), path.join(licensesDirectory, 'go-BSD-3-Clause.txt'))
 }
 
 // Écrit les fichiers communs : licence, version, crédits et notices.
 export async function writeCommonFiles(stagingDirectory, { releaseVersion, releaseTitle, notices }) {
   await copyLicense(path.join(root, 'LICENSE'), path.join(stagingDirectory, 'LICENSE.txt'))
   await writeFile(path.join(stagingDirectory, 'VERSION.txt'), `${releaseVersion}\n`)
-  await writeFile(path.join(stagingDirectory, 'CREDITS.md'), `# Crédits — ${releaseTitle}\n\nSapphire 3 est distribué sous licence MIT (voir \`LICENSE.txt\`). Il est construit avec React, Vite, Neutralinojs, Lucide et KaTeX.\n\n## Composants distribués\n\n- React et React DOM — MIT — Copyright (c) Meta Platforms, Inc. and affiliates.\n- Lucide React — ISC — Copyright (c) 2026 Lucide Icons and Contributors.\n- KaTeX — MIT — Copyright (c) 2013-2020 Khan Academy and other contributors.\n- Neutralinojs client — MIT — Copyright (c) 2021 Neutralinojs.\n- Neutralinojs core — MIT — Copyright (c) 2021-2025 Neutralinojs and contributors.\n- libtrashcan — MIT — Copyright (c) 2019 Robert Gützkow.\n\nLes textes complets figurent dans le dossier \`licenses/\`.\n`)
+  await writeFile(path.join(stagingDirectory, 'CREDITS.md'), `# Crédits — ${releaseTitle}\n\nSapphire 3 est distribué sous licence MIT (voir \`LICENSE.txt\`). Il est construit avec React, Vite, Neutralinojs, Lucide et KaTeX.\n\n## Composants distribués\n\n- React et React DOM — MIT — Copyright (c) Meta Platforms, Inc. and affiliates.\n- Lucide React — ISC — Copyright (c) 2026 Lucide Icons and Contributors.\n- KaTeX — MIT — Copyright (c) 2013-2020 Khan Academy and other contributors.\n- Neutralinojs client — MIT — Copyright (c) 2021 Neutralinojs.\n- Neutralinojs core — MIT — Copyright (c) 2021-2025 Neutralinojs and contributors.\n- Go runtime (sidecar Discord) — BSD-3-Clause — Copyright 2009 The Go Authors.\n- libtrashcan — MIT — Copyright (c) 2019 Robert Gützkow.\n\nLes textes complets figurent dans le dossier \`licenses/\`.\n`)
   await writeFile(path.join(stagingDirectory, 'LIRE-MOI.txt'), `${releaseTitle} — ${notices.platform}\n\n${notices.fr}\n`)
   await writeFile(path.join(stagingDirectory, 'README.txt'), `${releaseTitle} — ${notices.platform}\n\n${notices.en}\n`)
   await copyLicenses(stagingDirectory)
@@ -56,7 +57,7 @@ function pythonCommand() {
 export function createArchive(format, source, output, { prefix = '', executable = '' } = {}) {
   const args = [archiveScript, '--format', format, '--source', source, '--output', output]
   if (prefix) args.push('--prefix', prefix)
-  if (executable) args.push('--executable', executable)
+  for (const entry of Array.isArray(executable) ? executable : executable ? [executable] : []) args.push('--executable', entry)
   const result = spawnSync(pythonCommand(), args, { cwd: root, stdio: 'inherit' })
   if (result.error) throw result.error
   if (result.status !== 0) process.exit(result.status ?? 1)

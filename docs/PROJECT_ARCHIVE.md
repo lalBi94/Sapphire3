@@ -2,6 +2,18 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Discord Rich Presence — 8 novembre 2026
+
+- Architecture retenue : sidecar Go statique dans `native/discord-presence/`, lancé par `os.spawnProcess` depuis `src/services/discordPresence.js`, connecté à l'IPC local Discord (`discord-ipc-0` à `9`). Aucun OAuth, token, compte à connecter, backend, WebSocket RPC déprécié ni runtime Node/Python chez l'utilisateur.
+- Application ID `1568755585250492416` intégré au sidecar. Assets Discord `sapphire3_logo` (grande) et `sapphire3_activity` (petite), à importer une fois dans le Developer Portal ; documentation dans `docs/DISCORD_PRESENCE.md`.
+- Activités dérivées des états existants, sans second moteur : accueil, édition (`N modules · M nodes`), simulation (exécution/pause/arrêt), debug, transpilation JavaScript/Python/code, exercice. Chronomètre de session, deux boutons GitHub, aucun bouton Join ni party/secrets.
+- Confidentialité : aucun nom de fichier, chemin, module, variable, code, diagnostic ou identité Discord. Seuls les compteurs généraux et des libellés fixes sont publiés.
+- Cycle de vie : singleton React, démarrage/arrêt différé compatible StrictMode, vérification d'existence du binaire avant lancement, un seul sidecar par instance, backoff 1 s→60 s, reconnexion après redémarrage de Discord, PING 15 s, `Q`/`exit` et clear à la fermeture. Les erreurs restent silencieuses.
+- Réglage **Settings → About → Application** : `sapphire-discord-presence`, activé par défaut, persisté par le système de préférences, appliqué immédiatement. Huit traductions.
+- Distribution : `pnpm presence:build` compile cinq cibles (Windows x64, Linux x64/ARM64, macOS x64/ARM64) avec Go 1.27+ ; les scripts Windows/Linux/macOS copient le sidecar et `scripts/archive.py` marque les binaires Unix exécutables. Go n'est requis qu'à la construction. Licence Go ajoutée aux crédits.
+- Tests : **570 tests Node/Python** (+6 dans `tests/workspace/discordPresence.test.js`), `pnpm presence:test` (Go : trames, SET_ACTIVITY, READY, backoff), `pnpm presence:ipc-test` (faux serveur : handshake, READY, SET_ACTIVITY, déduplication, clear, reconnexion) et `pnpm presence:nodiscord-test` (sidecar stable et silencieux sans Discord, arrêt propre). Vérification Windows réelle : application → sidecar → IPC avec activité complète, un seul sidecar, aucun terminal visible, arrêt après fermeture.
+- Limites : Windows x64 validé ; Linux x64/ARM64 et macOS x64/ARM64 compilés mais non exécutés. L'installateur Windows n'a pas été recompilé (Inno Setup absent). Les applications Discord non approuvées limitent le RPC aux testeurs (50 comptes), règle Discord indépendante de Sapphire 3. Plusieurs instances Sapphire publient chacune leur activité ; Discord affiche la plus récente.
+
 ## Intégration du logo applicatif — 7 novembre 2026
 
 - Réutilisation des fichiers fournis dans `src/assets/branding/`, sans recréation d'image ni changement de bannière. Le logo GitHub reste celui du lien GitHub, la mascotte reste distincte du logo.

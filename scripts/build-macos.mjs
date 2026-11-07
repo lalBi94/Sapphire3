@@ -2,6 +2,7 @@ import { cp, mkdir, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { createArchive, readPackage, reportArchive, root, writeCommonFiles } from './build-common.mjs'
+import { buildPresenceBinaries, presenceBinaryPath } from './build-presence.mjs'
 
 // Convertit une version sémantique, préversion comprise, en version numérique macOS.
 function numericVersionFor(value) {
@@ -12,6 +13,7 @@ function numericVersionFor(value) {
 }
 
 const { version } = await readPackage()
+await buildPresenceBinaries()
 const appVersion = version.split('-')[0]
 const neutralinoOutput = path.join(root, 'build', 'neutralino', 'sapphire3')
 const binary = path.join(neutralinoOutput, 'sapphire3-mac_universal')
@@ -31,6 +33,8 @@ await cp(path.join(root, 'src', 'assets', 'branding', '03_DESKTOP', 'macOS', 'sa
 
 await cp(binary, path.join(macosDirectory, 'Sapphire 3'))
 await cp(resourcesFile, path.join(macosDirectory, 'resources.neu'))
+await cp(presenceBinaryPath('macos', 'x64'), path.join(macosDirectory, 'discord-presence-x64'))
+await cp(presenceBinaryPath('macos', 'arm64'), path.join(macosDirectory, 'discord-presence-arm64'))
 await writeFile(path.join(contentsDirectory, 'Info.plist'), `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -64,5 +68,5 @@ await writeCommonFiles(stagingDirectory, {
 
 const archivePath = path.join(root, 'build', 'release', `${releaseFolder}.zip`)
 await rm(archivePath, { force: true })
-createArchive('zip', stagingDirectory, archivePath, { executable: 'Sapphire 3.app/Contents/MacOS/Sapphire 3' })
+createArchive('zip', stagingDirectory, archivePath, { executable: ['Sapphire 3.app/Contents/MacOS/Sapphire 3', 'Sapphire 3.app/Contents/MacOS/discord-presence-x64', 'Sapphire 3.app/Contents/MacOS/discord-presence-arm64'] })
 await reportArchive(archivePath)

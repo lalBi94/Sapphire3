@@ -38,8 +38,26 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.27.x'
+          cache: false
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build Discord sidecar
+        run: pnpm presence:build
+
+      - name: Test Discord sidecar
+        run: pnpm presence:test
+
+      - name: Test Discord IPC
+        run: pnpm presence:ipc-test
+
+      - name: Test Discord without Discord
+        run: pnpm presence:nodiscord-test
 
       - name: Check whitespace, conflict markers and focused tests
         run: |
