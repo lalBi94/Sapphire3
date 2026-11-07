@@ -10,6 +10,31 @@ function historyTime(timestamp, language) {
   return new Date(timestamp).toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' })
 }
 
+// Titre de repli par type : aucune bulle ne s'affiche sans titre.
+const fallbackTitleKeys = Object.freeze({
+  error: 'mascot.title.error',
+  transpile_failed: 'mascot.title.error',
+  shortcut_conflict: 'mascot.title.warning',
+  warning: 'mascot.title.warning',
+  saved: 'mascot.title.saved',
+  import_success: 'mascot.title.imported',
+  export_success: 'mascot.title.exported',
+  success: 'mascot.title.done',
+  simulation_finished: 'mascot.title.simulation',
+  debug_paused: 'mascot.title.debug',
+  update_available: 'mascot.title.update',
+  hidden_cards_restored: 'mascot.title.info',
+  locked_card: 'mascot.title.info',
+  loading: 'mascot.title.loading',
+  info: 'mascot.title.info',
+})
+
+// Retourne le titre fourni ou un libellé stable selon le type de notification.
+function notificationTitle(t, notification) {
+  if (notification?.title) return notification.title
+  return t(fallbackTitleKeys[notification?.type] ?? 'mascot.title.info')
+}
+
 // Place la bulle à côté du robot sans jamais dépasser le canvas.
 function bubblePlacement(position) {
   const margin = 8
@@ -231,7 +256,7 @@ export default function MascotNotification({ hasMinimap = false }) {
           : <ol className="mascot-notification__list">{history.map((entry) => <li key={`${entry.id}:${entry.updatedAt}`}>
             <span className={`mascot-notification__dot mascot-notification__dot--${entry.type}`} aria-hidden="true" />
             <span className="mascot-notification__entry">
-              {entry.title && <strong>{entry.title}</strong>}
+              <strong>{notificationTitle(t, entry)}</strong>
               <span>{entry.message}</span>
             </span>
             <time dateTime={new Date(entry.updatedAt).toISOString()}>{historyTime(entry.updatedAt, language)}</time>
@@ -240,7 +265,7 @@ export default function MascotNotification({ hasMinimap = false }) {
       </section>
       : active && <section key={active.id} className={`mascot-notification__bubble mascot-notification__bubble--${active.type}${closing ? ' mascot-notification__bubble--leaving' : ''}`} role={isError ? 'alert' : 'status'} aria-live={isError ? 'assertive' : 'polite'} style={bubbleStyle}>
         <header className="mascot-notification__header">
-          {active.title && <strong>{active.title}</strong>}
+          <strong>{notificationTitle(t, active)}</strong>
           <button type="button" className="mascot-notification__icon" aria-label={t('mascot.dismiss')} onClick={() => closeActive(active.id)}><X size={14} aria-hidden="true" /></button>
         </header>
         <p className="mascot-notification__message">{active.message}</p>
