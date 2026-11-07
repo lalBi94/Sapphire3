@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { simulateProgram } from '../../src/utils/logic/index.js'
-import { createExercise, createEntryTest, createFunctionTest, evaluateExercise, findFunction, summarizeExercise, validateExercise } from '../../src/utils/exercise.js'
+import { createExercise, createEntryTest, createFunctionTest, evaluateExercise, exerciseNotification, findFunction, summarizeExercise, validateExercise } from '../../src/utils/exercise.js'
 import { serializeWorkspace, deserializeWorkspace } from '../../src/utils/workspaceFile.js'
 import { program, root, node, intType, booleanType } from '../logic/fixtures.js'
 
@@ -130,6 +130,22 @@ test('snapshot de départ : validé, exporté et restauré sans perdre les tests
   const invalid = JSON.parse(text)
   invalid.exercise.starter.presentation.camera.zoomLevel = 99
   assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)))
+})
+
+test('notification du robot : succès seulement si tout passe, erreur sinon', () => {
+  const t = (key, params) => `${key}:${JSON.stringify(params)}`
+  assert.equal(exerciseNotification(null, t), null)
+  assert.equal(exerciseNotification({ total: 0, passed: 0, failed: 0 }, t), null)
+  const success = exerciseNotification({ total: 3, passed: 3, failed: 0 }, t)
+  assert.equal(success.type, 'success')
+  assert.equal(success.duration, 4500)
+  assert.equal(success.key, 'exercise-result')
+  assert.match(success.message, /exercise\.notifyPass/)
+  const failure = exerciseNotification({ total: 3, passed: 1, failed: 2 }, t)
+  assert.equal(failure.type, 'error')
+  assert.equal(failure.duration, 6000)
+  assert.match(failure.message, /exercise\.notifyFail/)
+  assert.match(failure.message, /"failed":2/)
 })
 
 test('types booléens et arguments JSON restent explicites', async () => {

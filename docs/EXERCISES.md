@@ -30,6 +30,7 @@ Le manifeste vit dans le fichier, sous la clé racine `exercise`, à côté de `
 3. **Check** exécute chaque test dans le Web Worker, avec annulation possible.
 4. Le panneau affiche réussi/échoué par test, la valeur attendue et la valeur obtenue.
 5. **Reset to starter** restaure le squelette après confirmation ; les tests sont conservés.
+6. À la fin de **Check**, le robot réagit via le système de notifications existant : expression **succès** si tous les tests passent, **erreur** sinon. Le message est traduit et remplacé à chaque nouvelle vérification.
 
 ## 4. Format du manifeste
 

@@ -113,3 +113,15 @@ export function summarizeExercise(summary) {
   if (!summary) return null
   return { total: summary.total, passed: summary.passed, failed: summary.failed, complete: summary.total > 0 && summary.failed === 0 }
 }
+
+// Prépare la notification du robot : succès seulement si tous les tests passent, sinon erreur temporaire.
+export function exerciseNotification(summary, t) {
+  if (!summary || summary.total === 0) return null
+  const passed = summary.failed === 0
+  return {
+    type: passed ? 'success' : 'error',
+    message: passed ? t('exercise.notifyPass', { total: summary.total }) : t('exercise.notifyFail', { failed: summary.failed, total: summary.total }),
+    key: 'exercise-result',
+    duration: passed ? 4500 : 6000,
+  }
+}

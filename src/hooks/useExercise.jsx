@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { evaluateExercise } from '../utils/exercise.js'
+import { evaluateExercise, exerciseNotification } from '../utils/exercise.js'
 import { runSimulation } from '../services/engineRunner.js'
+import { useNotifications } from '../contexts/NotificationContext.jsx'
+import { useTranslation } from '../contexts/LanguageContext.jsx'
 
 // Orchestre l'évaluation dans le worker existant, avec annulation et capture des résultats de référence.
 export default function useExercise({ project, exercise }) {
+  const { notify } = useNotifications()
+  const { t } = useTranslation()
   const [status, setStatus] = useState('idle')
   const [summary, setSummary] = useState(null)
   const [error, setError] = useState(null)
@@ -38,6 +42,8 @@ export default function useExercise({ project, exercise }) {
       const result = await evaluateExercise(project, exercise, (options) => runSimulation(project, options, { signal: next.signal }), { signal: next.signal })
       setSummary(result)
       setStatus('done')
+      const notification = exerciseNotification(result, t)
+      if (notification) notify(notification)
       return result
     } catch (failure) {
       if (failure?.code === 'ENGINE_CANCELLED') {

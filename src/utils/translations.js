@@ -30,6 +30,8 @@ const messages = {
   'exercise.failed': ['Failed', 'Échoué', '失败', 'Fallido', 'فاشل', '不合格', 'विफल', 'Не пройден'],
   'exercise.error': ['Error', 'Erreur', '错误', 'Error', 'خطأ', 'エラー', 'त्रुटि', 'Ошибка'],
   'exercise.summary': ['{passed} of {total} tests passed', '{passed} test(s) réussi(s) sur {total}', '{passed}/{total} 项测试通过', '{passed} de {total} pruebas correctas', 'نجح {passed} من {total} اختبارات', '{total} 件中 {passed} 件合格', '{total} में से {passed} परीक्षण उत्तीर्ण', 'Пройдено {passed} из {total} тестов'],
+  'exercise.notifyPass': ['All {total} tests passed.', 'Les {total} tests sont réussis.', '全部 {total} 项测试通过。', 'Las {total} pruebas son correctas.', 'نجحت جميع الاختبارات ({total}).', '{total} 件のテストがすべて合格しました。', 'सभी {total} परीक्षण उत्तीर्ण।', 'Все тесты ({total}) пройдены.'],
+  'exercise.notifyFail': ['{failed} of {total} tests failed.', '{failed} test(s) sur {total} échoué(s).', '{total} 项测试中有 {failed} 项失败。', '{failed} de {total} pruebas fallidas.', 'فشل {failed} من {total} اختبارات.', '{total} 件中 {failed} 件が不合格です。', '{total} में से {failed} परीक्षण विफल।', 'Не пройдено {failed} из {total} тестов.'],
   'exercise.expected': ['Expected', 'Attendu', '预期', 'Esperado', 'المتوقع', '期待値', 'अपेक्षित', 'Ожидалось'],
   'exercise.actual': ['Actual', 'Obtenu', '实际', 'Obtenido', 'الفعلي', '実際値', 'प्राप्त', 'Получено'],
   'exercise.noValue': ['(none)', '(aucun)', '（无）', '(ninguno)', '(لا شيء)', '（なし）', '(कोई नहीं)', '(нет)'],
