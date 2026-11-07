@@ -2,6 +2,14 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Crible d'approche classe dans les exemples — 7 novembre 2026
+
+- Revue de la bibliothèque d'exemples pour réserver les classes aux cas où elles portent réellement un état cohérent et un comportement réutilisé.
+- **Thermostat** (`thermostat`, Medium → Simulation) : l'état `temperature`/`heating` et l'hystérésis passent dans une classe `Thermostat` (attributs privés, constructeur `start`, `step()` public, accesseurs `current()` et `isHeating()`). La boucle principale appelle `step()` puis publie jauge, LED et barres. Sortie et historique inchangés (`21`).
+- **Damped spring** (`dampedSpring`, Hard → Simulation) : `position`/`velocity` et l'intégration discrète passent dans une classe `Spring` (attributs privés, constructeur `start`, `step()` et `current()` publics). La boucle principale appelle `step()` puis publie la jauge et les barres. Sortie et valeurs inchangées (`Damped spring`, même historique signé).
+- **Laissés sans classe** : les exemples purement algorithmiques (Euclide, dichotomie, crible, tris, Fibonacci, sac à dos, calcul), les animations à boucles de pixels (pluie, étoiles, cube, spirographe, jeu de la vie, corail, labyrinthe) et les exemples transpilables JavaScript/Python, pour qui une classe ajouterait de la cérémonie, de la surcharge ou casserait la génération de code. `checkoutQueue` reste volontairement plat : un seul compteur d'état ne justifie pas une classe.
+- `pnpm test` : **555 réussis** ; `tests/workspace/examples.test.js` et `tests/workspace/widgetExamples.test.js` couvrent les deux exemples convertis. `pnpm build` réussi.
+
 ## Exemple Reactor control, classes et widgets — 7 novembre 2026
 
 - Nouvel exemple **Reactor control** (`reactorControl`, **Hard → Simulation**) construit dans `src/utils/widgetExamples.js` avec un `classBuilder` dédié : il réutilise les helpers de widgets et ajoute `member`, `memberAccess`, `newObject`, `statement`, `classType`, `importRef` et `castInt`.

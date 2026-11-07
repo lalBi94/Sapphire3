@@ -252,33 +252,71 @@ function thermostat() {
   const bars = createBarChartModule('thermoBars', 'Temperature history', 1, { size: 24 })
   const gauge = createGaugeModule('thermoGauge', 'Room temperature', 1, { min: 15, max: 30 })
   const led = createLedModule('thermoLed', 'Heater on', 1)
-  const b = demo('thermostat', 'Thermostat', [bars, gauge, led])
+
+  // La classe garde la température et l'état du chauffage privés ; la boucle ne lit que step() et les accesseurs.
+  const room = classBuilder('thermostatClass', 'Thermostat')
+  room.member('VariableDeclaration', { name: 'temperature', type: intType, visibility: 'private' }, { initializer: room.integer(18) })
+  room.member('VariableDeclaration', { name: 'heating', type: booleanType, visibility: 'private' }, { initializer: room.boolean(false) })
+  const ctorBody = room.block([
+    room.assign(room.memberAccess(room.thisNode(), 'temperature'), room.read('start')),
+  ])
+  room.member('FunctionDeclaration', { name: 'constructor', type: voidType, constructor: true, visibility: 'public' }, { parameters: [room.parameter('start', intType)], body: ctorBody })
+  const stepBody = room.block([
+    room.ifThen(room.op('<=', room.memberAccess(room.thisNode(), 'temperature'), room.integer(20)), room.block([room.assign(room.memberAccess(room.thisNode(), 'heating'), room.boolean(true))])),
+    room.ifThen(room.op('>=', room.memberAccess(room.thisNode(), 'temperature'), room.integer(24)), room.block([room.assign(room.memberAccess(room.thisNode(), 'heating'), room.boolean(false))])),
+    room.ifThen(
+      room.memberAccess(room.thisNode(), 'heating'),
+      room.block([room.assign(room.memberAccess(room.thisNode(), 'temperature'), room.op('+', room.memberAccess(room.thisNode(), 'temperature'), room.integer(2)))]),
+      room.block([room.assign(room.memberAccess(room.thisNode(), 'temperature'), room.op('-', room.memberAccess(room.thisNode(), 'temperature'), room.integer(1)))]),
+    ),
+  ])
+  room.member('FunctionDeclaration', { name: 'step', type: voidType, visibility: 'public' }, { parameters: [], body: stepBody })
+  room.member('FunctionDeclaration', { name: 'current', type: intType, visibility: 'public' }, { parameters: [], body: room.block([room.returnValue(room.memberAccess(room.thisNode(), 'temperature'))]) })
+  room.member('FunctionDeclaration', { name: 'isHeating', type: booleanType, visibility: 'public' }, { parameters: [], body: room.block([room.returnValue(room.memberAccess(room.thisNode(), 'heating'))]) })
+
+  const b = demo('thermostat', 'Thermostat', [bars, gauge, led], [room])
   return b.finish([
-    b.declare('temperature', b.integer(18)), b.declare('heating', b.boolean(false), booleanType),
+    b.declare('thermostat', b.newObject('thermostatClass', [b.integer(18)]), b.classType('thermostatClass')),
     b.loop('step', 0, b.integer(24), [
-      b.branch(b.op('<=', b.read('temperature'), b.integer(20)), [b.assign('heating', b.boolean(true))]),
-      b.branch(b.op('>=', b.read('temperature'), b.integer(24)), [b.assign('heating', b.boolean(false))]),
-      b.branch(b.read('heating'), [b.assign('temperature', b.op('+', b.read('temperature'), b.integer(2)))], [b.assign('temperature', b.op('-', b.read('temperature'), b.integer(1)))]),
-      b.widgetCall(gauge, gauge.functions.setValue, [b.asDouble(b.read('temperature'))]), b.widgetCall(led, led.functions.setValue, [b.read('heating')]),
-      b.widgetCall(bars, bars.functions.setValue, [b.read('step'), b.read('temperature')]),
-    ]), b.print(b.read('temperature')),
-  ], 'Modèle thermique volontairement simplifié : chauffage actif à 20 °C ou moins, coupé à 24 °C ou plus. Un pas chauffe de 2 °C ou refroidit de 1 °C. La LED montre le chauffage, la jauge la température et les barres les 24 pas. L’hystérésis garde l’état entre les seuils. Température finale : 21 °C ; ce n’est pas un modèle physique de bâtiment.')
+      b.statement(b.methodCall(b.read('thermostat'), 'step', [])),
+      b.widgetCall(gauge, gauge.functions.setValue, [b.asDouble(b.methodCall(b.read('thermostat'), 'current', []))]),
+      b.widgetCall(led, led.functions.setValue, [b.methodCall(b.read('thermostat'), 'isHeating', [])]),
+      b.widgetCall(bars, bars.functions.setValue, [b.read('step'), b.methodCall(b.read('thermostat'), 'current', [])]),
+    ]),
+    b.print(b.methodCall(b.read('thermostat'), 'current', [])),
+  ], 'Modèle thermique volontairement simplifié : chauffage actif à 20 °C ou moins, coupé à 24 °C ou plus. La classe Thermostat garde la température et le chauffage privés ; step() applique l’hystérésis et un pas chauffe de 2 °C ou refroidit de 1 °C. La LED montre le chauffage, la jauge la température et les barres les 24 pas. Température finale : 21 °C ; ce n’est pas un modèle physique de bâtiment.')
 }
 
 // Un ressort discret amorti utilise des doubles ; seules les barres convertissent explicitement la position en centièmes.
 function dampedSpring() {
   const bars = createBarChartModule('springBars', 'Position × 100', 1, { size: 24 })
   const gauge = createGaugeModule('springGauge', 'Spring displacement', 1, { min: -12, max: 12 })
-  const b = demo('dampedSpring', 'Damped spring', [bars, gauge])
+
+  // La classe porte la position et la vitesse ; la boucle appelle step() puis lit la position courante.
+  const spring = classBuilder('springClass', 'Spring')
+  spring.member('VariableDeclaration', { name: 'position', type: doubleType, visibility: 'private' }, { initializer: spring.real(10) })
+  spring.member('VariableDeclaration', { name: 'velocity', type: doubleType, visibility: 'private' }, { initializer: spring.real(0) })
+  const ctorBody = spring.block([
+    spring.assign(spring.memberAccess(spring.thisNode(), 'position'), spring.read('start')),
+  ])
+  spring.member('FunctionDeclaration', { name: 'constructor', type: voidType, constructor: true, visibility: 'public' }, { parameters: [spring.parameter('start', doubleType)], body: ctorBody })
+  const stepBody = spring.block([
+    spring.assign(spring.memberAccess(spring.thisNode(), 'velocity'), spring.op('*', spring.op('-', spring.memberAccess(spring.thisNode(), 'velocity'), spring.op('*', spring.memberAccess(spring.thisNode(), 'position'), spring.real(0.18))), spring.real(0.88))),
+    spring.assign(spring.memberAccess(spring.thisNode(), 'position'), spring.op('+', spring.memberAccess(spring.thisNode(), 'position'), spring.memberAccess(spring.thisNode(), 'velocity'))),
+  ])
+  spring.member('FunctionDeclaration', { name: 'step', type: voidType, visibility: 'public' }, { parameters: [], body: stepBody })
+  spring.member('FunctionDeclaration', { name: 'current', type: doubleType, visibility: 'public' }, { parameters: [], body: spring.block([spring.returnValue(spring.memberAccess(spring.thisNode(), 'position'))]) })
+
+  const b = demo('dampedSpring', 'Damped spring', [bars, gauge], [spring])
   return b.finish([
-    b.declare('position', b.real(10), doubleType), b.declare('velocity', b.real(0), doubleType),
+    b.declare('spring', b.newObject('springClass', [b.real(10)]), b.classType('springClass')),
     b.loop('step', 0, b.integer(24), [
-      b.assign('velocity', b.op('*', b.op('-', b.read('velocity'), b.op('*', b.read('position'), b.real(0.18))), b.real(0.88))),
-      b.assign('position', b.op('+', b.read('position'), b.read('velocity'))),
-      b.widgetCall(gauge, gauge.functions.setValue, [b.read('position')]),
-      b.widgetCall(bars, bars.functions.setValue, [b.read('step'), b.make('CastExpression', { type: intType }, { argument: b.op('*', b.read('position'), b.real(100)) })]),
-    ]), b.print(b.make('Literal', { type: { kind: 'primitive', name: 'string' }, value: 'Damped spring' })),
-  ], 'Oscillateur discret amorti : v ← (v − 0,18 × x) × 0,88, puis x ← x + v, pendant 24 pas. La jauge suit x et les barres signées conservent l’historique en centièmes (conversion double → int explicite). Changez la raideur et l’amortissement avec prudence : certaines valeurs rendent le schéma instable. Modèle pédagogique, sans unités physiques calibrées.')
+      b.statement(b.methodCall(b.read('spring'), 'step', [])),
+      b.widgetCall(gauge, gauge.functions.setValue, [b.methodCall(b.read('spring'), 'current', [])]),
+      b.widgetCall(bars, bars.functions.setValue, [b.read('step'), b.make('CastExpression', { type: intType }, { argument: b.op('*', b.methodCall(b.read('spring'), 'current', []), b.real(100)) })]),
+    ]),
+    b.print(b.make('Literal', { type: { kind: 'primitive', name: 'string' }, value: 'Damped spring' })),
+  ], 'Oscillateur discret amorti encapsulé dans une classe Spring : step() applique v ← (v − 0,18 × x) × 0,88, puis x ← x + v pendant 24 pas. La jauge suit x et les barres signées conservent l’historique en centièmes (conversion double → int explicite). Changez la raideur et l’amortissement avec prudence : certaines valeurs rendent le schéma instable. Modèle pédagogique, sans unités physiques calibrées.')
 }
 
 // Un parcours en largeur remplit les cases libres ; une case est marquée dès son entrée dans la file.
