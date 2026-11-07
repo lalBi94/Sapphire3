@@ -4,14 +4,14 @@
 .settings-window__body { display: flex; gap: var(--space-panel); height: 100%; min-height: 0; }
 
 .settings-window__nav { flex: 0 0 190px; display: flex; flex-direction: column; overflow-y: auto; padding-right: var(--space-control); border-right: 1px solid var(--color-border); }
-.settings-window__group-title { margin: 0 0 4px; color: var(--color-text-muted); font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; }
+.settings-window__group-title { margin: 0 0 4px; color: var(--color-text-muted); font-family: var(--font-display); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
 .settings-window__group ul { display: flex; flex-direction: column; gap: 2px; margin: 0 0 var(--space-panel); padding: 0; list-style: none; }
 .settings-window__tab { width: 100%; padding: 6px 9px; border: 1px solid transparent; border-radius: var(--radius-control); background: transparent; color: var(--color-text); font: inherit; text-align: left; cursor: pointer; }
 .settings-window__tab:hover { background: var(--color-hover); }
-.settings-window__tab--active { border-color: var(--color-selection-border); background: var(--color-selection-surface); }
+.settings-window__tab--active { border-color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 10%, transparent); color: var(--color-primary); box-shadow: inset 2px 0 0 var(--color-primary); }
 /* Bouton de sortie, en bas de la navigation des paramètres. */
-.settings-window__quit { display: inline-flex; align-items: center; gap: 8px; margin-top: auto; padding: 8px 10px; border: 1px solid color-mix(in srgb, var(--color-diagnostic) 45%, transparent); border-radius: var(--radius-control); background: transparent; color: var(--color-diagnostic); font: inherit; text-align: left; cursor: pointer; }
-.settings-window__quit:hover { background: color-mix(in srgb, var(--color-diagnostic) 12%, transparent); }
+.settings-window__quit { display: inline-flex; align-items: center; gap: 8px; margin-top: auto; padding: 8px 10px; border: 1px solid color-mix(in srgb, var(--color-error) 45%, transparent); border-radius: var(--radius-control); background: transparent; color: var(--color-error); font: inherit; text-align: left; cursor: pointer; }
+.settings-window__quit:hover { background: color-mix(in srgb, var(--color-error) 12%, transparent); }
 .settings-window__quit:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }
 
 .settings-window__content { flex: 1 1 auto; min-width: 0; overflow-y: auto; padding-right: 2px; }
@@ -26,7 +26,7 @@
 .settings-section__actions button:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
 .settings-section__actions button.settings-section__primary { border-color: transparent; background: var(--color-primary); color: var(--color-on-primary); font-weight: 600; }
 .settings-section__actions button.settings-section__primary:hover:not(:disabled) { background: var(--color-primary-hover); }
-.settings-section__subtitle { margin: var(--space-control) 0 0; color: var(--color-text-muted); font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; }
+.settings-section__subtitle { margin: var(--space-control) 0 0; color: var(--color-text-muted); font-family: var(--font-display); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
 .settings-section__empty, .settings-section__hint { margin: 0; color: var(--color-text-muted); font-size: 11px; }
 .settings-section__row { display: flex; justify-content: space-between; gap: var(--space-panel); margin: 0; }
 .settings-check { display: flex; align-items: center; gap: 8px; }
@@ -41,16 +41,15 @@
 /* Langues en une seule colonne, avec drapeaux et dégradé animé pour la langue active. */
 .settings-radio-group { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; border: 0; }
 .settings-radio { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: transparent; cursor: pointer; transition: border-color 160ms, background 160ms; }
-.settings-radio:hover { border-color: color-mix(in srgb, var(--flag-a) 62%, var(--color-border)); background: linear-gradient(110deg, color-mix(in srgb, var(--flag-a) 16%, transparent), color-mix(in srgb, var(--flag-b) 18%, transparent), color-mix(in srgb, var(--flag-c) 14%, transparent)); }
+.settings-radio:hover { border-color: var(--color-border-hover); background: var(--color-hover); }
 .settings-radio input { flex: 0 0 auto; accent-color: var(--color-primary); }
 .settings-radio__flag { flex: 0 0 auto; width: 28px; height: 18px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--color-border) 80%, transparent); border-radius: 3px; box-shadow: 0 1px 2px rgb(0 0 0 / 25%); }
 .settings-radio__flag svg { display: block; width: 100%; height: 100%; }
 .settings-radio__label { flex: 1; min-width: 0; }
 .settings-radio > svg { flex: 0 0 auto; color: var(--color-primary); }
-.settings-radio--selected { border-color: color-mix(in srgb, var(--flag-a) 65%, var(--color-primary)); background: linear-gradient(110deg, color-mix(in srgb, var(--flag-a) 38%, var(--color-surface-raised)), color-mix(in srgb, var(--flag-b) 42%, var(--color-surface-raised)), color-mix(in srgb, var(--flag-c) 34%, var(--color-surface-raised)), color-mix(in srgb, var(--flag-a) 38%, var(--color-surface-raised))); background-size: 240% 100%; animation: sapphire-gradient-flow 2.8s linear infinite; }
+.settings-radio--selected { border-color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface-raised)); }
 .settings-radio--selected .settings-radio__label { font-weight: 600; }
-.settings-radio--selected > svg { color: var(--color-text); }
-@media (prefers-reduced-motion: reduce) { .settings-radio--selected { animation: none; } }
+.settings-radio--selected > svg { color: var(--color-primary); }
 
 .settings-info { display: grid; gap: var(--space-control); margin: 0; }
 .settings-info > div { display: flex; justify-content: space-between; gap: var(--space-panel); padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-control); }
@@ -58,9 +57,9 @@
 .settings-info dd { margin: 0; text-align: right; }
 .settings-info__path { max-width: 62%; overflow-wrap: anywhere; }
 .settings-info__counts { display: flex; flex-wrap: wrap; gap: var(--space-control); margin: 0; }
-.settings-count { padding: 2px 8px; border: 1px solid var(--color-border); border-radius: 999px; color: var(--color-text-muted); font-size: 10px; }
-.settings-count--error { color: var(--color-diagnostic); border-color: color-mix(in srgb, var(--color-diagnostic) 50%, transparent); }
-.settings-count--warning { color: var(--color-node-condition); border-color: color-mix(in srgb, var(--color-node-condition) 50%, transparent); }
+.settings-count { padding: 2px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-small); font-family: var(--font-mono); color: var(--color-text-muted); font-size: 10px; }
+.settings-count--error { color: var(--color-error); border-color: color-mix(in srgb, var(--color-error) 50%, transparent); }
+.settings-count--warning { color: var(--color-warning); border-color: color-mix(in srgb, var(--color-warning) 50%, transparent); }
 .settings-issues { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .settings-issues li { display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-left: 2px solid var(--color-diagnostic); border-radius: var(--radius-small); background: color-mix(in srgb, var(--color-diagnostic) 8%, transparent); font-size: 11px; }
 .settings-issues li.settings-issues__warning { border-left-color: var(--color-node-condition); background: color-mix(in srgb, var(--color-node-condition) 8%, transparent); }
@@ -69,7 +68,7 @@
 .settings-chart { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .settings-chart li { display: grid; grid-template-columns: minmax(70px, 28%) 1fr auto; align-items: center; gap: 8px; font-size: 10px; }
 .settings-chart__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-muted); }
-.settings-chart__track { height: 6px; overflow: hidden; border-radius: 999px; background: var(--color-hover); }
+.settings-chart__track { height: 6px; overflow: hidden; border-radius: 0; background: var(--color-hover); }
 .settings-chart__bar { display: block; height: 100%; border-radius: inherit; background: var(--color-primary); }
 .settings-chart__bar--group { background: var(--color-selection); }
 .settings-chart__value { color: var(--color-text-muted); text-align: right; }

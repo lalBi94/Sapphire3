@@ -352,7 +352,7 @@ const messages = {
   'nav.working': ['Working…', 'En cours…', '处理中…', 'En curso…', 'جارٍ العمل…', '処理中…', 'काम हो रहा है…', 'Работа…'],
   'nav.aria': ['Workspace navigation', 'Navigation de l’espace de travail', '工作区导航', 'Navegación del espacio de trabajo', 'تنقّل مساحة العمل', 'ワークスペースのナビゲーション', 'वर्कस्पेस नेविगेशन', 'Навигация по рабочему пространству'],
   'theme.choose': ['Apply a theme', 'Appliquer un thème', '应用主题', 'Aplicar un tema', 'تطبيق مظهر', 'テーマを適用', 'थीम लागू करें', 'Применить тему'],
-  'theme.sapphire': ['Sapphire', 'Sapphire', 'Sapphire', 'Sapphire', 'Sapphire', 'Sapphire', 'Sapphire', 'Sapphire'],
+  'theme.sapphire': ['Void / Acid', 'Void / Acid', 'Void / Acid', 'Void / Acid', 'Void / Acid', 'Void / Acid', 'Void / Acid', 'Void / Acid'],
   'theme.neon': ['Neon', 'Néon', '霓虹', 'Neón', 'نيون', 'ネオン', 'Neon', 'Neon'],
   'theme.mono': ['Monochrome', 'Monochrome', '单色', 'Monocromo', 'أحادي اللون', 'モノクロ', 'Monochrome', 'Монохромная'],
   'theme.rose': ['Rose', 'Rose', '玫瑰', 'Rosa', 'وردي', 'ローズ', 'Rose', 'Розовая'],

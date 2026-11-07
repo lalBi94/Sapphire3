@@ -2,12 +2,12 @@
 .logic-tree__empty, .logic-tree__missing { margin: 4px; color: var(--color-text-muted); font-size: 11px; line-height: 1.5; }
 .logic-tree__missing { color: var(--color-diagnostic); overflow-wrap: anywhere; }
 .logic-node { position: relative; margin: 12px 0; padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-anthracite); min-width: 0; }
-.logic-node--selected { z-index: 2; box-shadow: var(--shadow-selection); background: var(--color-selection-surface); }
+.logic-node--selected { z-index: 2; border-color: var(--color-primary); box-shadow: 0 0 0 2px var(--color-primary); background: color-mix(in srgb, var(--color-primary) 8%, var(--color-anthracite)); }
 .logic-node--drop-valid { outline: 3px dashed var(--color-primary); outline-offset: 2px; }
 .logic-node--drop-invalid { outline: 3px dotted var(--color-diagnostic); outline-offset: 2px; }
 .logic-node__heading[draggable='true'] { cursor: grab; }
 .logic-node__heading[draggable='true']:active { cursor: grabbing; }
-.logic-node--executing { z-index: 3; border-color: var(--color-primary) !important; box-shadow: 0 0 0 2px var(--color-primary), 0 0 24px color-mix(in srgb, var(--color-primary) 38%, transparent); background: color-mix(in srgb, var(--color-primary) 12%, var(--color-anthracite)); }
+.logic-node--executing { z-index: 3; border-color: var(--color-primary) !important; box-shadow: 0 0 0 1px var(--color-primary); background: color-mix(in srgb, var(--color-primary) 10%, var(--color-anthracite)); }
 .logic-node--executing > .logic-node__header .logic-node__heading { color: var(--color-primary); }
 .logic-node--selected > .logic-node__header .logic-node__heading > span:first-child { text-decoration: underline; text-underline-offset: 3px; }
 .logic-node[data-group='variable'] { border-color: var(--color-node-variable); }
@@ -30,7 +30,7 @@
 .logic-node__toggle:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .logic-node__toggle:hover, .logic-node__heading:hover { color: var(--color-selection); }
 /* Point d'arrêt : petit panneau stop éteint, allumé lorsqu'il est posé. */
-.logic-node__breakpoint { display: grid; place-items: center; flex: 0 0 auto; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--color-text-muted); opacity: 0.45; cursor: pointer; transition: color 120ms, background 120ms, opacity 120ms, box-shadow 120ms; }
+.logic-node__breakpoint { display: grid; place-items: center; flex: 0 0 auto; width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--radius-small); background: transparent; color: var(--color-text-muted); opacity: 0.45; cursor: pointer; transition: color 120ms, background 120ms, opacity 120ms, box-shadow 120ms; }
 .logic-node__breakpoint:hover { color: var(--color-diagnostic); opacity: 0.9; }
 .logic-node__breakpoint--set { color: var(--color-diagnostic); opacity: 1; background: color-mix(in srgb, var(--color-diagnostic) 14%, transparent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-diagnostic) 16%, transparent); }
 .logic-node__breakpoint--set svg { fill: color-mix(in srgb, var(--color-diagnostic) 28%, transparent); }
@@ -49,11 +49,11 @@
 .logic-node__unused { flex: 0 0 auto; padding: 1px 4px; border: 1px solid var(--color-diagnostic); border-radius: var(--radius-small); color: var(--color-diagnostic); font-size: 9px; white-space: nowrap; }
 .logic-node__pure { flex: 0 0 auto; padding: 1px 4px; border: 1px solid var(--color-pure); border-radius: var(--radius-small); color: var(--color-pure); font-size: 9px; white-space: nowrap; }
 /* Aperçu d'un bloc replié : rendu hors de la carte pour ne pas être rogné par le défilement. */
-.logic-node__preview { position: fixed; z-index: 200; max-height: 260px; overflow: auto; padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); corner-shape: var(--corner-shape); background: var(--surface-reflection), var(--surface-floating); box-shadow: var(--shadow-panel); color: var(--color-text); font-size: 11px; line-height: 1.5; pointer-events: none; }
+.logic-node__preview { position: fixed; z-index: 200; max-height: 260px; overflow: auto; padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); corner-shape: var(--corner-shape); background: var(--surface-floating); box-shadow: var(--shadow-panel); color: var(--color-text); font-size: 11px; line-height: 1.5; pointer-events: none; }
 .logic-node__preview-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .logic-node__preview-more { margin-top: 4px; color: var(--color-text-muted); }
 /* Valeur au survol pendant le debug : type et valeur de l'arrêt courant. */
-.logic-node__value { position: fixed; z-index: 210; display: flex; align-items: baseline; gap: 6px; max-width: 320px; padding: 5px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); corner-shape: var(--corner-shape); background: var(--surface-reflection), var(--surface-floating); box-shadow: var(--shadow-panel); color: var(--color-text); font-size: 11px; line-height: 1.4; pointer-events: none; }
+.logic-node__value { position: fixed; z-index: 210; display: flex; align-items: baseline; gap: 6px; max-width: 320px; padding: 5px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); corner-shape: var(--corner-shape); background: var(--surface-floating); box-shadow: var(--shadow-panel); color: var(--color-text); font-size: 11px; line-height: 1.4; pointer-events: none; }
 .logic-node__value strong { font-weight: 600; }
 .logic-node__value span { color: var(--color-text-muted); font-family: var(--font-mono); white-space: nowrap; }
 .logic-node__value code { color: var(--color-primary); font-family: var(--font-mono); overflow-wrap: anywhere; }

@@ -21,6 +21,16 @@ h5,
 h6,
 legend {
   font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+/* Titres de panneaux : micro-étiquette technique, sans changer le contenu. */
+:is(.floating-panel__header h2, .simulation-panel h2, .transpile-panel h2, .debug-panel h2, .function-panel h2, .flow-panel h2, .memory-panel h2, .node-graph-panel h2) {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 code,
@@ -43,7 +53,11 @@ body,
   overflow: hidden;
 }
 
-/* Géométrie commune : arrondis de repli, coins continus lorsque disponibles. */
+body {
+  background: var(--color-black);
+}
+
+/* Géométrie commune : rectangles à coins biseautés, sans squircle ni verre. */
 :where(button, input, select, textarea, fieldset, .canvas-module, .canvas-status, .canvas-context-menu, .logic-context-menu, .floating-panel, .logic-node, .debug-panel) {
   corner-shape: var(--corner-shape);
 }
@@ -68,8 +82,36 @@ body,
 }
 
 ::selection {
-  background: var(--color-selection);
+  background: var(--color-primary);
   color: var(--color-on-primary);
+}
+
+/* Focus clavier commun : anneau acide net, sans halo ni animation. */
+:where(a, button, summary, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Barres de défilement techniques, fines et stables. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-hover) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 0;
+  background: var(--color-border-hover);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* Contenu réservé aux technologies d'assistance : présent dans l'arbre, absent visuellement. */
@@ -85,14 +127,9 @@ body,
   border: 0;
 }
 
-/* Un seul plan flouté par panneau ; cartes et nœuds imbriqués sans flou. */
+/* Les panneaux flottants restent opaques : aucun flou de fond. */
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root { --surface-floating: var(--color-glass); }
-
-  .canvas-status, .canvas-context-menu, .logic-context-menu, .floating-panel, .project-navigation__menu, .project-navigation__confirmation, .debug-panel {
-    -webkit-backdrop-filter: blur(var(--blur-panel));
-    backdrop-filter: blur(var(--blur-panel));
-  }
+  :root { --surface-floating: var(--color-anthracite-raised); }
 }
 
 @media (prefers-reduced-transparency: reduce) {

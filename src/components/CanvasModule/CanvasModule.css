@@ -4,17 +4,17 @@
   position: absolute;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
-  background: var(--surface-reflection), var(--color-module-surface);
+  background: var(--color-module-surface);
   box-shadow: var(--shadow-card);
   transform-origin: top left;
   cursor: default;
 }
 
-.canvas-module--selected { box-shadow: var(--shadow-selection), var(--shadow-card); }
+.canvas-module--selected { border-color: var(--color-primary); box-shadow: 0 0 0 2px var(--color-primary), var(--shadow-card); }
 .canvas-module--selected .canvas-module__name { text-decoration: underline; text-underline-offset: 4px; }
 
 .canvas-module--comment {
-  background: var(--surface-reflection), var(--color-comment-surface);
+  background: var(--color-comment-surface);
   border-style: dashed;
 }
 
@@ -61,10 +61,10 @@
 .canvas-module--emoji .canvas-module__move { padding-left: 4px; }
 
 /* Choix d'emoji : rendu hors de la carte (portail) pour ne pas être rogné. */
-.module-emoji__popover { position: fixed; z-index: 150; display: flex; flex-direction: column; width: 272px; padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); corner-shape: var(--corner-shape); background: var(--surface-reflection), var(--surface-floating); box-shadow: var(--shadow-panel); color: var(--color-text); }
+.module-emoji__popover { position: fixed; z-index: 150; display: flex; flex-direction: column; width: 272px; padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); corner-shape: var(--corner-shape); background: var(--surface-floating); box-shadow: var(--shadow-panel); color: var(--color-text); }
 .module-emoji__scroll { flex: 1 1 auto; min-height: 0; max-height: 232px; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; scrollbar-width: thin; scrollbar-color: var(--color-border-hover) transparent; }
 .module-emoji__scroll::-webkit-scrollbar { width: 6px; }
-.module-emoji__scroll::-webkit-scrollbar-thumb { border-radius: 999px; background: var(--color-border-hover); }
+.module-emoji__scroll::-webkit-scrollbar-thumb { border-radius: var(--radius-small); background: var(--color-border-hover); }
 .module-emoji__section { margin: 0 2px 5px; color: var(--color-text-muted); font-size: 9.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
 .module-emoji__section:not(:first-child) { margin-top: 11px; }
 .module-emoji__grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 2px; }
@@ -186,7 +186,12 @@
   width: 6px;
   height: 6px;
   border: 1px solid var(--color-text-muted);
-  border-radius: var(--radius-small);
+  border-radius: 0;
+}
+
+.canvas-module--selected .canvas-module__marker {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .canvas-module__name {
@@ -195,6 +200,7 @@
   white-space: nowrap;
   font-family: var(--font-display);
   font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .canvas-module__name-input {
@@ -420,8 +426,8 @@
 }
 
 @keyframes canvas-module-pulse {
-  0% { box-shadow: 0 0 0 2px var(--color-primary), 0 0 22px color-mix(in srgb, var(--color-primary) 45%, transparent); opacity: 1; }
-  100% { box-shadow: 0 0 0 0 transparent, 0 0 0 transparent; opacity: 0; }
+  0% { box-shadow: 0 0 0 2px var(--color-primary); opacity: 1; }
+  100% { box-shadow: 0 0 0 0 transparent; opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

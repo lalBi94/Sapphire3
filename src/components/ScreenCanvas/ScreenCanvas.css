@@ -1,5 +1,5 @@
 .screen-canvas { display: flex; flex-direction: column; gap: 6px; min-height: 0; height: 100%; }
-.screen-canvas__viewport { flex: 1; min-height: 0; overflow: hidden; display: grid; place-items: center; padding: 6px; border: 1px solid var(--color-border); border-radius: var(--radius-small); background: #050507; }
+.screen-canvas__viewport { flex: 1; min-height: 0; overflow: hidden; display: grid; place-items: center; padding: 6px; border: 1px solid var(--color-border); border-radius: var(--radius-small); background: var(--color-black); }
 .screen-canvas canvas { display: block; flex: 0 0 auto; image-rendering: pixelated; box-shadow: 0 0 0 1px var(--color-border); }
 .screen-canvas__footer { display: flex; align-items: center; gap: 8px; color: var(--color-text-muted); font-family: var(--font-mono, ui-monospace, monospace); font-size: 10px; }
 .screen-canvas__footer > span:first-child { color: var(--color-text); }

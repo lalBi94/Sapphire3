@@ -2,7 +2,7 @@
 .flow-panel { width: 540px; }
 .flow-panel__status { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-bottom: 8px; color: var(--color-text-muted); font-size: 11px; }
 .flow-panel__status strong { color: var(--color-text); font-weight: 500; }
-.flow-panel__state { padding: 2px 7px; border: 1px solid color-mix(in srgb, var(--color-primary) 45%, transparent); border-radius: 999px; color: var(--color-primary); font-size: 10px; }
+.flow-panel__state { padding: 2px 7px; border: 1px solid color-mix(in srgb, var(--color-primary) 45%, transparent); border-radius: var(--radius-small); color: var(--color-primary); font-size: 10px; }
 .flow-panel__state--running { animation: flow-status 1.6s ease-in-out infinite; }
 .flow-panel__controls { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
 .flow-panel__controls button { display: inline-flex; align-items: center; gap: 4px; padding: 4px 7px; border: 1px solid var(--color-border); border-radius: var(--radius-small); background: transparent; color: var(--color-text); font: inherit; font-size: 11px; cursor: pointer; }
@@ -21,7 +21,7 @@
 .flow-panel__node strong { overflow: hidden; font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .flow-panel__node code { overflow: hidden; color: var(--color-text-muted); font-family: var(--font-mono); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .flow-panel__badges { display: flex; flex-wrap: wrap; gap: 3px; margin-top: auto; }
-.flow-panel__badges em { padding: 0 5px; border: 1px solid color-mix(in srgb, var(--color-primary) 45%, transparent); border-radius: 999px; color: var(--color-primary); font-size: 9px; font-style: normal; }
+.flow-panel__badges em { padding: 0 5px; border: 1px solid color-mix(in srgb, var(--color-primary) 45%, transparent); border-radius: var(--radius-small); color: var(--color-primary); font-size: 9px; font-style: normal; }
 .flow-panel__node--active { border-color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 12%, var(--color-input)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent), 0 6px 18px rgb(0 0 0 / 25%); }
 .flow-panel__node--active::after { content: ''; position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--color-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 18%, transparent); animation: flow-status 1.2s ease-in-out infinite; }
 .flow-panel__empty { margin: 0; color: var(--color-text-muted); }
@@ -33,7 +33,7 @@
 .flow-panel__variable span { grid-column: 1 / -1; overflow-wrap: anywhere; font-family: var(--font-mono); font-size: 10px; }
 .flow-panel__variable em { grid-column: 2; justify-self: end; color: var(--color-text-muted); font-size: 9px; font-style: normal; }
 .flow-panel__stack { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
-.flow-panel__stack li { padding: 2px 7px; border: 1px solid var(--color-border); border-radius: 999px; color: var(--color-text-muted); font-size: 10px; }
+.flow-panel__stack li { padding: 2px 7px; border: 1px solid var(--color-border); border-radius: var(--radius-small); color: var(--color-text-muted); font-size: 10px; }
 .flow-panel__stack li.flow-panel__stack--active { border-color: var(--color-primary); color: var(--color-primary); }
 .flow-panel__output { max-height: 110px; overflow: auto; margin: 0; padding: 6px; border: 1px solid var(--color-border); border-radius: var(--radius-small); background: var(--color-input); color: var(--color-text); font-family: var(--font-mono); font-size: 10px; white-space: pre-wrap; }
 .flow-panel__error { margin: 0 0 8px; color: var(--color-diagnostic); font-size: 11px; }

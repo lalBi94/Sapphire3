@@ -1,4 +1,4 @@
-.logic-context-menu { position: absolute; z-index: 100; display: flex; flex-direction: row; gap: var(--space-control); box-sizing: border-box; max-width: calc(100% - 16px); max-height: calc(100% - 16px); overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-panel); background: var(--surface-reflection), var(--surface-floating); box-shadow: var(--shadow-panel); padding: var(--space-small); cursor: default; }
+.logic-context-menu { position: absolute; z-index: 100; display: flex; flex-direction: row; gap: var(--space-control); box-sizing: border-box; max-width: calc(100% - 16px); max-height: calc(100% - 16px); overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-panel); background: var(--surface-floating); box-shadow: var(--shadow-panel); padding: var(--space-small); cursor: default; }
 .logic-context-menu__columns { display: grid; grid-template-columns: minmax(150px, 206px) minmax(150px, 206px); grid-template-rows: minmax(0, 1fr); flex-shrink: 0; min-height: 0; }
 .logic-context-menu__blocks { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .logic-context-menu__node-actions { border-left: 1px solid var(--color-border); }
@@ -10,9 +10,8 @@
 .logic-context-menu__search { display: flex; align-items: center; gap: var(--space-small); padding: var(--space-small) var(--space-control) 0; color: var(--color-text-muted); }
 .logic-context-menu__search > svg { flex: 0 0 auto; }
 .logic-context-menu__search-field { position: relative; flex: 1 1 auto; min-width: 0; }
-.logic-context-menu__search input { box-sizing: border-box; width: 100%; min-width: 0; padding: 7px 32px 7px 9px; border: 1px solid color-mix(in srgb, var(--color-selection) 45%, var(--color-border)); border-radius: var(--radius-control); color: var(--color-text); background: var(--color-input); font: inherit; font-size: 11px; user-select: text; box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-selection) 9%, transparent), 0 0 12px color-mix(in srgb, var(--color-primary) 10%, transparent); }
-.logic-context-menu__search input::placeholder { color: var(--color-text-muted); }
-.logic-context-menu__search input:focus { outline: none; }
+.logic-context-menu__search input { box-sizing: border-box; width: 100%; min-width: 0; padding: 7px 32px 7px 9px; border: 1px solid var(--color-border); border-radius: var(--radius-control); color: var(--color-text); background: var(--color-input); font: inherit; font-size: 11px; user-select: text; }
+.logic-context-menu__search input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent); }
 .logic-context-menu__search input:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 .logic-context-menu__search input::-webkit-search-cancel-button { display: none; }
 .logic-context-menu__search-clear { position: absolute; top: 50%; right: 3px; transform: translateY(-50%); display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--radius-small); background: transparent; color: var(--color-text-muted); cursor: pointer; }
@@ -28,19 +27,9 @@
 /* Sous-catégorie : décalée et plus discrète que sa catégorie parente. */
 .logic-context-menu__actions button.logic-context-menu__group[data-depth]:not([data-depth='0']) { padding-inline-start: calc(23px + var(--space-control)); color: var(--color-text-muted); font-size: 11px; font-weight: 500; }
 .logic-context-menu__actions button { box-sizing: border-box; display: flex; align-items: center; gap: var(--space-control); width: 100%; min-height: 32px; padding: 7px 9px; border: 1px solid transparent; border-radius: var(--radius-control); text-align: left; color: var(--color-text); background: transparent; font: inherit; font-size: 12px; cursor: pointer; }
-.logic-context-menu__actions button:hover:not(:disabled) { z-index: 2; background: var(--color-hover); }
-/* Survol des options du menu : dégradé plein animé et bordure visible, sans halo ni déplacement. */
-.logic-context-menu__actions button:hover:not(:disabled):not(.delete-action):not(.logic-context-menu__delete) {
-  border-color: color-mix(in srgb, var(--color-selection) 55%, var(--color-primary));
-  background: linear-gradient(110deg, color-mix(in srgb, var(--color-primary) 38%, var(--color-surface-raised)), color-mix(in srgb, var(--color-selection) 42%, var(--color-surface-raised)), color-mix(in srgb, var(--color-primary) 32%, var(--color-surface-raised)), color-mix(in srgb, var(--color-selection) 38%, var(--color-surface-raised)));
-  background-size: 240% 100%;
-  animation: sapphire-gradient-flow 2.8s linear infinite;
-}
-@media (prefers-reduced-motion: reduce) {
-  .logic-context-menu__actions button:hover:not(:disabled):not(.delete-action):not(.logic-context-menu__delete) { animation: none; }
-}
+.logic-context-menu__actions button:hover:not(:disabled) { z-index: 2; background: var(--color-hover); border-color: var(--color-border-hover); }
 .logic-context-menu__actions button:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }
-.logic-context-menu__actions button[aria-pressed='true'] { background: var(--color-selection-surface); color: var(--color-selection); box-shadow: inset 3px 0 0 var(--color-selection); font-weight: 600; }
+.logic-context-menu__actions button[aria-pressed='true'] { background: color-mix(in srgb, var(--color-primary) 12%, transparent); color: var(--color-primary); box-shadow: inset 3px 0 0 var(--color-primary); font-weight: 600; }
 .logic-context-menu__actions button:disabled { color: var(--color-text-muted); opacity: var(--opacity-disabled); cursor: not-allowed; }
 .logic-context-menu__actions .logic-context-menu__delete { margin-top: var(--space-small); border-top: 1px solid var(--color-border); color: var(--color-diagnostic); }
 .logic-context-menu p { margin: 8px; font-size: 11px; color: var(--color-text-muted); line-height: 1.5; }

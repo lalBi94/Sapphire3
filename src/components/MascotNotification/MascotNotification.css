@@ -23,7 +23,6 @@
   pointer-events: auto;
   touch-action: none;
   transform-origin: bottom center;
-  animation: mascot-levitate 4.8s ease-in-out infinite;
 }
 
 .mascot-notification__robot:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 3px; border-radius: var(--radius-panel); }
@@ -54,8 +53,7 @@
   border-left: 2px solid var(--color-primary);
   border-radius: var(--radius-panel);
   corner-shape: var(--corner-shape);
-  background: var(--surface-reflection), color-mix(in srgb, var(--color-surface-raised) 86%, transparent);
-  backdrop-filter: blur(12px) saturate(115%);
+  background: var(--color-surface-raised);
   box-shadow: var(--shadow-panel);
   color: var(--color-text);
   overflow-y: auto;
@@ -67,8 +65,8 @@
 
 .mascot-notification__bubble--error,
 .mascot-notification__bubble--transpile_failed,
-.mascot-notification__bubble--shortcut_conflict { border-left-color: var(--color-diagnostic); }
-.mascot-notification__bubble--warning { border-left-color: var(--color-node-condition); }
+.mascot-notification__bubble--shortcut_conflict { border-left-color: var(--color-error); }
+.mascot-notification__bubble--warning { border-left-color: var(--color-warning); }
 .mascot-notification__bubble--saved,
 .mascot-notification__bubble--import_success,
 .mascot-notification__bubble--export_success,
@@ -108,11 +106,11 @@
 .mascot-notification__list { display: flex; flex-direction: column; gap: 3px; max-height: 230px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
 .mascot-notification__list li { display: flex; align-items: flex-start; gap: 7px; padding: 6px 4px; border-radius: var(--radius-small); }
 .mascot-notification__list li + li { border-top: 1px solid var(--color-border); }
-.mascot-notification__dot { flex: 0 0 auto; width: 6px; height: 6px; margin-top: 5px; border-radius: 50%; background: var(--color-primary); }
+.mascot-notification__dot { flex: 0 0 auto; width: 6px; height: 6px; margin-top: 5px; border-radius: 0; background: var(--color-primary); }
 .mascot-notification__dot--error,
 .mascot-notification__dot--transpile_failed,
-.mascot-notification__dot--shortcut_conflict { background: var(--color-diagnostic); }
-.mascot-notification__dot--warning { background: var(--color-node-condition); }
+.mascot-notification__dot--shortcut_conflict { background: var(--color-error); }
+.mascot-notification__dot--warning { background: var(--color-warning); }
 .mascot-notification__dot--saved,
 .mascot-notification__dot--import_success,
 .mascot-notification__dot--export_success,
@@ -123,11 +121,6 @@
 .mascot-notification__list time { flex: 0 0 auto; color: var(--color-text-muted); font-family: var(--font-mono); font-size: 9px; }
 .mascot-notification__empty { margin: 3px 0 10px; color: var(--color-text-muted); font-size: 11px; }
 .mascot-notification__clear { margin-top: 9px; }
-
-@keyframes mascot-levitate {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
 
 @keyframes mascot-expression {
   from { opacity: 0.3; transform: translateY(4px) scale(0.94); }

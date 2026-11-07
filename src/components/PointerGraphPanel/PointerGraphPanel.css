@@ -16,7 +16,7 @@
 .pointer-graph__head strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 600; }
 .pointer-graph__head small { color: var(--color-text-muted); font-size: 9px; }
 .pointer-graph__value { color: var(--color-text); font-family: var(--font-mono, ui-monospace, monospace); font-size: 10px; overflow-wrap: anywhere; }
-.pointer-graph__badge { display: inline-block; margin-inline-end: 5px; padding: 0 4px; border: 1px solid color-mix(in srgb, var(--color-primary) 55%, transparent); border-radius: 999px; color: var(--color-primary); font-family: var(--font-ui, inherit); font-size: 8px; text-transform: uppercase; }
+.pointer-graph__badge { display: inline-block; margin-inline-end: 5px; padding: 0 4px; border: 1px solid color-mix(in srgb, var(--color-primary) 55%, transparent); border-radius: var(--radius-small); color: var(--color-primary); font-family: var(--font-ui, inherit); font-size: 8px; text-transform: uppercase; }
 .pointer-graph__cells { display: grid; gap: 1px; margin: 2px 0 0; padding: 4px 0 0; border-top: 1px dashed var(--color-border); list-style: none; }
 .pointer-graph__cells li { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: baseline; gap: 6px; min-height: 19px; }
 .pointer-graph__cells code { color: var(--color-primary); font-family: var(--font-mono, ui-monospace, monospace); font-size: 8px; }

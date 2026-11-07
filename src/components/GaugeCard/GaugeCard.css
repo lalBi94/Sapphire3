@@ -17,8 +17,8 @@
   fill: none;
   stroke-width: 13;
   stroke-linecap: round;
-  opacity: 0.55;
-  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-primary) 55%, transparent)) drop-shadow(0 0 14px color-mix(in srgb, var(--color-selection) 35%, transparent));
+  opacity: 0.18;
+  filter: none;
 }
 
 .gauge-card__readout {
