@@ -105,6 +105,14 @@
   }
 }
 .project-navigation__run-controls { display: flex; align-items: center; flex-shrink: 0; }
+/* Aligne Run, pause, arrêt et les menus du groupe sur la même hauteur. */
+.project-navigation button.project-navigation__run,
+.project-navigation button.project-navigation__run-action,
+.project-navigation button.project-navigation__stop,
+.project-navigation__run-controls > details > summary {
+  box-sizing: border-box;
+  min-height: 31px;
+}
 /* Bouton d'arrêt à côté de Run, visible seulement pendant une simulation. */
 .project-navigation button.project-navigation__stop { padding: 4px 8px; gap: 4px; color: var(--color-diagnostic); }
 .project-navigation button.project-navigation__stop:hover:not(:disabled) { background: var(--color-hover); color: var(--color-text); }
