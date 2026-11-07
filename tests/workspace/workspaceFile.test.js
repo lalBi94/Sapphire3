@@ -86,7 +86,7 @@ function createFilesystem({ files: initialFiles = {}, directories: initialDirect
     },
     async remove(target) {
       calls.push(['remove', target])
-      if (failures.remove) throw Object.assign(new Error('remove failed'), { code: 'NE_FS_REMVERR' })
+      if (failures.remove || failures.removePaths?.has(target)) throw Object.assign(new Error('remove failed'), { code: 'NE_FS_REMVERR' })
       if (!files.has(target) && !directories.has(target)) throw Object.assign(new Error('missing'), { code: 'NE_FS_NOPATHE' })
       files.delete(target)
       directories.delete(target)
@@ -215,6 +215,44 @@ test('sauvegardes de secours : un échec de copie laisse l’enregistrement réu
   assert.equal(saved.folder, folder)
   assert.equal(saved.backupError?.code, 'NE_FS_FILRDERR')
   assert.equal(filesystem.files.get(documentPath), 'nouveau')
+})
+
+test('sauvegardes de secours : un échec de suppression n’annule pas l’enregistrement', async () => {
+  const filesystem = createFilesystem({ files: { [documentPath]: 'ancien', [`${folder}/backups/workspace.backup-3.sp3`]: 'old' } }, { remove: true })
+  const saved = await writeWorkspaceDocumentWithBackup(folder, 'nouveau', createClient(filesystem))
+  assert.equal(saved.folder, folder)
+  assert.equal(saved.backupError?.code, 'NE_FS_REMVERR')
+  assert.equal(filesystem.files.get(documentPath), 'nouveau')
+})
+
+test('récupération : un fichier .tmp résiduel n’empêche pas la suppression complète', async () => {
+  const recovery = 'C:\\Users\\me\\Data/sapphire3-recovery'
+  const filesystem = createFilesystem({
+    files: {
+      [`${recovery}/workspace.sp3`]: 'ancien',
+      [`${recovery}/workspace.sp3.abc.tmp`]: 'brouillon',
+      [`${recovery}/images/photo.png`]: new Uint8Array([1]),
+      [`${recovery}/backups/workspace.backup-1.sp3`]: 'backup',
+    },
+    directories: [recovery, `${recovery}/images`, `${recovery}/backups`],
+  })
+  await clearRecoveryFile(createClient(filesystem))
+  assert.equal(filesystem.files.size, 0)
+  assert.equal(filesystem.directories.has(recovery), false)
+  assert.equal(filesystem.directories.has(`${recovery}/images`), false)
+  assert.equal(filesystem.directories.has(`${recovery}/backups`), false)
+})
+
+test('récupération : un fichier verrouillé laisse le document de récupération supprimé', async () => {
+  const recovery = 'C:\\Users\\me\\Data/sapphire3-recovery'
+  const locked = `${recovery}/workspace.sp3.locked.tmp`
+  const filesystem = createFilesystem({
+    files: { [`${recovery}/workspace.sp3`]: 'ancien', [locked]: 'brouillon' },
+    directories: [recovery],
+  }, { removePaths: new Set([locked]) })
+  await assert.rejects(clearRecoveryFile(createClient(filesystem)), (error) => error.code === 'NE_FS_REMVERR')
+  assert.equal(filesystem.files.has(`${recovery}/workspace.sp3`), false)
+  assert.equal(filesystem.files.has(locked), true)
 })
 
 test('images : copie dans images/ avec un nom unique et relit les octets', async () => {

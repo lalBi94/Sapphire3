@@ -142,7 +142,9 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, ex
         lastRecoveryText.current = null
         return
       }
-      publishError({ prefix: 'errors.couldNotSave', failure })
+      // Le document est déjà enregistré : un nettoyage de récupération impossible est un avertissement, pas un échec de sauvegarde.
+      console.warn('Recovery copy could not be cleaned up.', failure)
+      notify({ type: 'warning', message: t('files.recoveryCleanupFailed'), key: 'file-warning', duration: 6000 })
     }
   }
 

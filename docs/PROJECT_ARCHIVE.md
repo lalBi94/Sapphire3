@@ -2,6 +2,14 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Sauvegarde : nettoyage de récupération `NE_FS_REMVERR` — 8 novembre 2026
+
+- Cause observée : après un enregistrement réussi, `discardRecovery` nettoyait `sapphire3-recovery/` en supprimant seulement `workspace.sp3`, `images/` et `backups/`. Un fichier `.tmp` résiduel (écriture atomique interrompue) ou un sous-dossier inattendu empêchait la suppression du dossier ; `NE_FS_REMVERR` remontait alors comme « Couldn't save » alors que le document était déjà écrit.
+- Correction : le document de récupération est supprimé en premier, puis le dossier est nettoyé récursivement (fichiers `.tmp`, sous-dossiers, images, backups). Un fichier verrouillé ne peut plus laisser une copie de récupération périmée restaurée au lancement.
+- Un nettoyage de récupération impossible n'est plus présenté comme un échec de sauvegarde : avertissement non bloquant `files.recoveryCleanupFailed` (huit langues) et nouvelle tentative à l'autosauvegarde suivante.
+- Tests : `pnpm test` **573 réussis**, dont trois nouveaux scénarios (`workspaceFile.test.js`) : suppression d'un `.tmp` résiduel, fichier verrouillé laissant le document de récupération supprimé, et échec de suppression d'une sauvegarde de secours sans annuler l'enregistrement. `pnpm build` réussi.
+- Limite : la reproduction réelle dépend d'un verrou antivirus/OS ; le scénario est couvert par le système de fichiers simulé et la logique de nettoyage.
+
 ## Discord Rich Presence — 8 novembre 2026
 
 - Architecture retenue : sidecar Go statique dans `native/discord-presence/`, lancé par `os.spawnProcess` depuis `src/services/discordPresence.js`, connecté à l'IPC local Discord (`discord-ipc-0` à `9`). Aucun OAuth, token, compte à connecter, backend, WebSocket RPC déprécié ni runtime Node/Python chez l'utilisateur.

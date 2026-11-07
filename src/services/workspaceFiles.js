@@ -375,35 +375,44 @@ async function recoveryFolder(client) {
   return `${await dataFolder(client)}/${recoveryFolderName}`
 }
 
-// Supprime un dossier de récupération et son contenu, sans masquer une erreur réelle.
-async function removeRecoveryFolder(filesystem, folder) {
-  for (const name of [workspaceImagesFolder, workspaceBackupsFolder]) {
-    const subfolder = folderJoin(folder, name)
-    try {
-      const entries = await filesystem.readDirectory(subfolder)
-      for (const entry of Array.isArray(entries) ? entries : []) {
-        if (entry?.type !== 'FILE' && entry?.type !== 'file') continue
-        try {
-          await filesystem.remove(entry.path ?? folderJoin(subfolder, entry.entry ?? entry.name))
-        } catch (error) {
-          if (error?.code !== 'NE_FS_NOPATHE') throw error
-        }
+// Supprime récursivement un dossier de récupération, y compris les fichiers .tmp et les sous-dossiers.
+async function removeTree(filesystem, path) {
+  let entries = []
+  try {
+    entries = await filesystem.readDirectory(path)
+  } catch (error) {
+    if (error?.code === 'NE_FS_NOPATHE') return
+    throw error
+  }
+  for (const entry of Array.isArray(entries) ? entries : []) {
+    const name = entry?.entry ?? entry?.name
+    if (typeof name !== 'string') continue
+    const child = entry.path ?? folderJoin(path, name)
+    const type = String(entry.type ?? '').toLowerCase()
+    if (type === 'directory' || type === 'dir') await removeTree(filesystem, child)
+    else {
+      try {
+        await filesystem.remove(child)
+      } catch (error) {
+        if (error?.code !== 'NE_FS_NOPATHE') throw error
       }
-      await filesystem.remove(subfolder)
-    } catch (error) {
-      if (error?.code !== 'NE_FS_NOPATHE') throw error
     }
   }
+  try {
+    await filesystem.remove(path)
+  } catch (error) {
+    if (error?.code !== 'NE_FS_NOPATHE') throw error
+  }
+}
+
+// Supprime d'abord le document de récupération, puis nettoie le reste sans jamais restaurer une copie périmée.
+async function removeRecoveryFolder(filesystem, folder) {
   try {
     await filesystem.remove(folderJoin(folder, workspaceDocumentName))
   } catch (error) {
     if (error?.code !== 'NE_FS_NOPATHE') throw error
   }
-  try {
-    await filesystem.remove(folder)
-  } catch (error) {
-    if (error?.code !== 'NE_FS_NOPATHE') throw error
-  }
+  await removeTree(filesystem, folder)
 }
 
 // Écrit une copie de récupération d'un document qui n'a pas encore de dossier de workspace.
