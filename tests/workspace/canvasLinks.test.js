@@ -76,3 +76,14 @@ test('couche de liens : une carte LED participe aux flèches comme son module ca
   assert.equal(layer.edges.length, 1)
   assert.ok(layer.edges[0].x > 0 && layer.edges[0].x < 1220)
 })
+
+test('couche de liens : une carte classe participe aux flèches comme son module source', () => {
+  const classCards = [
+    { id: 'counterClass', type: 'class', x: 0, y: 0, width: 340, height: 240 },
+    { id: 'app', type: 'module', x: 700, y: 0, width: 520, height: 420 },
+  ]
+  const classLink = { id: 'counterClass::app', fromId: 'counterClass', toId: 'app', fromName: 'Counter', toName: 'App', exports: [{ nodeId: 'class:counterClass', name: 'Counter', localName: '', uses: 2 }] }
+  const layer = buildLinkLayer(classCards, [classLink])
+  assert.equal(layer.edges.length, 1)
+  assert.ok(layer.edges[0].x > 0 && layer.edges[0].x < 1220)
+})

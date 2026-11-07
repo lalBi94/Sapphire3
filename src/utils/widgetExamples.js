@@ -274,7 +274,7 @@ function thermostat() {
   room.member('FunctionDeclaration', { name: 'current', type: intType, visibility: 'public' }, { parameters: [], body: room.block([room.returnValue(room.memberAccess(room.thisNode(), 'temperature'))]) })
   room.member('FunctionDeclaration', { name: 'isHeating', type: booleanType, visibility: 'public' }, { parameters: [], body: room.block([room.returnValue(room.memberAccess(room.thisNode(), 'heating'))]) })
 
-  const b = demo('thermostat', 'Thermostat', [bars, gauge, led], [room])
+  const b = demo('thermostat', 'Thermostat control', [bars, gauge, led], [room])
   return b.finish([
     b.declare('thermostat', b.newObject('thermostatClass', [b.integer(18)]), b.classType('thermostatClass')),
     b.loop('step', 0, b.integer(24), [

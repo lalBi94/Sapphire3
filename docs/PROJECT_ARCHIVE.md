@@ -2,6 +2,15 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Flèches de dépendance des classes — 7 novembre 2026
+
+- `getModuleLinks` produit désormais les mêmes flèches pour les classes que pour les imports ordinaires : un module qui instancie une classe (`NewExpression.classId`) ou qui cite son type `{kind:'class', classId}` sur une variable, une constante, un paramètre, un retour, une lambda ou une signature reçoit une flèche depuis la carte de classe.
+- Une classe qui importe et appelle une fonction exportée d'un module (par exemple une fonction de widget) produit la flèche existante de l'exportateur vers la carte de classe. Les deux directions sont donc couvertes.
+- Les utilisations d'une même classe dans un même couple de modules sont agrégées dans une entrée synthétique `{nodeId: 'class:<classId>', name: <nom de classe>, localName: '', uses}` ; le nombre d'utilisations additionne les `new` et les annotations de type.
+- `buildLinkLayer` accepte déjà les cartes `class` comme cartes logiques ; un test dédié confirme qu'une flèche classe → module est tracée.
+- Tests : `tests/logic/moduleLinks.test.js` (+2 : classe instanciée/annotée, classe qui utilise une exportation) et `tests/workspace/canvasLinks.test.js` (+1 : carte classe). `pnpm test` : **557 réussis** ; `pnpm build` réussi.
+- Vérification directe sur `reactorControl` : `Core output → Reactor`, `Core history → Reactor`, `Temperature safe → Reactor`, `Reactor → Controller`, `Reactor → Reactor control` et `Controller → Reactor control`.
+
 ## Crible d'approche classe dans les exemples — 7 novembre 2026
 
 - Revue de la bibliothèque d'exemples pour réserver les classes aux cas où elles portent réellement un état cohérent et un comportement réutilisé.
