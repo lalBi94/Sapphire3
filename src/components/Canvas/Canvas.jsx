@@ -71,6 +71,7 @@ export default function Canvas() {
   const [distorted, setDistorted] = useState(true)
   const [minimapVisible, setMinimapVisible] = useState(true)
   const [gridVisible, setGridVisible] = useState(true)
+  const [hudVisible, setHudVisible] = useState(true)
   const [magnetEnabled, setMagnetEnabled] = useState(true)
   const [alignmentGuides, setAlignmentGuides] = useState({ vertical: [], horizontal: [] })
   const [fullScreen, setFullScreen] = useState(false)
@@ -1201,7 +1202,7 @@ export default function Canvas() {
       distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)}
       minimapVisible={minimapVisible} onToggleMinimap={() => setMinimapVisible((current) => !current)}
       magnetEnabled={magnetEnabled} onToggleMagnet={() => setMagnetEnabled((current) => !current)}
-      fullScreen={fullScreen} onToggleFullScreen={handleToggleFullScreen} gridVisible={gridVisible} onToggleGrid={() => setGridVisible((current) => !current)} onArrangeModules={handleArrangeModules}
+      fullScreen={fullScreen} onToggleFullScreen={handleToggleFullScreen} gridVisible={gridVisible} onToggleGrid={() => setGridVisible((current) => !current)} hudVisible={hudVisible} onToggleHud={() => setHudVisible((current) => !current)} onArrangeModules={handleArrangeModules}
       hiddenCards={hiddenCards} onShowCard={handleShowCard} onShowAllHidden={handleShowAllHidden}
       presentation={presentationMode} onTogglePresentation={handleTogglePresentation}
       hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onOpenSearch={search.show} onRunSimulation={handleRunSimulation} onRunGraphical={handleRunGraphical} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} selectedFunction={selectedFunction} onOpenFunction={handleOpenFunction} simulationRunning={Boolean(execution?.running)} simulationPaused={Boolean(execution?.paused)} onPauseSimulation={handlePauseExecution} onResumeSimulation={handleResumeExecution} onStopSimulation={handleStopExecution} onOpenRepository={() => openExternal(repositoryUrl)} onOpenSettings={() => setSettingsOpen(true)} onQuit={() => quitApplication()} updateAvailable={appUpdate.update.status === 'available'} updateVersion={appUpdate.update.release?.version ?? ''} updateManual={appUpdate.update.release?.installMode === 'manual'} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })} onCheckTranspile={getTranspileChecks}
@@ -1212,7 +1213,7 @@ export default function Canvas() {
       onDragStart={transfers.handleDragStart} onDragOver={transfers.handleDragOver} onDrop={transfers.handleDrop} onDragEnd={transfers.handleDragEnd}>
       <h1 className="visually-hidden">{t('app.title')}</h1>
       <CanvasGrid camera={camera} zoom={zoom} distorted={distorted} gridVisible={gridVisible} />
-      <CanvasHud camera={camera} zoom={zoom} semanticLevel={semanticLevel} moduleCount={document.index.modules.size} nodeCount={document.index.nodes.size} gridVisible={gridVisible} magnetEnabled={magnetEnabled} />
+      {hudVisible && <CanvasHud camera={camera} zoom={zoom} semanticLevel={semanticLevel} moduleCount={document.index.modules.size} nodeCount={document.index.nodes.size} gridVisible={gridVisible} magnetEnabled={magnetEnabled} />}
       <CanvasLinks cards={visibleCards} links={moduleLinks} camera={camera} zoom={zoom} />
       {semanticCards.map((card) => <CanvasModule key={`${document.revision}:${card.id}`} module={card} camera={camera} zoom={zoom}
         semanticLevel={semanticLevel}

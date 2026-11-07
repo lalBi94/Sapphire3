@@ -89,6 +89,7 @@ const messages = {
   'nav.minimap': ['Minimap', 'Mini-carte', '迷你地图', 'Minimapa', 'خريطة مصغرة', 'ミニマップ', 'मिनिमैप', 'Мини-карта'],
   'nav.magnet': ['Magnetic modules', 'Modules magnétiques', '模块磁吸', 'Módulos magnéticos', 'وحدات مغناطيسية', 'モジュールのマグネット', 'चुंबकीय मॉड्यूल', 'Магнитные модули'],
   'nav.hideGrid': ['Hide grid', 'Masquer la grille', '隐藏网格', 'Ocultar la cuadrícula', 'إخفاء الشبكة', 'グリッドを隠す', 'ग्रिड छिपाएँ', 'Скрыть сетку'],
+  'nav.textArtifacts': ['Text artifacts', 'Artefacts texte', '文本装饰', 'Artefactos de texto', 'عناصر نصية', 'テキスト装飾', 'पाठ सजावट', 'Текстовые артефакты'],
   'nav.fullscreen': ['Full screen', 'Plein écran', '全屏', 'Pantalla completa', 'ملء الشاشة', '全画面', 'पूर्ण स्क्रीन', 'Полный экран'],
   'menu.workspace': ['Workspace', 'Espace de travail', '工作区', 'Espacio de trabajo', 'مساحة العمل', 'ワークスペース', 'कार्यक्षेत्र', 'Рабочая область'],
   'menu.exports': ['Exports', 'Exports', '导出', 'Exportaciones', 'التصدير', 'エクスポート', 'निर्यात', 'Экспорт'],
