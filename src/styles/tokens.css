@@ -37,6 +37,8 @@
   --color-pure: #7fb069;
   --color-warning: #d9a441;
   --color-error: #e05c6e;
+  /* Filtre du robot : identité pour Sapphire, teinte du thème pour les autres palettes. */
+  --mascot-filter: brightness(1);
   --color-input: #101015;
   --color-glass-reflection: #ffffff08;
   --color-glass-highlight: #ffffff12;

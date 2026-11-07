@@ -35,12 +35,12 @@
   object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
-  filter: drop-shadow(0 8px 14px #00000066);
+  filter: var(--mascot-filter, brightness(1)) drop-shadow(0 8px 14px #00000066);
   animation: mascot-expression 280ms var(--easing-ui);
 }
 
 .mascot-notification__robot--active .mascot-notification__image {
-  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--color-primary) 35%, transparent)) drop-shadow(0 8px 16px #00000077);
+  filter: var(--mascot-filter, brightness(1)) drop-shadow(0 0 10px color-mix(in srgb, var(--color-primary) 35%, transparent)) drop-shadow(0 8px 16px #00000077);
 }
 
 .mascot-notification__bubble {
