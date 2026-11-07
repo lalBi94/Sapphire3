@@ -2,6 +2,15 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Variantes sombre et claire par thème — 7 novembre 2026
+
+- `buildLightColors` dérive en pur une palette claire depuis chaque palette sombre : fond `#F2F4F7`, surfaces blanche et `#E9EDF2`, texte `#151922`, accents assombris, familles de nœuds et statuts recalculés pour rester lisibles. Les contrastes sont contrôlés par calcul (texte, texte atténué, accents sur fond et sur teinte douce, texte sur accent, nœuds, statuts).
+- Préférence globale `sapphire-theme-mode` (`dark` ou `light`) appliquée à tous les thèmes prédéfinis et personnalisés ; les overrides d'un thème personnalisé s'appliquent aux deux variantes. `colorScheme` et `data-theme-mode` suivent l'apparence active. Les variables du thème précédent sont retirées avant application pour laisser `tokens.css` fournir les valeurs absentes de la variante.
+- Bascule **Dark / Light** dans le menu Theme de la barre, dans la galerie Paramètres → Theme et dans l'éditeur de thème personnalisé ; les aperçus et pastilles utilisent la variante active. L'ancienne case sombre/clair de l'éditeur est retirée.
+- `pnpm test` : **547 réussis** (+2 tests de dérivation claire et de contraste). `pnpm build` réussi.
+- Contrôles navigateur : Sapphire et Void en sombre puis clair, préférence retrouvée après rechargement, `colorScheme` et variables CSS cohérents, retour au sombre sans reliquat de valeurs claires, création/édition/suppression d'un thème personnalisé avec bascule d'apparence, toggles du menu et des paramètres synchronisés. Audit axe-core : **0 violation** sur la fenêtre Theme et le menu Theme en sombre et en clair ; seuls des `color-contrast` incomplets subsistent sur le statut de canvas posé sur un fond dégradé.
+- Limites : vérification dans Chromium uniquement, fenêtre Neutralinojs non rejouée ; pas de mode sombre/clair indépendant par thème ; un override personnalisé choisi pour une variante peut réduire le contraste dans l'autre.
+
 ## Préparation de la bêta 0.1.0-beta.6 — 7 novembre 2026
 
 - Version portée à **0.1.0-beta.6** dans `package.json`. Notes dans `docs/releases/v0.1.0-beta.6.md` ; README, `abstract/visual`, `docs/ACCESSIBILITY.md`, `AGENTS.md` et `docs/DISTRIBUTION.md` alignés.

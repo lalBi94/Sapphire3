@@ -16,7 +16,7 @@
 
 - `axe-core` 4.10.2, déjà présent en dépendance de développement.
 - Inspection du DOM et des styles calculés.
-- Calcul mathématique des rapports de contraste WCAG 2.x sur les six thèmes prédéfinis.
+- Calcul mathématique des rapports de contraste WCAG 2.x sur les sept palettes prédéfinies et leurs variantes sombre et claire.
 - Vérification des tailles de cibles avec `getBoundingClientRect`.
 - Aucun test axe automatisé n'est exécuté dans la CI.
 
@@ -40,6 +40,8 @@
 Les résultats `incomplete` ont aussi été examinés. Après corrections, il ne reste que des `color-contrast` incomplets sur des textes posés sur des dégradés, surfaces translucides ou flous. Ces cas ont été vérifiés par le calcul des tokens (section D), pas par axe.
 
 **Rejeu après la refonte Void / Acid (7 novembre 2026)** : 0 violation sur le canvas vide, le workspace **Arrays**, la fenêtre **Paramètres** et le volet **Theme**. La géométrie et les surfaces opaques sont conservées ; la **palette Sapphire par défaut** garde ses contrastes audités, et la **palette Void / Acid optionnelle** a été vérifiée : texte principal `#E8EDF2` sur `#06070A`, texte atténué `#9CA7B5` sur `#0C0F14`, acide `#B6FF2E` sur `#06070A` et texte sombre sur acide. Les `incomplete` restants concernent des textes posés sur des visuels ou des dégradés fonctionnels.
+
+**Rejeu après l'ajout des variantes sombre et claire (7 novembre 2026)** : 0 violation axe-core sur la fenêtre **Paramètres → Theme** et le menu **Theme** de la barre, en apparence sombre puis claire, avec **Sapphire** puis **Void / Acid**. Les `incomplete` restants sont les textes du statut de canvas posés sur le fond dégradé. Les contrastes des variantes claires sont dérivés et vérifiés par calcul : texte principal ≥ 14,9:1 sur les surfaces claires, texte atténué ≥ 5,0:1, accents, accents secondaires, statuts et familles de nœuds ≥ 4,5:1, texte sur accent ≥ 4,5:1, y compris sur les teintes douces utilisées en sélection. Les overrides d'un thème personnalisé s'appliquent aux deux variantes.
 
 ## B. Matrice WCAG 2.2 — niveau A et AA
 

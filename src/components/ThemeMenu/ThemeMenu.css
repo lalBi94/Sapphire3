@@ -1,4 +1,10 @@
 .theme-menu { display: flex; flex-direction: column; gap: 2px; }
+/* Bascule d'apparence commune à tous les thèmes : deux segments sombre / clair. */
+.theme-mode { display: flex; flex-direction: column; gap: 4px; margin-bottom: var(--space-control); }
+.theme-mode__options { display: flex; gap: 4px; }
+.theme-menu .theme-mode__option { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 5px; padding: 5px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: transparent; color: var(--color-text-muted); font: inherit; text-align: center; cursor: pointer; }
+.theme-menu .theme-mode__option:hover { background: var(--color-hover); color: var(--color-text); }
+.theme-menu .theme-mode__option--selected { border-color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 16%, transparent); color: var(--color-text); }
 .theme-menu__option { justify-content: flex-start; }
 .theme-menu__option--selected { background: var(--color-hover); }
 .theme-menu__swatches { display: inline-flex; gap: 3px; flex-shrink: 0; }

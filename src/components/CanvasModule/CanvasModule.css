@@ -316,7 +316,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  color: var(--color-text);
+  color: #ffffff;
   background: linear-gradient(180deg, #00000000 35%, #000000aa 100%);
   font-size: 11px;
   opacity: 0;
