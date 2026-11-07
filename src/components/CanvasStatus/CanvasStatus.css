@@ -11,7 +11,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
   color: var(--color-text-muted);
-  background: var(--surface-floating);
+  background: var(--panel-surface);
   box-shadow: var(--shadow-panel);
   font-family: var(--font-mono);
   font-size: 10px;
