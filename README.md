@@ -2,7 +2,7 @@
 
 ![Espace de travail Sapphire 3 : deux modules reliés par une flèche, avec leurs blocs dépliés](docs/assets/sapphire3-workspace.png)
 
-Application **desktop Windows** de programmation visuelle, en bêta (`0.1.0-beta.3`). Chaque carte posée sur le canvas est une construction d'un langage typé, analysée par un moteur JavaScript pur et indépendant des langages cibles. Le texte reste possible, mais il n'est plus le point de départ.
+Application **desktop Windows** de programmation visuelle, en bêta (`0.1.0-beta.4`). Chaque carte posée sur le canvas est une construction d'un langage typé, analysée par un moteur JavaScript pur et indépendant des langages cibles. Le texte reste possible, mais il n'est plus le point de départ.
 
 ## Installation et démarrage
 
@@ -114,7 +114,7 @@ Un audit daté et reproductible est décrit dans `docs/ACCESSIBILITY.md` : axe-c
 - L’analyse reste conservatrice et ne prouve ni terminaison ni valeurs générales.
 - Les captures de `abstract/visual` datent d’une campagne antérieure ; les fonctionnalités récentes y sont décrites dans le texte.
 
-Dernier check-up : **536 tests Node et Python réussis**, build frontend et parcours navigateur vérifiés. Les trente-cinq exemples passent Run et Debug dans le Web Worker, dont les nouvelles simulations d’écran **Coral growth**, **Labyrinth**, **Starfield**, **Color flow** et **RGB mixer** (64×36 à 96×54) ; les douze exemples transpilables sont exécutés en JavaScript et Python. Le mode exercice est couvert par des tests purs et des contrôles navigateur (capture, Check, Reset, verrou, solution). Les notifications par mascotte, l’aimantation des modules et la vitesse de simulation sont couvertes par des tests purs et des contrôles navigateur. Pour la bêta 0.1.0-beta.3, le paquet Windows a été audité et lancé dans Neutralinojs avec un profil isolé ; première sauvegarde native, Ctrl+S et création d’une sauvegarde de secours vérifiés. Détail dans `docs/PROJECT_ARCHIVE.md`.
+Dernier check-up : **536 tests Node et Python réussis**, build frontend et parcours navigateur vérifiés. Les quarante-six exemples passent Run et Debug dans le Web Worker, dont les nouvelles simulations d’écran **Coral growth**, **Labyrinth**, **Starfield**, **Color flow** et **RGB mixer** (64×36 à 96×54) ; les douze exemples transpilables sont exécutés en JavaScript et Python. Le mode exercice est couvert par des tests purs et des contrôles navigateur (capture, Check, Reset, verrou, solution). Les notifications par mascotte, l’aimantation des modules et la vitesse de simulation sont couvertes par des tests purs et des contrôles navigateur. Pour la bêta 0.1.0-beta.4, le ZIP et l’installateur ont été construits ; le build a été lancé dans Neutralinojs et affiche `v0.1.0-beta.4`. La signature Authenticode reste absente faute de certificat. Détail dans `docs/PROJECT_ARCHIVE.md`.
 
 Ajouts depuis ce check-up : **Examples → Simple → Widgets → RGB LED** (LED RVB en français), puis **dix projets avec widgets**, pour **46 exemples** au total :
 

@@ -1,6 +1,6 @@
 # Accessibilité — Sapphire 3
 
-> Audit daté du **6 novembre 2026**, version `0.1.0-beta.3`. Ce document décrit ce qui a été vérifié, corrigé et ce qui reste hors de portée. Il ne constitue pas une certification WCAG.
+> Audit daté des **6 et 7 novembre 2026**, version `0.1.0-beta.4`. Ce document décrit ce qui a été vérifié, corrigé et ce qui reste hors de portée. Il ne constitue pas une certification WCAG.
 
 ## 1. Périmètre
 

@@ -2,6 +2,14 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Préparation de la bêta 0.1.0-beta.4 — 7 novembre 2026
+
+- Version portée à **0.1.0-beta.4** dans `package.json`. Notes dans `docs/releases/v0.1.0-beta.4.md` ; README et page d’accueil `abstract/` alignés.
+- Contenu depuis la beta.3 : mode exercice (manifeste, snapshot de départ, tests entrée/fonction, Check, Reset, robot), verrou PBKDF2 et solutions, dix exemples supplémentaires et reclassement (46 au total), installateur Windows par utilisateur, licence MIT, audit d’accessibilité, documentation et wiki.
+- `pnpm test` : **536 réussis**. `pnpm dist:installer` réussi avec Inno Setup 7.1.1 : ZIP de **5 539 349 octets** (SHA-256 `be6975681b6c8954a4bd62b99ce710819258924b8b4a91aaaf0293e03ffe7ce6`) et installateur de **7 104 079 octets** (SHA-256 `d79074cf97669ec8e5681878c12e2c15202c6aac3043be10ed97559b5bba08fe`).
+- ZIP audité : **15 entrées**, `LICENSE.txt` présent, aucune source map ni fixture `.sp3`. Lancement natif du build : interface et version `v0.1.0-beta.4` affichées, mode exercice présent. **Aucune signature Authenticode** : aucun certificat configuré ; le paquet ne doit pas être présenté comme signé.
+- Publication GitHub à effectuer après commit et push de `master`, en pré-release avec tag `v0.1.0-beta.4` et les deux assets. Vérification distante obligatoire avant de considérer la release comme publiée.
+
 ## Mode exercice local — 7 novembre 2026
 
 - Manifeste `exercise` optionnel dans le workspace v2 : `version`, `title`, `instructions`, `starter` (projet + présentation), `tests`. Validation stricte (titre, types, identifiants, arguments JSON, maximum 100 tests) et validation du `starter` comme un workspace complet à l'import/export. Aucun changement de version de fichier : les workspaces sans exercice restent identiques.
