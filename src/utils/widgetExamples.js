@@ -9,14 +9,61 @@ import { createRgbLedModule } from './rgbLedNode.js'
 const intType = { kind: 'primitive', name: 'int' }
 const doubleType = { kind: 'primitive', name: 'double' }
 const booleanType = { kind: 'primitive', name: 'boolean' }
+const voidType = { kind: 'primitive', name: 'void' }
 const arrayType = { kind: 'array', elementType: intType }
 
+// Construit une classe complète (membres publics/privés, constructeur, this) hors du module principal.
+function classBuilder(id, name) {
+  const module = createModule(id, name, 'class')
+  const nodes = []
+  let sequence = 0
+  const make = (kind, properties = {}, children = {}, references = {}) => {
+    const nodeId = `${id}:${++sequence}`
+    nodes.push(createNode(nodeId, id, kind, { properties, children, references }))
+    return nodeId
+  }
+  const member = (kind, properties = {}, children = {}, references = {}) => {
+    const nodeId = make(kind, properties, children, references)
+    module.rootNodeIds.push(nodeId)
+    return nodeId
+  }
+  const read = (name) => make('Reference', {}, {}, { target: { kind: 'name', name } })
+  const thisNode = () => make('ThisExpression')
+  const memberAccess = (object, name) => make('MemberExpression', { name }, { object })
+  const integer = (value) => make('Literal', { type: intType, value: String(value) })
+  const real = (value) => make('Literal', { type: doubleType, value: String(value) })
+  const boolean = (value) => make('Literal', { type: booleanType, value })
+  const op = (operator, left, right) => make('BinaryExpression', { operator }, { left, right })
+  const call = (callee, args) => make('CallExpression', {}, { callee, arguments: args })
+  const assign = (target, value) => make('AssignmentStatement', {}, { target, value })
+  const block = (statements) => make('Block', {}, { statements })
+  const ifThen = (test, consequent, alternate = null) => make('IfStatement', {}, { test, consequent, alternate })
+  const returnValue = (argument) => make('ReturnStatement', {}, { argument })
+  const parameter = (name, type) => make('Parameter', { name, type })
+  const newObject = (classId, args) => make('NewExpression', { classId }, { arguments: args })
+  const importRef = (importId) => make('Reference', {}, {}, { target: { kind: 'import', importId } })
+  const castInt = (argument) => make('CastExpression', { type: intType }, { argument })
+  const statement = (expression) => make('ExpressionStatement', {}, { expression })
+  // Importe une fonction exportée d'un widget dans le module de classe.
+  const importFunction = (importId, widget, name) => {
+    const exported = widget.module.exports.find((entry) => entry.name === name)
+    if (!exported) throw new Error(`Unknown widget export: ${name}`)
+    module.imports.push({ id: importId, moduleId: widget.module.id, nodeId: exported.nodeId, localName: name })
+    return importId
+  }
+  return { module, nodes, make, member, read, thisNode, memberAccess, integer, real, boolean, op, call, assign, block, ifThen, returnValue, parameter, newObject, importRef, castInt, statement, importFunction }
+}
+
 // Assemble des nœuds source ordinaires à identifiants neufs ; aucun résultat algorithmique n'est précalculé.
-function demo(id, title, widgets) {
+function demo(id, title, widgets, extraModules = []) {
   const project = createProject(id)
   for (const widget of widgets) {
     project.modules.push(widget.module)
     project.nodes.push(...widget.nodes)
+  }
+  for (const extra of extraModules) {
+    project.modules.push(extra.module)
+    project.nodes.push(...extra.nodes)
   }
   const app = createModule(`${id}App`, title)
   project.modules.push(app)
@@ -37,6 +84,16 @@ function demo(id, title, widgets) {
   function boolean(value) { return make('Literal', { type: booleanType, value }) }
   // Résout une déclaration dans sa portée lexicale au moment de l'analyse.
   function read(name) { return make('Reference', {}, {}, { target: { kind: 'name', name } }) }
+  // Accède à un membre d'une instance de classe.
+  function member(object, name) { return make('MemberExpression', { name }, { object }) }
+  // Appelle une méthode sur une instance, avec les arguments fournis.
+  function methodCall(object, name, args) { return make('CallExpression', {}, { callee: member(object, name), arguments: args }) }
+  // Instancie une classe avec les arguments de son constructeur.
+  function newObject(classId, args) { return make('NewExpression', { classId }, { arguments: args }) }
+  // Enveloppe une expression dans une instruction.
+  function statement(expression) { return make('ExpressionStatement', {}, { expression }) }
+  // Type de classe référencé par l'identifiant stable de son module.
+  function classType(classId) { return { kind: 'class', classId } }
   // Une expression binaire avec deux enfants distincts.
   function op(operator, left, right) { return make('BinaryExpression', { operator }, { left, right }) }
   // Appelle uniquement une opération native SP3 existante.
@@ -84,7 +141,7 @@ function demo(id, title, widgets) {
     app.rootNodeIds.push(make('FunctionDeclaration', { name: 'main', type: { kind: 'primitive', name: 'void' }, entryPoint: true }, { parameters: [], body: block(statements) }))
     return { project, description, title }
   }
-  return { make, integer, real, boolean, read, op, math, asDouble, array, at, declare, assign, store, branch, whileLoop, loop, widgetCall, print, finish }
+  return { make, integer, real, boolean, read, member, methodCall, newObject, statement, classType, op, math, asDouble, array, at, declare, assign, store, branch, whileLoop, loop, widgetCall, print, finish }
 }
 
 // Les restes successifs de l'algorithme d'Euclide deviennent les deux barres du graphique.
@@ -264,7 +321,100 @@ function pascalTriangle() {
   ], 'Huit lignes du triangle de Pascal, calculées en place. Chaque coefficient devient values[j] + values[j−1] en parcourant j de droite à gauche : cela évite de relire une valeur déjà modifiée. La heatmap conserve les lignes ; les barres montrent la dernière. Sortie attendue : 1, 7, 21, 35, 35, 21, 7, 1. Gardez huit lignes pour respecter les dimensions des widgets.')
 }
 
-// Dix projets supplémentaires ; le catalogue principal fournit les cartes et la confirmation d'ouverture habituelles.
+// Deux classes coopèrent et pilotent une jauge, un graphique et une LED depuis leurs méthodes.
+function reactorControl() {
+  const gauge = createGaugeModule('reactorGauge', 'Core output', 1, { min: 0, max: 100 })
+  const bars = createBarChartModule('reactorBars', 'Core history', 1, { size: 12 })
+  const led = createLedModule('reactorLed', 'Temperature safe', 1)
+
+  const reactor = classBuilder('reactorControlClass', 'Reactor')
+  const gaugeImport = reactor.importFunction('reactorControl:import:gauge', gauge, gauge.functions.setValue)
+  const barsImport = reactor.importFunction('reactorControl:import:bars', bars, bars.functions.setValue)
+  const ledImport = reactor.importFunction('reactorControl:import:led', led, led.functions.setValue)
+
+  reactor.member('VariableDeclaration', { name: 'energy', type: doubleType, visibility: 'private' }, { initializer: reactor.real(40) })
+  reactor.member('VariableDeclaration', { name: 'temperature', type: doubleType, visibility: 'private' }, { initializer: reactor.real(20) })
+  const reactorCtorBody = reactor.block([
+    reactor.assign(reactor.memberAccess(reactor.thisNode(), 'energy'), reactor.read('start')),
+  ])
+  reactor.member('FunctionDeclaration', { name: 'constructor', type: voidType, constructor: true, visibility: 'public' }, { parameters: [reactor.parameter('start', doubleType)], body: reactorCtorBody })
+
+  const limitBody = reactor.block([
+    reactor.returnValue(reactor.real(100)),
+  ])
+  reactor.member('FunctionDeclaration', { name: 'limit', type: doubleType, visibility: 'private' }, { parameters: [], body: limitBody })
+
+  const injectBody = reactor.block([
+    reactor.assign(reactor.memberAccess(reactor.thisNode(), 'energy'), reactor.op('+', reactor.memberAccess(reactor.thisNode(), 'energy'), reactor.read('amount'))),
+    reactor.ifThen(
+      reactor.op('>', reactor.memberAccess(reactor.thisNode(), 'energy'), reactor.call(reactor.memberAccess(reactor.thisNode(), 'limit'), [])),
+      reactor.block([reactor.assign(reactor.memberAccess(reactor.thisNode(), 'energy'), reactor.call(reactor.memberAccess(reactor.thisNode(), 'limit'), []))]),
+    ),
+    reactor.ifThen(
+      reactor.op('<', reactor.memberAccess(reactor.thisNode(), 'energy'), reactor.real(0)),
+      reactor.block([reactor.assign(reactor.memberAccess(reactor.thisNode(), 'energy'), reactor.real(0))]),
+    ),
+  ])
+  reactor.member('FunctionDeclaration', { name: 'inject', type: voidType, visibility: 'public' }, { parameters: [reactor.parameter('amount', doubleType)], body: injectBody })
+
+  const tickBody = reactor.block([
+    reactor.assign(reactor.memberAccess(reactor.thisNode(), 'temperature'), reactor.op('-', reactor.op('+', reactor.memberAccess(reactor.thisNode(), 'temperature'), reactor.op('*', reactor.memberAccess(reactor.thisNode(), 'energy'), reactor.real(0.08))), reactor.real(3))),
+    reactor.ifThen(
+      reactor.op('<', reactor.memberAccess(reactor.thisNode(), 'temperature'), reactor.real(0)),
+      reactor.block([reactor.assign(reactor.memberAccess(reactor.thisNode(), 'temperature'), reactor.real(0))]),
+    ),
+  ])
+  reactor.member('FunctionDeclaration', { name: 'tick', type: voidType, visibility: 'public' }, { parameters: [], body: tickBody })
+
+  reactor.member('FunctionDeclaration', { name: 'level', type: doubleType, visibility: 'public' }, { parameters: [], body: reactor.block([reactor.returnValue(reactor.memberAccess(reactor.thisNode(), 'energy'))]) })
+  reactor.member('FunctionDeclaration', { name: 'heat', type: doubleType, visibility: 'public' }, { parameters: [], body: reactor.block([reactor.returnValue(reactor.memberAccess(reactor.thisNode(), 'temperature'))]) })
+
+  const publishBody = reactor.block([
+    reactor.statement(reactor.call(reactor.importRef(gaugeImport), [reactor.call(reactor.memberAccess(reactor.thisNode(), 'level'), [])])),
+    reactor.statement(reactor.call(reactor.importRef(barsImport), [reactor.read('step'), reactor.castInt(reactor.call(reactor.memberAccess(reactor.thisNode(), 'level'), []))])),
+    reactor.statement(reactor.call(reactor.importRef(ledImport), [reactor.op('<', reactor.call(reactor.memberAccess(reactor.thisNode(), 'heat'), []), reactor.real(30))])),
+  ])
+  reactor.member('FunctionDeclaration', { name: 'publish', type: voidType, visibility: 'public' }, { parameters: [reactor.parameter('step', intType)], body: publishBody })
+
+  const controller = classBuilder('controllerControlClass', 'Controller')
+  controller.member('VariableDeclaration', { name: 'target', type: doubleType, visibility: 'private' }, { initializer: controller.real(70) })
+  controller.member('VariableDeclaration', { name: 'cycles', type: intType, visibility: 'private' }, { initializer: controller.integer(0) })
+  const controllerCtorBody = controller.block([
+    controller.assign(controller.memberAccess(controller.thisNode(), 'target'), controller.read('goal')),
+  ])
+  controller.member('FunctionDeclaration', { name: 'constructor', type: voidType, constructor: true, visibility: 'public' }, { parameters: [controller.parameter('goal', doubleType)], body: controllerCtorBody })
+  const thresholdBody = controller.block([controller.returnValue(controller.real(5))])
+  controller.member('FunctionDeclaration', { name: 'threshold', type: doubleType, visibility: 'private' }, { parameters: [], body: thresholdBody })
+
+  const regulateBody = controller.block([
+    controller.ifThen(
+      controller.op('<', controller.call(controller.memberAccess(controller.read('reactor'), 'level'), []), controller.op('-', controller.memberAccess(controller.thisNode(), 'target'), controller.call(controller.memberAccess(controller.thisNode(), 'threshold'), []))),
+      controller.block([controller.statement(controller.call(controller.memberAccess(controller.read('reactor'), 'inject'), [controller.real(8)]))]),
+    ),
+    controller.ifThen(
+      controller.op('>', controller.call(controller.memberAccess(controller.read('reactor'), 'level'), []), controller.op('+', controller.memberAccess(controller.thisNode(), 'target'), controller.call(controller.memberAccess(controller.thisNode(), 'threshold'), []))),
+      controller.block([controller.statement(controller.call(controller.memberAccess(controller.read('reactor'), 'inject'), [controller.real(-6)]))]),
+    ),
+    controller.assign(controller.memberAccess(controller.thisNode(), 'cycles'), controller.op('+', controller.memberAccess(controller.thisNode(), 'cycles'), controller.integer(1))),
+  ])
+  controller.member('FunctionDeclaration', { name: 'regulate', type: voidType, visibility: 'public' }, { parameters: [controller.parameter('reactor', { kind: 'class', classId: 'reactorControlClass' })], body: regulateBody })
+  controller.member('FunctionDeclaration', { name: 'count', type: intType, visibility: 'public' }, { parameters: [], body: controller.block([controller.returnValue(controller.memberAccess(controller.thisNode(), 'cycles'))]) })
+
+  const b = demo('reactorControl', 'Reactor control', [gauge, bars, led], [reactor, controller])
+  return b.finish([
+    b.declare('reactor', b.newObject('reactorControlClass', [b.real(40)]), b.classType('reactorControlClass')),
+    b.declare('controller', b.newObject('controllerControlClass', [b.real(70)]), b.classType('controllerControlClass')),
+    b.loop('step', 0, b.integer(12), [
+      b.statement(b.methodCall(b.read('controller'), 'regulate', [b.read('reactor')])),
+      b.statement(b.methodCall(b.read('reactor'), 'tick', [])),
+      b.statement(b.methodCall(b.read('reactor'), 'publish', [b.read('step')])),
+    ]),
+    b.print(b.methodCall(b.read('reactor'), 'level', [])),
+    b.print(b.methodCall(b.read('controller'), 'count', [])),
+  ], 'Deux classes coopèrent : Reactor garde energy et temperature privés, expose un constructeur, inject, tick, level, heat et publish ; Controller garde target et cycles privés et régule le réacteur avec un seuil privé. La boucle crée les instances avec new, appelle les méthodes publiques et met à jour une jauge, un graphique à barres et une LED depuis la classe Reactor. Les champs privés ne sont accessibles que par this. Sortie attendue : 72 puis 12 ; la LED s’éteint quand la température dépasse 30 °C.')
+}
+
+// Onze projets supplémentaires ; le catalogue principal fournit les cartes et la confirmation d'ouverture habituelles.
 export const widgetExamples = [
   { id: 'euclid', labelKey: 'examples.euclid', category: 'medium', subcategory: 'operations', build: euclid },
   { id: 'binarySearch', labelKey: 'examples.binarySearch', category: 'medium', subcategory: 'arrays', build: binarySearch },
@@ -274,6 +424,7 @@ export const widgetExamples = [
   { id: 'checkoutQueue', labelKey: 'examples.checkoutQueue', category: 'medium', subcategory: 'simulation', build: checkoutQueue },
   { id: 'thermostat', labelKey: 'examples.thermostat', category: 'medium', subcategory: 'simulation', build: thermostat },
   { id: 'dampedSpring', labelKey: 'examples.dampedSpring', category: 'hard', subcategory: 'simulation', build: dampedSpring },
+  { id: 'reactorControl', labelKey: 'examples.reactorControl', category: 'hard', subcategory: 'simulation', build: reactorControl },
   { id: 'floodFill', labelKey: 'examples.floodFill', category: 'hard', subcategory: 'arrays', build: floodFill },
   { id: 'pascalTriangle', labelKey: 'examples.pascalTriangle', category: 'hard', subcategory: 'dynamic', build: pascalTriangle },
 ]

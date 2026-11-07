@@ -469,6 +469,7 @@ const messages = {
   'examples.checkoutQueue': ['Checkout queue', 'File de caisse', '收银队列', 'Cola de caja', 'طابور الدفع', 'レジの待ち行列', 'भुगतान की कतार', 'Очередь к кассе'],
   'examples.thermostat': ['Thermostat', 'Thermostat', '恒温器', 'Termostato', 'منظم الحرارة', 'サーモスタット', 'ताप नियंत्रक', 'Термостат'],
   'examples.dampedSpring': ['Damped spring', 'Ressort amorti', '阻尼弹簧', 'Resorte amortiguado', 'نابض مخمد', '減衰ばね', 'अवमंदित स्प्रिंग', 'Затухающий пружинный осциллятор'],
+  'examples.reactorControl': ['Reactor control', 'Contrôle du réacteur', '反应堆控制', 'Control del reactor', 'التحكم في المفاعل', 'リアクター制御', 'रिएक्टर नियंत्रण', 'Управление реактором'],
   'examples.floodFill': ['Flood fill', 'Remplissage par propagation', '洪水填充', 'Relleno por inundación', 'التعبئة بالانتشار', '塗りつぶし探索', 'फ्लड फ़िल', 'Заливка области'],
   'examples.pascalTriangle': ['Pascal triangle', 'Triangle de Pascal', '杨辉三角', 'Triángulo de Pascal', 'مثلث باسكال', 'パスカルの三角形', 'पास्कल का त्रिभुज', 'Треугольник Паскаля'],
   'examples.category.simple': ['Simple', 'Simple', '简单', 'Sencillo', 'بسيط', '基本', 'सरल', 'Простые'],

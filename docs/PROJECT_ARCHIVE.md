@@ -2,6 +2,15 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Exemple Reactor control, classes et widgets — 7 novembre 2026
+
+- Nouvel exemple **Reactor control** (`reactorControl`, **Hard → Simulation**) construit dans `src/utils/widgetExamples.js` avec un `classBuilder` dédié : il réutilise les helpers de widgets et ajoute `member`, `memberAccess`, `newObject`, `statement`, `classType`, `importRef` et `castInt`.
+- Deux modules de classe distincts : `Reactor` (attributs privés `energy`, `temperature`, constructeur public, méthodes `limit` privée, `inject`, `tick`, `level`, `heat`, `publish` publiques) et `Controller` (attributs privés `target`, `cycles`, constructeur public, `threshold` privée, `regulate`, `count` publiques). `Controller.regulate` reçoit un paramètre typé `{kind:'class', classId:'reactorControlClass'}` et appelle les méthodes publiques de l'instance.
+- `Reactor.publish` importe et appelle les fonctions de trois widgets : jauge `Core output`, graphique à barres `Core history` et LED `Temperature safe`. Le module principal crée les instances avec `new`, boucle douze fois, puis affiche le niveau (`72`) et le nombre de cycles (`12`).
+- Le catalogue principal mappe désormais un module `kind: 'class'` vers une carte `type: 'class'` ; la carte et les deux classes apparaissent dans le workspace de l'exemple.
+- Traductions `examples.reactorControl` ajoutées dans les huit langues. `tests/workspace/examples.test.js` vérifie la sortie `['72', '12']` ; `tests/workspace/widgetExamples.test.js` couvre désormais 11 exemples, 52 projets et la catégorie **Hard** à 20 entrées, en ignorant les cartes de classe pour les états de widgets.
+- `pnpm test` : **555 réussis**. `pnpm build` réussi.
+
 ## Classes, scopes et instances — 7 novembre 2026
 
 - Une classe est un module `kind: 'class'` dont la racine n'accepte que des attributs, des constantes, des méthodes et un constructeur. Les deux scopes **Public** et **Private** sont portés par `properties.visibility` sur chaque membre ; l'arbre de la carte les affiche séparément et chaque scope a son propre bouton d'ajout.
