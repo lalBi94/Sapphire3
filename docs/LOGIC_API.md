@@ -7,7 +7,7 @@ Point d'entrée : `src/utils/logic/index.js`. JavaScript pur, sans React, DOM, A
 | Fonction | Résultat |
 | --- | --- |
 | `createProject(id)` | `{formatVersion: 1, id, modules: [], nodes: []}` |
-| `createModule(id, name, kind = 'module')` | Module vide ; seule catégorie valide : `module` |
+| `createModule(id, name, kind = 'module')` | Module vide ; catégories valides : `module` ou `class` |
 | `createNode(id, moduleId, kind, {properties, children, references})` | Nœud permissif, sans génération d'identifiant |
 | `buildLogicalAst(source)` | `{ast, diagnostics}` ; structure hiérarchique avec trous et fragments invalides |
 | `buildSemanticModel(ast)` | `{model, diagnostics, index}` ; entrée attendue : AST issu du constructeur ; `index` contient les Map temporaires des passes suivantes |
@@ -42,7 +42,7 @@ Point d'entrée : `src/utils/logic/index.js`. JavaScript pur, sans React, DOM, A
 | `insertBookmark(project, bookmark, {moduleId, ids, moduleName?, existingModule?})` | `{ok, project, analysis, moduleId, rootNodeIds, existingModule}` ou `BOOKMARK_INVALID` ; recopie dans un module neuf ou existant, en remappant identifiants, enfants et références |
 | `describeBookmark(bookmark)` | `{kind, name, parameters, returnType, nodeCount, functionCount, rootNames, functionNames}` ; résumé lisible d'un instantané, sans le modifier |
 
-`diagnosticCodes`, `sourceFormatVersion`, `moduleKinds`, `nodeSchema`, `getNodeSchema`, `binaryOperators`, `unaryOperators`, `primitiveDefinitions`, `primitiveType(name)`, `sameType`, `acceptsOperand`, `arrayType`, `isArrayType`, `arrayElementType`, `isValidElementType`, `pointerType`, `isPointerType`, `pointerPointee`, `isValidPointee`, `declaredTypeParameters`, `typeParameterConstraint`, `substituteType` et `isTypeParameterName` sont également exportés. `primitiveType` renvoie uniquement un primitif autorisé, ou `null` comme absence de résultat. Aucun type de secours n'existe. La catégorie Module est définie dans `model.js` et réutilisée par les libellés visuels ; les cartes Module partagent l'identifiant de leur module source, tandis que les annotations Comment restent hors du moteur. Les contrats JSDoc sont dans `model.js`, `ast.js`, `semantics.js`, `diagnostics.js`, `contextResolver.js`, `sourceMutation.js`, `rename.js` et `selectionActions.js` ; aucun TypeScript ajouté.
+`diagnosticCodes`, `sourceFormatVersion`, `moduleKinds`, `nodeSchema`, `getNodeSchema`, `binaryOperators`, `unaryOperators`, `primitiveDefinitions`, `primitiveType(name)`, `sameType`, `acceptsOperand`, `arrayType`, `isArrayType`, `arrayElementType`, `isValidElementType`, `pointerType`, `isPointerType`, `pointerPointee`, `isValidPointee`, `declaredTypeParameters`, `typeParameterConstraint`, `substituteType` et `isTypeParameterName` sont également exportés. `primitiveType` renvoie uniquement un primitif autorisé, ou `null` comme absence de résultat. Aucun type de secours n'existe. La catégorie Module est définie dans `model.js` et réutilisée par les libellés visuels ; les cartes Module et Class partagent l'identifiant de leur module source, tandis que les annotations Comment restent hors du moteur. Les contrats JSDoc sont dans `model.js`, `ast.js`, `semantics.js`, `diagnostics.js`, `contextResolver.js`, `sourceMutation.js`, `rename.js` et `selectionActions.js` ; aucun TypeScript ajouté.
 
 Les fonctions ne modifient pas les entrées. Les identifiants sont fournis par l'appelant, stables et jamais régénérés pendant les transformations. Les consommateurs doivent traiter les résultats comme des instantanés en lecture seule ; certains champs JSON sont partagés avec la source, sans copie profonde inutile.
 
@@ -54,9 +54,11 @@ Les fonctions ne modifient pas les entrées. Les identifiants sont fournis par l
 
 Un module possède `rootNodeIds`, `imports` et `exports`. L'ordre de `rootNodeIds` et des slots de listes est l'ordre syntaxique, pas celui du tableau global `nodes`. Pas de sous-modules dans cette version ; l'absence de hiérarchie de modules évite de la confondre avec les portées lexicales.
 
+Une **classe** est un module de catégorie `class`. Son nom est celui du module ; ses champs et méthodes sont des nœuds racines ordinaires (`VariableDeclaration`, `ConstantDeclaration`, `FunctionDeclaration`). Cette première étape ne crée ni instance, ni expression `new`, ni type de classe annotable, ni accès `this`, ni hiérarchie ni polymorphisme. Les méthodes restent donc des fonctions de module tant que la sémantique d'instance n'est pas introduite.
+
 Un projet valide contient zéro ou une seule fonction portant `properties.entryPoint: true`. Le marqueur est un booléen optionnel réservé à `FunctionDeclaration` ; absent ou `false`, la fonction est ordinaire, même si elle s'appelle `main`. Toute fonction marquée supplémentaire produit `ENTRY_POINT_DUPLICATE`, sur son `nodeId` et `properties.entryPoint`, y compris dans les fragments détachés. Un marqueur non booléen ou placé sur une autre construction produit `ENTRY_POINT_INVALID`. Les données invalides restent inspectables et sérialisables sans suppression automatique ; `canGenerate` est faux. Aucun nom, signature cible, appel implicite ou comportement d'exécution n'est imposé ; les règles de types et de retour ordinaires s'appliquent.
 
-La catégorie de module `main` est retirée : une ancienne source v1 l'utilisant reste conservée et diagnostiquée `MODULE_INVALID`, jamais convertie silencieusement en module ou en fonction. Le format JSON logique reste v1 ; aucune migration automatique. L'import/export de fichiers est une responsabilité séparée du moteur : voir `docs/WORKSPACE_FILES.md` pour l'enveloppe workspace, la validation UI et les services natifs.
+La catégorie de module `main` est retirée : une ancienne source v1 l'utilisant reste conservée et diagnostiquée `MODULE_INVALID`, jamais convertie silencieusement en module ou en fonction. Les catégories `module` et `class` sont acceptées. Le format JSON logique reste v1 ; aucune migration automatique. L'import/export de fichiers est une responsabilité séparée du moteur : voir `docs/WORKSPACE_FILES.md` pour l'enveloppe workspace, la validation UI et les services natifs.
 
 ## Constructions et slots
 
@@ -69,7 +71,7 @@ La catégorie de module `main` est retirée : une ancienne source v1 l'utilisant
 | `FunctionDeclaration` | `name`, `type` obligatoire (retour), `entryPoint?` booléen ; `parameters[]`, `body` Block |
 | `LambdaExpression` | `type` obligatoire (retour) ; `parameters[]`, `body` expression unique ; captures lexicales implicites, sans nom |
 | `Parameter` | `name`, `type` obligatoire ; uniquement dans `parameters[]` |
-| `TypeDeclaration` | `name`, `type` obligatoire ; alias transparent d'un primitif, pas de classes/structures |
+| `TypeDeclaration` | `name`, `type` obligatoire ; alias transparent d'un primitif ; une classe est un module, pas un alias de type, et aucun type de classe n'est encore annotable |
 | `Block` | `statements[]` : déclarations ou instructions |
 | `ReturnStatement` | `argument?` expression ; uniquement dans une fonction |
 | `PrintStatement` | `value` expression non `void` ; ajoute la représentation textuelle de la valeur à la sortie de simulation |

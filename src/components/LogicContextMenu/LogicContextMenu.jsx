@@ -48,6 +48,9 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
   const available = getAvailableActions(project, targetId, slotName || undefined, { index })
   const selectedSlot = available.slot?.name ?? ''
   const parent = targetId.kind === 'node' ? index.parents.get(targetId.id)?.[0] : null
+  const targetModule = targetId.kind === 'module' ? project.modules.find((module) => module.id === targetId.id) : null
+  const targetDefinition = targetModule?.kind === 'class' ? moduleTypes.class : moduleTypes.module
+  const targetKind = targetModule?.kind === 'class' ? 'class' : 'module'
   const canDuplicate = parent?.kind === 'module' || getNodeSchema(index.nodes.get(parent?.id)?.kind)?.slots?.[parent?.slot]?.many
   const searchTerm = search.trim()
   const searchActive = searchTerm.length > 0
@@ -245,9 +248,9 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
           <button type="button" role="menuitem" onClick={() => onExpansion(available.target.id, false)}><ChevronsDownUp className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.collapseAll')}</button>
         </>}
         {available.ok && available.target?.kind === 'node' && <button type="button" role="menuitem" className="logic-context-menu__delete" title={t('canvas.deleteInside')} onClick={() => onDelete(targetId)}><Trash2 className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.deleteBlock')}</button>}
-        {available.target?.kind === 'module' && <button type="button" role="menuitem" onClick={() => onLockCard(available.target.id)}>{targetLocked ? <LockOpen className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" /> : <Lock className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />}{targetLocked ? t('canvas.unlock') : t('canvas.lock')} {t(moduleTypes.module.targetLabelKey)}</button>}
-        {available.target?.kind === 'module' && <button type="button" role="menuitem" onClick={() => onHideCard(available.target)}><EyeOff className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.hide')} {t(moduleTypes.module.targetLabelKey)}</button>}
-        {available.ok && available.target?.kind === 'module' && <DeleteAction targetId={available.target.id} kind="module" onDelete={onDeleteModule} menu />}
+        {available.target?.kind === 'module' && <button type="button" role="menuitem" onClick={() => onLockCard(available.target.id)}>{targetLocked ? <LockOpen className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" /> : <Lock className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />}{targetLocked ? t('canvas.unlock') : t('canvas.lock')} {t(targetDefinition.targetLabelKey)}</button>}
+        {available.target?.kind === 'module' && <button type="button" role="menuitem" onClick={() => onHideCard(available.target)}><EyeOff className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.hide')} {t(targetDefinition.targetLabelKey)}</button>}
+        {available.ok && available.target?.kind === 'module' && <DeleteAction targetId={available.target.id} kind={targetKind} onDelete={onDeleteModule} menu />}
       </div>
       </div>
       {kind && <div className="logic-context-menu__form"><h3>{kindLabel(kind, t)}</h3><NodeForm key={`${selectedSlot}:${kind}:${preset?.name ?? ''}`} kind={kind} preset={preset} context={available} onSubmit={(draft) => onInsert(targetId, selectedSlot, draft)} /></div>}

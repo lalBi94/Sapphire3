@@ -1,4 +1,5 @@
 import { getNodeSchema } from './logic/index.js'
+import { moduleCardTypes } from './moduleTypes.js'
 import { rankModules } from './moduleLayout.js'
 
 const fontSize = 12
@@ -159,7 +160,7 @@ function linkPath(from, to) {
 // Assemble une vue d'ensemble SVG du workspace entièrement déplié, disposée sans chevauchement.
 export function buildWorkspaceSvg({ cards = [], index, links = [], describe = () => '', colors = {} }) {
   const palette = { background: '#0e0e12', surface: '#19191f', comment: '#211f28', border: '#ffffff24', text: '#f2f1f6', muted: '#b5b2c2', accent: '#f5d547', node: {}, ...colors }
-  const moduleCards = cards.filter((card) => card.type === 'module' && index.modules.has(card.id))
+  const moduleCards = cards.filter((card) => moduleCardTypes.includes(card.type) && index.modules.has(card.id))
   const annotationCards = cards.filter((card) => card.type === 'comment' || card.type === 'image')
   const measured = moduleCards.map((card) => measureModule(card, index, describe))
   const { boxes, bottom } = placeModules(measured, links)

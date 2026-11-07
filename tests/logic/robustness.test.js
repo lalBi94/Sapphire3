@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
 import { analyzeProgram, serializeSource, deserializeSource, diagnosticCodes as codes, moduleKinds } from '../../src/utils/logic/index.js'
-import { moduleTypes } from '../../src/utils/moduleTypes.js'
+import { moduleCardTypes, moduleTypes } from '../../src/utils/moduleTypes.js'
 import { program, root, node, intType, twoModules } from './fixtures.js'
 
 // Gèle récursivement une source JSON pour détecter les écritures accidentelles.
@@ -18,7 +18,8 @@ test('le moteur analyse une source profondément gelée sans effets de bord', ()
 
 test('indépendance : tous les imports du moteur sont des fichiers JavaScript locaux', () => {
   assert.deepEqual(Object.values(moduleTypes).filter((definition) => definition.sourceKind).map((definition) => definition.sourceKind), Object.values(moduleKinds))
-  assert.deepEqual(Object.keys(moduleTypes), ['module', 'screen', 'gauge', 'progress', 'barChart', 'heatmap', 'led', 'rgbLed', 'comment', 'image'])
+  assert.deepEqual(moduleCardTypes, [moduleKinds.module, moduleKinds.class])
+  assert.deepEqual(Object.keys(moduleTypes), ['module', 'class', 'screen', 'gauge', 'progress', 'barChart', 'heatmap', 'led', 'rgbLed', 'comment', 'image'])
   assert.equal(Object.values(moduleKinds).includes('comment'), false)
   assert.equal(moduleTypes.comment.hasText, true)
   assert.equal(moduleTypes.screen.hasScreen, true)

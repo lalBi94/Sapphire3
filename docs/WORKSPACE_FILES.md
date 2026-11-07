@@ -37,7 +37,8 @@ Mon_Projet/
 
 - `project` : source logique complète, identifiants, références, types et marqueur de point d'entrée inclus. AST, diagnostics, index et caches sont recalculés, pas enregistrés.
 - `workspaceVersion` vaut **3**. Les versions 1 et 2 restent lisibles : la version 1 est normalisée (drapeau `generic` converti en `typeParameters`, `screenScale` retiré) puis validée ; la version 2 devient 3 sans transformation de données. Toute version future ou malformée est refusée avec `WORKSPACE_VERSION_UNSUPPORTED` sans remplacer le document courant. `project.formatVersion` reste indépendant et vaut toujours 1.
-- `cards` : toutes les cartes, même hors écran, dans leur ordre de rangement. Chaque carte contient `id`, `type` (`module`/`screen`/`gauge`/`progress`/`barChart`/`heatmap`/`led`/`comment`/`image`), `name`, `x`, `y`, `width`, `height`, `expandedNodeIds`.
+- `cards` : toutes les cartes, même hors écran, dans leur ordre de rangement. Chaque carte contient `id`, `type` (`module`/`class`/`screen`/`gauge`/`progress`/`barChart`/`heatmap`/`led`/`comment`/`image`), `name`, `x`, `y`, `width`, `height`, `expandedNodeIds`.
+- Une carte `class` référence un module source `kind: "class"` ; ses champs et méthodes sont des nœuds racines ordinaires. Aucune instance, aucun `new`, aucun `this`, aucun type de classe ni polymorphisme ne sont encore sérialisés.
 - Une carte Image porte **exactement l'un des deux** champs suivants :
   - `image` : Data URL d'une image encore intégrée (ancien fichier, mode web ou document jamais enregistré) ;
   - `imageRef` : référence relative `images/<nom>.<extension>` vers un fichier du dossier du workspace.

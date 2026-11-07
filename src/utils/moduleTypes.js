@@ -3,6 +3,7 @@ import { moduleKinds } from './logic/model.js'
 // Centralise les cartes visuelles ; Comment et Image restent hors de la logique.
 export const moduleTypes = {
   [moduleKinds.module]: { sourceKind: moduleKinds.module, label: 'Module', labelKey: 'card.module', targetLabelKey: 'canvas.module', actionKey: 'nav.createModule', width: 320, height: 220, renamable: true, hasEmoji: true },
+  [moduleKinds.class]: { sourceKind: moduleKinds.class, label: 'Class', labelKey: 'card.class', targetLabelKey: 'canvas.class', actionKey: 'nav.createClass', width: 340, height: 240, renamable: true, hasEmoji: true },
   screen: { label: 'Screen', labelKey: 'card.screen', targetLabelKey: 'canvas.screen', actionKey: 'nav.createScreen', width: 360, height: 300, renamable: true, hasScreen: true },
   gauge: { label: 'Gauge', labelKey: 'card.gauge', targetLabelKey: 'canvas.gauge', actionKey: 'nav.createGauge', width: 380, height: 260, renamable: true, hasGauge: true },
   progress: { label: 'Progress', labelKey: 'card.progress', targetLabelKey: 'canvas.progress', actionKey: 'nav.createProgress', width: 420, height: 150, renamable: true, hasProgress: true },
@@ -18,10 +19,13 @@ export const minimumModuleSize = { width: 180, height: 120 }
 
 // Catégories stables du menu de création, dans l'ordre d'affichage.
 export const cardCategories = [
-  { id: 'programming', labelKey: 'canvas.createCategory.programming', types: [moduleKinds.module] },
+  { id: 'programming', labelKey: 'canvas.createCategory.programming', types: [moduleKinds.module, moduleKinds.class] },
   { id: 'widgets', labelKey: 'canvas.createCategory.widgets', types: ['screen', 'gauge', 'progress', 'barChart', 'heatmap', 'led', 'rgbLed'] },
   { id: 'annotations', labelKey: 'canvas.createCategory.annotations', types: ['comment', 'image'] },
 ]
+
+// Cartes qui portent un module source ordinaire ou une classe, hors widgets spécialisés.
+export const moduleCardTypes = [moduleKinds.module, moduleKinds.class]
 
 // Les cartes adossées à un module sont distinctes des annotations de présentation.
 export const logicalCardTypes = Object.keys(moduleTypes).filter((type) => !moduleTypes[type].hasText && !moduleTypes[type].hasImage)

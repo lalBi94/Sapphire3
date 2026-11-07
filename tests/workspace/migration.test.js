@@ -44,6 +44,15 @@ test('migration : la version courante est relue sans transformation', () => {
   assert.deepEqual(deserializeWorkspace(JSON.stringify(current)), current)
 })
 
+test('classes : un module de classe est sérialisé et relu sans transformation', () => {
+  const project = createProject('workspace')
+  project.modules = [createModule('account', 'Account', 'class')]
+  const cards = [{ id: 'account', type: 'class', name: 'Account', x: 0, y: 0, width: 340, height: 240, expandedNodeIds: [] }]
+  const workspace = deserializeWorkspace(serializeWorkspace(project, cards, { x: 0, y: 0, zoomLevel: 0 }))
+  assert.equal(workspace.project.modules[0].kind, 'class')
+  assert.equal(workspace.presentation.cards[0].type, 'class')
+})
+
 test('migration : une version future ou malformée est refusée sans perte silencieuse', () => {
   const future = legacyWorkspace()
   future.workspaceVersion = workspaceFileVersion + 1

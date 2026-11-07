@@ -22,7 +22,7 @@ export default function DeleteAction({ targetId, kind = 'node', onDelete, onPrev
   const cancelRef = useRef(null)
   const triggerRef = useRef(null)
   const restoreFocusRef = useRef(false)
-  const targetLabel = t(kind === 'comment' ? 'canvas.note' : kind === 'image' ? 'canvas.image' : kind === 'module' ? 'canvas.module' : 'canvas.block')
+  const targetLabel = t(kind === 'comment' ? 'canvas.note' : kind === 'image' ? 'canvas.image' : kind === 'class' ? 'canvas.class' : kind === 'module' ? 'canvas.module' : 'canvas.block')
 
   useEffect(() => {
     if (confirming) cancelRef.current.focus({ preventScroll: true })
@@ -54,7 +54,7 @@ export default function DeleteAction({ targetId, kind = 'node', onDelete, onPrev
   if (!confirming) return <div className="delete-action"><button ref={triggerRef} type="button" role={menu ? 'menuitem' : undefined} className="delete-action__button delete-action__button--danger" onClick={handleTrigger}><Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.delete')} {targetLabel}</button></div>
   return (
     <div className="delete-action" role="group" aria-label={t('canvas.confirmDelete')}>
-      <p>{kind === 'comment' ? t('canvas.deleteNote') : kind === 'image' ? t('canvas.deleteImage') : `${kind === 'module' ? t('canvas.deleteModule') : t('canvas.deleteInside')} ${t('canvas.brokenLinks')}`}</p>
+      <p>{kind === 'comment' ? t('canvas.deleteNote') : kind === 'image' ? t('canvas.deleteImage') : `${kind === 'class' ? t('canvas.deleteClass') : kind === 'module' ? t('canvas.deleteModule') : t('canvas.deleteInside')} ${t('canvas.brokenLinks')}`}</p>
       {impact?.ok && impact.total > 0 && <p className="delete-action__impact" role="alert">{t('canvas.deleteImpact', { details: impactDetails(impact, t) })}</p>}
       <div className="delete-action__choices">
         <button type="button" role={menu ? 'menuitem' : undefined} className="delete-action__button delete-action__button--danger" onClick={handleConfirm}><Check size={16} strokeWidth={1.75} aria-hidden="true" />{t('canvas.delete')}</button>

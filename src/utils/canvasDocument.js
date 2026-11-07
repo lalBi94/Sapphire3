@@ -1,5 +1,5 @@
-import { logicalCardTypes, moduleTypes } from './moduleTypes.js'
-import { createProject, createModule, analyzeProgram, createContextIndex, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol, deleteSourceTargets, duplicateSourceTargets, moveSourceNodes } from './logic/index.js'
+import { logicalCardTypes, moduleCardTypes, moduleTypes } from './moduleTypes.js'
+import { createProject, createModule, moduleKinds, analyzeProgram, createContextIndex, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol, deleteSourceTargets, duplicateSourceTargets, moveSourceNodes } from './logic/index.js'
 
 // Recalcule les dérivés uniquement quand la source logique change.
 function withSource(state, project, analysis = analyzeProgram(project), index = createContextIndex(project, analysis)) {
@@ -58,7 +58,11 @@ export function reduceDocument(state, action) {
     const card = action.card
     if (state.cards.some((entry) => entry.id === card.id)) return state
     const next = { ...state, cards: [...state.cards, card] }
-    return card.type === 'module' ? withSource(next, { ...state.project, modules: [...state.project.modules, createModule(card.id, card.name)] }) : next
+    if (moduleCardTypes.includes(card.type)) {
+      const kind = card.type === 'class' ? moduleKinds.class : moduleKinds.module
+      return withSource(next, { ...state.project, modules: [...state.project.modules, createModule(card.id, card.name, kind)] })
+    }
+    return next
   }
   if (action.type === 'createScreen') {
     const card = action.card

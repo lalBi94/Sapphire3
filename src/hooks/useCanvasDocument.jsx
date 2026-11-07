@@ -1,5 +1,5 @@
 import { useReducer } from 'react'
-import { moduleTypes } from '../utils/moduleTypes.js'
+import { moduleCardTypes, moduleTypes } from '../utils/moduleTypes.js'
 import { createScreenModule, screenDefaults } from '../utils/screenNode.js'
 import { createGaugeModule, gaugeDefaults } from '../utils/gaugeNode.js'
 import { createProgressModule, progressDefaults } from '../utils/progressNode.js'
@@ -169,7 +169,7 @@ export default function useCanvasDocument() {
     const moduleId = existing ? options.targetModuleId : crypto.randomUUID()
     const moduleName = existing
       ? document.index.modules.get(moduleId)?.name ?? ''
-      : uniqueModuleName(new Set(document.cards.filter((card) => card.type === 'module').map((card) => card.name)), bookmark.name)
+      : uniqueModuleName(new Set(document.cards.filter((card) => moduleCardTypes.includes(card.type)).map((card) => card.name)), bookmark.name)
     const prepared = insertBookmark(document.project, bookmark, { moduleId, moduleName, ids, existingModule: existing, index: document.index })
     if (prepared.ok) dispatch({ type: 'insertBookmark', previousProject: document.project, prepared, bookmark, moduleId, moduleName, ids, existingModule: existing, position: options.position ?? null })
     return { ...prepared, moduleId, moduleName, existingModule: existing }

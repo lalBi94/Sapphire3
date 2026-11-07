@@ -2,6 +2,15 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Classes, premier incrément — 7 novembre 2026
+
+- `moduleKinds` accepte désormais `class` en plus de `module`. Une carte **Class** crée un module source `kind: 'class'` ; son identifiant, son nom, sa géométrie, son emoji et son verrou restent ceux d’une carte logique. `moduleTypes.class` porte le libellé, l’action **Create class**, les dimensions 340 × 240 et `sourceKind: 'class'`.
+- Les champs et méthodes d’une classe sont des nœuds racines ordinaires (`VariableDeclaration`, `ConstantDeclaration`, `FunctionDeclaration`). Le menu de création propose **Create class** dans la catégorie **Programming**, avec l’icône `Braces`. La carte affiche un badge `Class`, un marqueur et une bordure d’accent de sélection.
+- La validation du workspace accepte les modules `class` et vérifie leur carte associée ; la sérialisation et la relecture conservent le type `class` et le `kind` du module. Aucun changement de version de workspace ou de format source.
+- `pnpm test` : **549 réussis** (+2 : création d’une carte de classe avec module `class`, aller-retour workspace d’un module de classe). `pnpm build` réussi.
+- Contrôles navigateur : **Create class** présent dans le menu de création, carte créée avec badge et accent, champ `balance` ajouté comme `VariableDeclaration`, méthode `deposit` ajoutée comme `FunctionDeclaration` avec retour `void`, arbre logique affiché, aucune erreur console. Audit axe-core : **0 violation** sur cet état.
+- Limites assumées : aucune instance, aucun `new`, aucun `this`, aucun accès aux champs ou méthodes via un objet, aucun type de classe annotable, aucune hiérarchie ni polymorphisme. Les méthodes restent des fonctions de module et les champs des déclarations racines jusqu’à la prochaine étape.
+
 ## HUD d’arrière-plan du workspace — 7 novembre 2026
 
 - Nouveau composant `CanvasHud` monté dans le canvas entre la grille et les liens : couche `aria-hidden`, `pointer-events: none`, `z-index: 0`, derrière les cartes. Quatre blocs aux angles et deux rails verticaux affichent la version, l’état du workspace, les compteurs de modules et de nœuds, le zoom, le niveau sémantique, le thème et l’apparence, la grille et l’aimantation, le schéma du workspace, un code de build et un signal hexadécimal recalculé avec la caméra.

@@ -117,6 +117,20 @@
   letter-spacing: 0.02em;
 }
 
+/* Carte de classe : accent de sélection et badge distinct du module ordinaire. */
+.canvas-module--class:not(.canvas-module--selected) { border-color: color-mix(in srgb, var(--color-selection) 42%, var(--color-border)); }
+.canvas-module--class .canvas-module__marker { background: var(--color-selection); }
+.canvas-module__class {
+  flex: 0 0 auto;
+  padding: 1px 5px;
+  border: 1px solid color-mix(in srgb, var(--color-selection) 55%, transparent);
+  border-radius: var(--radius-small);
+  color: var(--color-selection);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 /* Verrou de carte : visible seulement quand la carte est verrouillée, pour la débloquer vite. */
 .canvas-module__lock {
   flex: 0 0 auto;

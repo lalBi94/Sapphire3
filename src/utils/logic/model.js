@@ -5,7 +5,7 @@
  * @typedef {{kind:'name', name:string}|{kind:'node', nodeId:string}|{kind:'import', importId:string}} SymbolReference
  * @typedef {{id:string, moduleId:string, nodeId:string, localName:string}} ModuleImport
  * @typedef {{nodeId:string, name:string}} ModuleExport
- * @typedef {{id:string, name:string, kind:'module', rootNodeIds:Array<string|null>, imports:ModuleImport[], exports:ModuleExport[]}} SourceModule
+ * @typedef {{id:string, name:string, kind:'module'|'class', rootNodeIds:Array<string|null>, imports:ModuleImport[], exports:ModuleExport[]}} SourceModule
  * @typedef {'VariableDeclaration'|'ConstantDeclaration'|'FunctionDeclaration'|'Parameter'|'TypeDeclaration'|'Block'|'ReturnStatement'|'PrintStatement'|'IfStatement'|'WhileStatement'|'ForStatement'|'BreakStatement'|'ContinueStatement'|'ExpressionStatement'|'AssignmentStatement'|'BinaryExpression'|'UnaryExpression'|'Literal'|'Reference'|'CallExpression'|'CastExpression'|'Hole'|'ArrayLiteral'|'ArrayCreation'|'ArrayAccess'} NodeKind
  * @typedef {{id:string, moduleId:string, kind:NodeKind, properties:Object, children:Object<string,string|null|Array<string|null>>, references:Object<string,SymbolReference>}} SourceNode
  * @typedef {{formatVersion:1, id:string, modules:SourceModule[], nodes:SourceNode[]}} SourceProject
@@ -16,7 +16,8 @@
  */
 
 export const sourceFormatVersion = 1
-export const moduleKinds = Object.freeze({ module: 'module' })
+// Une classe est un module nommé : ses champs et méthodes restent des nœuds racines ordinaires.
+export const moduleKinds = Object.freeze({ module: 'module', class: 'class' })
 
 // Fournit un document vide ; les identifiants sont injectés, jamais générés par le moteur.
 export function createProject(id) {

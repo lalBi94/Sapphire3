@@ -22,7 +22,7 @@ import LogicTree from '../LogicTree/LogicTree.jsx'
 import LogicContextMenu from '../LogicContextMenu/LogicContextMenu.jsx'
 import NodeProperties from '../NodeProperties/NodeProperties.jsx'
 import ScreenProperties from '../ScreenProperties/ScreenProperties.jsx'
-import { logicalCardTypes, moduleTypes } from '../../utils/moduleTypes.js'
+import { logicalCardTypes, moduleCardTypes, moduleTypes } from '../../utils/moduleTypes.js'
 import { expandableNodeIdsByModule, expandAllNodeIds, isFullyExpanded } from '../../utils/nodeTree.js'
 import { scrollNodeIntoCard } from '../../utils/cardScroll.js'
 import { buildWorkspaceSvg } from '../../utils/workspaceSvg.js'
@@ -113,7 +113,7 @@ export default function Canvas() {
   const selected = selectedTargets[0] ?? null
   const selectedIds = useMemo(() => new Set(selectedTargets.map((target) => target.id)), [selectedTargets])
   const selectedNodeIds = useMemo(() => selectedTargets.filter((target) => target.kind === 'node').map((target) => target.id), [selectedTargets])
-  const hasScreenSelection = useMemo(() => selectedTargets.some((target) => target.kind === 'module' && document.cards.some((card) => card.id === target.id && card.type !== 'module' && logicalCardTypes.includes(card.type))), [selectedTargets, document.cards])
+  const hasScreenSelection = useMemo(() => selectedTargets.some((target) => target.kind === 'module' && document.cards.some((card) => card.id === target.id && !moduleCardTypes.includes(card.type) && logicalCardTypes.includes(card.type))), [selectedTargets, document.cards])
   const selectedModuleIds = useMemo(() => selectedTargets.filter((target) => target.kind === 'module').map((target) => target.id), [selectedTargets])
   const { camera, zoom, canvasRef, isPanning, handlePointerDown, handlePointerMove, handlePointerEnd, handleKeyDown, handleRecenter, panTo, zoomBy, resetZoom, restoreCamera } = useCanvasPan()
   // Suit la surface réelle du canvas pour ne monter que le contenu des cartes visibles.
@@ -266,7 +266,7 @@ export default function Canvas() {
   // Fonctions et modules purs : pastille discrète et seuls favoris enregistrables.
   const pureIds = useMemo(() => getPureIds(document.project, document.analysis), [document.project, document.analysis])
   // Modules visibles proposés comme destination d'insertion d'un favori.
-  const moduleChoices = document.cards.filter((card) => card.type === 'module').map((card) => ({ id: card.id, name: card.name }))
+  const moduleChoices = document.cards.filter((card) => moduleCardTypes.includes(card.type)).map((card) => ({ id: card.id, name: card.name }))
   const functionNode = functionTarget ? document.index.nodes.get(functionTarget) ?? null : null
   const functionSignature = functionNode ? (functionNode.children.parameters ?? []).map((id) => `${document.index.nodes.get(id)?.properties?.name}:${JSON.stringify(document.index.nodes.get(id)?.properties?.type)}`).join('|') : ''
   // Les nœuds qui contiennent autre chose ne dépendent que de la source analysée.
@@ -378,7 +378,7 @@ export default function Canvas() {
     }
     document.setExpandedNodes(moduleId, [...expanded])
     // Le résultat recherché doit être visible même si sa carte montrait son aperçu graphique.
-    if (card.type !== 'module' && logicalCardTypes.includes(card.type)) {
+    if (!moduleCardTypes.includes(card.type) && logicalCardTypes.includes(card.type)) {
       document.updateGeometry(moduleId, { [`${card.type}View`]: 'code' })
     }
     handleSelect({ kind: 'node', id: nodeId })
@@ -471,7 +471,7 @@ export default function Canvas() {
   // Indique si une cible peut être enregistrée comme favori, et si elle est pure.
   function bookmarkStatus(target) {
     if (!target) return { show: false, can: false }
-    if (target.kind === 'module' && document.cards.some((card) => card.id === target.id && card.type !== 'module' && logicalCardTypes.includes(card.type))) return { show: false, can: false }
+    if (target.kind === 'module' && document.cards.some((card) => card.id === target.id && !moduleCardTypes.includes(card.type) && logicalCardTypes.includes(card.type))) return { show: false, can: false }
     if (target.kind === 'module') return { show: true, can: pureIds.modules.has(target.id) }
     if (target.kind === 'node' && document.index.nodes.get(target.id)?.kind === 'FunctionDeclaration') return { show: true, can: pureIds.functions.has(target.id) }
     return { show: false, can: false }
@@ -526,7 +526,7 @@ export default function Canvas() {
 
   // Situe la carte d'un favori à droite des modules existants, ou au centre de la vue.
   function nextBookmarkPosition() {
-    const modules = document.cards.filter((card) => card.type === 'module')
+    const modules = document.cards.filter((card) => moduleCardTypes.includes(card.type))
     if (modules.length === 0) return { x: camera.x - moduleTypes.module.width / 2, y: camera.y - moduleTypes.module.height / 2 }
     const right = Math.max(...modules.map((card) => card.x + card.width))
     const top = Math.min(...modules.map((card) => card.y))
@@ -915,7 +915,7 @@ export default function Canvas() {
 
   // Répartit les modules visibles en couches selon leurs dépendances, sans toucher au programme.
   function handleArrangeModules() {
-    const modules = document.cards.filter((card) => card.type === 'module' && !card.hidden)
+    const modules = document.cards.filter((card) => moduleCardTypes.includes(card.type) && !card.hidden)
     if (modules.length === 0) return
     const positions = layoutModules(modules, moduleLinks)
     const locked = new Set(modules.filter((module) => module.locked).map((module) => module.id))
@@ -1260,9 +1260,9 @@ export default function Canvas() {
         readOnly={presentationMode}
         onRename={document.renameCard} onTextChange={document.updateComment} onImageChange={document.updateImage} onEmojiChange={document.setCardEmoji}
         onToggleLock={handleToggleLock}
-        pure={card.type === 'module' && pureIds.modules.has(card.id)}
+        pure={moduleCardTypes.includes(card.type) && pureIds.modules.has(card.id)}
         pulse={activeModuleId === card.id && executionStep !== null ? executionStep + 1 : null}
-        expansionState={['module', 'screen'].includes(card.type) && document.index.modules.has(card.id) ? getExpansionState(card.id) : null} onToggleExpansion={(id) => handleExpansion(id, getExpansionState(id) !== 'collapse')}>
+        expansionState={(moduleCardTypes.includes(card.type) || card.type === 'screen') && document.index.modules.has(card.id) ? getExpansionState(card.id) : null} onToggleExpansion={(id) => handleExpansion(id, getExpansionState(id) !== 'collapse')}>
         {semanticLevel === 'detail' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} selectedIds={selectedIds} readOnly={presentationMode} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} onReorder={(id, offset) => document.reorderNode(id, offset)} unusedIds={unusedIds} pureIds={pureIds.functions} breakpoints={breakpoints} onToggleBreakpoint={handleToggleBreakpoint} debugValues={debugValues} genericCalls={genericCalls} dropTarget={transfers.dropTarget} />}
       </CanvasModule>)}
       {alignmentGuides.vertical.map((guide) => <div key={`vertical:${guide}`} className="canvas-alignment-guide canvas-alignment-guide--vertical" style={{ left: `calc(50% + ${(guide - camera.x) * zoom}px)` }} aria-hidden="true" />)}

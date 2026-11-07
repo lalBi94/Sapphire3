@@ -22,6 +22,15 @@ test('suppression des images et commentaires : présentation seule, module prot�
   assert.equal(document.project, project)
 })
 
+test('classes : une carte de classe crée un module logique de catégorie class', () => {
+  const moduleDocument = reduceDocument(initialDocument(), { type: 'createCard', card: card('module') })
+  assert.equal(moduleDocument.project.modules[0].kind, 'module')
+  const classDocument = reduceDocument(initialDocument(), { type: 'createCard', card: card('class', 'class') })
+  assert.equal(classDocument.cards[0].type, 'class')
+  assert.equal(classDocument.project.modules[0].id, 'class')
+  assert.equal(classDocument.project.modules[0].kind, 'class')
+})
+
 test('undo/redo : révisions monotones pour réinitialiser les interactions restaurées', () => {
   let history = { past: [], present: initialDocument(), future: [] }
   history = reduceHistory(history, { type: 'createCard', card: card('m') })

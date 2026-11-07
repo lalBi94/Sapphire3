@@ -427,6 +427,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
             </button>
           )}
         </h2>
+        {module.type === 'class' && <span className="canvas-module__class" title={t('card.class')} aria-label={t('card.class')}>{t('card.class')}</span>}
         {pure && <span className="canvas-module__pure" title={t('canvas.pureHint')} aria-label={t('canvas.pureHint')}>{t('canvas.pure')}</span>}
         {definition.hasScreen && semanticLevel !== 'modules' && !readOnly && <button
           type="button"

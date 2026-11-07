@@ -2,7 +2,7 @@ import { isId, isRecord, sourceFormatVersion, moduleKinds, createProject } from 
 import { isContract } from './logic/contracts.js'
 import { serializeSource } from './logic/serialization.js'
 import { screenLimits } from './logic/mathNatives.js'
-import { barChartViews, heatmapViews, logicalCardTypes, gaugeViews, ledViews, rgbLedViews, moduleTypes, minimumModuleSize, progressViews, screenViews } from './moduleTypes.js'
+import { barChartViews, heatmapViews, logicalCardTypes, moduleCardTypes, gaugeViews, ledViews, rgbLedViews, moduleTypes, minimumModuleSize, progressViews, screenViews } from './moduleTypes.js'
 import { heatmapMaximumDimension } from './logic/heatmapState.js'
 import { isEmbeddedImage, isImageReference } from './embeddedImage.js'
 import { validateExercise } from './exercise.js'
@@ -81,7 +81,7 @@ function validateProject(project) {
   const ledIndices = new Set()
   const rgbLedIndices = new Set()
   for (const module of project.modules) {
-    if (!isRecord(module) || !isId(module.id) || moduleIds.has(module.id) || module.kind !== moduleKinds.module || !isId(module.name) || !['rootNodeIds', 'imports', 'exports'].every((field) => Array.isArray(module[field]))) {
+    if (!isRecord(module) || !isId(module.id) || moduleIds.has(module.id) || !Object.values(moduleKinds).includes(module.kind) || !isId(module.name) || !['rootNodeIds', 'imports', 'exports'].every((field) => Array.isArray(module[field]))) {
       throw workspaceError('Invalid module data. Legacy Main modules are not supported.')
     }
     moduleIds.add(module.id)
@@ -140,8 +140,9 @@ function validatePresentation(project, presentation) {
     if (!isRecord(card) || !isId(card.id) || ids.has(card.id) || !Object.hasOwn(moduleTypes, card.type) || typeof card.name !== 'string' || !['x', 'y', 'width', 'height'].every((key) => Number.isFinite(card[key])) || card.width < minimumModuleSize.width || card.height < minimumModuleSize.height) {
       throw workspaceError('Invalid card data or geometry.')
     }
-    if (card.type === 'module'
-      ? !modules.has(card.id) || modules.get(card.id).name !== card.name
+    const linkedModule = moduleCardTypes.includes(card.type) ? modules.get(card.id) : null
+    if (moduleCardTypes.includes(card.type)
+      ? !linkedModule || linkedModule.name !== card.name || linkedModule.kind !== (card.type === 'class' ? moduleKinds.class : moduleKinds.module)
       : card.type === 'screen'
         ? !modules.has(card.id) || !modules.get(card.id).screen || !Number.isInteger(card.screenWidth) || !Number.isInteger(card.screenHeight) || card.screenWidth < 1 || card.screenHeight < 1 || card.screenWidth > screenLimits.maximumDimension || card.screenHeight > screenLimits.maximumDimension || (card.screenScale !== undefined && (!Number.isFinite(card.screenScale) || card.screenScale < 0.25 || card.screenScale > 4))
         : card.type === 'gauge'

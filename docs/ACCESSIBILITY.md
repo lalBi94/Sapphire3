@@ -45,6 +45,8 @@ Les résultats `incomplete` ont aussi été examinés. Après corrections, il ne
 
 **HUD d’arrière-plan (7 novembre 2026)** : les artefacts texte du canvas sont **décoratifs et ambiants**, marqués `aria-hidden="true"` et sans équivalent interactif ; l’information essentielle (version, compteurs, zoom, thème, grille, aimantation, raccourcis) reste disponible dans la barre, le statut de canvas, les paramètres et le catalogue de raccourcis. Axe-core ne relève **aucune violation** sur le canvas avec HUD en sombre et en clair ; les textes à faible opacité apparaissent en `color-contrast` **incomplet**, ce qui est attendu pour cette couche volontairement discrète. Le HUD est ignoré en mouvement réduit (animation du voyant) et renforcé en contraste élevé.
 
+**Classes, premier incrément (7 novembre 2026)** : 0 violation axe-core sur une carte **Class** contenant un champ et une méthode, avec le menu de création et le menu logique ouverts. Le badge `Class` et l’accent de sélection reprennent les tokens du thème et restent lisibles dans les deux apparences ; aucune cible interactive nouvelle n’est introduite hors des menus existants.
+
 ## B. Matrice WCAG 2.2 — niveau A et AA
 
 Légende : **✅** conforme et vérifié ; **◐** partiellement conforme ; **✖** non conforme ; **?** non vérifié ; **—** non applicable.
