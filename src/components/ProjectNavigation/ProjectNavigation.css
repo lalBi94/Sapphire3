@@ -2,8 +2,8 @@
 .project-navigation details { position: relative; }
 .project-navigation summary { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-radius: var(--radius-small); corner-shape: var(--corner-shape); cursor: pointer; list-style: none; font-family: var(--font-display); font-weight: 600; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
 .project-navigation summary::-webkit-details-marker { display: none; }
-.project-navigation summary:hover, .project-navigation details[open] summary { background: var(--color-hover); }
-.project-navigation details[open] summary { color: var(--color-primary); box-shadow: inset 0 -2px 0 var(--color-primary); }
+.project-navigation summary:hover, .project-navigation > details[open] > summary { background: var(--color-hover); }
+.project-navigation > details[open] > summary { color: var(--color-primary); }
 .project-navigation__menu { position: absolute; top: calc(100% + 5px); left: 0; width: 208px; max-width: calc(100vw - 16px); max-height: calc(100dvh - 60px); overflow-y: auto; overflow-x: hidden; scrollbar-gutter: stable; padding: var(--space-small); border: 1px solid var(--color-border); border-radius: var(--radius-control); corner-shape: var(--corner-shape); background: var(--surface-floating); box-shadow: var(--shadow-panel); }
 .project-navigation__menu p { margin: var(--space-control); color: var(--color-text-muted); }
 /* Quitter l'application, en bas du volet Settings. */
