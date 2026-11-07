@@ -19,12 +19,10 @@ function formatCoordinate(value) {
   return Math.abs(rounded) >= 10000 ? `${Math.round(rounded / 1000)}k` : String(rounded)
 }
 
-// Affiche les artefacts texte du HUD : version, télémétrie de vue, état du thème et astuces.
+// Affiche les artefacts texte du HUD : version, télémétrie de vue et état du thème.
 export default function CanvasHud({ camera, zoom, semanticLevel = 'detail', moduleCount = 0, nodeCount = 0, gridVisible = true, magnetEnabled = true }) {
   const { t } = useTranslation()
   const { theme, themeMode } = useTheme()
-  const tips = ['hud.tip.create', 'hud.tip.save', 'hud.tip.search', 'hud.tip.undo', 'hud.tip.pan', 'hud.tip.theme']
-  const tip = tips[(moduleCount * 7 + nodeCount * 13 + (gridVisible ? 1 : 0)) % tips.length]
   const zoomPercent = Math.round(zoom * 100)
   const liveSignal = artifactCode(`${formatCoordinate(camera.x)}:${formatCoordinate(camera.y)}:${zoomPercent}`)
   const buildSignal = artifactCode(`${appVersion}:${moduleCount}:${nodeCount}`)
@@ -34,7 +32,6 @@ export default function CanvasHud({ camera, zoom, semanticLevel = 'detail', modu
 
   return (
     <div className="canvas-hud" aria-hidden="true">
-      <span className="canvas-hud__watermark">SAPPHIRE</span>
       <span className="canvas-hud__rail canvas-hud__rail--left">SP3 // AST // v{appVersion} // 0x{buildSignal}</span>
       <span className="canvas-hud__rail canvas-hud__rail--right">0x{liveSignal} // {semanticLevel.toUpperCase()} // {zoomPercent}%</span>
 
@@ -52,8 +49,6 @@ export default function CanvasHud({ camera, zoom, semanticLevel = 'detail', modu
       </div>
 
       <div className="canvas-hud__corner canvas-hud__corner--ml">
-        <span className="canvas-hud__eyebrow">{t('hud.tip')}</span>
-        <span>{t(tip)}</span>
         <span className="canvas-hud__signal">{t('hud.signal')} 0x{liveSignal}</span>
       </div>
 

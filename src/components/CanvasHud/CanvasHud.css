@@ -1,4 +1,4 @@
-/* HUD d'arrière-plan : télémétrie discrète, astuces et artefacts techniques. */
+/* HUD d'arrière-plan : télémétrie discrète et artefacts techniques. */
 .canvas-hud {
   position: absolute;
   inset: 0;
@@ -77,20 +77,6 @@
   transform: translateY(-50%);
 }
 
-.canvas-hud__watermark {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  font-family: var(--font-display);
-  font-size: clamp(100px, 18vw, 260px);
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  white-space: nowrap;
-  color: var(--color-text);
-  opacity: 0.08;
-}
-
 @keyframes canvas-hud-pulse {
   0%, 100% { opacity: 0.45; }
   50% { opacity: 1; }
@@ -102,5 +88,4 @@
 
 @media (prefers-contrast: more), (forced-colors: active) {
   .canvas-hud { opacity: 0.75; }
-  .canvas-hud__watermark { opacity: 0.05; }
 }
