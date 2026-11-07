@@ -55,10 +55,10 @@
   --blur-panel: 0px;
   --color-glass: #24242cf5;
   --surface-floating: var(--color-anthracite-raised);
-  /* Bordure animée des panneaux : dégradé conique piloté par --panel-angle. */
-  --panel-surface: linear-gradient(var(--surface-floating), var(--surface-floating)) padding-box, conic-gradient(from var(--panel-angle, 0deg), var(--color-primary), var(--color-selection), var(--color-primary)) border-box;
+  /* Balayage lumineux sur le bord supérieur des panneaux, sans contour complet. */
+  --panel-surface: linear-gradient(90deg, transparent, var(--color-primary) 35%, var(--color-selection) 65%, transparent) -100% 0 / 28% 2px no-repeat, var(--surface-floating);
   --surface-reflection: linear-gradient(180deg, #ffffff05, transparent 30%);
-  --shadow-panel: 0 12px 28px #000000a6, 0 0 18px color-mix(in srgb, var(--color-primary) 18%, transparent), inset 0 0 0 1px #ffffff08;
+  --shadow-panel: 0 12px 28px #000000a6, 0 -8px 18px -8px color-mix(in srgb, var(--color-primary) 30%, transparent), inset 0 0 0 1px #ffffff08;
   --shadow-card: 0 2px 10px #00000066, inset 0 1px 0 #ffffff0a;
   --shadow-selection: 0 0 0 2px var(--color-selection);
   --duration-fast: 120ms;

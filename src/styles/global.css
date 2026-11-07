@@ -136,15 +136,11 @@ body {
   :root { --surface-floating: var(--color-surface-raised); --blur-panel: 0px; }
 }
 
-/* Bordure lumineuse animée des panneaux : dégradé conique autour du cadre. */
-@property --panel-angle {
-  syntax: '<angle>';
-  inherits: false;
-  initial-value: 0deg;
-}
-
-@keyframes panel-angle-turn {
-  to { --panel-angle: 360deg; }
+/* Balayage lumineux sur le bord supérieur des panneaux : un court segment
+   de dégradé traverse la ligne, sans glow sur tout le contour. */
+@keyframes panel-scan {
+  from { background-position: -100% 0, 0 0; }
+  to { background-position: 200% 0, 0 0; }
 }
 
 :is(
@@ -162,9 +158,8 @@ body {
   .function-panel,
   .module-emoji__popover
 ) {
-  border-color: transparent !important;
   background: var(--panel-surface);
-  animation: panel-angle-turn 7s linear infinite;
+  animation: panel-scan 6s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
