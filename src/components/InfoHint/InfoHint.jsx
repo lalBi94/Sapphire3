@@ -28,7 +28,7 @@ export default function InfoHint({ text, className = '' }) {
   }
 
   return <>
-    <span ref={anchorRef} className={`info-hint${className ? ` ${className}` : ''}`} role="img" aria-label={text} tabIndex={0} onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}>
+    <span ref={anchorRef} className={`info-hint${className ? ` ${className}` : ''}`} role="img" aria-label={text} tabIndex={0} onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide} onKeyDown={(event) => { if (event.key === 'Escape') hide() }}>
       <Info size={12} strokeWidth={1.8} aria-hidden="true" />
     </span>
     {tip && createPortal(<span className="info-hint__tooltip" role="tooltip" style={{ left: tip.left, width: tip.width, ...(tip.top !== undefined ? { top: tip.top } : { bottom: tip.bottom }) }}>{text}</span>, window.document.body)}

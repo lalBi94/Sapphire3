@@ -16,6 +16,13 @@ export const moduleTypes = {
 
 export const minimumModuleSize = { width: 180, height: 120 }
 
+// Catégories stables du menu de création, dans l'ordre d'affichage.
+export const cardCategories = [
+  { id: 'programming', labelKey: 'canvas.createCategory.programming', types: [moduleKinds.module] },
+  { id: 'widgets', labelKey: 'canvas.createCategory.widgets', types: ['screen', 'gauge', 'progress', 'barChart', 'heatmap', 'led', 'rgbLed'] },
+  { id: 'annotations', labelKey: 'canvas.createCategory.annotations', types: ['comment', 'image'] },
+]
+
 // Les cartes adossées à un module sont distinctes des annotations de présentation.
 export const logicalCardTypes = Object.keys(moduleTypes).filter((type) => !moduleTypes[type].hasText && !moduleTypes[type].hasImage)
 

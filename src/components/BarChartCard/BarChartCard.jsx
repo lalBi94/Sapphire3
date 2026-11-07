@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { screenPlaybackFrameDelay } from '../../utils/screenPlayback.js'
+import { barChartRows } from '../../utils/widgetData.js'
 import './BarChartCard.css'
 
 // Affiche une valeur numérique en retirant les zéros inutiles.
@@ -68,5 +69,15 @@ export default function BarChartCard({ card, state = null, frames = null, playin
       <span>{formatValue(minimum)}</span>
       <span>{formatValue(maximum)}</span>
     </div>
+    {values.length > 0 && <table className="visually-hidden">
+      <caption>{t('barChart.tableCaption', { name: label })}</caption>
+      <thead><tr><th scope="col">{t('barChart.tablePosition')}</th><th scope="col">{t('barChart.tableValue')}</th></tr></thead>
+      <tbody>
+        {barChartRows(values).map((row) => <tr key={row.position}>
+          <th scope="row">{row.position}</th>
+          <td>{formatValue(row.value)}</td>
+        </tr>)}
+      </tbody>
+    </table>}
   </div>
 }

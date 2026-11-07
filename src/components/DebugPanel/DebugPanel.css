@@ -29,5 +29,5 @@
 .debug-panel__analysis li { margin: 8px 0; overflow-wrap: anywhere; }
 .debug-panel__analysis code { display: block; color: var(--color-text-muted); font-size: 10px; }
 .debug-panel__output { margin: 0; padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-small); background: var(--color-input); white-space: pre-wrap; overflow-wrap: anywhere; }
-.debug-panel .debug-panel__resize { position: absolute; right: 2px; bottom: 2px; width: 22px; height: 22px; padding: 4px; border: 0; color: var(--color-text-muted); cursor: nwse-resize; touch-action: none; }
+.debug-panel .debug-panel__resize { position: absolute; right: 2px; bottom: 2px; width: 24px; height: 24px; padding: 4px; border: 0; color: var(--color-text-muted); cursor: nwse-resize; touch-action: none; }
 .debug-panel__resize svg { width: 100%; height: 100%; fill: none; stroke: currentColor; }

@@ -91,7 +91,7 @@ export default function SimulationPanel({ result, running = false, paused = fals
   const visibleOutput = paced ? result.output.slice(0, result.outputSteps.filter((step) => step <= currentStep).length) : result.output
   return (
     <aside ref={panelRef} className="simulation-panel" data-canvas-ui data-canvas-scroll aria-label={t('simulation.title')} style={{ ...(position ? { left: position.x, top: position.y, right: 'auto', bottom: 'auto' } : {}), ...(front.zIndex ? { zIndex: front.zIndex } : {}) }} onPointerDown={(event) => { front.bringToFront(); event.stopPropagation() }} onFocusCapture={front.bringToFront} onKeyDown={(event) => event.stopPropagation()}>
-      <header tabIndex={0} aria-label={t('details.move')} title={t('details.moveHint')} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onLostPointerCapture={end} onKeyDown={keyDown}>
+      <header role="group" tabIndex={0} aria-label={t('details.move')} title={t('details.moveHint')} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onLostPointerCapture={end} onKeyDown={keyDown}>
         <h2>{t('simulation.title')}</h2>
         {(running || paused) && <button type="button" className="simulation-panel__control" aria-label={t('simulation.free')} aria-pressed={free} title={t('simulation.freeHint')} onClick={onToggleFree}><FastForward size={14} fill="currentColor" aria-hidden="true" />{t('simulation.free')}</button>}
         {running && <button type="button" className="simulation-panel__control" aria-label={t('simulation.pause')} title={t('simulation.pause')} onClick={onPause}><Pause size={14} fill="currentColor" aria-hidden="true" />{t('simulation.pause')}</button>}
@@ -99,7 +99,8 @@ export default function SimulationPanel({ result, running = false, paused = fals
         {(running || paused) && <button type="button" className="simulation-panel__control simulation-panel__control--danger" aria-label={t('simulation.stop')} title={t('simulation.stop')} onClick={onStop}><Square size={14} fill="currentColor" aria-hidden="true" />{t('simulation.stop')}</button>}
         <button type="button" aria-label={t('simulation.close')} onClick={onClose}><X size={16} aria-hidden="true" /></button>
       </header>
-      {result.ok ? <><p className="simulation-panel__status" role="status">{status} · {currentStep}/{result.trace.length} {t(result.trace.length === 1 ? 'simulation.step' : 'simulation.steps')}</p>
+      {result.ok ? <><p className="simulation-panel__status">{status} · {currentStep}/{result.trace.length} {t(result.trace.length === 1 ? 'simulation.step' : 'simulation.steps')}</p>
+        <p className="visually-hidden" role="status">{status}</p>
         <div className="simulation-panel__speed">
           <span>{t('simulation.speed')}</span>
           {[1, 2, 3].map((value) => <button type="button" key={value} aria-pressed={speed === value} onClick={() => chooseSpeed(value)}>×{value}</button>)}

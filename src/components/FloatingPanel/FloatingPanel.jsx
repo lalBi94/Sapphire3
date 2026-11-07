@@ -101,7 +101,7 @@ export default function FloatingPanel({ title, label, onClose, className = '', i
 
   const style = { ...(geometry ? { left: geometry.x, top: geometry.y, right: 'auto', bottom: 'auto', width: geometry.width, ...(collapsed ? {} : { height: geometry.height }) } : {}), ...(front.zIndex ? { zIndex: front.zIndex } : {}) }
   return <aside ref={panelRef} className={`floating-panel${collapsed ? ' floating-panel--collapsed' : ''} ${className}`} style={style} data-floating-panel data-canvas-ui data-canvas-scroll aria-label={label ?? title} onPointerDown={(event) => { front.bringToFront(); event.stopPropagation() }} onFocusCapture={front.bringToFront} onKeyDown={(event) => event.stopPropagation()}>
-    <header className="floating-panel__header" tabIndex={0} aria-label={t('details.move')} title={t('details.moveHint')} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onLostPointerCapture={end} onKeyDown={keyDown}>
+    <header className="floating-panel__header" role="group" tabIndex={0} aria-label={t('details.move')} title={t('details.moveHint')} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onLostPointerCapture={end} onKeyDown={keyDown}>
       <h2>{title}</h2>
       {info && <InfoHint text={info} />}
       <button type="button" className="floating-panel__collapse" aria-expanded={!collapsed} aria-label={t(collapsed ? 'panel.expand' : 'panel.collapse')} title={t(collapsed ? 'panel.expand' : 'panel.collapse')} onClick={toggleCollapsed}>{collapsed ? <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" /> : <ChevronUp size={16} strokeWidth={1.75} aria-hidden="true" />}</button>

@@ -97,7 +97,7 @@ function LogicNode({ id, index, selectedId, selectedIds = null, readOnly = false
   if (!node) return <p className="logic-tree__missing">{t('canvas.blockMissing')}</p>
   if (ancestors.includes(id) || ancestors.length >= 60) return <p className="logic-tree__missing">{t('canvas.blockHidden')}</p>
   return (<>
-    <section ref={nodeRef} className={`logic-node${selected ? ' logic-node--selected' : ''}${active ? ' logic-node--executing' : ''}${expanded ? '' : ' logic-node--collapsed'}${drop ? ` logic-node--drop-${drop.ok ? 'valid' : 'invalid'}` : ''}`} data-source-node={id} data-group={schema?.group ?? 'incomplete'} aria-current={active ? 'step' : undefined} aria-label={name} onClick={handleSelect} onMouseEnter={showPreview} onMouseLeave={hidePreview} onFocus={showPreview} onBlur={hidePreview}>
+    <div ref={nodeRef} className={`logic-node${selected ? ' logic-node--selected' : ''}${active ? ' logic-node--executing' : ''}${expanded ? '' : ' logic-node--collapsed'}${drop ? ` logic-node--drop-${drop.ok ? 'valid' : 'invalid'}` : ''}`} data-source-node={id} data-group={schema?.group ?? 'incomplete'} aria-current={active ? 'step' : undefined} onClick={handleSelect} onMouseEnter={showPreview} onMouseLeave={hidePreview} onFocus={showPreview} onBlur={hidePreview}>
       {!readOnly && <NodeMenuButton label={name} onOpen={(event) => onOpenActions(event, { kind: 'node', id })} />}
       <div className="logic-node__header">
         {!readOnly && <button type="button" className={`logic-node__breakpoint${breakpoint ? ' logic-node__breakpoint--set' : ''}`} aria-pressed={breakpoint} aria-label={t(breakpoint ? 'canvas.breakpointRemove' : 'canvas.breakpointAdd', { name })} title={t(breakpoint ? 'canvas.breakpointRemove' : 'canvas.breakpointAdd', { name })} onClick={(event) => { event.stopPropagation(); onToggleBreakpoint?.(id) }}>
@@ -129,7 +129,7 @@ function LogicNode({ id, index, selectedId, selectedIds = null, readOnly = false
           {children.length === 0 ? <span className="logic-node__empty">{t(slot.required ? 'canvas.addSomething' : 'canvas.empty')}</span> : children.map((childId, position) => <LogicNodeMemo key={`${childId}:${position}`} id={childId} index={index} selectedId={selectedId} selectedIds={selectedIds} readOnly={readOnly} activeExecutionId={activeExecutionId} onSelect={onSelect} ancestors={[...ancestors, id]} expandedIds={expandedIds} onToggle={onToggle} onOpenActions={onOpenActions} dropTarget={dropTarget} onReorder={onReorder} unusedIds={unusedIds} pureIds={pureIds} breakpoints={breakpoints} onToggleBreakpoint={onToggleBreakpoint} debugValues={debugValues} genericCalls={genericCalls} />)}
         </div>
       })}
-    </section>
+    </div>
     {valueTip && debugValue && createPortal(<div className="logic-node__value" role="tooltip" style={{ left: valueTip.left, width: valueTip.width, ...(valueTip.below ? { top: valueTip.top } : { bottom: valueTip.bottom }) }}>
       <strong>{debugValue.name}</strong>
       <span>{typeLabel(debugValue.type, t)}</span>

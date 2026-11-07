@@ -1,4 +1,8 @@
 .canvas-workspace { position: relative; display: flex; flex-direction: column; height: 100dvh; min-height: 0; overflow: hidden; }
+
+/* Lien d'évitement : premier arrêt clavier, visible seulement au focus. */
+.canvas-skip-link { position: fixed; top: 10px; inset-inline-start: 10px; z-index: 400; padding: 8px 12px; border: 1px solid var(--color-focus); border-radius: var(--radius-control); background: var(--color-surface-raised); color: var(--color-text); font-size: 12px; text-decoration: none; transform: translateY(-160%); }
+.canvas-skip-link:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; transform: translateY(0); }
 /* Chevron de repli de la barre : toujours visible, il reste en place quand la barre disparaît. */
 .canvas-nav-toggle { position: absolute; top: 5px; right: 8px; z-index: 12; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 1px solid var(--color-border); border-radius: var(--radius-small); background: var(--color-surface-raised); color: var(--color-text-muted); cursor: pointer; }
 .canvas-nav-toggle:hover { color: var(--color-text); border-color: var(--color-border-hover); }

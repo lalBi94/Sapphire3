@@ -13,19 +13,25 @@ import { typeLabel } from '../LogicTree/logicLabels.js'
 import './ProjectNavigation.css'
 
 // Bloque un remplacement du document tant qu'il n'a pas été confirmé explicitement.
-function ReplaceConfirmation({ titleKey, bodyKey, detail, confirmKey, onConfirm, onCancel }) {
+function ReplaceConfirmation({ titleKey, bodyKey, detail, confirmKey, onConfirm, onCancel, returnFocusRef }) {
   const dialogRef = useRef(null)
+  const restoreRef = useRef(null)
   const { t } = useTranslation()
+  if (restoreRef.current === null) restoreRef.current = returnFocusRef?.current ?? (typeof document === 'undefined' ? null : document.activeElement)
 
   useEffect(() => {
     dialogRef.current.showModal()
+    return () => {
+      const target = restoreRef.current
+      if (target?.isConnected && typeof target.focus === 'function' && target !== document.body) target.focus()
+    }
   }, [])
 
-  return <dialog ref={dialogRef} className="project-navigation__confirmation" aria-labelledby="replace-title" onCancel={onCancel}>
+  return <dialog ref={dialogRef} className="project-navigation__confirmation" aria-labelledby="replace-title" aria-describedby={detail ? 'replace-body replace-detail' : 'replace-body'} onCancel={onCancel}>
     <h2 id="replace-title">{t(titleKey)}</h2>
-    <p>{t(bodyKey)}</p>
-    {detail && <p className="project-navigation__path">{detail}</p>}
-    <div><button type="button" autoFocus onClick={onCancel}>{t('import.cancel')}</button><button type="button" className="project-navigation__primary" onClick={onConfirm}>{t(confirmKey)}</button></div>
+    <p id="replace-body">{t(bodyKey)}</p>
+    {detail && <p id="replace-detail" className="project-navigation__path">{detail}</p>}
+    <div><button type="button" onClick={onCancel}>{t('import.cancel')}</button><button type="button" className="project-navigation__primary" onClick={onConfirm}>{t(confirmKey)}</button></div>
   </dialog>
 }
 
@@ -37,6 +43,7 @@ export default function ProjectNavigation({ busy, pendingImport, pendingNew, rec
   const [transpileChecks, setTranspileChecks] = useState({})
   const [checkingTranspile, setCheckingTranspile] = useState(false)
   const transpileCheckEpoch = useRef(0)
+  const lastFocusRef = useRef(null)
   const { language, setLanguage, t } = useTranslation()
 
   useEffect(() => {
@@ -46,6 +53,15 @@ export default function ProjectNavigation({ busy, pendingImport, pendingNew, rec
     }
     document.addEventListener('pointerdown', handleOutside)
     return () => document.removeEventListener('pointerdown', handleOutside)
+  }, [])
+
+  useEffect(() => {
+    // Retient le dernier élément focalisé pour rendre le focus après une confirmation.
+    function handleFocus(event) {
+      lastFocusRef.current = event.target
+    }
+    document.addEventListener('focusin', handleFocus, true)
+    return () => document.removeEventListener('focusin', handleFocus, true)
   }, [])
 
   // Garde un seul volet ouvert, y compris dans les moteurs sans prise en charge de details[name].
@@ -388,7 +404,7 @@ export default function ProjectNavigation({ busy, pendingImport, pendingNew, rec
         <span className="project-navigation__signature-version">v{appVersion}</span>
       </button>
     </nav>
-    {!presentation && pendingImport && <ReplaceConfirmation titleKey="import.title" bodyKey="import.body" detail={pendingImport.detail ?? pendingImport.path} confirmKey="import.confirm" onConfirm={onConfirmImport} onCancel={onCancelImport} />}
-    {!presentation && pendingNew && <ReplaceConfirmation titleKey="new.title" bodyKey="new.body" confirmKey="new.confirm" onConfirm={onConfirmNew} onCancel={onCancelNew} />}
+    {!presentation && pendingImport && <ReplaceConfirmation titleKey="import.title" bodyKey="import.body" detail={pendingImport.detail ?? pendingImport.path} confirmKey="import.confirm" onConfirm={onConfirmImport} onCancel={onCancelImport} returnFocusRef={lastFocusRef} />}
+    {!presentation && pendingNew && <ReplaceConfirmation titleKey="new.title" bodyKey="new.body" confirmKey="new.confirm" onConfirm={onConfirmNew} onCancel={onCancelNew} returnFocusRef={lastFocusRef} />}
   </>
 }

@@ -4,7 +4,7 @@
 .floating-panel__header h2 { flex: 1; margin: 0; font-size: 12px; font-weight: 500; }
 .floating-panel__header button { display: grid; place-items: center; width: 28px; height: 28px; flex-shrink: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--color-text-muted); cursor: pointer; }
 .floating-panel__content { flex: 1; min-height: 0; overflow: auto; padding: 2px 2px 18px; }
-.floating-panel__resize { position: absolute; right: 3px; bottom: 3px; display: grid; place-items: center; width: 22px; height: 22px; padding: 4px; border: 0; border-radius: var(--radius-small); color: var(--color-text-muted); background: transparent; cursor: nwse-resize; touch-action: none; }
+.floating-panel__resize { position: absolute; right: 3px; bottom: 3px; display: grid; place-items: center; width: 24px; height: 24px; padding: 4px; border: 0; border-radius: var(--radius-small); color: var(--color-text-muted); background: transparent; cursor: nwse-resize; touch-action: none; }
 .floating-panel__resize svg { width: 100%; height: 100%; fill: none; stroke: currentColor; }
 .floating-panel__header button:hover, .floating-panel__resize:hover { background: var(--color-hover); color: var(--color-text); }
 .floating-panel--collapsed { min-height: 0; }

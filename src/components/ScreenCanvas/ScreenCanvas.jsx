@@ -103,7 +103,7 @@ export default function ScreenCanvas({ card, state = null, frames = null, screen
 
   return <div className="screen-canvas" data-canvas-scroll>
     <div ref={viewportRef} className="screen-canvas__viewport">
-      <canvas ref={canvasRef} width={width} height={height} style={{ width: width * cell, height: height * cell }} aria-label={t('screen.title', { width, height })} />
+      <canvas ref={canvasRef} width={width} height={height} style={{ width: width * cell, height: height * cell }} role="img" aria-label={t('screen.title', { width, height })} />
     </div>
     <div className="screen-canvas__footer">
       <span>{width} × {height}</span>

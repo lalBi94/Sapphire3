@@ -69,7 +69,8 @@ export default function NodeSearchPanel({ index, cards, selectedId, focusToken, 
     <p className="node-search__count" role="status">{term.trim()
       ? t(results.length === 1 ? 'search.resultsOne' : 'search.results', { count: results.length })
       : t('search.type')}</p>
-    {results.length === 0 && term.trim() ? <p className="node-search__empty">{t('search.none', { term })}</p>
+    {results.length === 0
+      ? (term.trim() ? <p className="node-search__empty">{t('search.none', { term })}</p> : null)
       : <ul className="node-search__results" id="node-search-results" role="listbox" ref={listRef} aria-label={t('search.title')}>
         {results.map((entry, position) => <li key={entry.nodeId} id={`node-search-${entry.nodeId}`} role="option" aria-selected={position === active}
           className={`${position === active ? 'node-search__result--active' : ''}${selectedId === entry.nodeId ? ' node-search__result--selected' : ''}`}

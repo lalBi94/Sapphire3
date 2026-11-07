@@ -32,7 +32,7 @@ export default function SettingsWindow(props) {
         </section>)}
         {onQuit && <button type="button" className="settings-window__quit" onClick={onQuit}><Power size={14} aria-hidden="true" />{t('settings.quit')}</button>}
       </nav>
-      <section className="settings-window__content" aria-label={t(section.labelKey)}>
+      <section className="settings-window__content" aria-label={t(section.labelKey)} tabIndex={0}>
         <h3 className="settings-window__content-title">{t(section.labelKey)}</h3>
         <Content {...props} />
       </section>
