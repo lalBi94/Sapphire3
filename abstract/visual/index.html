@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="fr">
 <head>
   <meta charset="utf-8">
@@ -23,7 +23,7 @@
     <section class="hero" id="presentation">
       <div class="hero-layout">
         <div class="hero-copy">
-          <p class="kicker">Application desktop Windows · 0.1.0-beta.2</p>
+          <p class="kicker">Application desktop Windows · 0.1.0-beta.3</p>
           <h1>Des blocs qui sont de vrai code, pas des dessins qui y ressemblent</h1>
           <p class="lede">
             Sapphire 3 est un environnement de programmation visuelle. Chaque carte posée sur le canvas est une
@@ -57,7 +57,7 @@
     <section class="stats" aria-label="Chiffres clés">
       <div class="stat"><b>20</b><span>sections de documentation</span></div>
       <div class="stat"><b>42</b><span>captures réelles annotées</span></div>
-      <div class="stat"><b>508</b><span>tests automatisés</span></div>
+      <div class="stat"><b>536</b><span>tests automatisés</span></div>
       <div class="stat"><b>8</b><span>langues d'interface</span></div>
     </section>
 
@@ -83,7 +83,10 @@
             fixes suivies par pas sans horloge de lecture, les contrats vérifiables, le gestionnaire de fenêtres, le constructeur
             de signatures de fonction, les thèmes prédéfinis et personnalisés, huit langues, l'import/export
             <code>.sp3</code>/JSON, l'autosauvegarde, la récupération des documents neufs, trois sauvegardes de
-            secours et un workspace version 2 migré depuis la version 1.
+            secours et un workspace version 2 migré depuis la version 1. Le <b>mode exercice</b> ajoute un manifeste
+            dans le <code>.sp3</code> : consignes, snapshot de départ, tests d'entrée ou de fonction exécutés par
+            <b>Check</b>, retour du robot, verrou d'édition par mot de passe haché (PBKDF2) et enregistrement d'une
+            solution <code>.sp3</code> lorsque tous les tests passent.
           </p>
         </div>
         <div class="card">
@@ -96,7 +99,8 @@
             ne tournent que lors d'un enregistrement direct. Les mutations structurelles du document gardent une
             analyse synchrone, même si les calculs lourds explicites passent par un Web Worker. Le rendu de monnaie
             des exemples est glouton pour un jeu canonique, et l'exemple de calcul utilise une intégrale numérique de
-            Simpson.
+            Simpson. Le mode exercice ne verrouille que l'interface&nbsp;: les tests restent lisibles et modifiables
+            dans le JSON, et le mot de passe ne chiffre pas le fichier.
           </p>
         </div>
         <div class="card">
@@ -139,13 +143,13 @@
         <p><b>Le code est écrit avec des assistants.</b> Sapphire 3 est un projet conduit en dialogue avec des
         outils d'assistance au développement (OpenCode, DeepSeek V3.2, ChatGPT Sol&nbsp;6.1, GLM 3.2, Nemotron de
         NVIDIA)&nbsp;: c'est un mode de fabrication assumé, pas un détail caché. Ce qui l'encadre&nbsp;: chaque
-        incrément est relu, testé (508 tests Node et Python, runner Node natif, sans dépendance de test) et
+        incrément est relu, testé (536 tests Node et Python, runner Node natif, sans dépendance de test) et
         validé dans l'interface avant d'être retenu ; la CI GitHub Actions rejoue tests et build sur chaque pull
         request. Le vocabulaire, les contrats et les limites sont décidés par le projet, pas par le générateur.</p>
         <p style="margin-bottom:0"><b>Cette documentation évolue avec le projet.</b> Elle décrit l'état atteint, pas
         un plan. Les pages sont produites en même temps que les fonctionnalités&nbsp;: une capacité ajoutée ailleurs
-        se traduit ici par une nouvelle capture et une nouvelle section, et une capacité non encore livrée y est
-        explicitement marquée comme absente.</p>
+        se traduit ici par une nouvelle section ou sous-section, parfois sans nouvelle capture, et une capacité non
+        encore livrée y est explicitement marquée comme absente.</p>
       </div>
       <h3>Technologies</h3>
       <table>
@@ -159,7 +163,7 @@
           <tr><td>Style</td><td>CSS natif + jetons dans <code>src/styles/tokens.css</code></td><td>Six palettes prédéfinies et thèmes personnalisés, variables sémantiques, pas de charge distant de police ou de feuille de style</td></tr>
           <tr><td>Icônes</td><td><code>lucide-react ^1.64.0</code></td><td>Utilisés comme glyphes décoratifs, toujours accompagnés d'un libellé ou d'<code>aria-label</code></td></tr>
           <tr><td>Moteur logique</td><td>JavaScript pur dans <code>src/utils/logic/</code></td><td>Sans React, sans DOM, sans API native&nbsp;; source JSON versionnée, importable et testable seul</td></tr>
-          <tr><td>Tests</td><td><code>node --test</code></td><td>508 tests&nbsp;: scénarios valides, invalides, incomplets, localisations, non-mutation, conservation JSON, migrations, sauvegardes, widgets graphiques, notifications par mascotte, aimantation des modules et vitesse de simulation</td></tr>
+          <tr><td>Tests</td><td><code>node --test</code></td><td>536 tests&nbsp;: scénarios valides, invalides, incomplets, localisations, non-mutation, conservation JSON, migrations, sauvegardes, widgets graphiques, exercices et verrou PBKDF2, notifications par mascotte, aimantation des modules et vitesse de simulation</td></tr>
           <tr><td>Documentation AST</td><td>LaTeX → PDF</td><td><code>abstract/ARCHITECTURE_AST.tex</code> et son PDF, compilés par <code>pnpm docs:ast</code></td></tr>
         </tbody>
       </table>

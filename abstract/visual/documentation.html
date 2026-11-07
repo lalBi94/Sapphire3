@@ -903,6 +903,22 @@
           de secours restent disponibles.
         </p>
       </div>
+      <h3>Exercices dans le fichier</h3>
+      <p>
+        Un <code>.sp3</code> peut aussi porter un <b>exercice</b>, sous la clef racine <code>exercise</code>&nbsp;:
+        titre, consignes, snapshot de départ et tests. L'élève ouvre le fichier, travaille, puis <b>Check</b> exécute
+        les tests d'entrée ou de fonction dans le Web Worker. Le panneau affiche l'attendu et l'obtenu&nbsp;;
+        <b>Reset to starter</b> restaure le squelette sans effacer les tests&nbsp;; le robot réagit au résultat.
+      </p>
+      <ul>
+        <li>Un mot de passe optionnel verrouille l'<b>édition</b> de l'exercice. Seule une empreinte
+        PBKDF2-SHA256 est stockée&nbsp;; le fichier lui-même n'est pas chiffré et reste modifiable dans un éditeur
+        de texte.</li>
+        <li>Quand tous les tests passent, <b>Save solution</b> écrit une copie
+        <code>&lt;titre&gt;-solution.sp3</code>. Le dossier de ces copies sert de banque de corrections&nbsp;:
+        aucun stockage interne supplémentaire.</li>
+        <li>Les tests restent lisibles dans le JSON&nbsp;: c'est un outil d'entraînement, pas un examen surveillé.</li>
+      </ul>
     </section>
 
     <section id="limites" class="shot-anchor">
@@ -921,6 +937,7 @@
           <tr><td>Langages cibles</td><td>JavaScript et Python opérationnels. C/C++ et Java désactivés&nbsp;— aucune promesse de génération.</td></tr>
           <tr><td>Cartes spéciales</td><td>Screen, Gauge, ProgressBar, BarChart, Heatmap et LED adossées à des modules cachés normaux&nbsp;: aperçu ou code et flèches de dépendance. BarChart expose <code>SET_VALUE</code>, <code>SET_DATA</code>, <code>CLEAR</code> sur un <code>int[]</code>. Heatmap est une grille fixe (12×8 par défaut) avec <code>SET_CELL(x, y, value)</code> et <code>CLEAR</code>&nbsp;: intensité simple du thème, pas de lecture à 24 fps, seulement le suivi Run/Debug.</td></tr>
           <tr><td>Contrats</td><td>Contraintes vérifiables sur variables, constantes et paramètres, filtrées par type déclaré et signalées pendant Run.</td></tr>
+          <tr><td>Exercices</td><td>Manifeste dans le <code>.sp3</code>, tests d'entrée ou de fonction exécutés par Check, snapshot de départ et Reset. Le verrou par mot de passe protège l'interface seulement ; les tests restent lisibles et modifiables dans le JSON. Pas encore d'indices, de notation partielle, de soumission ni de verrouillage des cartes.</td></tr>
           <tr><td>Analyse</td><td>Conservatrice&nbsp;: aucune preuve générale sur les valeurs, les comparaisons numériques, les dépendances globales ou la terminaison.</td></tr>
           <tr><td>Modèle objet</td><td>Évoqué comme direction, aucun contrat décidé. Pas de classes ni de structures dans le modèle source actuel&nbsp;; <code>TypeDeclaration</code> est un alias transparent.</td></tr>
           <tr><td>Sous-modules</td><td>Absents&nbsp;: la hiérarchie des portées lexicales ne doit pas être confondue avec un rangement de modules.</td></tr>
@@ -938,7 +955,7 @@
     </div>
 
     <footer class="site-footer">
-      <p>Sapphire 3 · documentation visuelle · 42 captures réelles, 20 sections. Les captures précèdent les derniers incréments (généricité avancée, lambdas et fermetures, Web Worker, sauvegardes, workspace version 2, zoom sémantique), décrits dans le texte. Les repères d'annotation sont produits par la campagne de captures de l'application, en pourcentages de la vue 1600 × 900.</p>
+      <p>Sapphire 3 · documentation visuelle · 42 captures réelles, 20 sections. Les captures précèdent les derniers incréments (généricité avancée, lambdas et fermetures, Web Worker, sauvegardes, workspace version 2, zoom sémantique, mode exercice), décrits dans le texte. Les repères d'annotation sont produits par la campagne de captures de l'application, en pourcentages de la vue 1600 × 900.</p>
     </footer>
   </main>
 

@@ -13,6 +13,7 @@
 | Projet **Thermostat** chargé, panneau de propriétés | 0 violation |
 | Menu d'actions d'un nœud ouvert | 0 violation |
 | Panneau de simulation après **Run** | 0 violation |
+| Panneau d'exercice : élève, édition, verrouillé | 0 violation |
 | Fenêtre de paramètres de l'application | 0 violation |
 
 Outil : `axe-core` 4.10.2, règles par défaut, `resultTypes: ['violations']`. Les résultats « incomplete » ont été examinés séparément (fond en dégradé du panneau de statut) et vérifiés manuellement.
@@ -24,6 +25,7 @@ Outil : `axe-core` 4.10.2, règles par défaut, `resultTypes: ['violations']`. L
 3. **Libellé du zoom** : l'`aria-label` posé sur un `span` sans rôle est remplacé par un texte masqué lu par les technologies d'assistance.
 4. **Zones défilables** : le contenu des cartes est désormais atteignable au clavier (`tabIndex`), y compris les aperçus de widgets.
 5. **Repères dupliqués** : les annotations reçoivent un nom accessible distinct (`Titre · Note`, `Titre · Image`) et les cartes utilisent `role="group"` au lieu d'une région implicite.
+6. **Hiérarchie des titres** du panneau d'exercice : les sous-sections utilisent `h3` après le titre du panneau, sans saut de niveau.
 
 ## 3. Vérifications manuelles
 
