@@ -2,6 +2,14 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Préparation de la bêta 0.1.0-beta.5 — 7 novembre 2026
+
+- Version portée à **0.1.0-beta.5** dans `package.json`. Notes dans `docs/releases/v0.1.0-beta.5.md` ; README, page d’accueil `abstract/visual` et `docs/ACCESSIBILITY.md` alignés.
+- Contenu depuis la beta.4 : menu de création catégorisé en trois colonnes (Programmation, Widgets, Annotations) avec recherche et navigation clavier ; lien d’évitement vers le canvas ; tableaux accessibles des BarChart et Heatmap ; `role="img"` sur l’écran ; retour de focus après confirmation ; cibles de 24×24 ; corrections axe-core de l’arbre logique, des paramètres et de la recherche ; région live de simulation limitée aux changements d’état ; référentiel WCAG 2.2 A/AA.
+- `pnpm test` : **539 réussis**. `pnpm dist:installer` réussi avec **Inno Setup 7.1.1** : ZIP de **5 540 680 octets** (SHA-256 `ebe937f3efab8d9ee779310287698bb194e5dd045e343b10ea5ef6952afbdc3c`) et installateur de **7 162 327 octets** (SHA-256 `0deb6ff66bbb49aa20c17a28b8b36597a04a9140fb6fac30a3b59a8d5d7f0f3a`).
+- ZIP audité : **15 entrées**, `LICENSE.txt` présent, aucune source map ni fixture `.sp3`. Lancement natif du build extrait du ZIP : interface affichée, titre `Sapphire 3` ; version `0.1.0-beta.5` confirmée par `VERSION.txt` et `package.json`. **Aucune signature Authenticode** : aucun certificat configuré ; le paquet ne doit pas être présenté comme signé.
+- Publication GitHub effectuée en **pré-release** avec le tag **`v0.1.0-beta.5`** sur `40062d7bbb1a49f5b74c9aae5c24037facf5cfe4` et les deux assets. Release distante vérifiée : `prerelease=true`, `draft=false`, tailles et digests conformes. ZIP et installateur retéléchargés depuis GitHub et SHA-256 recalculés : identiques aux fichiers locaux.
+
 ## Préparation de la bêta 0.1.0-beta.4 — 7 novembre 2026
 
 - Version portée à **0.1.0-beta.4** dans `package.json`. Notes dans `docs/releases/v0.1.0-beta.4.md` ; README et page d’accueil `abstract/` alignés.
