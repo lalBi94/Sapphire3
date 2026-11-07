@@ -3261,6 +3261,384 @@ function labyrinth() {
   })
 }
 
+// Compteur local pour garantir un identifiant unique par nœud généré.
+let generatedId = 0
+
+// Produit un identifiant unique pour un nœud généré.
+function uniqueId(prefix) {
+  generatedId += 1
+  return `${prefix}:${generatedId}`
+}
+
+// Crée un littéral entier neuf.
+function intLiteral(b, value) {
+  return b.intValue(uniqueId('int'), value)
+}
+
+// Crée une grille 2D vide de la taille demandée.
+function emptyGrid(width, height) {
+  return Array.from({ length: height }, () => Array(width).fill(0))
+}
+
+// Dessine un point dans une grille 2D.
+function drawPoint(grid, x, y, value = 1) {
+  const column = Math.round(x)
+  const row = Math.round(y)
+  if (row >= 0 && row < grid.length && column >= 0 && column < grid[0].length) grid[row][column] = value
+}
+
+// Dessine une ligne dans une grille 2D, avec un échantillonnage serré.
+function drawLine(grid, x1, y1, x2, y2, value = 1) {
+  const steps = Math.max(1, Math.ceil(Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1)) * 2))
+  for (let index = 0; index <= steps; index += 1) {
+    const ratio = index / steps
+    drawPoint(grid, x1 + (x2 - x1) * ratio, y1 + (y2 - y1) * ratio, value)
+  }
+}
+
+// Crée un module d'écran et l'ajoute au projet.
+function screenModule(b, id, title, width, height, index) {
+  const screen = createScreenModule(`${id}Screen`, `${title} screen`, index, { width, height })
+  b.project.modules.push(screen.module)
+  b.project.nodes.push(...screen.nodes)
+  return screen
+}
+
+// Importe blit et present d'un écran dans le module courant.
+function screenBlitImports(app, screen, prefix) {
+  const exported = (kind) => screen.module.exports.find((entry) => entry.name.startsWith(`SCREEN_SP3_${kind}_`)).nodeId
+  importFunction(app, `${prefix}BlitImport`, screen.module.id, exported('BLIT'), `${prefix}Blit`)
+  importFunction(app, `${prefix}PresentImport`, screen.module.id, exported('PRESENT'), `${prefix}Present`)
+  return { blit: `${prefix}BlitImport`, present: `${prefix}PresentImport` }
+}
+
+// Déclare une grille entière et l'initialise à zéro.
+function gridVariable(b, name, width, height) {
+  b.root(`${name}Decl`, 'VariableDeclaration', { name, type: intArrayType }, { initializer: b.math(uniqueId(`${name}Init`), 'arrayFill', [intLiteral(b, width * height), intLiteral(b, 0)]) })
+  return name
+}
+
+// Déclare une palette de deux couleurs : fond noir puis couleur demandée.
+function twoColorPalette(b, name, color) {
+  intArrayConstant(b, name, [0, 0, 0, 255, color[0], color[1], color[2], 255])
+}
+
+// Écrit une grille 2D dans un tableau plat, en fusionnant les segments égaux
+// consécutifs : une ligne vide et le début de la suivante forment un seul segment.
+function gridAssign(b, prefix, gridName, grid) {
+  const flat = grid.flat()
+  const runs = []
+  let start = 0
+  for (let index = 1; index <= flat.length; index += 1) {
+    if (index === flat.length || flat[index] !== flat[start]) {
+      runs.push({ length: index - start, value: flat[start] })
+      start = index
+    }
+  }
+  const segments = runs.map((run) => b.math(uniqueId(`${prefix}Fill`), 'arrayFill', [intLiteral(b, run.length), intLiteral(b, run.value)]))
+  return b.assign(uniqueId(`${prefix}Assign`), b.ref(uniqueId(`${prefix}Target`), gridName), concatBalanced(b, prefix, segments))
+}
+
+// Concatène des expressions en arbre équilibré pour borner la profondeur syntaxique.
+function concatBalanced(b, prefix, nodes) {
+  let level = nodes
+  while (level.length > 1) {
+    const next = []
+    for (let index = 0; index < level.length; index += 2) {
+      next.push(index + 1 < level.length
+        ? b.math(uniqueId(`${prefix}Concat`), 'arrayConcat', [level[index], level[index + 1]])
+        : level[index])
+    }
+    level = next
+  }
+  return level[0]
+}
+
+// Appelle blit sur la grille et la palette.
+function blitStatement(b, prefix, blitImport, gridName, paletteName) {
+  b.make(`${prefix}Statement`, 'ExpressionStatement', {}, { expression: `${prefix}Call` })
+  b.call(`${prefix}Call`, `${prefix}Callee`, [`${prefix}Grid`, `${prefix}Palette`])
+  b.make(`${prefix}Callee`, 'Reference', {}, {}, { target: { kind: 'import', importId: blitImport } })
+  b.ref(`${prefix}Grid`, gridName)
+  b.ref(`${prefix}Palette`, paletteName)
+  return `${prefix}Statement`
+}
+
+// Présente l'image courante de l'écran.
+function presentStatement(b, prefix, presentImport) {
+  b.make(`${prefix}PresentStatement`, 'ExpressionStatement', {}, { expression: `${prefix}PresentCall` })
+  b.call(`${prefix}PresentCall`, `${prefix}PresentCallee`, [])
+  b.make(`${prefix}PresentCallee`, 'Reference', {}, {}, { target: { kind: 'import', importId: presentImport } })
+  return `${prefix}PresentStatement`
+}
+
+// Assigne une grille, la blitte puis présente l'image.
+function presentFrame(b, prefix, api, gridName, paletteName, grid) {
+  return [
+    gridAssign(b, `${prefix}Grid`, gridName, grid),
+    blitStatement(b, `${prefix}Blit`, api.blit, gridName, paletteName),
+    presentStatement(b, `${prefix}Present`, api.present),
+  ]
+}
+
+// Sommets et arêtes du cube unitaire, partagés par les projections.
+const cubeVertices = [
+  [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
+  [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1],
+]
+const cubeEdges = [
+  [0, 1], [1, 2], [2, 3], [3, 0],
+  [4, 5], [5, 6], [6, 7], [7, 4],
+  [0, 4], [1, 5], [2, 6], [3, 7],
+]
+
+// Projette les huit sommets du cube, sans mise à l'échelle.
+function cubeProjection(angle, tilt, perspective) {
+  const cosA = Math.cos(angle)
+  const sinA = Math.sin(angle)
+  const cosT = Math.cos(tilt)
+  const sinT = Math.sin(tilt)
+  return cubeVertices.map(([x, y, z]) => {
+    const rx = x * cosA - z * sinA
+    const rz = x * sinA + z * cosA
+    const ry = y * cosT - rz * sinT
+    const rz2 = y * sinT + rz * cosT
+    const scale = perspective ? 4 / (4 + rz2) : 1
+    return [rx * scale, ry * scale]
+  })
+}
+
+// Calcule l'échelle qui garde le cube entier sur l'écran pendant toute la rotation.
+function cubeSize(width, height, frames, tilt, perspective) {
+  let extentX = 0
+  let extentY = 0
+  for (let frame = 0; frame < frames; frame += 1) {
+    for (const [x, y] of cubeProjection((Math.PI * 2 * frame) / frames, tilt, perspective)) {
+      extentX = Math.max(extentX, Math.abs(x))
+      extentY = Math.max(extentY, Math.abs(y))
+    }
+  }
+  return Math.min((width / 2 - 2) / extentX, (height / 2 - 2) / extentY)
+}
+
+// Grille d'un cube filaire tournant, avec projection perspective ou orthographique.
+function cubeGrid(width, height, angle, tilt, perspective, size) {
+  const grid = emptyGrid(width, height)
+  const projected = cubeProjection(angle, tilt, perspective)
+    .map(([x, y]) => [width / 2 + x * size, height / 2 + y * size])
+  for (const [from, to] of cubeEdges) drawLine(grid, projected[from][0], projected[from][1], projected[to][0], projected[to][1])
+  return grid
+}
+
+// Grille d'un triangle équilatéral en rotation et pulsation.
+function triangleGrid(width, height, frame, frames) {
+  const grid = emptyGrid(width, height)
+  const angle = (Math.PI * 2 * frame) / frames
+  const radius = 11 + 2.5 * Math.sin(3 * angle)
+  const vertices = [0, 1, 2].map((index) => {
+    const theta = angle + (Math.PI * 2 * index) / 3
+    return [width / 2 + radius * Math.cos(theta), height / 2 + radius * Math.sin(theta)]
+  })
+  for (let index = 0; index < 3; index += 1) {
+    const next = (index + 1) % 3
+    drawLine(grid, vertices[index][0], vertices[index][1], vertices[next][0], vertices[next][1])
+  }
+  return grid
+}
+
+// Grille d'un spirographe (hypotrochoïde) statique, ajustée à l'écran.
+function spirographGrid(width, height) {
+  const grid = emptyGrid(width, height)
+  const samples = 1600
+  const points = []
+  // Deux tours suffisent à refermer la courbe, car (R - r) / r vaut 3 / 2.
+  for (let index = 0; index <= samples; index += 1) {
+    const theta = (Math.PI * 4 * index) / samples
+    points.push([
+      3 * Math.cos(theta) + 3.5 * Math.cos(1.5 * theta),
+      3 * Math.sin(theta) - 3.5 * Math.sin(1.5 * theta),
+    ])
+  }
+  const extentX = Math.max(...points.map((point) => Math.abs(point[0])))
+  const extentY = Math.max(...points.map((point) => Math.abs(point[1])))
+  const scale = Math.min((width / 2 - 2) / extentX, (height / 2 - 2) / extentY)
+  for (const [x, y] of points) drawPoint(grid, width / 2 + x * scale, height / 2 + y * scale)
+  return grid
+}
+
+// Grille du triangle de Sierpinski par jeu du chaos déterministe.
+function sierpinskiGrid(width, height) {
+  const grid = emptyGrid(width, height)
+  const vertices = [[width / 2, 4], [4, height - 4], [width - 4, height - 4]]
+  let seed = 123456789
+  const random = () => {
+    seed = (1103515245 * seed + 12345) & 0x7fffffff
+    return seed / 0x7fffffff
+  }
+  let x = width / 2
+  let y = height / 2
+  for (let index = 0; index < 12000; index += 1) {
+    const vertex = vertices[Math.floor(random() * 3)]
+    x = (x + vertex[0]) / 2
+    y = (y + vertex[1]) / 2
+    drawPoint(grid, x, y)
+  }
+  return grid
+}
+
+// Grille d'une onde de pendules statique.
+function pendulumGrid(width, height) {
+  const grid = emptyGrid(width, height)
+  const pendulums = 12
+  const time = 0.35
+  const amplitude = 0.5
+  const length = 34
+  const pivotY = 6
+  const margin = 18
+  // Support horizontal commun aux douze pendules.
+  drawLine(grid, margin - 3, pivotY, width - margin + 3, pivotY)
+  for (let index = 0; index < pendulums; index += 1) {
+    const pivotX = margin + index * ((width - 2 * margin) / (pendulums - 1))
+    const angle = amplitude * Math.sin(2 * Math.PI * time * (index + 1))
+    drawLine(grid, pivotX, pivotY, pivotX + length * Math.sin(angle), pivotY + length * Math.cos(angle))
+  }
+  return grid
+}
+
+// Cube 3D filaire : deux écrans, projection perspective et orthographique.
+function rotatingCube() {
+  const b = builder()
+  const width = 48
+  const height = 30
+  const frames = 6
+  const screenA = screenModule(b, 'cubeA', 'Cube front', width, height, 1)
+  const screenB = screenModule(b, 'cubeB', 'Cube top', width, height, 2)
+  b.useModule('cubeApp', 'Rotating cube')
+  const app = b.project.modules.find((module) => module.id === 'cubeApp')
+  const apiA = screenBlitImports(app, screenA, 'cubeA')
+  const apiB = screenBlitImports(app, screenB, 'cubeB')
+  const gridA = gridVariable(b, 'cubeGridA', width, height)
+  const gridB = gridVariable(b, 'cubeGridB', width, height)
+  twoColorPalette(b, 'cubePaletteA', [80, 220, 255])
+  twoColorPalette(b, 'cubePaletteB', [255, 190, 90])
+
+  const body = []
+  const sizeA = cubeSize(width, height, frames, 0.35, true)
+  const sizeB = cubeSize(width, height, frames, -0.55, false)
+  for (let frame = 0; frame < frames; frame += 1) {
+    const angle = (Math.PI * 2 * frame) / frames
+    // Les deux écrans sont écrits avant la présentation : chaque image capturée est complète.
+    body.push(
+      gridAssign(b, `cubeA${frame}Grid`, gridA, cubeGrid(width, height, angle, 0.35, true, sizeA)),
+      blitStatement(b, `cubeA${frame}Blit`, apiA.blit, gridA, 'cubePaletteA'),
+      gridAssign(b, `cubeB${frame}Grid`, gridB, cubeGrid(width, height, angle, -0.55, false, sizeB)),
+      blitStatement(b, `cubeB${frame}Blit`, apiB.blit, gridB, 'cubePaletteB'),
+      presentStatement(b, `cubeA${frame}Present`, apiA.present),
+      presentStatement(b, `cubeB${frame}Present`, apiB.present),
+    )
+  }
+  b.root('cubeMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'cubeBody' })
+  b.stringValue('cubeMessage', 'Rotating cube')
+  b.print('cubePrint', 'cubeMessage')
+  b.block('cubeBody', [...body, 'cubePrint'])
+
+  return workspace(b.project, [
+    note('cubeNote', 'Rotating cube', `Deux écrans ${width}×${height}. Huit sommets, douze arêtes, rotation autour de l'axe vertical, projection perspective à gauche et orthographique inclinée à droite. Les images sont précalculées en JavaScript puis envoyées par blit/present. $$x' = x\\cos\\theta - z\\sin\\theta,\\quad z' = x\\sin\\theta + z\\cos\\theta$$`, 0, 1000, 1120, 240),
+  ])
+}
+
+// Triangle équilatéral en rotation et pulsation.
+function rotatingTriangle() {
+  const b = builder()
+  const width = 48
+  const height = 30
+  const frames = 20
+  const screen = screenModule(b, 'triangle', 'Rotating triangle', width, height, 1)
+  b.useModule('triangleApp', 'Rotating triangle')
+  const app = b.project.modules.find((module) => module.id === 'triangleApp')
+  const api = screenBlitImports(app, screen, 'triangle')
+  const grid = gridVariable(b, 'triangleGrid', width, height)
+  twoColorPalette(b, 'trianglePalette', [255, 210, 90])
+  const body = []
+  for (let frame = 0; frame < frames; frame += 1) {
+    body.push(...presentFrame(b, `triangle${frame}`, api, grid, 'trianglePalette', triangleGrid(width, height, frame, frames)))
+  }
+  b.root('triangleMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'triangleBody' })
+  b.stringValue('triangleMessage', 'Rotating triangle')
+  b.print('trianglePrint', 'triangleMessage')
+  b.block('triangleBody', [...body, 'trianglePrint'])
+
+  return workspace(b.project, [
+    note('triangleNote', 'Rotating triangle', `Écran ${width}×${height}. Trois sommets tournent autour du centre ; le rayon pulse avec \`11 + 2,5·sin(3θ)\`. Les images sont précalculées puis affichées par blit/present. La séquence revient exactement à son état initial après ${frames} images. $$r(\\theta)=11+2{,}5\\sin(3\\theta)$$`, 0, 620, 760, 240),
+  ])
+}
+
+// Spirographe : hypotrochoïde statique de haute densité.
+function spirograph() {
+  const b = builder()
+  const width = 96
+  const height = 64
+  const screen = screenModule(b, 'spiro', 'Spirograph', width, height, 1)
+  b.useModule('spiroApp', 'Spirograph')
+  const app = b.project.modules.find((module) => module.id === 'spiroApp')
+  const api = screenBlitImports(app, screen, 'spiro')
+  const grid = gridVariable(b, 'spiroGrid', width, height)
+  twoColorPalette(b, 'spiroPalette', [120, 220, 255])
+  const body = presentFrame(b, 'spiro', api, grid, 'spiroPalette', spirographGrid(width, height))
+  b.root('spiroMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'spiroBody' })
+  b.stringValue('spiroMessage', 'Spirograph')
+  b.print('spiroPrint', 'spiroMessage')
+  b.block('spiroBody', [...body, 'spiroPrint'])
+
+  return workspace(b.project, [
+    note('spiroNote', 'Spirograph', `Écran ${width}×${height}. Hypotrochoïde \`R=5\`, \`r=2\`, \`d=3.5\`, tracée sur deux tours avec 1600 échantillons puis ajustée à l'écran. $$x=(R-r)\\cos\\theta+d\\cos\\!\\left(\\frac{R-r}{r}\\theta\\right),\\quad y=(R-r)\\sin\\theta-d\\sin\\!\\left(\\frac{R-r}{r}\\theta\\right)$$`, 0, 620, 900, 260),
+  ])
+}
+
+// Jeu du chaos de Sierpinski : fractale statique déterministe.
+function sierpinskiChaos() {
+  const b = builder()
+  const width = 64
+  const height = 40
+  const screen = screenModule(b, 'sier', 'Sierpinski chaos', width, height, 1)
+  b.useModule('sierApp', 'Sierpinski chaos')
+  const app = b.project.modules.find((module) => module.id === 'sierApp')
+  const api = screenBlitImports(app, screen, 'sier')
+  const grid = gridVariable(b, 'sierGrid', width, height)
+  twoColorPalette(b, 'sierPalette', [120, 255, 160])
+  const body = presentFrame(b, 'sier', api, grid, 'sierPalette', sierpinskiGrid(width, height))
+  b.root('sierMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'sierBody' })
+  b.stringValue('sierMessage', 'Sierpinski chaos')
+  b.print('sierPrint', 'sierMessage')
+  b.block('sierBody', [...body, 'sierPrint'])
+
+  return workspace(b.project, [
+    note('sierNote', 'Sierpinski chaos', `Écran ${width}×${height}. Douze mille points du jeu du chaos : un sommet du triangle est tiré, puis le point courant se déplace à mi-chemin. La grille finale est précalculée et envoyée par blit/present. $$P_{n+1}=\\frac{P_n+V_i}{2}$$`, 0, 620, 900, 240),
+  ])
+}
+
+// Onde de pendules : douze longueurs identiques, fréquences entières croissantes.
+function pendulumWave() {
+  const b = builder()
+  const width = 96
+  const height = 48
+  const screen = screenModule(b, 'pendulum', 'Pendulum wave', width, height, 1)
+  b.useModule('pendulumApp', 'Pendulum wave')
+  const app = b.project.modules.find((module) => module.id === 'pendulumApp')
+  const api = screenBlitImports(app, screen, 'pendulum')
+  const grid = gridVariable(b, 'pendulumGrid', width, height)
+  twoColorPalette(b, 'pendulumPalette', [160, 220, 255])
+  const body = presentFrame(b, 'pendulum', api, grid, 'pendulumPalette', pendulumGrid(width, height))
+  b.root('pendulumMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'pendulumBody' })
+  b.stringValue('pendulumMessage', 'Pendulum wave')
+  b.print('pendulumPrint', 'pendulumMessage')
+  b.block('pendulumBody', [...body, 'pendulumPrint'])
+
+  return workspace(b.project, [
+    note('pendulumNote', 'Pendulum wave', `Écran ${width}×${height}. Douze pendules de même longueur ont des fréquences entières de 1 à 12. L'image montre la position à \`t = 0,35\`, précalculée en JavaScript. $$\\theta_i(t)=A\\sin(2\\pi f_i t),\\quad f_i=1,\\dots,12$$`, 0, 620, 900, 240),
+  ])
+}
+
 // Trois niveaux de difficulté, du plus simple au plus avancé.
 export const exampleCategories = [
   { id: 'simple', labelKey: 'examples.category.simple' },
@@ -3306,6 +3684,11 @@ export const examples = [
   { id: 'starfield', labelKey: 'examples.starfield', category: 'hard', subcategory: 'animation', build: starfield },
   { id: 'colorFlow', labelKey: 'examples.colorFlow', category: 'medium', subcategory: 'animation', build: colorFlow },
   { id: 'rgbMixer', labelKey: 'examples.rgbMixer', category: 'medium', subcategory: 'widgets', build: rgbMixer },
+  { id: 'rotatingCube', labelKey: 'examples.rotatingCube', category: 'hard', subcategory: 'animation', build: rotatingCube },
+  { id: 'rotatingTriangle', labelKey: 'examples.rotatingTriangle', category: 'medium', subcategory: 'animation', build: rotatingTriangle },
+  { id: 'spirograph', labelKey: 'examples.spirograph', category: 'medium', subcategory: 'animation', build: spirograph },
+  { id: 'sierpinskiChaos', labelKey: 'examples.sierpinskiChaos', category: 'hard', subcategory: 'animation', build: sierpinskiChaos },
+  { id: 'pendulumWave', labelKey: 'examples.pendulumWave', category: 'medium', subcategory: 'animation', build: pendulumWave },
   ...widgetExamples.map((example) => ({
     ...example,
     build: () => {

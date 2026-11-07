@@ -44,6 +44,11 @@ const expectedOutput = {
   starfield: ['Starfield'],
   colorFlow: ['Color flow'],
   rgbMixer: ['RGB mixer'],
+  rotatingCube: ['Rotating cube'],
+  rotatingTriangle: ['Rotating triangle'],
+  spirograph: ['Spirograph'],
+  sierpinskiChaos: ['Sierpinski chaos'],
+  pendulumWave: ['Pendulum wave'],
   rgbLedDemo: ['Red', 'Yellow', 'Green', 'Cyan', 'Blue', 'Magenta', 'White'],
   euclid: ['21'],
   binarySearch: ['6'],
@@ -58,7 +63,7 @@ const expectedOutput = {
 }
 
 test('bibliothèque d’exemples : chaque projet est valide, analysable et s’exécute', () => {
-  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'recursion', 'arrays', 'foreach', 'sorting', 'maths', 'imports', 'rgbLedDemo', 'pointers', 'higherOrder', 'quickSort', 'coinChange', 'gaugeDemo', 'carDashboard', 'trafficControl', 'dnaAnalyzer', 'signalProcessing', 'mandelbrotEscape', 'collatzAtlas', 'sortRace', 'heatDiffusion', 'imageConvolution', 'weatherStation', 'networkMonitor', 'pixelScreens', 'rain', 'knapsack', 'calculus', 'gameOfLife', 'roverSurvey', 'signalLab', 'coral', 'labyrinth', 'starfield', 'colorFlow', 'rgbMixer', 'euclid', 'binarySearch', 'primeSieve', 'insertionSort', 'diceHistogram', 'checkoutQueue', 'thermostat', 'dampedSpring', 'floodFill', 'pascalTriangle'])
+  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'recursion', 'arrays', 'foreach', 'sorting', 'maths', 'imports', 'rgbLedDemo', 'pointers', 'higherOrder', 'quickSort', 'coinChange', 'gaugeDemo', 'carDashboard', 'trafficControl', 'dnaAnalyzer', 'signalProcessing', 'mandelbrotEscape', 'collatzAtlas', 'sortRace', 'heatDiffusion', 'imageConvolution', 'weatherStation', 'networkMonitor', 'pixelScreens', 'rain', 'knapsack', 'calculus', 'gameOfLife', 'roverSurvey', 'signalLab', 'coral', 'labyrinth', 'starfield', 'colorFlow', 'rgbMixer', 'rotatingCube', 'rotatingTriangle', 'spirograph', 'sierpinskiChaos', 'pendulumWave', 'euclid', 'binarySearch', 'primeSieve', 'insertionSort', 'diceHistogram', 'checkoutQueue', 'thermostat', 'dampedSpring', 'floodFill', 'pascalTriangle'])
   assert.deepEqual(exampleCategories.map((category) => category.id), ['simple', 'medium', 'hard'])
   for (const example of examples) {
     assert.ok(exampleCategories.some((category) => category.id === example.category), `${example.id}: catégorie connue`)
@@ -334,6 +339,34 @@ test('nouveaux exemples écran : résolutions, images et budgets bornés', () =>
   assert.equal(mixer.screenFrameGauges.length, mixer.screenFrames.length)
   assert.equal(mixer.screenFrameRgbLeds.length, mixer.screenFrames.length)
   assert.ok(Object.keys(mixer.rgbLeds).length === 1)
+})
+
+test('exemples mathématiques visuels : résolutions, images et budgets bornés', () => {
+  const expectations = {
+    rotatingCube: { width: 48, height: 30, frames: 12, screens: 2 },
+    rotatingTriangle: { width: 48, height: 30, frames: 20, screens: 1 },
+    spirograph: { width: 96, height: 64, frames: 1, screens: 1 },
+    sierpinskiChaos: { width: 64, height: 40, frames: 1, screens: 1 },
+    pendulumWave: { width: 96, height: 48, frames: 1, screens: 1 },
+  }
+  const results = new Map()
+  for (const [id, expected] of Object.entries(expectations)) {
+    const workspace = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === id).build()))
+    const screens = workspace.presentation.cards.filter((card) => card.type === 'screen')
+    assert.equal(screens.length, expected.screens, id)
+    assert.ok(screens.every((screen) => screen.screenWidth === expected.width && screen.screenHeight === expected.height), `${id}: résolution`)
+    const result = simulateProgram(workspace.project)
+    results.set(id, result)
+    assert.equal(result.ok, true, `${id}: ${result.errorCode ?? ''}`)
+    assert.equal(result.screenFrames.length, expected.frames, id)
+    assert.ok(result.steps < 10000, `${id}: budget de pas`)
+    assert.ok(result.screenFrames.every((frame) => Object.values(frame).every((state) => state.pixels.length === expected.width * expected.height * 4)), `${id}: tampon complet`)
+    // Aucune image vide : chaque image allume au moins un pixel.
+    assert.ok(result.screenFrames.every((frame) => Object.values(frame).every((state) => state.pixels.some((value) => value !== 0))), `${id}: image non vide`)
+  }
+  // Les deux animations montrent bien plusieurs images distinctes.
+  assert.ok(new Set(results.get('rotatingCube').screenFrames.map((frame) => JSON.stringify(frame))).size > 1, 'rotatingCube: images distinctes')
+  assert.ok(new Set(results.get('rotatingTriangle').screenFrames.map((frame) => JSON.stringify(frame))).size > 1, 'rotatingTriangle: images distinctes')
 })
 
 test('les douze exemples transpilables : JavaScript et Python reproduisent la simulation', () => {

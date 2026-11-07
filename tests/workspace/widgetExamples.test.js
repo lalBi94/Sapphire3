@@ -19,15 +19,15 @@ function run(id) {
 
 test('difficultés : reclassifications pédagogiques et dix ajouts distincts', () => {
   assert.equal(widgetExamples.length, 10)
-  assert.equal(examples.length, 46)
-  assert.equal(new Set(examples.map((entry) => entry.id)).size, 46)
+  assert.equal(examples.length, 51)
+  assert.equal(new Set(examples.map((entry) => entry.id)).size, 51)
   const expected = {
     gaugeDemo: 'simple', fibonacci: 'medium', recursion: 'medium', sorting: 'medium',
     quickSort: 'hard', coinChange: 'hard', trafficControl: 'medium', dnaAnalyzer: 'medium', collatzAtlas: 'medium',
     heatDiffusion: 'hard', imageConvolution: 'hard', coral: 'hard', starfield: 'hard',
   }
   for (const [id, category] of Object.entries(expected)) assert.equal(examples.find((entry) => entry.id === id).category, category, id)
-  assert.deepEqual(['simple', 'medium', 'hard'].map((category) => examples.filter((entry) => entry.category === category).length), [6, 23, 17])
+  assert.deepEqual(['simple', 'medium', 'hard'].map((category) => examples.filter((entry) => entry.category === category).length), [6, 26, 19])
 })
 
 test('chaque nouvel exemple mélange un algorithme réel avec plusieurs widgets et leur historique', () => {
