@@ -8,7 +8,7 @@
 - Contenu depuis la beta.3 : mode exercice (manifeste, snapshot de départ, tests entrée/fonction, Check, Reset, robot), verrou PBKDF2 et solutions, dix exemples supplémentaires et reclassement (46 au total), installateur Windows par utilisateur, licence MIT, audit d’accessibilité, documentation et wiki.
 - `pnpm test` : **536 réussis**. `pnpm dist:installer` réussi avec Inno Setup 7.1.1 : ZIP de **5 539 349 octets** (SHA-256 `be6975681b6c8954a4bd62b99ce710819258924b8b4a91aaaf0293e03ffe7ce6`) et installateur de **7 104 079 octets** (SHA-256 `d79074cf97669ec8e5681878c12e2c15202c6aac3043be10ed97559b5bba08fe`).
 - ZIP audité : **15 entrées**, `LICENSE.txt` présent, aucune source map ni fixture `.sp3`. Lancement natif du build : interface et version `v0.1.0-beta.4` affichées, mode exercice présent. **Aucune signature Authenticode** : aucun certificat configuré ; le paquet ne doit pas être présenté comme signé.
-- Publication GitHub à effectuer après commit et push de `master`, en pré-release avec tag `v0.1.0-beta.4` et les deux assets. Vérification distante obligatoire avant de considérer la release comme publiée.
+- Publication GitHub effectuée en **pré-release** avec le tag **`v0.1.0-beta.4`** sur `da60524aec0467fb82512eaf1e5bd9f41d67e0b9` et les deux assets. Release distante vérifiée : `prerelease=true`, `draft=false`, tailles et digests conformes. ZIP et installateur retéléchargés depuis GitHub et SHA-256 recalculés : identiques aux fichiers locaux.
 
 ## Mode exercice local — 7 novembre 2026
 
