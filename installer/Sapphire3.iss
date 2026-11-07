@@ -45,6 +45,7 @@ OutputBaseFilename=Sapphire3-{#AppVersion}-windows-setup
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=..\src\assets\branding\03_DESKTOP\Windows\sapphire3-windows.ico
 CloseApplications=yes
 RestartApplications=no
 LicenseFile=..\LICENSE

@@ -20,6 +20,8 @@
 
 /* Pages de paramètres : blocs empilés, actions et listes sobres. */
 .settings-section { display: flex; flex-direction: column; gap: var(--space-control); }
+.settings-section__identity { display: flex; align-items: center; gap: var(--space-panel); }
+.settings-section__identity img { flex: none; object-fit: contain; }
 .settings-section__actions { display: flex; flex-direction: column; gap: 4px; }
 .settings-section__actions button { display: inline-flex; align-items: center; gap: var(--space-control); padding: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: transparent; color: var(--color-text); font: inherit; text-align: left; cursor: pointer; }
 .settings-section__actions button:hover:not(:disabled) { background: var(--color-hover); }

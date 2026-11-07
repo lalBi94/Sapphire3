@@ -1,4 +1,4 @@
-import { cp, mkdir, rm } from 'node:fs/promises'
+import { cp, mkdir, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { createArchive, readPackage, reportArchive, root, writeCommonFiles } from './build-common.mjs'
@@ -23,6 +23,16 @@ for (const { arch, source } of binaries) {
   await mkdir(stagingDirectory, { recursive: true })
   await cp(source, path.join(stagingDirectory, 'Sapphire3'))
   await cp(resourcesFile, path.join(stagingDirectory, 'resources.neu'))
+  await cp(path.join(root, 'src', 'assets', 'branding', '03_DESKTOP', 'Linux', 'hicolor'), path.join(stagingDirectory, 'share', 'icons', 'hicolor'), { recursive: true })
+  await mkdir(path.join(stagingDirectory, 'share', 'applications'), { recursive: true })
+  await writeFile(path.join(stagingDirectory, 'share', 'applications', 'sapphire3.desktop'), `[Desktop Entry]
+Type=Application
+Name=Sapphire 3
+Exec=Sapphire3
+Icon=sapphire3
+Terminal=false
+Categories=Development;IDE;
+`)
   await writeCommonFiles(stagingDirectory, {
     releaseVersion: version,
     releaseTitle: `Sapphire 3 Beta ${version}`,

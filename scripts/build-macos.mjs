@@ -27,6 +27,7 @@ const macosDirectory = path.join(contentsDirectory, 'MacOS')
 await rm(stagingDirectory, { recursive: true, force: true })
 await mkdir(macosDirectory, { recursive: true })
 await mkdir(path.join(contentsDirectory, 'Resources'), { recursive: true })
+await cp(path.join(root, 'src', 'assets', 'branding', '03_DESKTOP', 'macOS', 'sapphire3.icns'), path.join(contentsDirectory, 'Resources', 'sapphire3.icns'))
 
 await cp(binary, path.join(macosDirectory, 'Sapphire 3'))
 await cp(resourcesFile, path.join(macosDirectory, 'resources.neu'))
@@ -40,6 +41,7 @@ await writeFile(path.join(contentsDirectory, 'Info.plist'), `<?xml version="1.0"
   <key>CFBundleIdentifier</key><string>local.sapphire3.app</string>
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
   <key>CFBundleName</key><string>Sapphire 3</string>
+  <key>CFBundleIconFile</key><string>sapphire3.icns</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>${appVersion}</string>
   <key>CFBundleVersion</key><string>${numericVersionFor(version)}</string>

@@ -87,6 +87,16 @@ licenses/
 
 `resources.neu` contient uniquement le frontend compilé et la configuration de production. `pnpm dist:win` ne nécessite aucune dépendance globale : Vite et la CLI Neutralinojs sont appelés depuis `node_modules`. Node.js n'est pas requis pour exécuter le paquet distribué.
 
+### Identité et icônes
+
+- Les originaux et déclinaisons sont versionnés dans `src/assets/branding/`. Seules les variantes utilisées sont embarquées ; aucune bannière ni intégration Discord/PWA n'est ajoutée.
+- `neutralino.config.json` désigne le PNG 512 px via `applicationIcon` : la CLI Neutralinojs 11.8.0 génère et injecte l'ICO multirésolution de l'exécutable Windows avant signature. Le PNG 256 px sert à la fenêtre native. Les binaires de runtime de `bin/` restent inchangés.
+- En production, le PNG de fenêtre est copié vers `dist/branding/app-icon.png` et la configuration de production pointe vers cette ressource interne. Le favicon et l'icône Apple Touch sont traités par Vite depuis leurs sources.
+- L'installateur utilise `03_DESKTOP/Windows/sapphire3-windows.ico` via `SetupIconFile`. Les raccourcis et l'entrée de désinstallation utilisent l'icône embarquée dans `Sapphire3.exe` ; aucun visuel de bannière d'installation n'est changé.
+- macOS : `sapphire3.icns` est placé dans `Contents/Resources/` et déclaré par `CFBundleIconFile` dans `Info.plist`.
+- Linux : le paquet fournit `share/icons/hicolor/` et `share/applications/sapphire3.desktop` (`Exec=Sapphire3`, `Icon=sapphire3`). Lancer directement `./Sapphire3` reste possible. Pour l'intégration au menu, l'utilisateur doit installer le binaire dans son PATH et copier le fichier desktop et les icônes dans les emplacements XDG correspondants ; aucune installation système automatique n'est effectuée.
+- Une modification de ces ressources nécessite de reconstruire les paquets. Les caches d'icônes de l'OS peuvent retarder l'affichage ; aucune purge automatique n'est effectuée.
+
 ### 4.1 Distribution Linux et macOS
 
 - `scripts/build-linux.mjs` prépare deux dossiers `Sapphire3-<version>-linux-x64/` et `Sapphire3-<version>-linux-arm64/` à partir des binaires Neutralinojs `sapphire3-linux_x64` et `sapphire3-linux_arm64`. Chaque dossier contient `Sapphire3`, `resources.neu`, `VERSION.txt`, `CREDITS.md`, `LICENSE.txt`, `LIRE-MOI.txt`, `README.txt` et `licenses/`.

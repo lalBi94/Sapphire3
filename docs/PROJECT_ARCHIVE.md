@@ -2,6 +2,16 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Intégration du logo applicatif — 7 novembre 2026
+
+- Réutilisation des fichiers fournis dans `src/assets/branding/`, sans recréation d'image ni changement de bannière. Le logo GitHub reste celui du lien GitHub, la mascotte reste distincte du logo.
+- Fenêtre Neutralinojs : PNG 256 px en développement et ressource stable `/dist/branding/app-icon.png` en production. Exécutable Windows : `applicationIcon` (PNG 512 px) utilisé par le patch d'icône existant de la CLI ; Inno Setup : `SetupIconFile` utilise l'ICO fourni. macOS : ICNS dans `Contents/Resources/` et `CFBundleIconFile`. Linux : hicolor et fichier desktop fournis, installation XDG laissée à l'utilisateur.
+- Frontend : favicon et Apple Touch dans `index.html`, logo WebP 128 px rendu à 64 px avec nom adjacent dans la section Application des paramètres ; alternative vide pour éviter une répétition accessible. Aucun nouveau service worker, manifeste PWA ou appel Discord.
+- Vérifications : `pnpm test` **564 réussis**, dont le contrôle des signatures/formats et tailles des icônes ; `pnpm dist:all` construit les quatre archives (Windows, Linux x64, Linux ARM64, macOS Universal). Aucun certificat de signature configuré. Aucune publication ni push.
+- Navigateur : favicon HTTP 200, logo chargé (128×128, rendu 64×64), aucune violation axe-core sur la fenêtre de paramètres ouverte en section Application. Pas de capture ajoutée.
+- Windows natif : extraction de l'icône de l'exécutable compilé réussie (32×32) ; après chargement effectif, fenêtre « Sapphire 3 » exposant son icône 256×256. Les sondes initiales lancées avant la fin du chargement ne trouvaient pas encore d'icône ; aucun défaut de ressource après chargement. La fenêtre de test est fermée normalement.
+- Limites : `node scripts/build-installer.mjs` échoue car `ISCC.exe` est absent ; branchement de l'ICO dans Inno Setup non compilé ici. Les archives Linux et macOS sont construites, mais leur rendu natif n'est pas vérifié sur ces systèmes. Les paquets locaux remplacent les anciennes sorties de build, pas les assets de release publiés.
+
 ## Revue de cohérence et cas limites — 7 novembre 2026
 
 - Périmètre : revue ciblée des incréments récents (classes, exemples et dépendances), des contrats de simulation et duplication, des services Worker et mise à jour, de la CI, du site et du rapport AST. Le dépôt était propre au départ. L'historique ne permet pas d'attribuer avec certitude chaque ligne à un modèle ; la revue porte sur le code, pas son auteur.

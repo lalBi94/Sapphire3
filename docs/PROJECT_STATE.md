@@ -2,6 +2,8 @@
 
 ## Présentation et périmètre
 
+- **Logo applicatif** : sources et variantes dans `src/assets/branding/`. PNG de fenêtre Neutralinojs, icône embarquée Windows générée par la CLI, ICO de l'installateur, ICNS macOS déclaré dans le bundle, ressources hicolor/desktop Linux, favicon/Apple Touch et logo carré dans **Settings → About → Application**. Aucune bannière modifiée, aucun service Discord ni PWA ajouté. Archives reconstruites ; icône de fenêtre Windows vérifiée après chargement ; compilation d'installateur non vérifiée (Inno Setup absent), exécution Linux/macOS non vérifiée. Détail dans `docs/DISTRIBUTION.md` et l'archive.
+
 - **Code courant, après revue du 7 novembre 2026** : 563 tests Node/Python réussis, build Vite et rapport LaTeX compilés. Corrections ciblées des classes : lectures non initialisées refusées, méthodes liées utilisables comme callbacks ou attributs fonction, récepteur évalué avant les arguments, propre type remappé lors de la duplication d'une classe. Site et abstract alignés sur les classes et le workspace v3, captures conservées. Revue ciblée, pas certification exhaustive ; détail et limites dans `PROJECT_ARCHIVE.md`.
 - La version et les vérifications de release ci-dessous décrivent la publication passée, pas le nombre de tests du code courant.
 

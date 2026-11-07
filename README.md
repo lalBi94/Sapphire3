@@ -73,6 +73,7 @@ La CI GitHub Actions (`.github/workflows/ci.yml`) exécute l’installation verr
 - Limite du document interne : 20 Mio. Les images sont des fichiers séparés ; l’export ZIP est écrit par blocs (jusqu’à 512 Mio). Voir `docs/WORKSPACE_FILES.md`.
 
 ### Interface
+- Logo applicatif décliné pour la fenêtre native, les exécutables/paquets desktop, le favicon et la section Application des paramètres. Les ressources originales sont dans `src/assets/branding/` ; les bannières sont inchangées.
 - Barre compacte **Settings**, **Edit**, **View**, **Theme**, **Examples**, **Bookmarks**, **Windows**, Transpile et Run.
 - Fenêtre de paramètres, thèmes prédéfinis et personnalisés avec **variante sombre et variante claire**, huit langues (anglais par défaut, français, chinois, espagnol, arabe, japonais, hindi, russe), raccourcis clavier configurables.
 - Géométrie **Void / Acid** (rectangles à coins biseautés, focus net) avec la **palette Sapphire 3 par défaut** (anthracite, jaune, violet) ; la palette **Void / Acid** reste disponible comme thème. L'apparence sombre ou claire est une préférence globale appliquée à chaque thème. La grille courbée du canvas est conservée.

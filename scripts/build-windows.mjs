@@ -61,7 +61,7 @@ async function writeProductionConfig(devConfig) {
     logging: { enabled: false, writeToLogFile: false },
     modes: {
       ...devConfig.modes,
-      window: { ...devConfig.modes.window, enableInspector: false },
+      window: { ...devConfig.modes.window, icon: '/dist/branding/app-icon.png', enableInspector: false },
     },
     cli: {
       binaryName: devConfig.cli.binaryName,
@@ -128,6 +128,9 @@ async function buildWindowsPackage() {
 
   await rm(path.join(root, 'dist'), { recursive: true, force: true })
   runNode([path.join(root, 'node_modules', 'vite', 'bin', 'vite.js'), 'build'])
+  // La fenêtre native lit un PNG stable, sans embarquer toutes les déclinaisons du branding.
+  await mkdir(path.join(root, 'dist', 'branding'), { recursive: true })
+  await cp(path.join(root, devConfig.modes.window.icon.replace(/^\//, '')), path.join(root, 'dist', 'branding', 'app-icon.png'))
   // Les fixtures de vérification restent dans public/ pour le développement mais ne sont pas distribuées.
   await rm(path.join(root, 'dist', 'verify'), { recursive: true, force: true })
   await assertNoDevelopmentFiles(path.join(root, 'dist'))

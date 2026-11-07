@@ -7,6 +7,7 @@ import { supportedLanguages } from '../../utils/translations.js'
 import { appVersion } from '../../utils/appInfo.js'
 import { diagnosticLabel, groupLabel, typeLabel } from '../LogicTree/logicLabels.js'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
+import appLogo from '../../assets/branding/01_WEB/WEBP_lossless/sapphire3_logo_128x128_lossless.webp'
 
 // Espace de travail : actions de fichier, disposition du canvas, vue et chemins récents.
 export function WorkspaceSection({ busy, pendingImport, onNew, onOpenWorkspace, onSave, onSaveWorkspaceAs, onExportArchive, onImport, onExportSvg, recentWorkspaces, onOpenRecent, distorted = false, onToggleDistortion, minimapVisible = true, onToggleMinimap, magnetEnabled = true, onToggleMagnet, navVisible = true, onToggleNav, hiddenCards = [], onShowAllHidden, onZoomIn, onZoomOut, onZoom100, onCenter }) {
@@ -170,6 +171,10 @@ export function ApplicationSection({ onOpenRepository, update, onCheckUpdate, on
             : status === 'error' ? t('update.error')
               : t('update.idle')
   return <div className="settings-section">
+    <div className="settings-section__identity">
+      <img src={appLogo} width="64" height="64" alt="" />
+      <strong>Sapphire 3</strong>
+    </div>
     <p className="settings-section__row"><span>{t('nav.version')}</span><strong>{appVersion}</strong></p>
     <p className="settings-section__row"><span>{t('update.status')}</span><strong>{statusText}</strong></p>
     <div className="settings-section__actions">
