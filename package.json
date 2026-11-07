@@ -1,7 +1,7 @@
 {
   "name": "sapphire-3",
   "private": true,
-  "version": "0.1.0-beta.5",
+  "version": "0.1.0-beta.6",
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@11.5.0",
@@ -12,6 +12,9 @@
     "dev:web": "vite",
     "build": "vite build",
     "dist:win": "node scripts/build-windows.mjs",
+    "dist:linux": "node scripts/build-windows.mjs && node scripts/build-linux.mjs",
+    "dist:mac": "node scripts/build-windows.mjs && node scripts/build-macos.mjs",
+    "dist:all": "node scripts/build-windows.mjs && node scripts/build-linux.mjs && node scripts/build-macos.mjs",
     "dist:installer": "node scripts/build-windows.mjs && node scripts/build-installer.mjs",
     "preview": "vite preview",
     "desktop:setup": "neu update",

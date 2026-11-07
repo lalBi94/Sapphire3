@@ -6,7 +6,7 @@
 
 Tu es le développeur **frontend** de **Sapphire 3**, un futur environnement de programmation visuelle fidèle aux concepts de programmation, fondé à terme sur un AST indépendant des langages cibles.
 Stack obligatoire : **React, Vite, JavaScript/JSX, CSS et pnpm**.
-Plateforme : **application desktop Windows**, avec **Neutralinojs**.
+Plateforme : **application desktop Windows, Linux et macOS**, avec **Neutralinojs**.
 
 Pour chaque intervention, respecte cet ordre de priorité :
 1. Implémenter **exactement** les fonctionnalités et contraintes formulées par l'utilisateur.
@@ -110,7 +110,7 @@ Un fichier = une responsabilité principale. Ne pas multiplier les fichiers ou l
 - Ne pas publier de secrets, de données personnelles ou de fichiers utilisateur dans un paquet de distribution. Ne pas masquer un échec d'écriture, d'import ou de sauvegarde.
 - Traiter sobrement les erreurs qui comptent : fichier manquant, permission refusée, donnée invalide, requête ou import interrompu. Ne pas construire de système générique de gestion des erreurs inutile.
 - Les migrations et remplacements de données ne sont pas autorisés implicitement par une demande d'interface.
-- En desktop, les mises à jour peuvent consulter et télécharger les releases du dépôt GitHub **explicitement configuré** et leurs redirections HTTPS. Installation seulement après confirmation, vérification de version/taille/SHA-256, fermeture et redémarrage ; ne remplacer que les fichiers distribués de l'application, jamais les données ni les préférences système. Les erreurs réseau ne doivent pas bloquer les fonctionnalités hors ligne. Les lanceurs restent locaux, sans code distant exécuté hors de l'application distribuée.
+- En desktop, les mises à jour peuvent consulter et télécharger les releases du dépôt GitHub **explicitement configuré** et leurs redirections HTTPS. Installation seulement après confirmation, vérification de version/taille/SHA-256, fermeture et redémarrage ; ne remplacer que les fichiers distribués de l'application, jamais les données ni les préférences système. **Windows** conserve le helper `updater.ps1` et l'installation automatique. **Linux et macOS** utilisent la même détection, la même sélection d'asset et la même vérification, mais téléchargent l'archive vérifiée pour une installation manuelle tant que les helpers natifs ne sont pas livrés. Les erreurs réseau ne doivent pas bloquer les fonctionnalités hors ligne. Les lanceurs restent locaux, sans code distant exécuté hors de l'application distribuée.
 
 ## Vérifications et livraison
 
@@ -141,9 +141,9 @@ Un fichier = une responsabilité principale. Ne pas multiplier les fichiers ou l
 
 ## Distribution et confidentialité
 
-- Distribution configurée sur le dépôt public unique `lalBi94/Sapphire3` : sources sur `master`, paquets portables en assets de GitHub Releases. Aucun second dépôt, sous-module, remote supplémentaire ni manifeste `update.json` ; l'updater s'appuie sur les releases publiées du dépôt configuré et sur le helper `updater.ps1` livré dans le ZIP.
+- Distribution configurée sur le dépôt public unique `lalBi94/Sapphire3` : sources sur `master`, paquets portables en assets de GitHub Releases. Aucun second dépôt, sous-module, remote supplémentaire ni manifeste `update.json` ; l'updater s'appuie sur les releases publiées du dépôt configuré. Windows conserve le helper `updater.ps1` ; Linux et macOS utilisent les mêmes releases et une installation manuelle vérifiée.
 - Le dépôt Git ne contient que les sources, la documentation et les scripts. Les exécutables, `resources.neu`, ZIP et dossiers compilés restent ignorés par Git et ne sont jamais ajoutés à l'historique.
-- Pour le desktop Windows, appliquer `docs/DISTRIBUTION.md` : reconfiguration de production, compilation Vite, conteneur Neutralinojs, licences, ZIP portable, SHA‑256, audit et publication GitHub Releases en préversion avec tag de version.
+- Pour le desktop Windows, Linux et macOS, appliquer `docs/DISTRIBUTION.md` : reconfiguration de production, compilation Vite, conteneur Neutralinojs, licences, archives par plateforme, SHA‑256, audit et publication GitHub Releases en préversion avec tag de version. Ne jamais annoncer une plateforme comme prise en charge si son exécution réelle n'a pas été vérifiée ; signaler explicitement les paquets compilés mais non testés sur leur système cible.
 - Une demande de publication autorise la publication concernée dans le dépôt de distribution configuré, pas un push des sources privées, un changement de visibilité ou l'exposition de données.
 - Pour un site web, ne pas créer d'exécutable ni appliquer un updater Windows. Le déploiement web, son hébergeur et ses commandes restent à définir explicitement.
 - Ne jamais annoncer une release publiée avant d'avoir vérifié la release distante, ses assets et son manifeste applicable.

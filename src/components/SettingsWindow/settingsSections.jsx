@@ -161,19 +161,22 @@ export function ApplicationSection({ onOpenRepository, update, onCheckUpdate, on
   const { t } = useTranslation()
   const status = update?.status ?? 'idle'
   const release = update?.release ?? null
+  const manual = release?.installMode === 'manual'
   const statusText = status === 'available' ? t('update.available', { version: release.version })
     : status === 'checking' ? t('update.checking')
       : status === 'none' ? t('update.upToDate')
         : status === 'unavailable' ? t('update.desktop')
-          : status === 'error' ? t('update.error')
-            : t('update.idle')
+          : status === 'unsupported' ? t('update.unsupported')
+            : status === 'error' ? t('update.error')
+              : t('update.idle')
   return <div className="settings-section">
     <p className="settings-section__row"><span>{t('nav.version')}</span><strong>{appVersion}</strong></p>
     <p className="settings-section__row"><span>{t('update.status')}</span><strong>{statusText}</strong></p>
     <div className="settings-section__actions">
-      <button type="button" disabled={status === 'checking' || status === 'unavailable'} onClick={onCheckUpdate}><RefreshCw size={14} aria-hidden="true" />{status === 'checking' ? t('update.checking') : t('update.check')}</button>
-      {release && <button type="button" className="settings-section__primary" onClick={onInstallUpdate}><Download size={14} aria-hidden="true" />{t('update.now')}</button>}
+      <button type="button" disabled={status === 'checking' || status === 'unavailable' || status === 'unsupported'} onClick={onCheckUpdate}><RefreshCw size={14} aria-hidden="true" />{status === 'checking' ? t('update.checking') : t('update.check')}</button>
+      {release && <button type="button" className="settings-section__primary" onClick={onInstallUpdate}><Download size={14} aria-hidden="true" />{t(manual ? 'update.download' : 'update.now')}</button>}
     </div>
+    {manual && <p className="settings-section__hint">{t('update.manualHint')}</p>}
     <div className="settings-section__actions"><button type="button" onClick={onOpenRepository}><ExternalLink size={14} aria-hidden="true" />{t('nav.github')}</button></div>
   </div>
 }

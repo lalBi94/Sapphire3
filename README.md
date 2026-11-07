@@ -2,11 +2,13 @@
 
 ![Espace de travail Sapphire 3 : deux modules reliés par une flèche, avec leurs blocs dépliés](docs/assets/sapphire3-workspace.png)
 
-Application **desktop Windows** de programmation visuelle, en bêta (`0.1.0-beta.5`). Chaque carte posée sur le canvas est une construction d'un langage typé, analysée par un moteur JavaScript pur et indépendant des langages cibles. Le texte reste possible, mais il n'est plus le point de départ.
+Application **desktop Windows, Linux et macOS** de programmation visuelle, en bêta (`0.1.0-beta.6`). Chaque carte posée sur le canvas est une construction d'un langage typé, analysée par un moteur JavaScript pur et indépendant des langages cibles. Le texte reste possible, mais il n'est plus le point de départ.
 
 ## Installation et démarrage
 
 Pour un poste Windows sans Node.js, utilisez l’**installateur** `Sapphire3-<version>-windows-setup.exe` (installation par utilisateur, sans droit administrateur) ou le **ZIP portable**. Les deux contiennent la même application ; l’installateur ajoute les raccourcis et la désinstallation. Tant qu’aucun certificat de signature n’est configuré, le paquet est explicitement non signé.
+
+Pour Linux, utilisez `Sapphire3-<version>-linux-x64.tar.gz` ou `-linux-arm64.tar.gz`, puis lancez `./Sapphire3`. WebKitGTK 4.1 doit être disponible. Pour macOS, utilisez `Sapphire3-<version>-macos-universal.zip` et ouvrez `Sapphire 3.app` ; macOS 11 ou ultérieur est requis. Les paquets Linux et macOS sont compilés dans cette bêta mais **ne sont pas encore vérifiés à l’exécution** sur leur système cible ; ils ne sont ni signés ni notariés.
 
 Pour développer :
 
@@ -27,6 +29,9 @@ pnpm dev
 - `pnpm build` : compile le frontend dans `dist/`.
 - `pnpm desktop:start` : compile puis ouvre le frontend compilé dans Neutralinojs, sans Vite.
 - `pnpm dist:win` : construit le paquet portable Windows et son ZIP dans `build/release/`.
+- `pnpm dist:linux` : construit les archives Linux x64 et ARM64.
+- `pnpm dist:mac` : construit le bundle macOS universel.
+- `pnpm dist:all` : construit les archives Windows, Linux et macOS.
 - `pnpm dist:installer` : construit le ZIP puis l'installateur Windows (`ISCC.exe` requis).
 - `pnpm docs:ast` : recompile le rapport LaTeX `abstract/ARCHITECTURE_AST.pdf`.
 
@@ -79,15 +84,15 @@ Un `.sp3` peut contenir un **exercice** : titre, consignes, **snapshot de dépar
 
 ## Distribution et mises à jour
 
-Pour un poste Windows, deux formats sont produits : un **installateur** `Sapphire3-<version>-windows-setup.exe` (installation par utilisateur, sans droit administrateur) et un **ZIP portable**. `pnpm dist:installer` construit les deux ; `pnpm dist:win` produit seulement le ZIP.
+Pour un poste Windows, deux formats sont produits : un **installateur** `Sapphire3-<version>-windows-setup.exe` (installation par utilisateur, sans droit administrateur) et un **ZIP portable**. `pnpm dist:installer` construit les deux ; `pnpm dist:win` produit seulement le ZIP. `pnpm dist:all` produit aussi les archives Linux x64/ARM64 et le bundle macOS universel.
 
-La signature Authenticode est préparée dans `scripts/sign-windows.ps1`. **Aucun certificat n'est fourni** : sans certificat configuré, les fichiers sont explicitement non signés et ne doivent pas être présentés comme prêts pour un établissement. Voir `docs/DISTRIBUTION.md`.
+La signature Authenticode est préparée dans `scripts/sign-windows.ps1`. **Aucun certificat n'est fourni** : sans certificat configuré, les fichiers sont explicitement non signés et ne doivent pas être présentés comme prêts pour un établissement. Le bundle macOS n'est ni signé ni notarié par Apple. Voir `docs/DISTRIBUTION.md`.
 
-L’application vérifie les **releases publiées** du dépôt `lalBi94/Sapphire3`. L’installation demande confirmation, vérifie la version, la taille et l’empreinte SHA-256 de l’archive, puis un helper `updater.ps1` embarqué remplace les fichiers distribués après fermeture. Les données et préférences de l’utilisateur ne sont jamais remplacées.
+L’application vérifie les **releases publiées** du dépôt `lalBi94/Sapphire3`. La détection, la comparaison de versions, la sélection d’asset et la vérification taille/SHA-256 sont communes aux trois plateformes. **Windows** demande confirmation puis `updater.ps1` remplace les fichiers distribués après fermeture. **Linux et macOS** téléchargent l’archive vérifiée depuis GitHub et l’installation reste manuelle dans cette phase. Les données et préférences de l’utilisateur ne sont jamais remplacées.
 
 ## Licence
 
-Sapphire 3 est distribué sous **licence MIT** (`LICENSE`). Les composants tiers et leurs licences sont listés dans `CREDITS.md` et dans le dossier `licenses/` du paquet Windows.
+Sapphire 3 est distribué sous **licence MIT** (`LICENSE`). Les composants tiers et leurs licences sont listés dans `CREDITS.md` et dans le dossier `licenses/` des paquets distribués.
 
 ## Accessibilité
 
@@ -99,7 +104,7 @@ Un audit daté et reproductible est décrit dans `docs/ACCESSIBILITY.md` : axe-c
 - `docs/WORKSPACE_FILES.md` : format `.sp3`, versions, récupération et sauvegardes.
 - `docs/EXERCISES.md` : mode exercice, manifeste, tests et limites.
 - `docs/ACCESSIBILITY.md` : audit, corrections et limites d'accessibilité.
-- `docs/DISTRIBUTION.md` : paquet Windows, installateur, signature et publication.
+- `docs/DISTRIBUTION.md` : paquets Windows, Linux et macOS, installateur, signature et publication.
 - `docs/PROJECT_STATE.md` : état vérifié et cartographie des fichiers.
 - `abstract/visual/index.html`, `documentation.html`, `ast.html` : documentation visuelle du projet.
 - `abstract/ARCHITECTURE_AST.tex` / `.pdf` : rapport d’architecture.
@@ -114,7 +119,7 @@ Un audit daté et reproductible est décrit dans `docs/ACCESSIBILITY.md` : axe-c
 - L’analyse reste conservatrice et ne prouve ni terminaison ni valeurs générales.
 - Les captures de `abstract/visual` datent d’une campagne antérieure ; les fonctionnalités récentes y sont décrites dans le texte.
 
-Dernier check-up : **539 tests Node et Python réussis**, build frontend et parcours navigateur vérifiés. Les quarante-six exemples passent Run et Debug dans le Web Worker, dont les nouvelles simulations d’écran **Coral growth**, **Labyrinth**, **Starfield**, **Color flow** et **RGB mixer** (64×36 à 96×54) ; les douze exemples transpilables sont exécutés en JavaScript et Python. Le mode exercice est couvert par des tests purs et des contrôles navigateur (capture, Check, Reset, verrou, solution). Les notifications par mascotte, l’aimantation des modules et la vitesse de simulation sont couvertes par des tests purs et des contrôles navigateur. Pour la bêta 0.1.0-beta.5, le ZIP et l’installateur ont été construits ; le build natif extrait du ZIP a été lancé et affiche l’interface `Sapphire 3`. La signature Authenticode reste absente faute de certificat. Détail dans `docs/PROJECT_ARCHIVE.md`.
+Dernier check-up : **543 tests Node et Python réussis**, build frontend et parcours navigateur vérifiés. Les quarante-six exemples passent Run et Debug dans le Web Worker, dont les nouvelles simulations d’écran **Coral growth**, **Labyrinth**, **Starfield**, **Color flow** et **RGB mixer** (64×36 à 96×54) ; les douze exemples transpilables sont exécutés en JavaScript et Python. Le mode exercice est couvert par des tests purs et des contrôles navigateur (capture, Check, Reset, verrou, solution). Les notifications par mascotte, l’aimantation des modules et la vitesse de simulation sont couvertes par des tests purs et des contrôles navigateur. Pour la bêta 0.1.0-beta.6, le ZIP Windows, les archives Linux x64/ARM64 et le bundle macOS universel ont été construits ; le build natif Windows extrait du ZIP a été lancé. Les paquets Linux et macOS sont compilés mais **non testés à l’exécution** sur leur système cible. La signature Authenticode et la notarisation Apple restent absentes faute de certificat. Détail dans `docs/PROJECT_ARCHIVE.md`.
 
 Ajouts depuis ce check-up : **Examples → Simple → Widgets → RGB LED** (LED RVB en français), puis **dix projets avec widgets**, pour **46 exemples** au total :
 

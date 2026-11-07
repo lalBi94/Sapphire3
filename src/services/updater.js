@@ -1,4 +1,4 @@
-import { pickUpdate } from '../utils/updateCheck.js'
+import { assetMatchesTarget, normalizeUpdateTarget, pickUpdate } from '../utils/updateCheck.js'
 
 const releasesUrl = 'https://api.github.com/repos/lalBi94/Sapphire3/releases?per_page=20'
 const repositoryPrefix = '/lalBi94/Sapphire3/releases/download/'
@@ -13,6 +13,12 @@ async function getClient() {
   return clientPromise
 }
 
+// Lit la plateforme et l'architecture réellement injectées par Neutralinojs.
+function updateTarget() {
+  if (typeof window === 'undefined') return null
+  return normalizeUpdateTarget(window.NL_OS, window.NL_ARCH)
+}
+
 // N'accepte que l'asset HTTPS du dépôt configuré et un digest SHA-256 vérifiable.
 function validAsset(asset) {
   if (!asset || typeof asset.url !== 'string') return false
@@ -20,6 +26,12 @@ function validAsset(asset) {
   try { parsed = new URL(asset.url) } catch { return false }
   if (parsed.protocol !== 'https:' || parsed.hostname !== 'github.com' || !parsed.pathname.startsWith(repositoryPrefix)) return false
   return /^[0-9a-f]{64}$/.test(asset.digest) && Number.isSafeInteger(asset.size) && asset.size > 0
+}
+
+// Vérifie que la release correspond bien à la plateforme et à l'architecture choisies.
+function validRelease(release) {
+  if (!release || !release.platform || !release.arch) return false
+  return assetMatchesTarget(release.asset?.name, release.platform, release.arch) && validAsset(release.asset)
 }
 
 // Entoure une valeur de guillemets doubles pour la ligne de commande PowerShell.
@@ -31,6 +43,8 @@ function quote(value) {
 export async function checkForUpdate(currentVersion) {
   const client = await getClient()
   if (!client) return { status: 'unavailable' }
+  const target = updateTarget()
+  if (!target) return { status: 'unsupported' }
   try {
     const response = await client.net.request(releasesUrl, 'GET', {
       headers: [{ 'User-Agent': 'Sapphire3', Accept: 'application/vnd.github+json' }],
@@ -38,18 +52,29 @@ export async function checkForUpdate(currentVersion) {
       keepAlive: false,
     })
     if (response?.status !== 200) return { status: 'error', code: 'UPDATE_CHECK_FAILED' }
-    const release = pickUpdate(JSON.parse(response.body), currentVersion)
+    const release = pickUpdate(JSON.parse(response.body), currentVersion, target)
     return release ? { status: 'available', release } : { status: 'none' }
   } catch {
     return { status: 'error', code: 'UPDATE_CHECK_FAILED' }
   }
 }
 
-// Demande confirmation, puis lance le helper embarqué et ferme l'application pour laisser la place.
+// Windows : confirmation puis helper PowerShell. Linux/macOS : téléchargement manuel de l'asset vérifié.
 export async function installUpdate(release, labels = {}) {
   const client = await getClient()
   if (!client) return { ok: false, code: 'UPDATE_DESKTOP_REQUIRED' }
-  if (!release || !validAsset(release.asset)) return { ok: false, code: 'UPDATE_INVALID' }
+  if (!validRelease(release)) return { ok: false, code: 'UPDATE_INVALID' }
+
+  if (release.installMode === 'manual' || release.platform !== 'windows') {
+    if (typeof client.os.open !== 'function') return { ok: false, code: 'UPDATE_DOWNLOAD_FAILED' }
+    try {
+      await client.os.open(release.asset.url)
+      return { ok: true, mode: 'manual' }
+    } catch {
+      return { ok: false, code: 'UPDATE_DOWNLOAD_FAILED' }
+    }
+  }
+
   const installDir = typeof window.NL_PATH === 'string' ? window.NL_PATH.replace(/[\\/]+$/, '') : ''
   if (!installDir || installDir.includes('"')) return { ok: false, code: 'UPDATE_INVALID' }
   const helper = `${installDir}\\updater.ps1`
@@ -80,5 +105,5 @@ export async function installUpdate(release, labels = {}) {
     return { ok: false, code: 'UPDATE_SPAWN_FAILED' }
   }
   await client.app.exit()
-  return { ok: true }
+  return { ok: true, mode: 'auto' }
 }
