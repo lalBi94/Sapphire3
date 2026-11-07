@@ -2,7 +2,6 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Activity, Bot, Box, Braces, Bug, ChartColumn, ChartLine, ChevronsDownUp, ChevronsUpDown, Clock, Cloud, Code2, Cog, Compass, Cpu, Database, FileCode, Flag, FlaskConical, Folder, Gauge, GitBranch, Globe, KeyRound, Lightbulb, Lock, Monitor, Network, Palette, Puzzle, Repeat, Rocket, Server, Shield, Smile, Sparkles, Target, Terminal, Wrench, Zap } from 'lucide-react'
 import { minimumModuleSize, moduleTypes } from '../../utils/moduleTypes.js'
-import { isEmbeddedImage } from '../../utils/embeddedImage.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
 import ScreenCanvas from '../ScreenCanvas/ScreenCanvas.jsx'
 import GaugeCard from '../GaugeCard/GaugeCard.jsx'
@@ -131,7 +130,7 @@ function ModuleEmoji({ emoji, onChange }) {
 }
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onEmojiChange, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, progressState = null, progressFrames = null, progressPlaying = false, onProgressViewChange, barChartState = null, barChartFrames = null, barChartPlaying = false, onBarChartViewChange, heatmapState = null, heatmapDimensions, onHeatmapViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, rgbLedState = null, rgbLedFrames = null, rgbLedPlaying = false, onRgbLedViewChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onImageFile, onEmojiChange, imageSource = null, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, progressState = null, progressFrames = null, progressPlaying = false, onProgressViewChange, barChartState = null, barChartFrames = null, barChartPlaying = false, onBarChartViewChange, heatmapState = null, heatmapDimensions, onHeatmapViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, rgbLedState = null, rgbLedFrames = null, rgbLedPlaying = false, onRgbLedViewChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -221,14 +220,10 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
     }
   }
 
-  // Enregistre une image locale sous forme de données intégrées à la carte.
+  // Transmet l'image choisie au workspace, qui décide de la copier dans `images/` ou de l'intégrer.
   function readImageFile(file) {
     if (!file || !file.type.startsWith('image/')) return
-    const reader = new FileReader()
-    reader.addEventListener('load', () => {
-      if (isEmbeddedImage(reader.result)) onImageChange(module.id, { image: reader.result })
-    })
-    reader.readAsDataURL(file)
+    onImageFile?.(module.id, file)
   }
 
   // Ouvre le sélecteur d'image depuis la zone de dépôt.
@@ -616,26 +611,26 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         )
       ) : definition.hasImage ? readOnly ? (
         <div className="canvas-module__image-content" data-canvas-scroll>
-          {module.image ? <img className="canvas-module__image" src={module.image} alt={module.caption || name} /> : <span className="canvas-module__image-empty">{t('canvas.empty')}</span>}
+          {imageSource ? <img className="canvas-module__image" src={imageSource} alt={module.caption || name} /> : <span className="canvas-module__image-empty">{t('canvas.empty')}</span>}
           {module.caption && <p className="canvas-module__caption-view">{module.caption}</p>}
         </div>
       ) : (
         <div
           ref={contentRef}
-          className={`canvas-module__image-content${module.image ? '' : ' canvas-module__image-content--empty'}${isImageDragOver ? ' canvas-module__image-content--drag-over' : ''}`}
+          className={`canvas-module__image-content${imageSource ? '' : ' canvas-module__image-content--empty'}${isImageDragOver ? ' canvas-module__image-content--drag-over' : ''}`}
           data-canvas-scroll
           role="button"
           tabIndex={0}
-          aria-label={module.image ? t('canvas.replaceImage') : t('canvas.chooseImage')}
+          aria-label={imageSource ? t('canvas.replaceImage') : t('canvas.chooseImage')}
           onClick={(event) => { if (!event.target.closest('textarea')) imageInputRef.current?.click() }}
           onKeyDown={handleImageAreaKeyDown}
           onDragOver={handleImageDragOver}
           onDragLeave={handleImageDragLeave}
           onDrop={handleImageDrop}
         >
-          {module.image ? <img className="canvas-module__image" src={module.image} alt={module.caption || name} onLoad={handleImageLoad} /> : <span className="canvas-module__image-empty">{t('canvas.chooseImage')}</span>}
+          {imageSource ? <img className="canvas-module__image" src={imageSource} alt={module.caption || name} onLoad={handleImageLoad} /> : <span className="canvas-module__image-empty">{t('canvas.chooseImage')}</span>}
           <span className="canvas-module__image-overlay" aria-hidden="true">
-            {isImageDragOver ? t('canvas.dropImage') : module.image ? t('canvas.replaceImage') : ''}
+            {isImageDragOver ? t('canvas.dropImage') : imageSource ? t('canvas.replaceImage') : ''}
           </span>
           <label className="canvas-module__caption">
             <span className="canvas-module__caption-label">{t('canvas.imageCaption')}</span>

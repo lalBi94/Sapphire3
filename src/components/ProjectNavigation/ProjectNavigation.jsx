@@ -36,7 +36,7 @@ function ReplaceConfirmation({ titleKey, bodyKey, detail, confirmKey, onConfirm,
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, pendingImport, pendingNew, recentFiles, onSave, onSaveAs, onExportSvg, onOpenSp3, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, onArrangeModules, distorted, onToggleDistortion, minimapVisible = true, onToggleMinimap, magnetEnabled = true, onToggleMagnet, fullScreen = false, onToggleFullScreen, gridVisible = true, onToggleGrid, hiddenCards = [], onShowCard, onShowAllHidden, presentation = false, onTogglePresentation, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onRunGraphical, onDebugSp3, onTranspile, onCheckTranspile, selectedFunction = null, onOpenFunction, simulationRunning = false, simulationPaused = false, onPauseSimulation, onResumeSimulation, onStopSimulation, onOpenRepository, onOpenSettings, onQuit, updateAvailable = false, updateVersion = '', updateManual = false, onInstallUpdate, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark, onOpenBookmarks, exercise = null, onOpenExercise, onCreateExercise, onCheckExercise }) {
+export default function ProjectNavigation({ busy, pendingImport, pendingNew, recentWorkspaces, onSave, onSaveWorkspaceAs, onExportArchive, onExportSvg, onOpenWorkspace, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, onArrangeModules, distorted, onToggleDistortion, minimapVisible = true, onToggleMinimap, magnetEnabled = true, onToggleMagnet, fullScreen = false, onToggleFullScreen, gridVisible = true, onToggleGrid, hiddenCards = [], onShowCard, onShowAllHidden, presentation = false, onTogglePresentation, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onRunGraphical, onDebugSp3, onTranspile, onCheckTranspile, selectedFunction = null, onOpenFunction, simulationRunning = false, simulationPaused = false, onPauseSimulation, onResumeSimulation, onStopSimulation, onOpenRepository, onOpenSettings, onQuit, updateAvailable = false, updateVersion = '', updateManual = false, onInstallUpdate, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark, onOpenBookmarks, exercise = null, onOpenExercise, onCreateExercise, onCheckExercise }) {
   const navigationRef = useRef(null)
   const [insertingId, setInsertingId] = useState(null)
   const [exampleQuery, setExampleQuery] = useState('')
@@ -120,15 +120,15 @@ export default function ProjectNavigation({ busy, pendingImport, pendingNew, rec
   }
 
   // Ferme le volet avant l'ouverture du dialogue de fichier.
-  function handleSaveAs(extension) {
+  function handleSaveWorkspaceAs() {
     closeMenus()
-    onSaveAs(extension)
+    onSaveWorkspaceAs()
   }
 
   // Ferme le volet avant l'ouverture du dialogue de fichier.
-  function handleOpenSp3() {
+  function handleOpenWorkspace() {
     closeMenus()
-    onOpenSp3()
+    onOpenWorkspace()
   }
 
   // Ferme le volet avant la lecture d'un fichier recent.
@@ -185,16 +185,16 @@ export default function ProjectNavigation({ busy, pendingImport, pendingNew, rec
           <button type="button" onClick={() => { closeMenus(); onOpenSettings() }}><Settings2 size={14} aria-hidden="true" />{t('settings.open')}</button>
           <p className="project-navigation__section">{t('menu.workspace')}</p>
           <button type="button" disabled={busy || !!pendingImport} onClick={onNew}><FilePlus size={14} aria-hidden="true" />{t('nav.new')}</button>
-          <button type="button" disabled={busy || !!pendingImport} onClick={handleOpenSp3}><FolderOpen size={14} aria-hidden="true" />{t('nav.openSp3')}</button>
-          <p>{t('nav.recentFiles')}</p>
-          {recentFiles.length === 0
-            ? <p>{t('nav.noRecentFiles')}</p>
-            : recentFiles.map((path) => <button type="button" className="project-navigation__recent-file" title={path} disabled={busy || !!pendingImport} onClick={() => handleOpenRecent(path)} key={path}><Clock3 size={14} aria-hidden="true" /><span>{path}</span></button>)}
-          <button type="button" disabled={busy || !!pendingImport} onClick={handleSave}><Save size={14} aria-hidden="true" />{t('nav.saveSp3')}</button>
-          <button type="button" disabled={busy || !!pendingImport} onClick={() => handleSaveAs('sp3')}><SaveAll size={14} aria-hidden="true" />{t('nav.saveAsSp3')}</button>
-          <button type="button" disabled={busy || !!pendingImport} onClick={handleImport}><FileInput size={14} aria-hidden="true" />{t('nav.import')}</button>
+          <button type="button" disabled={busy || !!pendingImport} onClick={handleOpenWorkspace}><FolderOpen size={14} aria-hidden="true" />{t('nav.openWorkspace')}</button>
+          <p>{t('nav.recentWorkspaces')}</p>
+          {recentWorkspaces.length === 0
+            ? <p>{t('nav.noRecentWorkspaces')}</p>
+            : recentWorkspaces.map((path) => <button type="button" className="project-navigation__recent-file" title={path} disabled={busy || !!pendingImport} onClick={() => handleOpenRecent(path)} key={path}><Clock3 size={14} aria-hidden="true" /><span>{path}</span></button>)}
+          <button type="button" disabled={busy || !!pendingImport} onClick={handleSave}><Save size={14} aria-hidden="true" />{t('nav.saveWorkspace')}</button>
+          <button type="button" disabled={busy || !!pendingImport} onClick={handleSaveWorkspaceAs}><SaveAll size={14} aria-hidden="true" />{t('nav.saveWorkspaceAs')}</button>
+          <button type="button" disabled={busy || !!pendingImport} onClick={handleImport}><FileInput size={14} aria-hidden="true" />{t('nav.importLegacy')}</button>
           <p className="project-navigation__section">{t('menu.exports')}</p>
-          <button type="button" disabled={busy || !!pendingImport} onClick={() => handleSaveAs('json')}><FileOutput size={14} aria-hidden="true" />{t('nav.exportJson')}</button>
+          <button type="button" disabled={busy || !!pendingImport} onClick={() => { closeMenus(); onExportArchive() }}><FileOutput size={14} aria-hidden="true" />{t('nav.exportWorkspace')}</button>
           <button type="button" disabled={busy || !!pendingImport} onClick={() => { closeMenus(); onExportSvg() }}><VectorSquare size={14} aria-hidden="true" />{t('nav.exportSvg')}</button>
           <button type="button" className="project-navigation__quit" onClick={() => { closeMenus(); onQuit() }}><Power size={14} aria-hidden="true" />{t('settings.quit')}</button>
         </div>

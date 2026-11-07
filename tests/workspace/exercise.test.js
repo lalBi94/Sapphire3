@@ -167,10 +167,10 @@ test('verrou d’édition : mot de passe haché, vérification et refus des form
 })
 
 test('nom de solution : portable sous Windows et lisible', () => {
-  assert.equal(solutionFileName('Add two numbers'), 'Add two numbers-solution.sp3')
-  assert.equal(solutionFileName('a/b:c*?"<>|d'), 'a-b-c-d-solution.sp3')
-  assert.equal(solutionFileName('   '), 'exercise-solution.sp3')
-  assert.equal(solutionFileName('x'.repeat(200)).length, 80 + '-solution.sp3'.length)
+  assert.equal(solutionFileName('Add two numbers'), 'Add two numbers-solution.zip')
+  assert.equal(solutionFileName('a/b:c*?"<>|d'), 'a-b-c-d-solution.zip')
+  assert.equal(solutionFileName('   '), 'exercise-solution.zip')
+  assert.equal(solutionFileName('x'.repeat(200)).length, 80 + '-solution.zip'.length)
 })
 
 test('types booléens et arguments JSON restent explicites', async () => {

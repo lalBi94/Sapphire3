@@ -4,7 +4,7 @@
 
 ## 1. Principe
 
-Un exercice est un **workspace `.sp3` normal** auquel s'ajoute un manifeste `exercise`. Il contient :
+Un exercice est un **workspace** (dossier avec son document interne) normal auquel s'ajoute un manifeste `exercise`. Il contient :
 
 - un titre et des consignes ;
 - un **snapshot de départ** (`starter`) : le squelette que l'élève peut restaurer ;
@@ -20,18 +20,18 @@ Le manifeste vit dans le fichier, sous la clé racine `exercise`, à côté de `
 4. Résoudre l'exercice, puis capturer les résultats attendus :
    - **Capture entry point output** exécute le point d'entrée et enregistre sa sortie ;
    - **Add a function test** exécute une fonction avec des arguments typés et enregistre sa valeur de retour.
-5. Enregistrer le `.sp3`. L'élève qui l'ouvre peut travailler, vérifier et **Reset to starter**.
+5. Enregistrer le workspace. L'élève qui l'ouvre peut travailler, vérifier et **Reset to starter**.
 6. Conserver une solution séparée si nécessaire : le fichier élève contient le squelette et les tests, pas une correction séparée.
 
 ## 3. Flux élève
 
-1. Ouvrir le `.sp3` : le panneau **Exercise** s'ouvre automatiquement.
+1. Ouvrir le workspace : le panneau **Exercise** s'ouvre automatiquement.
 2. Lire les consignes, modifier le programme.
 3. **Check** exécute chaque test dans le Web Worker, avec annulation possible.
 4. Le panneau affiche réussi/échoué par test, la valeur attendue et la valeur obtenue.
 5. **Reset to starter** restaure le squelette après confirmation ; les tests sont conservés.
 6. À la fin de **Check**, le robot réagit via le système de notifications existant : expression **succès** si tous les tests passent, **erreur** sinon. Le message est traduit et remplacé à chaque nouvelle vérification.
-7. Quand tous les tests passent, **Save solution** propose d'enregistrer une copie `.sp3` sous `<titre>-solution.sp3`. C'est la « banque de corrections » : un dossier de fichiers corrigés, sans stockage interne supplémentaire.
+7. Quand tous les tests passent, **Save solution** propose d'exporter une archive ZIP sous `<titre>-solution.zip`. C'est la « banque de corrections » : un dossier d'archives corrigées, sans stockage interne supplémentaire.
 
 ## 4. Protection par mot de passe
 
@@ -43,7 +43,7 @@ Un exercice peut être verrouillé par un mot de passe :
 - **Protect exercise** demande un mot de passe et sa confirmation, puis stocke uniquement une empreinte **PBKDF2-SHA256** (sel aléatoire, 150 000 itérations, 32 octets) ;
 - **Remove protection** est disponible après déverrouillage.
 
-**Limite importante** : c'est un verrou d'**interface**, pas un chiffrement du `.sp3`. Le fichier reste modifiable dans un éditeur de texte, et le verrou peut être retiré. Le message est affiché dans le panneau.
+**Limite importante** : c'est un verrou d'**interface**, pas un chiffrement du document interne. Le document reste modifiable dans un éditeur de texte, et le verrou peut être retiré. Le message est affiché dans le panneau.
 
 ## 5. Format du manifeste
 
@@ -105,8 +105,8 @@ Règles :
 ## 7. Limites assumées
 
 - **Les tests sont lisibles et modifiables** dans le JSON. C'est un outil de feedback, pas d'anti-triche.
-- Le mot de passe verrouille l'**interface**, pas le fichier : le `.sp3` reste modifiable et le verrou retirable.
-- La « banque » est un simple dossier de fichiers `<titre>-solution.sp3` ; aucun catalogue interne ni suivi de versions.
+- Le mot de passe verrouille l'**interface**, pas le document : le document interne reste modifiable et le verrou retirable.
+- La « banque » est un simple dossier d'archives `<titre>-solution.zip` ; aucun catalogue interne ni suivi de versions.
 - Pas encore de zones verrouillées, d'indices progressifs, de notation partielle, de soumission ni de correction automatique côté enseignant.
 - Pas de serveur, de compte ni de suivi de progression.
 - Un test de fonction dépend du **nom** de la fonction ; renommer la fonction casse le test, qui apparaît alors en erreur explicite.

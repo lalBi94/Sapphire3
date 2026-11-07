@@ -9,17 +9,17 @@ import { diagnosticLabel, groupLabel, typeLabel } from '../LogicTree/logicLabels
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 
 // Espace de travail : actions de fichier, disposition du canvas, vue et chemins récents.
-export function WorkspaceSection({ busy, pendingImport, onNew, onOpenSp3, onSave, onSaveAs, onImport, onExportSvg, recentFiles, onOpenRecent, distorted = false, onToggleDistortion, minimapVisible = true, onToggleMinimap, magnetEnabled = true, onToggleMagnet, navVisible = true, onToggleNav, hiddenCards = [], onShowAllHidden, onZoomIn, onZoomOut, onZoom100, onCenter }) {
+export function WorkspaceSection({ busy, pendingImport, onNew, onOpenWorkspace, onSave, onSaveWorkspaceAs, onExportArchive, onImport, onExportSvg, recentWorkspaces, onOpenRecent, distorted = false, onToggleDistortion, minimapVisible = true, onToggleMinimap, magnetEnabled = true, onToggleMagnet, navVisible = true, onToggleNav, hiddenCards = [], onShowAllHidden, onZoomIn, onZoomOut, onZoom100, onCenter }) {
   const { t } = useTranslation()
   const disabled = busy || Boolean(pendingImport)
   return <div className="settings-section">
     <div className="settings-section__actions">
       <button type="button" disabled={disabled} onClick={onNew}><FilePlus size={14} aria-hidden="true" />{t('nav.new')}</button>
-      <button type="button" disabled={disabled} onClick={onOpenSp3}><FolderOpen size={14} aria-hidden="true" />{t('nav.openSp3')}</button>
-      <button type="button" disabled={disabled} onClick={onSave}><Save size={14} aria-hidden="true" />{t('nav.saveSp3')}</button>
-      <button type="button" disabled={disabled} onClick={() => onSaveAs('sp3')}><SaveAll size={14} aria-hidden="true" />{t('nav.saveAsSp3')}</button>
-      <button type="button" disabled={disabled} onClick={onImport}><FileInput size={14} aria-hidden="true" />{t('nav.import')}</button>
-      <button type="button" disabled={disabled} onClick={() => onSaveAs('json')}><FileOutput size={14} aria-hidden="true" />{t('nav.exportJson')}</button>
+      <button type="button" disabled={disabled} onClick={onOpenWorkspace}><FolderOpen size={14} aria-hidden="true" />{t('nav.openWorkspace')}</button>
+      <button type="button" disabled={disabled} onClick={onSave}><Save size={14} aria-hidden="true" />{t('nav.saveWorkspace')}</button>
+      <button type="button" disabled={disabled} onClick={onSaveWorkspaceAs}><SaveAll size={14} aria-hidden="true" />{t('nav.saveWorkspaceAs')}</button>
+      <button type="button" disabled={disabled} onClick={onImport}><FileInput size={14} aria-hidden="true" />{t('nav.importLegacy')}</button>
+      <button type="button" disabled={disabled} onClick={onExportArchive}><FileOutput size={14} aria-hidden="true" />{t('nav.exportWorkspace')}</button>
       <button type="button" disabled={disabled} onClick={onExportSvg}><VectorSquare size={14} aria-hidden="true" />{t('nav.exportSvg')}</button>
     </div>
 
@@ -38,15 +38,15 @@ export function WorkspaceSection({ busy, pendingImport, onNew, onOpenSp3, onSave
       <button type="button" onClick={onCenter}>{t('nav.center')}</button>
     </div>
 
-    <p className="settings-section__subtitle">{t('nav.recentFiles')}</p>
-    {recentFiles.length === 0
-      ? <p className="settings-section__empty">{t('nav.noRecentFiles')}</p>
-      : <ul className="settings-section__recent">{recentFiles.map((path) => <li key={path}><button type="button" disabled={disabled} title={path} onClick={() => onOpenRecent(path)}>{path}</button></li>)}</ul>}
+    <p className="settings-section__subtitle">{t('nav.recentWorkspaces')}</p>
+    {recentWorkspaces.length === 0
+      ? <p className="settings-section__empty">{t('nav.noRecentWorkspaces')}</p>
+      : <ul className="settings-section__recent">{recentWorkspaces.map((path) => <li key={path}><button type="button" disabled={disabled} title={path} onClick={() => onOpenRecent(path)}>{path}</button></li>)}</ul>}
   </div>
 }
 
 // Informations du projet : données brutes, diagnostics courants et répartitions interprétées.
-export function ProjectInfoSection({ project, currentPath, diagnostics = [], referenceCount = 0, unusedCount = 0 }) {
+export function ProjectInfoSection({ project, currentFolder, diagnostics = [], referenceCount = 0, unusedCount = 0 }) {
   const { t } = useTranslation()
   const roots = project.modules.flatMap((module) => module.rootNodeIds)
   const entry = roots.map((id) => project.nodes.find((node) => node.id === id)).find((node) => node?.kind === 'FunctionDeclaration' && node.properties?.entryPoint === true)
@@ -73,7 +73,7 @@ export function ProjectInfoSection({ project, currentPath, diagnostics = [], ref
       <div><dt>{t('settings.info.references')}</dt><dd>{referenceCount}</dd></div>
       <div><dt>{t('settings.info.unused')}</dt><dd>{unusedCount}</dd></div>
       <div><dt>{t('settings.info.entryPoint')}</dt><dd>{entry?.properties?.name ?? t('settings.info.none')}</dd></div>
-      <div><dt>{t('settings.info.file')}</dt><dd className="settings-info__path">{currentPath ?? t('settings.info.notSaved')}</dd></div>
+      <div><dt>{t('settings.info.folder')}</dt><dd className="settings-info__path">{currentFolder ?? t('settings.info.notSaved')}</dd></div>
     </dl>
 
     <p className="settings-section__subtitle">{t('transpile.diagnostics')}</p>

@@ -132,12 +132,12 @@ export function exerciseNotification(summary, t) {
   }
 }
 
-// Propose un nom de fichier portable pour la solution, sans caractère interdit sous Windows.
+// Propose un nom d'archive portable pour la solution, sans caractère interdit sous Windows.
 export function solutionFileName(title) {
   const base = String(title ?? '')
     .replace(/[\\/:*?"<>|]+/g, '-')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 80)
-  return `${base || 'exercise'}-solution.sp3`
+  return `${base || 'exercise'}-solution.zip`
 }

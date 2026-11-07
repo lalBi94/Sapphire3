@@ -7,8 +7,8 @@ export const keybindCategories = Object.freeze([
     labelKey: 'keybind.category.workspace',
     actions: Object.freeze([
       Object.freeze({ id: 'workspace.new', labelKey: 'nav.new', defaultShortcut: 'Ctrl+N' }),
-      Object.freeze({ id: 'workspace.open', labelKey: 'nav.openSp3', defaultShortcut: 'Ctrl+O' }),
-      Object.freeze({ id: 'workspace.save', labelKey: 'nav.saveSp3', defaultShortcut: 'Ctrl+S', allowInInput: true }),
+      Object.freeze({ id: 'workspace.open', labelKey: 'nav.openWorkspace', defaultShortcut: 'Ctrl+O' }),
+      Object.freeze({ id: 'workspace.save', labelKey: 'nav.saveWorkspace', defaultShortcut: 'Ctrl+S', allowInInput: true }),
     ]),
   },
   {

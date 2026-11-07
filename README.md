@@ -65,12 +65,12 @@ La CI GitHub Actions (`.github/workflows/ci.yml`) exécute l’installation verr
 - Les mutations structurelles gardent une analyse synchrone pour renvoyer leurs diagnostics sans délai.
 
 ### Fichiers et sécurité des données
-- Import/export `.sp3` et JSON par dialogues natifs, export SVG, export PNG/JSON d’un nœud.
-- Autosauvegarde du fichier `.sp3` courant après modification ; dernier fichier rouvert au lancement ; cinq chemins récents.
-- **Récupération après crash** : un document neuf non vierge sans chemin est conservé dans `sapphire3-recovery.sp3` (répertoire de données persistant) et restauré au lancement.
-- **Sauvegardes de secours** : jusqu’à trois générations `<base>.backup-1.sp3` à `3` lors d’un enregistrement direct. Une copie impossible n’annule pas la sauvegarde et est signalée par la mascotte.
-- **Workspace version 2** : les fichiers version 1 sont migrés à la lecture (`generic` → `typeParameters`, retrait de `screenScale`) ; une version future ou malformée est refusée sans remplacer le document.
-- Limite de fichier : 20 Mio, images intégrées comprises. Voir `docs/WORKSPACE_FILES.md`.
+- **Workspace = dossier** : ouverture du dossier qui contient le document interne, images liées dans `images/`, export ZIP du workspace par dialogue natif, export SVG et export PNG/JSON d’un nœud.
+- Autosauvegarde du document interne du dossier courant après modification ; dernier workspace rouvert au lancement ; cinq workspaces récents.
+- **Récupération après crash** : un document neuf non vierge sans dossier est conservé dans `sapphire3-recovery/` (répertoire de données persistant) et restauré au lancement.
+- **Sauvegardes de secours** : jusqu’à trois générations `backups/workspace.backup-1.sp3` à `3` lors d’un enregistrement direct. Une copie impossible n’annule pas la sauvegarde et est signalée par la mascotte.
+- **Workspace version 3** : les versions 1 et 2 sont migrées à la lecture (`generic` → `typeParameters`, retrait de `screenScale`) ; une carte Image porte soit une Data URL, soit une référence `images/…`, jamais les deux ; une version future ou malformée est refusée sans remplacer le document.
+- Limite du document interne : 20 Mio. Les images sont des fichiers séparés ; l’export ZIP est écrit par blocs (jusqu’à 512 Mio). Voir `docs/WORKSPACE_FILES.md`.
 
 ### Interface
 - Barre compacte **Settings**, **Edit**, **View**, **Theme**, **Examples**, **Bookmarks**, **Windows**, Transpile et Run.
@@ -80,7 +80,7 @@ La CI GitHub Actions (`.github/workflows/ci.yml`) exécute l’installation verr
 
 ## Mode exercice
 
-Un `.sp3` peut contenir un **exercice** : titre, consignes, **snapshot de départ** et tests. L’enseignant prépare le squelette, crée l’exercice, capture les sorties attendues du point d’entrée ou les valeurs de retour de fonctions, puis enregistre le fichier. L’élève ouvre ce `.sp3` : le panneau s’ouvre, **Check** exécute les tests dans le Web Worker, affiche réussi/échoué avec attendu et obtenu, et **Reset to starter** restaure le squelette. Le robot réagit à la fin de **Check** : expression de succès si tout passe, d’erreur sinon. Un **mot de passe optionnel** verrouille l’édition (PBKDF2-SHA256, sel et 150 000 itérations) ; c’est un verrou d’interface, pas un chiffrement du `.sp3`. Quand tous les tests passent, **Save solution** enregistre une copie `<titre>-solution.sp3` : le dossier de ces fichiers sert de banque de corrections. Les tests restent visibles dans le JSON : c’est un outil d’entraînement, pas un examen surveillé. Détail et limites dans `docs/EXERCISES.md`.
+Un workspace peut contenir un **exercice** : titre, consignes, **snapshot de départ** et tests. L’enseignant prépare le squelette, crée l’exercice, capture les sorties attendues du point d’entrée ou les valeurs de retour de fonctions, puis enregistre le workspace. L’élève ouvre ce workspace : le panneau s’ouvre, **Check** exécute les tests dans le Web Worker, affiche réussi/échoué avec attendu et obtenu, et **Reset to starter** restaure le squelette. Le robot réagit à la fin de **Check** : expression de succès si tout passe, d’erreur sinon. Un **mot de passe optionnel** verrouille l’édition (PBKDF2-SHA256, sel et 150 000 itérations) ; c’est un verrou d’interface, pas un chiffrement du document. Quand tous les tests passent, **Save solution** exporte une archive `<titre>-solution.zip` : le dossier de ces archives sert de banque de corrections. Les tests restent visibles dans le JSON : c’est un outil d’entraînement, pas un examen surveillé. Détail et limites dans `docs/EXERCISES.md`.
 
 ## Distribution et mises à jour
 
@@ -101,7 +101,7 @@ Un audit daté et reproductible est décrit dans `docs/ACCESSIBILITY.md` : axe-c
 ## Documentation
 
 - `docs/LOGIC_API.md` : contrats du moteur, types, génériques, lambdas, simulation et transpilation.
-- `docs/WORKSPACE_FILES.md` : format `.sp3`, versions, récupération et sauvegardes.
+- `docs/WORKSPACE_FILES.md` : dossier de workspace, document interne versionné, images liées, récupération, sauvegardes et export ZIP.
 - `docs/EXERCISES.md` : mode exercice, manifeste, tests et limites.
 - `docs/ACCESSIBILITY.md` : audit, corrections et limites d'accessibilité.
 - `docs/DISTRIBUTION.md` : paquets Windows, Linux et macOS, installateur, signature et publication.
@@ -119,7 +119,7 @@ Un audit daté et reproductible est décrit dans `docs/ACCESSIBILITY.md` : axe-c
 - L’analyse reste conservatrice et ne prouve ni terminaison ni valeurs générales.
 - Les captures de `abstract/visual` datent d’une campagne antérieure ; les fonctionnalités récentes y sont décrites dans le texte.
 
-Dernier check-up : **544 tests Node et Python réussis**, build frontend et parcours navigateur vérifiés. Les cinquante et un exemples passent Run et Debug dans le Web Worker, dont les nouvelles simulations d’écran **Coral growth**, **Labyrinth**, **Starfield**, **Color flow**, **RGB mixer** (64×36 à 96×54) et les cinq exemples mathématiques visuels **Rotating cube**, **Rotating triangle**, **Spirograph**, **Sierpinski chaos** et **Pendulum wave** (48×30 à 96×64) ; les douze exemples transpilables sont exécutés en JavaScript et Python. Le mode exercice est couvert par des tests purs et des contrôles navigateur (capture, Check, Reset, verrou, solution). Les notifications par mascotte, l’aimantation des modules et la vitesse de simulation sont couvertes par des tests purs et des contrôles navigateur. Pour la bêta 0.1.0-beta.6, le ZIP Windows, les archives Linux x64/ARM64 et le bundle macOS universel ont été construits ; le build natif Windows extrait du ZIP a été lancé. Les paquets Linux et macOS sont compilés mais **non testés à l’exécution** sur leur système cible. La signature Authenticode et la notarisation Apple restent absentes faute de certificat. Détail dans `docs/PROJECT_ARCHIVE.md`.
+Dernier check-up : **545 tests Node et Python réussis**, build frontend et parcours navigateur vérifiés. Le workspace est un dossier (`workspace.sp3`, `images/`, `backups/`) exporté en ZIP ; les images sont liées et ne pèsent plus sur le document interne. Les cinquante et un exemples passent Run et Debug dans le Web Worker, dont les nouvelles simulations d’écran **Coral growth**, **Labyrinth**, **Starfield**, **Color flow**, **RGB mixer** (64×36 à 96×54) et les cinq exemples mathématiques visuels **Rotating cube**, **Rotating triangle**, **Spirograph**, **Sierpinski chaos** et **Pendulum wave** (48×30 à 96×64) ; les douze exemples transpilables sont exécutés en JavaScript et Python. Le mode exercice est couvert par des tests purs et des contrôles navigateur (capture, Check, Reset, verrou, solution). Les notifications par mascotte, l’aimantation des modules et la vitesse de simulation sont couvertes par des tests purs et des contrôles navigateur. Pour la bêta 0.1.0-beta.6, le ZIP Windows, les archives Linux x64/ARM64 et le bundle macOS universel ont été construits ; le build natif Windows extrait du ZIP a été lancé. Les paquets Linux et macOS sont compilés mais **non testés à l’exécution** sur leur système cible. La signature Authenticode et la notarisation Apple restent absentes faute de certificat. Détail dans `docs/PROJECT_ARCHIVE.md`.
 
 Ajouts depuis ce check-up : **Examples → Simple → Widgets → RGB LED** (LED RVB en français), puis **dix projets avec widgets**, pour **51 exemples** au total :
 

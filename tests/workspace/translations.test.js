@@ -6,7 +6,7 @@ import { diagnosticCodes, nodeSchema, createProject, simulateProgram } from '../
 import { moduleTypes } from '../../src/utils/moduleTypes.js'
 import { kindLabel, slotLabel, diagnosticLabel, nodeSummary, typeLabel } from '../../src/components/LogicTree/logicLabels.js'
 import { deserializeWorkspace } from '../../src/utils/workspaceFile.js'
-import { exportWorkspaceFile, importWorkspaceFile, writeWorkspaceFile } from '../../src/services/workspaceFiles.js'
+import { exportWorkspaceFile, importWorkspaceFile, writeWorkspaceDocument } from '../../src/services/workspaceFiles.js'
 
 // Recense uniquement les sources applicatives, sans parcourir les dépendances ni les builds.
 async function sourceFiles(directory) {
@@ -101,9 +101,9 @@ test('erreurs de simulation et import : codes stables traduisibles sans analyser
 test('fichiers : refus natifs et formats invalides exposent un code et des paramètres', async () => {
   await assert.rejects(exportWorkspaceFile('txt', '{}'), { code: 'EXPORT_FORMAT_INVALID' })
   await assert.rejects(importWorkspaceFile(['sp3'], 'fr'), { code: 'DESKTOP_REQUIRED' })
-  await assert.rejects(writeWorkspaceFile('wrong.json', '{}'), (failure) => {
-    assert.equal(failure.code, 'FILE_EXTENSION_INVALID')
-    assert.equal(failureLabel(failure, (key, values) => translate('fr', key, values)), 'Choisissez un fichier .sp3.')
+  await assert.rejects(writeWorkspaceDocument('', '{}'), (failure) => {
+    assert.equal(failure.code, 'WORKSPACE_FOLDER_REQUIRED')
+    assert.equal(failureLabel(failure, (key, values) => translate('fr', key, values)), 'Choisissez un dossier d’espace de travail.')
     return true
   })
 })

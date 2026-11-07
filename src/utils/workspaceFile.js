@@ -4,10 +4,10 @@ import { serializeSource } from './logic/serialization.js'
 import { screenLimits } from './logic/mathNatives.js'
 import { barChartViews, heatmapViews, logicalCardTypes, gaugeViews, ledViews, rgbLedViews, moduleTypes, minimumModuleSize, progressViews, screenViews } from './moduleTypes.js'
 import { heatmapMaximumDimension } from './logic/heatmapState.js'
-import { isEmbeddedImage } from './embeddedImage.js'
+import { isEmbeddedImage, isImageReference } from './embeddedImage.js'
 import { validateExercise } from './exercise.js'
 
-export const workspaceFileVersion = 2
+export const workspaceFileVersion = 3
 
 // Migrations versionnées : chaque entrée transforme la version N vers N+1 sans perdre de données.
 // La version 1 reste lisible ; les champs historiques sont normalisés avant la validation finale.
@@ -38,6 +38,9 @@ const workspaceMigrations = new Map([
       ...(presentation && cards ? { presentation: { ...presentation, cards } } : {}),
     }
   }],
+  // La version 3 accepte les images liées au dossier du workspace ; les anciennes cartes
+  // conservent leur image intégrée, aucune transformation de données n'est nécessaire.
+  [2, (data) => ({ ...data, workspaceVersion: 3 })],
 ])
 
 // Applique les migrations dans l'ordre jusqu'à la version courante, sans inventer de version de secours.
@@ -114,6 +117,15 @@ function validateProject(project) {
   }
 }
 
+// Une carte Image porte soit une image intégrée, soit une référence relative au dossier `images/`.
+function isImageCardValid(card) {
+  if (typeof card.caption !== 'string') return false
+  if (typeof card.imageRef === 'string' && card.imageRef.length > 0) {
+    return isImageReference(card.imageRef) && (card.image === undefined || card.image === '')
+  }
+  return isEmbeddedImage(card.image ?? '')
+}
+
 // Contrôle la géométrie et les liens de présentation avant tout remplacement du document courant.
 function validatePresentation(project, presentation) {
   if (!isRecord(presentation) || !Array.isArray(presentation.cards)) throw workspaceError('Invalid workspace presentation.')
@@ -144,7 +156,7 @@ function validatePresentation(project, presentation) {
                   ? !modules.has(card.id) || !modules.get(card.id).led
                   : card.type === 'rgbLed'
                     ? !modules.has(card.id) || !modules.get(card.id).rgbLed
-                    : modules.has(card.id) || (card.type === 'comment' && typeof card.text !== 'string') || (card.type === 'image' && (!isEmbeddedImage(card.image) || typeof card.caption !== 'string'))) {
+                    : modules.has(card.id) || (card.type === 'comment' && typeof card.text !== 'string') || (card.type === 'image' && !isImageCardValid(card))) {
       throw workspaceError('Cards do not match the logical project.')
     }
     if (!Array.isArray(card.expandedNodeIds) || new Set(card.expandedNodeIds).size !== card.expandedNodeIds.length || card.expandedNodeIds.some((id) => !isId(id) || nodes.get(id)?.moduleId !== card.id || !logicalCardTypes.includes(card.type))) {
@@ -172,8 +184,8 @@ function validatePresentation(project, presentation) {
 // N'écrit l'emoji ou les drapeaux de carte que lorsqu'ils sont définis, pour garder les fichiers habituels inchangés.
 function exportableCard(card, nodes) {
   // `screenScale` n'est plus produit : l'écran se dimensionne avec la carte, mais reste toléré à la relecture.
-  const { hidden, locked, emoji, screenView, gaugeView, progressView, barChartView, heatmapView, ledView, rgbLedView, screenScale, ...rest } = card
-  return { ...rest, ...(hidden ? { hidden: true } : {}), ...(locked ? { locked: true } : {}), ...(emoji ? { emoji } : {}), ...(screenView && screenView !== 'screen' ? { screenView } : {}), ...(gaugeView && gaugeView !== 'gauge' ? { gaugeView } : {}), ...(progressView && progressView !== 'progress' ? { progressView } : {}), ...(barChartView && barChartView !== 'barChart' ? { barChartView } : {}), ...(heatmapView && heatmapView !== 'heatmap' ? { heatmapView } : {}), ...(ledView && ledView !== 'led' ? { ledView } : {}), ...(rgbLedView && rgbLedView !== 'rgbLed' ? { rgbLedView } : {}), expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) }
+  const { hidden, locked, emoji, screenView, gaugeView, progressView, barChartView, heatmapView, ledView, rgbLedView, screenScale, imageRef, ...rest } = card
+  return { ...rest, ...(typeof imageRef === 'string' && imageRef.length > 0 ? { imageRef } : {}), ...(hidden ? { hidden: true } : {}), ...(locked ? { locked: true } : {}), ...(emoji ? { emoji } : {}), ...(screenView && screenView !== 'screen' ? { screenView } : {}), ...(gaugeView && gaugeView !== 'gauge' ? { gaugeView } : {}), ...(progressView && progressView !== 'progress' ? { progressView } : {}), ...(barChartView && barChartView !== 'barChart' ? { barChartView } : {}), ...(heatmapView && heatmapView !== 'heatmap' ? { heatmapView } : {}), ...(ledView && ledView !== 'led' ? { ledView } : {}), ...(rgbLedView && rgbLedView !== 'rgbLed' ? { rgbLedView } : {}), expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) }
 }
 
 // Contrôle aussi le snapshot de départ d'un exercice, avec les mêmes règles que le document courant.

@@ -29,7 +29,7 @@ test('migration : un workspace version 1 est normalisé vers la version courante
 
   const migrated = deserializeWorkspace(JSON.stringify(legacy))
   assert.equal(migrated.workspaceVersion, workspaceFileVersion)
-  assert.equal(migrated.workspaceVersion, 2)
+  assert.equal(migrated.workspaceVersion, 3)
   const migratedFunction = migrated.project.nodes.find((node) => node.kind === 'FunctionDeclaration')
   assert.deepEqual(migratedFunction.properties.typeParameters, [{ name: 'T' }])
   assert.equal(Object.hasOwn(migratedFunction.properties, 'generic'), false)
@@ -52,4 +52,26 @@ test('migration : une version future ou malformée est refusée sans perte silen
     const malformed = { ...legacyWorkspace(), workspaceVersion }
     assert.throws(() => deserializeWorkspace(JSON.stringify(malformed)), (error) => error.code === 'WORKSPACE_VERSION_UNSUPPORTED')
   }
+})
+
+// Ajoute une carte Image au workspace minimal, avec les champs fournis.
+function workspaceWithImageCard(card) {
+  const workspace = legacyWorkspace()
+  workspace.presentation.cards.push({ id: 'img', type: 'image', name: 'Image', x: 400, y: 0, width: 420, height: 260, caption: '', image: '', expandedNodeIds: [], ...card })
+  return workspace
+}
+
+test('images liées : une référence images/ est relue, un chemin hors dossier est refusé', () => {
+  const linked = workspaceWithImageCard({ imageRef: 'images/blackhole.png' })
+  delete linked.presentation.cards[1].image
+  assert.equal(deserializeWorkspace(JSON.stringify(linked)).presentation.cards[1].imageRef, 'images/blackhole.png')
+
+  for (const imageRef of ['../secret.png', 'C:/secret.png', 'images/../secret.png', 'images/a.exe', 'https://example.com/a.png', 'images//a.png']) {
+    const invalid = workspaceWithImageCard({ imageRef })
+    delete invalid.presentation.cards[1].image
+    assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)), (error) => error.message === 'Cards do not match the logical project.', imageRef)
+  }
+
+  const both = workspaceWithImageCard({ imageRef: 'images/a.png', image: 'data:image/png;base64,AAAA' })
+  assert.throws(() => deserializeWorkspace(JSON.stringify(both)), (error) => error.message === 'Cards do not match the logical project.')
 })

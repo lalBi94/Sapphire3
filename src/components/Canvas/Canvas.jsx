@@ -126,7 +126,7 @@ export default function Canvas() {
     observer.observe(element)
     return () => observer.disconnect()
   }, [canvasRef])
-  const files = useWorkspaceFiles({ project: document.project, cards: document.cards, camera, selected, exercise: document.exercise, onReplace: handleReplaceWorkspace })
+  const files = useWorkspaceFiles({ project: document.project, cards: document.cards, camera, selected, exercise: document.exercise, onReplace: handleReplaceWorkspace, onUpdateImage: document.updateImage })
   const exerciseState = useExercise({ project: document.project, exercise: document.exercise })
   const exerciseRevisionRef = useRef(null)
   const transfers = useNodeTransfers({ project: document.project, index: document.index, selected, selectedNodeIds, readOnly: presentationMode, workspaceRef, onPaste: document.pasteNode, onMove: document.moveNodes, onDuplicate: document.duplicateNode, onTransferred: handleNodeTransferred })
@@ -788,8 +788,11 @@ export default function Canvas() {
 
   // Exporte tout le workspace déplié en une vue d'ensemble SVG, à partir de la présentation courante.
   async function handleExportSvg() {
+    const cards = document.cards.map((card) => card.type === 'image' && card.imageRef
+      ? { ...card, image: files.imageSourceFor(card) || card.image }
+      : card)
     const svg = buildWorkspaceSvg({
-      cards: document.cards,
+      cards,
       index: document.index,
       links: moduleLinks,
       colors: svgPalette(),
@@ -1170,7 +1173,7 @@ export default function Canvas() {
   // Branche le registre central sur les handlers existants, sans dupliquer leur logique métier.
   useGlobalKeybinds({
     'workspace.new': { available: () => !presentationMode && !files.busy && !files.pendingImport && !files.pendingNew, run: files.handleNew },
-    'workspace.open': { available: () => !presentationMode && !files.busy && !files.pendingImport, run: files.handleOpenSp3 },
+    'workspace.open': { available: () => !presentationMode && !files.busy && !files.pendingImport, run: files.handleOpenWorkspace },
     'workspace.save': { available: () => !files.busy && !files.pendingImport, run: files.handleSave },
     'edit.undo': { available: () => !presentationMode && document.canUndo, run: document.undo },
     'edit.redo': { available: () => !presentationMode && document.canRedo, run: document.redo },
@@ -1191,7 +1194,7 @@ export default function Canvas() {
   return (
     <div ref={workspaceRef} className={`canvas-workspace${navCollapsed ? ' canvas-workspace--nav-collapsed' : ''}`}>
     <a className="canvas-skip-link" href="#canvas-main">{t('nav.skipToCanvas')}</a>
-    <ProjectNavigation busy={files.busy} pendingImport={files.pendingImport} pendingNew={files.pendingNew} recentFiles={files.recentFiles} onSave={files.handleSave} onSaveAs={files.saveAs} onExportSvg={handleExportSvg} onOpenSp3={files.handleOpenSp3} onOpenRecent={files.handleOpenRecent} onImport={files.handleImport} onOpenExample={files.handleOpenExample} onConfirmImport={files.handleConfirmImport} onCancelImport={files.handleCancelImport} onNew={files.handleNew} onConfirmNew={files.handleConfirmNew} onCancelNew={files.handleCancelNew}
+    <ProjectNavigation busy={files.busy} pendingImport={files.pendingImport} pendingNew={files.pendingNew} recentWorkspaces={files.recentWorkspaces} onSave={files.handleSave} onSaveWorkspaceAs={files.saveWorkspaceAs} onExportArchive={files.exportWorkspaceArchive} onExportSvg={handleExportSvg} onOpenWorkspace={files.handleOpenWorkspace} onOpenRecent={files.handleOpenRecent} onImport={files.handleImport} onOpenExample={files.handleOpenExample} onConfirmImport={files.handleConfirmImport} onCancelImport={files.handleCancelImport} onNew={files.handleNew} onConfirmNew={files.handleConfirmNew} onCancelNew={files.handleCancelNew}
       canUndo={document.canUndo} canRedo={document.canRedo} onUndo={document.undo} onRedo={document.redo}
       onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={() => handleRecenter(getModulesBounds())}
       distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)}
@@ -1211,6 +1214,8 @@ export default function Canvas() {
       <CanvasLinks cards={visibleCards} links={moduleLinks} camera={camera} zoom={zoom} />
       {semanticCards.map((card) => <CanvasModule key={`${document.revision}:${card.id}`} module={card} camera={camera} zoom={zoom}
         semanticLevel={semanticLevel}
+        imageSource={files.imageSourceFor(card)}
+        onImageFile={files.handleImageFile}
         functionsView={semanticLevel === 'functions' && document.index.modules.has(card.id) ? <ModuleFunctions module={document.index.modules.get(card.id)} index={document.index} pureIds={pureIds.functions} selectedIds={selectedIds} onSelect={handleSelect} /> : null}
         dropState={transfers.dropTarget?.kind === 'module' && transfers.dropTarget.id === card.id ? transfers.dropTarget.ok ? 'valid' : 'invalid' : undefined}
         zIndex={activeCardId === card.id ? 2 : 1}
@@ -1290,9 +1295,9 @@ export default function Canvas() {
       {!presentationMode && settingsOpen && <SettingsWindow
         onClose={() => setSettingsOpen(false)}
         busy={files.busy} pendingImport={files.pendingImport}
-        onNew={files.handleNew} onOpenSp3={files.handleOpenSp3} onSave={files.handleSave} onSaveAs={files.saveAs} onImport={files.handleImport} onExportSvg={handleExportSvg}
-        recentFiles={files.recentFiles} onOpenRecent={files.handleOpenRecent}
-        project={document.project} currentPath={files.currentPath} diagnostics={document.analysis?.diagnostics ?? []} referenceCount={document.analysis?.semantic?.references?.length ?? 0} unusedCount={unusedIds.size}
+        onNew={files.handleNew} onOpenWorkspace={files.handleOpenWorkspace} onSave={files.handleSave} onSaveWorkspaceAs={files.saveWorkspaceAs} onExportArchive={files.exportWorkspaceArchive} onImport={files.handleImport} onExportSvg={handleExportSvg}
+        recentWorkspaces={files.recentWorkspaces} onOpenRecent={files.handleOpenRecent}
+        project={document.project} currentFolder={files.currentFolder} diagnostics={document.analysis?.diagnostics ?? []} referenceCount={document.analysis?.semantic?.references?.length ?? 0} unusedCount={unusedIds.size}
         distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)} minimapVisible={minimapVisible} onToggleMinimap={() => setMinimapVisible((current) => !current)} magnetEnabled={magnetEnabled} onToggleMagnet={() => setMagnetEnabled((current) => !current)} navVisible={!navCollapsed} onToggleNav={() => setNavCollapsed((current) => !current)} hiddenCards={hiddenCards} onShowAllHidden={handleShowAllHidden} onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={() => handleRecenter(getModulesBounds())}
         bookmarks={bookmarks} canBookmark={bookmarkStatus(selected).can} onSaveBookmark={handleSaveBookmark} onOpenBookmarks={() => setBookmarksOpen(true)} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark}
         onOpenRepository={() => openExternal(repositoryUrl)} update={appUpdate.update} onCheckUpdate={() => appUpdate.check()} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })} onQuit={() => quitApplication()} />}
