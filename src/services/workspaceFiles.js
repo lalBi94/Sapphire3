@@ -63,12 +63,12 @@ async function atomicWriteFile(filesystem, path, text) {
 }
 
 // Enregistre un texte au chemin choisi, avec extension garantie et confirmation d'écrasement.
-export async function exportWorkspaceFile(extension, text, language = 'en') {
+export async function exportWorkspaceFile(extension, text, language = 'en', defaultName = null) {
   if (!Object.hasOwn(exportFormats, extension)) throw fileError('EXPORT_FORMAT_INVALID')
   if (new TextEncoder().encode(text).length > maximumFileSize) throw fileError('FILE_TOO_LARGE')
   const { os, filesystem } = await getClient()
   const filterKey = exportFormats[extension]
-  let path = await os.showSaveDialog(translate(language, 'files.exportTitle'), { defaultPath: `workspace.${extension}`, filters: [{ name: translate(language, filterKey), extensions: [extension] }] })
+  let path = await os.showSaveDialog(translate(language, 'files.exportTitle'), { defaultPath: defaultName || `workspace.${extension}`, filters: [{ name: translate(language, filterKey), extensions: [extension] }] })
   if (!path) return null
   if (!path.toLowerCase().endsWith(`.${extension}`)) path += `.${extension}`
   let exists = false

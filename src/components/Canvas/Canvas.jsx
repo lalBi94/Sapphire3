@@ -328,6 +328,12 @@ export default function Canvas() {
     exerciseState.check()
   }
 
+  // Enregistre une copie corrigée une fois tous les tests réussis.
+  function handleSaveSolution() {
+    if (!document.exercise) return
+    files.saveSolution(document.exercise.title)
+  }
+
   // Retire le manifeste sans toucher au programme ni aux cartes.
   function handleRemoveExercise() {
     document.setExercise(null)
@@ -1271,7 +1277,7 @@ export default function Canvas() {
         <button type="button" aria-label={t('nav.dismiss')} onClick={transfers.dismiss}><X size={14} aria-hidden="true" /></button>
       </div>}
       <SimulationPanel result={simulationResult} running={Boolean(execution?.running)} paused={Boolean(execution?.paused)} stopped={Boolean(execution?.stopped)} currentStep={execution ? execution.index + 1 : 0} free={executionFree} speed={simulationSpeed} onSpeedChange={handleSimulationSpeedChange} onToggleFree={handleToggleExecutionFree} onPause={handlePauseExecution} onResume={handleResumeExecution} onStop={handleStopExecution} onClose={() => { setSimulationResult(null); setExecution(null); setExecutionFree(false) }} />
-      {exerciseOpen && document.exercise && <ExercisePanel exercise={document.exercise} onChange={document.setExercise} index={document.index} state={exerciseState} onReset={document.exercise.starter ? handleResetExercise : undefined} onRemove={handleRemoveExercise} readOnly={presentationMode} onClose={() => setExerciseOpen(false)} />}
+      {exerciseOpen && document.exercise && <ExercisePanel exercise={document.exercise} onChange={document.setExercise} index={document.index} state={exerciseState} onReset={document.exercise.starter ? handleResetExercise : undefined} onSaveSolution={handleSaveSolution} onRemove={handleRemoveExercise} readOnly={presentationMode} onClose={() => setExerciseOpen(false)} />}
       {functionNode && <FunctionPanel key={`${functionTarget}:${functionSignature}`} index={document.index} functionNode={functionNode} result={functionResult?.functionId === functionTarget ? functionResult.result : null} onRun={handleRunFunction} onDebug={handleDebugFunction} onClose={handleCloseFunction} />}
       {debugSession?.project === document.project && <DebugPanel session={debugSession} index={document.index} onAction={handleDebugAction} onClose={() => setDebugSession(null)} memoryOpen={memoryOpen} onToggleMemory={() => { setMemoryOpen((current) => !current); setPointerGraphOpen(false) }} pointerGraphOpen={pointerGraphOpen} onTogglePointerGraph={() => { setPointerGraphOpen((current) => !current); setMemoryOpen(false) }} />}
       {debugSession?.project === document.project && memoryOpen && <MemoryPanel index={document.index} frame={debugFrame} reachability={debugSession.reachability} onClose={() => setMemoryOpen(false)} />}

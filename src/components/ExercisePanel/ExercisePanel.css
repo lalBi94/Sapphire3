@@ -38,3 +38,6 @@
 .exercise-panel__danger { display: grid; gap: 8px; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--color-border); }
 .exercise-panel__danger p { margin: 0; color: var(--color-text-muted); font-size: 11px; line-height: 1.5; }
 .exercise-panel__danger .exercise-panel__danger-button { border-color: var(--color-diagnostic); color: var(--color-diagnostic); }
+.exercise-panel__hint { margin: 0; color: var(--color-text-muted); font-size: 11px; line-height: 1.5; }
+.exercise-panel__unlock, .exercise-panel__protection { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-control); }
+.exercise-panel__protection h3 { margin: 0; font-size: 12px; }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { serializeWorkspace, deserializeWorkspace, emptyWorkspace } from '../utils/workspaceFile.js'
+import { solutionFileName } from '../utils/exercise.js'
 import { exportWorkspaceFile, exportBinaryFile, importWorkspaceFile, readWorkspaceFile, writeWorkspaceFile, writeWorkspaceFileWithBackup, readRecoveryFile, writeRecoveryFile, clearRecoveryFile } from '../services/workspaceFiles.js'
 import { useTranslation } from '../contexts/LanguageContext.jsx'
 import { useNotifications } from '../contexts/NotificationContext.jsx'
@@ -47,6 +48,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, ex
   // Choisit l'expression et la durée adaptées à un message de fichier.
   function messageType(key) {
     if (key === 'files.exported') return 'export_success'
+    if (key === 'exercise.solutionSaved') return 'export_success'
     if (key === 'files.saved' || key === 'files.recovered' || key === 'files.autosaved') return 'saved'
     if (key === 'files.opened') return 'import_success'
     if (key === 'files.new') return 'success'
@@ -139,6 +141,23 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, ex
     try {
       const path = await exportWorkspaceFile(extension, text, language)
       if (path) publishMessage('files.exported')
+    } catch (failure) {
+      publishError({ prefix: 'errors.couldNotSave', failure })
+    } finally {
+      operation.current = false
+      setBusy(false)
+    }
+  }
+
+  // Enregistre une copie corrigée sans changer le fichier courant ni les chemins récents.
+  async function saveSolution(title) {
+    if (operation.current || pendingImport) return
+    operation.current = true
+    setBusy(true)
+    try {
+      const text = serializeWorkspace(project, cards, camera, selected, exercise)
+      const path = await exportWorkspaceFile('sp3', text, language, solutionFileName(title))
+      if (path) publishMessage('exercise.solutionSaved')
     } catch (failure) {
       publishError({ prefix: 'errors.couldNotSave', failure })
     } finally {
@@ -414,5 +433,5 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, ex
     return () => window.clearTimeout(timer)
   }, [project, cards, currentPath, ready])
 
-  return { busy, pendingImport, pendingNew, recentFiles, currentPath, handleSave, saveAs, exportText, exportBinary, handleOpenSp3, handleOpenRecent, handleImport, handleOpenExample, handleConfirmImport, handleCancelImport, handleNew, handleConfirmNew, handleCancelNew }
+  return { busy, pendingImport, pendingNew, recentFiles, currentPath, handleSave, saveAs, saveSolution, exportText, exportBinary, handleOpenSp3, handleOpenRecent, handleImport, handleOpenExample, handleConfirmImport, handleCancelImport, handleNew, handleConfirmNew, handleCancelNew }
 }

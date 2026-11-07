@@ -18,12 +18,18 @@ function validStarter(value) {
   return isRecord(value) && isRecord(value.project) && isRecord(value.presentation) && Array.isArray(value.presentation.cards) && ['x', 'y', 'zoomLevel'].every((key) => Number.isFinite(value.presentation.camera?.[key]))
 }
 
+// Un verrou d'édition reste une empreinte PBKDF2, jamais un mot de passe en clair.
+function validLock(value) {
+  return isRecord(value) && value.algorithm === 'PBKDF2-SHA256' && Number.isInteger(value.iterations) && value.iterations >= 1 && value.iterations <= 1000000 && typeof value.salt === 'string' && value.salt.length > 0 && typeof value.hash === 'string' && value.hash.length > 0
+}
+
 // Valide le manifeste avant toute exécution ou écriture, sans compléter les champs manquants.
 export function validateExercise(value) {
   if (!isRecord(value) || value.version !== exerciseVersion) throw exerciseError('Unsupported or missing exercise manifest.')
   if (typeof value.title !== 'string' || value.title.trim() === '') throw exerciseError('An exercise needs a non-empty title.')
   if (typeof value.instructions !== 'string') throw exerciseError('Exercise instructions must be text.')
   if (value.starter !== undefined && !validStarter(value.starter)) throw exerciseError('Invalid exercise starter snapshot.')
+  if (value.lock !== undefined && !validLock(value.lock)) throw exerciseError('Invalid exercise lock.')
   if (!Array.isArray(value.tests) || value.tests.length > maximumExerciseTests) throw exerciseError('Invalid exercise test list.')
   const ids = new Set()
   for (const test of value.tests) {
@@ -124,4 +130,14 @@ export function exerciseNotification(summary, t) {
     key: 'exercise-result',
     duration: passed ? 4500 : 6000,
   }
+}
+
+// Propose un nom de fichier portable pour la solution, sans caractère interdit sous Windows.
+export function solutionFileName(title) {
+  const base = String(title ?? '')
+    .replace(/[\\/:*?"<>|]+/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80)
+  return `${base || 'exercise'}-solution.sp3`
 }

@@ -1,13 +1,14 @@
 import { useState } from 'react'
-import { Check, CircleX, Pencil, Plus, RotateCcw, Square, Trash2, TriangleAlert } from 'lucide-react'
+import { Check, CircleX, Lock, Pencil, Plus, RotateCcw, Save, Square, Trash2, TriangleAlert, Unlock } from 'lucide-react'
 import FloatingPanel from '../FloatingPanel/FloatingPanel.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { createEntryTest, createFunctionTest } from '../../utils/exercise.js'
+import { createExerciseLock, verifyExerciseLock } from '../../utils/exerciseLock.js'
 import { defaultValue, isEditableType, parseValue, primitiveName } from '../../utils/functionInputs.js'
 import './ExercisePanel.css'
 
 // Présente la consigne, lance les tests et permet à l'enseignant de capturer les résultats attendus.
-export default function ExercisePanel({ exercise, onChange, index, state, onClose, onRemove, onReset, readOnly = false }) {
+export default function ExercisePanel({ exercise, onChange, index, state, onClose, onRemove, onReset, onSaveSolution, readOnly = false }) {
   const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(false)
@@ -15,6 +16,13 @@ export default function ExercisePanel({ exercise, onChange, index, state, onClos
   const [captureError, setCaptureError] = useState('')
   const [functionId, setFunctionId] = useState('')
   const [inputs, setInputs] = useState([])
+  const [unlocked, setUnlocked] = useState(false)
+  const [unlocking, setUnlocking] = useState(false)
+  const [unlockPassword, setUnlockPassword] = useState('')
+  const [password, setPassword] = useState('')
+  const [passwordConfirm, setPasswordConfirm] = useState('')
+  const [lockError, setLockError] = useState('')
+  const [lockBusy, setLockBusy] = useState(false)
   if (!exercise) return null
 
   const functions = [...index.nodes.values()].filter((node) => node.kind === 'FunctionDeclaration')
@@ -25,10 +33,63 @@ export default function ExercisePanel({ exercise, onChange, index, state, onClos
   })
   const editable = parameters.every((parameter) => isEditableType(parameter.type))
   const results = new Map((state.summary?.results ?? []).map((result) => [result.id, result]))
+  const complete = Boolean(state.summary && state.summary.total > 0 && state.summary.failed === 0)
+  const locked = Boolean(exercise.lock) && !unlocked
 
   // Met à jour un champ du manifeste sans créer d'étape undo.
   function update(patch) {
     onChange({ ...exercise, ...patch })
+  }
+
+  // Vérifie le mot de passe puis ouvre l'édition pour la session courante.
+  async function unlockExercise() {
+    setLockBusy(true)
+    setLockError('')
+    const valid = await verifyExerciseLock(unlockPassword, exercise.lock)
+    setLockBusy(false)
+    if (!valid) {
+      setLockError('exercise.wrongPassword')
+      return
+    }
+    setUnlocked(true)
+    setUnlocking(false)
+    setUnlockPassword('')
+    setEditing(true)
+  }
+
+  // Hache le mot de passe et verrouille l'édition ; aucun secret en clair n'est conservé.
+  async function protectExercise() {
+    if (password.length < 4) {
+      setLockError('exercise.passwordTooShort')
+      return
+    }
+    if (password !== passwordConfirm) {
+      setLockError('exercise.passwordMismatch')
+      return
+    }
+    setLockBusy(true)
+    setLockError('')
+    try {
+      const lock = await createExerciseLock(password)
+      update({ lock })
+      setPassword('')
+      setPasswordConfirm('')
+      setEditing(false)
+      setUnlocked(false)
+    } catch {
+      setLockError('exercise.lockFailed')
+    } finally {
+      setLockBusy(false)
+    }
+  }
+
+  // Retire le verrou après déverrouillage, sans toucher aux tests ni au squelette.
+  function removeProtection() {
+    const { lock: _lock, ...rest } = exercise
+    onChange(rest)
+    setUnlocked(false)
+    setEditing(false)
+    setLockError('')
   }
 
   // Capture la sortie du point d'entrée et l'ajoute comme test.
@@ -126,6 +187,25 @@ export default function ExercisePanel({ exercise, onChange, index, state, onClos
           </>}
         {captureError && <p className="exercise-panel__error" role="alert">{captureError}</p>}
         <div className="exercise-panel__actions"><button type="button" className="exercise-panel__primary" onClick={() => setEditing(false)}><Check size={14} aria-hidden="true" />{t('exercise.done')}</button></div>
+        <div className="exercise-panel__protection">
+          <h3>{t('exercise.protection')}</h3>
+          {exercise.lock
+            ? <>
+              <p className="exercise-panel__hint">{t('exercise.protected')}</p>
+              <button type="button" className="exercise-panel__action" onClick={removeProtection}><Unlock size={14} aria-hidden="true" />{t('exercise.removeProtection')}</button>
+            </>
+            : <>
+              <p className="exercise-panel__hint">{t('exercise.lockHint')}</p>
+              <label className="exercise-panel__field">{t('exercise.password')}
+                <input type="password" autoComplete="new-password" value={password} onChange={(event) => { setPassword(event.target.value); setLockError('') }} />
+              </label>
+              <label className="exercise-panel__field">{t('exercise.confirmPassword')}
+                <input type="password" autoComplete="new-password" value={passwordConfirm} onChange={(event) => { setPasswordConfirm(event.target.value); setLockError('') }} />
+              </label>
+              {lockError && <p className="exercise-panel__error" role="alert">{t(lockError)}</p>}
+              <button type="button" className="exercise-panel__action" disabled={lockBusy || password.length === 0 || passwordConfirm.length === 0} onClick={protectExercise}><Lock size={14} aria-hidden="true" />{t('exercise.protect')}</button>
+            </>}
+        </div>
         {onRemove && <div className="exercise-panel__danger">
           {confirmRemove
             ? <>
@@ -147,9 +227,23 @@ export default function ExercisePanel({ exercise, onChange, index, state, onClos
           {state.status === 'running'
             ? <button type="button" onClick={state.cancel}><Square size={14} aria-hidden="true" />{t('exercise.cancel')}</button>
             : <button type="button" className="exercise-panel__primary" disabled={exercise.tests.length === 0} onClick={state.check}><Check size={14} aria-hidden="true" />{t('exercise.check')}</button>}
-          {!readOnly && <button type="button" onClick={() => setEditing(true)}><Pencil size={14} aria-hidden="true" />{t('exercise.edit')}</button>}
+          {!readOnly && (locked
+            ? <button type="button" onClick={() => { setUnlocking(true); setLockError('') }}><Lock size={14} aria-hidden="true" />{t('exercise.unlock')}</button>
+            : <button type="button" onClick={() => setEditing(true)}><Pencil size={14} aria-hidden="true" />{t('exercise.edit')}</button>)}
+          {complete && onSaveSolution && <button type="button" onClick={onSaveSolution}><Save size={14} aria-hidden="true" />{t('exercise.saveSolution')}</button>}
           {onReset && <button type="button" onClick={() => setConfirmReset(true)}><RotateCcw size={14} aria-hidden="true" />{t('exercise.reset')}</button>}
         </div>
+        {unlocking && <div className="exercise-panel__unlock">
+          <p className="exercise-panel__hint">{t('exercise.unlockHint')}</p>
+          <label className="exercise-panel__field">{t('exercise.password')}
+            <input type="password" autoComplete="off" value={unlockPassword} onChange={(event) => { setUnlockPassword(event.target.value); setLockError('') }} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); unlockExercise() } }} />
+          </label>
+          {lockError && <p className="exercise-panel__error" role="alert">{t(lockError)}</p>}
+          <div className="exercise-panel__actions">
+            <button type="button" className="exercise-panel__primary" disabled={lockBusy || unlockPassword.length === 0} onClick={unlockExercise}><Unlock size={14} aria-hidden="true" />{t('exercise.unlockAction')}</button>
+            <button type="button" onClick={() => { setUnlocking(false); setUnlockPassword(''); setLockError('') }}>{t('exercise.cancel')}</button>
+          </div>
+        </div>}
         {confirmReset && <div className="exercise-panel__danger">
           <p>{t('exercise.resetConfirm')}</p>
           <div className="exercise-panel__actions">

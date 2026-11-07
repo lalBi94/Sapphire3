@@ -1,7 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { simulateProgram } from '../../src/utils/logic/index.js'
-import { createExercise, createEntryTest, createFunctionTest, evaluateExercise, exerciseNotification, findFunction, summarizeExercise, validateExercise } from '../../src/utils/exercise.js'
+import { createExercise, createEntryTest, createFunctionTest, evaluateExercise, exerciseNotification, findFunction, solutionFileName, summarizeExercise, validateExercise } from '../../src/utils/exercise.js'
+import { createExerciseLock, verifyExerciseLock } from '../../src/utils/exerciseLock.js'
 import { serializeWorkspace, deserializeWorkspace } from '../../src/utils/workspaceFile.js'
 import { program, root, node, intType, booleanType } from '../logic/fixtures.js'
 
@@ -146,6 +147,30 @@ test('notification du robot : succès seulement si tout passe, erreur sinon', ()
   assert.equal(failure.duration, 6000)
   assert.match(failure.message, /exercise\.notifyFail/)
   assert.match(failure.message, /"failed":2/)
+})
+
+test('verrou d’édition : mot de passe haché, vérification et refus des formes invalides', async () => {
+  const lock = await createExerciseLock('secret')
+  assert.equal(lock.algorithm, 'PBKDF2-SHA256')
+  assert.ok(lock.iterations >= 100000)
+  assert.ok(lock.salt.length > 0 && lock.hash.length > 0)
+  assert.equal(lock.password, undefined)
+  assert.equal(await verifyExerciseLock('secret', lock), true)
+  assert.equal(await verifyExerciseLock('wrong', lock), false)
+  assert.equal(await verifyExerciseLock('', lock), false)
+  assert.equal(await verifyExerciseLock('secret', null), false)
+  assert.equal(await verifyExerciseLock('secret', { ...lock, algorithm: 'other' }), false)
+  await assert.rejects(() => createExerciseLock('abc'))
+  const exercise = { ...createExercise({ title: 'Locked' }), lock }
+  assert.deepEqual(validateExercise(exercise), exercise)
+  assert.throws(() => validateExercise({ ...exercise, lock: { ...lock, hash: '' } }))
+})
+
+test('nom de solution : portable sous Windows et lisible', () => {
+  assert.equal(solutionFileName('Add two numbers'), 'Add two numbers-solution.sp3')
+  assert.equal(solutionFileName('a/b:c*?"<>|d'), 'a-b-c-d-solution.sp3')
+  assert.equal(solutionFileName('   '), 'exercise-solution.sp3')
+  assert.equal(solutionFileName('x'.repeat(200)).length, 80 + '-solution.sp3'.length)
 })
 
 test('types booléens et arguments JSON restent explicites', async () => {
