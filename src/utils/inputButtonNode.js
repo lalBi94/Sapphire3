@@ -1,16 +1,17 @@
 import { createModule, createNode } from './logic/model.js'
-import { inputButtonGlobalName } from './logic/inputButtonState.js'
+import { inputButtonOnClickName, inputButtonNoopName } from './logic/inputButtonState.js'
 
-export { inputButtonGlobalName } from './logic/inputButtonState.js'
+export { inputButtonGlobalName, inputButtonOnClickName, inputButtonNoopName } from './logic/inputButtonState.js'
 
 export const inputButtonDefaults = Object.freeze({ pressed: false })
 
 const booleanType = { kind: 'primitive', name: 'boolean' }
+const voidType = { kind: 'primitive', name: 'void' }
+const callbackType = { kind: 'function', parameters: [booleanType], returnType: voidType }
 
-// Crée le module caché d'un bouton : une globale booléenne et un accesseur exporté.
+// Crée le module caché d'un bouton : une fonction `onClick(bool)` liée par la carte.
 export function createInputButtonModule(moduleId, name, index, options = {}) {
   const mode = options.mode === 'hold' ? 'hold' : 'toggle'
-  const initial = Boolean(options.pressed)
   const module = createModule(moduleId, name)
   module.inputButton = { index, mode }
   const nodes = []
@@ -21,25 +22,28 @@ export function createInputButtonModule(moduleId, name, index, options = {}) {
     return id
   }
   const ref = (suffix, target) => node(suffix, 'Reference', {}, {}, { target: { kind: 'name', name: target } })
-  const boolean = (suffix, value) => node(suffix, 'Literal', { type: booleanType, value: Boolean(value) })
   const block = (suffix, statements) => node(suffix, 'Block', {}, { statements })
-  const returnValue = (suffix, value) => node(suffix, 'ReturnStatement', {}, { argument: value })
 
-  const valueName = inputButtonGlobalName(index)
-  const valueId = node('value', 'VariableDeclaration', { name: valueName, type: booleanType }, { initializer: boolean('valueStart', initial) })
-  module.rootNodeIds.push(valueId)
+  const onClickName = inputButtonOnClickName(index)
+  const noopName = inputButtonNoopName(index)
 
-  // L'accesseur `isPress()` est la surface importable du bouton depuis les autres modules.
-  const parameterless = node('function:isPress', 'FunctionDeclaration', { name: 'isPress', type: booleanType }, {
-    parameters: [],
-    body: block('body:isPress', [returnValue('returnIsPress', ref('returnIsPressRef', valueName))]),
+  // Fonction vide utilisée tant qu'aucune fonction n'est liée au bouton.
+  const noopParameter = node('noop:value', 'Parameter', { name: 'value', type: booleanType })
+  const noop = node('function:noop', 'FunctionDeclaration', { name: noopName, type: voidType }, {
+    parameters: [noopParameter],
+    body: block('body:noop', []),
   })
-  module.rootNodeIds.push(parameterless)
-  module.exports.push({ nodeId: parameterless, name: 'isPress' })
+  module.rootNodeIds.push(noop)
+
+  // La carte remplace cette référence par la fonction choisie, dans le même module ou via un import.
+  const onClick = node('onClick', 'VariableDeclaration', { name: onClickName, type: callbackType }, {
+    initializer: ref('onClickStart', noopName),
+  })
+  module.rootNodeIds.push(onClick)
 
   return {
     module,
     nodes,
-    functions: { isPress: 'isPress', names: { value: valueName } },
+    functions: { onClick: onClickName, noop: noopName, names: { onClick: onClickName, noop: noopName } },
   }
 }

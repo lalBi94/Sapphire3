@@ -219,6 +219,8 @@ function start(config, runtimeSource) {
   let accumulator = 0
   let resizeFrame = 0
   let feedbackTimer = 0
+  let callbackRequest = false
+  const inputRepeatTimers = new Map()
 
   // Construit chaque panneau une seule fois ; les mises à jour ne recréent pas les canevas.
   function buildPanels() {
@@ -309,7 +311,7 @@ function start(config, runtimeSource) {
       const button = document.createElement('button')
       button.type = 'button'
       button.className = 'db-input__button'
-      button.textContent = 'isPress'
+      button.textContent = 'onClick'
       const label = document.createElement('span')
       label.className = 'db-input__label'
       wrapper.append(button, label)
@@ -318,17 +320,35 @@ function start(config, runtimeSource) {
       ref.inputLabel = label
       const widget = panel.widget
       if (widget?.mode === 'hold') {
-        const press = (event) => { event.preventDefault(); handleInputChange(widget, true) }
-        const release = () => handleInputChange(widget, false)
+        let active = false
+        const press = (event) => {
+          event.preventDefault()
+          if (active) return
+          active = true
+          handleInputChange(widget, true)
+        }
+        const release = () => {
+          if (!active) return
+          active = false
+          handleInputChange(widget, false, false)
+        }
         button.addEventListener('pointerdown', press)
         button.addEventListener('pointerup', release)
         button.addEventListener('pointerleave', release)
         button.addEventListener('pointercancel', release)
-        button.addEventListener('keydown', (event) => { if (event.key === ' ' || event.key === 'Enter') press(event) })
+        button.addEventListener('keydown', (event) => { if ((event.key === ' ' || event.key === 'Enter') && !event.repeat) press(event) })
         button.addEventListener('keyup', (event) => { if (event.key === ' ' || event.key === 'Enter') release() })
         button.addEventListener('blur', release)
       } else {
-        button.addEventListener('click', () => handleInputChange(widget, !widget?.pressed))
+        button.addEventListener('click', () => {
+          const next = !widget?.pressed
+          handleInputChange(widget, next)
+          clearInputTimer(widget)
+          if (next && widget?.callbackFunctionId) {
+            const timer = window.setInterval(() => runInputCallback(widget, true), 500)
+            inputRepeatTimers.set(widget.id, timer)
+          }
+        })
       }
       return
     }
@@ -1488,14 +1508,32 @@ function start(config, runtimeSource) {
     announcePaused()
   }
 
-  // Met à jour un bouton d'entrée et relance le moteur avec la nouvelle globale.
-  function handleInputChange(widget, pressed) {
+  // Arrête la répétition éventuelle d'un toggle.
+  function clearInputTimer(widget) {
+    const timer = inputRepeatTimers.get(widget?.id)
+    if (!timer) return
+    window.clearInterval(timer)
+    inputRepeatTimers.delete(widget.id)
+  }
+
+  // Arrête toutes les répétitions de boutons.
+  function clearInputTimers() {
+    for (const timer of inputRepeatTimers.values()) window.clearInterval(timer)
+    inputRepeatTimers.clear()
+  }
+
+  // Met à jour un bouton et déclenche son callback ou le modèle historique `isPress`.
+  function handleInputChange(widget, pressed, trigger = true) {
     if (!widget) return
     const next = Boolean(pressed)
     if (widget.pressed === next) return
     widget.pressed = next
     if (widget.globalNodeId) state.inputs = { ...state.inputs, [widget.globalNodeId]: next }
     renderStates()
+    if (widget.callbackFunctionId) {
+      if (trigger) runInputCallback(widget, next)
+      return
+    }
     if (state.status === 'idle' && !state.result) return
     requestId += 1
     terminateWorker()
@@ -1509,8 +1547,23 @@ function start(config, runtimeSource) {
     runProgram(requestId)
   }
 
+  // Exécute la fonction liée au bouton avec l'état courant.
+  function runInputCallback(widget, pressed) {
+    if (!widget?.callbackFunctionId) return
+    requestId += 1
+    terminateWorker()
+    cancelAnimation()
+    callbackRequest = true
+    state = dashboardExecutionReducer(state, { type: 'start' })
+    renderControls()
+    renderStates()
+    announce(labels.feedbackStarted ?? 'Execution started.')
+    runProgram(requestId, { functionId: widget.callbackFunctionId, args: [Boolean(pressed)] })
+  }
+
   // Lance une nouvelle session, ou reprend une session en pause.
   function handleRun() {
+    callbackRequest = false
     if (state.status === 'paused') {
       state = dashboardExecutionReducer(state, { type: 'resume' })
       renderControls()
@@ -1519,6 +1572,7 @@ function start(config, runtimeSource) {
       return
     }
     if (state.status === 'running' || state.status === 'preparing') return
+    clearInputTimers()
     state.autonomous = false
     requestId += 1
     terminateWorker()
@@ -1541,6 +1595,8 @@ function start(config, runtimeSource) {
   // Démarre le même Run borné, mais la lecture boucle jusqu'à Pause ou Stop.
   function handleAutonomous() {
     if (state.status === 'running' || state.status === 'preparing' || state.status === 'paused') return
+    callbackRequest = false
+    clearInputTimers()
     requestId += 1
     terminateWorker()
     cancelAnimation()
@@ -1554,6 +1610,8 @@ function start(config, runtimeSource) {
 
   // Arrête la session et revient à l'état initial des widgets.
   function handleStop() {
+    callbackRequest = false
+    clearInputTimers()
     requestId += 1
     terminateWorker()
     cancelAnimation()
@@ -1565,8 +1623,13 @@ function start(config, runtimeSource) {
   }
 
   // Lance le moteur réel dans un worker, ou sur le fil courant si le navigateur le refuse.
-  function runProgram(id) {
+  function runProgram(id, options = {}) {
     const runtime = window.SapphireDashboardRuntime
+    const simulationOptions = {
+      maxSteps: config.simulationBudget,
+      inputs: state.inputs,
+      ...(options.functionId ? { functionId: options.functionId, args: options.args ?? [] } : {}),
+    }
     if (typeof Worker !== 'undefined' && typeof Blob !== 'undefined' && runtimeSource) {
       try {
         const workerSource = `${runtimeSource}\nself.onmessage = function (event) {
@@ -1593,7 +1656,7 @@ function start(config, runtimeSource) {
           terminateWorker()
           handleFailure({ message: event.message || 'Worker failed.', code: 'SIMULATION_FAILED' })
         }
-        worker.postMessage({ id, project: config.project, options: { maxSteps: config.simulationBudget, inputs: state.inputs } })
+        worker.postMessage({ id, project: config.project, options: simulationOptions })
         return
       } catch {
         terminateWorker()
@@ -1606,7 +1669,7 @@ function start(config, runtimeSource) {
     window.setTimeout(() => {
       if (id !== requestId) return
       try {
-        handlePrepared(runtime.simulate(config.project, { maxSteps: config.simulationBudget, inputs: state.inputs }))
+        handlePrepared(runtime.simulate(config.project, simulationOptions))
       } catch (error) {
         handleFailure({ message: error?.message ?? String(error), code: error?.code ?? 'SIMULATION_FAILED' })
       }
@@ -1616,6 +1679,15 @@ function start(config, runtimeSource) {
   // Installe le résultat validé et démarre l'animation de la trace.
   function handlePrepared(result) {
     state = dashboardExecutionReducer(state, { type: 'prepared', result })
+    if (callbackRequest) {
+      callbackRequest = false
+      const last = Math.max(0, (result?.trace?.length ?? 1) - 1)
+      state = dashboardExecutionReducer(state, { type: 'seek', index: last })
+      cancelAnimation()
+      renderControls()
+      renderStates()
+      return
+    }
     renderControls()
     renderStates()
     if (state.status === 'running') startAnimation()
@@ -1623,6 +1695,7 @@ function start(config, runtimeSource) {
 
   // Signale une erreur du worker sans bloquer le dashboard.
   function handleFailure(error) {
+    callbackRequest = false
     state = dashboardExecutionReducer(state, { type: 'fail', errorCode: error?.code ?? 'SIMULATION_FAILED', result: null })
     renderControls()
     renderStates()

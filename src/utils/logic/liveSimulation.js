@@ -189,6 +189,25 @@ export async function runLiveProgram(project, { inputs = {}, sliceSteps = 400, o
     }
   }
 
+  // Appelle la fonction `onClick(bool)` d'un bouton depuis son binding courant.
+  async function applyEvents(events) {
+    if (!Array.isArray(events)) return
+    for (const event of events) {
+      const node = nodes.get(event?.nodeId)
+      if (!node || node.kind !== 'VariableDeclaration') continue
+      const callback = global.values.get(node.id)
+      const value = Boolean(event.value)
+      if (callback?.functionValue === true) {
+        const target = functions.get(callback.nodeId)
+        if (target) await executeFunction(target, [value])
+      } else if (callback?.lambdaValue === true) {
+        await executeLambda(callback.lambda, callback.environment, [value])
+      } else if (callback?.methodValue === true) {
+        await executeFunction(callback.node, [value], callback.object)
+      }
+    }
+  }
+
   // Rend la main au pilote après une tranche ou sur demande explicite.
   async function maybeYield(force = false) {
     if (!onFrame) return
@@ -197,6 +216,7 @@ export async function runLiveProgram(project, { inputs = {}, sliceSteps = 400, o
     const response = await onFrame(collectState())
     if (response?.stop === true) throw liveStopped
     applyInputs(response?.inputs)
+    await applyEvents(response?.events)
   }
 
   // Évalue une expression, en coopérant avec le pilote.

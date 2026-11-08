@@ -3,6 +3,7 @@ let worker = null
 let running = false
 let waiting = false
 let pendingInputs = null
+let pendingEvents = []
 let frameCallback = null
 let statusCallback = null
 let timer = 0
@@ -26,15 +27,23 @@ function scheduleTick() {
   }, 16)
 }
 
+// Envoie les entrées et événements en attente au worker.
+function flushResponse() {
+  if (!worker) return
+  const inputs = pendingInputs ?? {}
+  const events = pendingEvents
+  pendingInputs = null
+  pendingEvents = []
+  waiting = false
+  worker.postMessage({ type: 'response', inputs, events })
+}
+
 // Transmet une frame à l'interface et prépare la reprise ou l'entrée suivante.
 function handleFrame(state) {
   waiting = true
   frameCallback?.(state)
-  if (pendingInputs) {
-    const inputs = pendingInputs
-    pendingInputs = null
-    waiting = false
-    worker?.postMessage({ type: 'inputs', inputs })
+  if (pendingInputs || pendingEvents.length > 0) {
+    flushResponse()
     return
   }
   scheduleTick()
@@ -50,6 +59,7 @@ export function startLive(project, { inputs = {}, sliceSteps = 400, onFrame = nu
   frameCallback = onFrame
   statusCallback = onStatus
   pendingInputs = null
+  pendingEvents = []
   waiting = false
   running = true
   worker = new Worker(new URL('./live.worker.js', import.meta.url), { type: 'module' })
@@ -91,12 +101,14 @@ export function startLive(project, { inputs = {}, sliceSteps = 400, onFrame = nu
 export function sendLiveInputs(inputs) {
   if (!worker) return
   pendingInputs = inputs
-  if (waiting) {
-    const next = pendingInputs
-    pendingInputs = null
-    waiting = false
-    worker.postMessage({ type: 'inputs', inputs: next })
-  }
+  if (waiting) flushResponse()
+}
+
+// Envoie des événements de bouton au worker live.
+export function sendLiveEvents(events) {
+  if (!worker || !Array.isArray(events) || events.length === 0) return
+  pendingEvents.push(...events)
+  if (waiting) flushResponse()
 }
 
 // Suspend la reprise automatique sans terminer le worker.
@@ -120,6 +132,7 @@ export function stopLive() {
   running = false
   waiting = false
   pendingInputs = null
+  pendingEvents = []
   cancelTick()
   if (!worker) return
   const current = worker

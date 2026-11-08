@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { startLive, sendLiveInputs, pauseLive, resumeLive, stopLive } from '../services/liveRunner.js'
+import { startLive, sendLiveInputs, sendLiveEvents, pauseLive, resumeLive, stopLive } from '../services/liveRunner.js'
 
 const initialLive = Object.freeze({ status: 'idle', steps: 0, output: [], currentNodeId: null, states: {}, errorCode: null, error: '' })
 
@@ -49,6 +49,11 @@ export default function useLiveSession() {
     sendLiveInputs(inputs)
   }
 
+  // Transmet les événements de bouton au worker live.
+  function sendEvents(events) {
+    sendLiveEvents(events)
+  }
+
   // Suspend la session live.
   function pause() {
     pauseLive()
@@ -73,5 +78,5 @@ export default function useLiveSession() {
     setLive(initialLive)
   }
 
-  return { live, start, sendInputs, pause, resume, stop, reset }
+  return { live, start, sendInputs, sendEvents, pause, resume, stop, reset }
 }

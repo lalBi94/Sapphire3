@@ -72,7 +72,7 @@ const expectedOutput = {
   neonRose: ['Neon rose'],
   orbitalTrails: ['Orbital trails'],
   solarSystem: ['Solar system'],
-  buttonLed: ['false'],
+  buttonLed: ['Two buttons and an LED'],
 }
 
 // Ces exemples utilisent une entrée aléatoire : leur sortie varie d'une exécution à l'autre.

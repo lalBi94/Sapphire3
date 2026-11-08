@@ -30,7 +30,7 @@ import { scrollNodeIntoCard } from '../../utils/cardScroll.js'
 import { buildWorkspaceSvg } from '../../utils/workspaceSvg.js'
 import { dashboardLabels, dashboardSimulationBudget, defaultDashboardConfig, resolveDashboardPalette } from '../../utils/dashboardConfig.js'
 import { dashboardWidgets, dashboardInitialStates, dashboardWidgetTypes } from '../../utils/dashboardWidgets.js'
-import { collectInputButtonValues } from '../../utils/logic/inputButtonState.js'
+import { collectInputButtonValues, inputButtonCallbackId, inputButtonOnClickNodeId } from '../../utils/logic/inputButtonState.js'
 import { buildDashboardDocument, dashboardDefaultLayout } from '../../utils/dashboardExport.js'
 import dashboardRuntimeSource from 'virtual:dashboard-runtime'
 import dashboardClientSource from 'virtual:dashboard-client'
@@ -47,7 +47,7 @@ import { useNotifications } from '../../contexts/NotificationContext.jsx'
 import { useTheme } from '../../contexts/ThemeContext.jsx'
 import { diagnosticLabel, nodeLine } from '../LogicTree/logicLabels.js'
 import { failureLabel, translations } from '../../utils/translations.js'
-import { moveDebugSession, resolveDebugScreens, getModuleLinks, getUnusedDeclarationIds, getPureIds, captureBookmark, captureSourceNode } from '../../utils/logic/index.js'
+import { moveDebugSession, resolveDebugScreens, getModuleLinks, getUnusedDeclarationIds, getPureIds, captureBookmark, captureSourceNode, isInputButtonCallbackType, isInputButtonNoop } from '../../utils/logic/index.js'
 import { runDebugSession, runSimulation, runTranspilation, runTranspilationChecks, cancelEngineWork, isEngineCancelled } from '../../services/engineRunner.js'
 import { transpilationLanguages } from '../../utils/transpilation/languages.js'
 import { exportWorkspaceFile } from '../../services/workspaceFiles.js'
@@ -322,6 +322,25 @@ export default function Canvas() {
   const unusedIds = useMemo(() => new Set(getUnusedDeclarationIds(document.project, document.analysis)), [document.project, document.analysis])
   // Fonctions et modules purs : pastille discrète et seuls favoris enregistrables.
   const pureIds = useMemo(() => getPureIds(document.project, document.analysis), [document.project, document.analysis])
+  // Fonctions `(bool) -> void` proposées au binding des boutons d'entrée.
+  const inputButtonCallbacks = useMemo(() => {
+    const callbacks = []
+    for (const symbol of document.index.symbols.values()) {
+      if (symbol.kind !== 'FunctionDeclaration' || symbol.importedFrom || !isInputButtonCallbackType(symbol.type)) continue
+      if (isInputButtonNoop(document.index.nodes.get(symbol.nodeId))) continue
+      const module = document.index.modules.get(symbol.moduleId)
+      if (!module || module.kind === 'class' || !(module.rootNodeIds ?? []).includes(symbol.nodeId)) continue
+      callbacks.push({ nodeId: symbol.nodeId, name: symbol.name, moduleName: module.name })
+    }
+    return callbacks.sort((left, right) => left.moduleName.localeCompare(right.moduleName) || left.name.localeCompare(right.name))
+  }, [document.index])
+  // Binding courant de chaque bouton, résolu depuis la source.
+  const inputButtonBindings = useMemo(() => new Map(document.cards
+    .filter((card) => card.type === 'toggleButton' || card.type === 'holdButton')
+    .map((card) => [card.id, inputButtonCallbackId(document.project, card.id)])), [document.cards, document.project])
+  const inputButtonCallbackSupport = useMemo(() => new Map(document.cards
+    .filter((card) => card.type === 'toggleButton' || card.type === 'holdButton')
+    .map((card) => [card.id, Boolean(inputButtonOnClickNodeId(document.project, card.id))])), [document.cards, document.project])
   // Modules visibles proposés comme destination d'insertion d'un favori.
   const moduleChoices = document.cards.filter((card) => card.type === 'module').map((card) => ({ id: card.id, name: card.name }))
   const functionNode = functionTarget ? document.index.nodes.get(functionTarget) ?? null : null
@@ -705,9 +724,10 @@ export default function Canvas() {
     }
   }
 
-  // Met à jour un bouton d'entrée et relance le Run avec la nouvelle globale.
+  // Met à jour l'état visuel d'un bouton et conserve le modèle historique `isPress`.
   function handleInputChange(id, pressed) {
     document.updateInputButton(id, pressed)
+    if (inputButtonOnClickNodeId(document.project, id)) return
     const cards = document.cards.map((card) => card.id === id ? { ...card, pressed: Boolean(pressed) } : card)
     const inputs = collectInputButtonValues(document.project, cards)
     if (live.status === 'running' || live.status === 'paused') {
@@ -715,6 +735,21 @@ export default function Canvas() {
       return
     }
     if (simulationResult) handleRunSimulation({ inputs, silent: true })
+  }
+
+  // Déclenche le callback d'un bouton, en démarrant le live au premier appui si nécessaire.
+  function handleInputTrigger(id, value, autoStart = true) {
+    if (!inputButtonCallbackId(document.project, id)) return
+    const nodeId = inputButtonOnClickNodeId(document.project, id)
+    if (!nodeId) return
+    const events = [{ nodeId, value: Boolean(value) }]
+    if (live.status === 'running' || live.status === 'paused') {
+      liveSession.sendEvents(events)
+      return
+    }
+    if (!autoStart || !value) return
+    handleRunLive()
+    liveSession.sendEvents(events)
   }
 
   // Ouvre la simulation graphique simplifiée sur la trace du moteur, sans code mort.
@@ -1393,6 +1428,11 @@ export default function Canvas() {
         onRgbLedViewChange={(id, rgbLedView) => document.updateGeometry(id, { rgbLedView })}
         onInputButtonViewChange={(id, inputButtonView) => document.updateGeometry(id, { inputButtonView })}
         onInputChange={handleInputChange}
+        onInputTrigger={handleInputTrigger}
+        inputButtonCallbacks={inputButtonCallbacks}
+        inputButtonCallbackId={inputButtonBindings.get(card.id) ?? null}
+        inputButtonCallbackSupported={inputButtonCallbackSupport.get(card.id) !== false}
+        onBindInputClick={(id, functionId) => document.bindInputButton(id, functionId)}
         screenState={screenPlayback ? null : screenStates[card.id] ?? null}
         screenFrames={screenPlayback ? simulationResult.screenFrames : null}
         screenPlaying={screenPlayback && Boolean(execution?.running)}

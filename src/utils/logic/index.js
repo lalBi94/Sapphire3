@@ -29,6 +29,7 @@ export { deletionImpact } from './deletionImpact.js'
 export { analyzePurity, getPureIds } from './purity.js'
 export { captureBookmark, insertBookmark, describeBookmark } from './bookmarks.js'
 export { getModuleRootSymbols, getModuleFunctions, getImportCandidates, getUnusedImportIds, setModuleExport, addModuleImport, removeModuleImport, getCallableSymbols, ensureModuleImports } from './moduleInterface.js'
+export { bindInputButtonCallback, isInputButtonCallbackType, isInputButtonNoop } from './inputButtonBinding.js'
 
 // Retrouve une construction à partir de son identifiant graphique/source stable.
 export function findAstNode(ast, sourceId) {

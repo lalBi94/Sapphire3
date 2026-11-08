@@ -2,6 +2,15 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Boutons d'entrée onClick(bool) — 9 novembre 2026
+
+- Les boutons `toggleButton` et `holdButton` ne reposent plus sur la globale `isPress()` : leur module caché déclare `INPUT_SP3_GLOBAL_ONCLICK_<n>` de type `(boolean) -> void`, initialisée à une fonction vide `INPUT_SP3_GLOBAL_NOOP_<n>`. La carte affiche un sélecteur des fonctions du projet de signature `(boolean) -> void` ; le binding met à jour la source, crée l'import et l'export nécessaires, et reste visible dans la vue code.
+- Le hold appelle la fonction une seule fois avec `true` à l'appui et ne rappelle rien au relâchement. Le toggle appelle immédiatement à l'activation, puis toutes les 500 ms tant qu'il est actif, et une fois avec `false` à la désactivation. Un clic démarre le live automatiquement s'il n'est pas déjà actif.
+- `runLiveProgram` accepte des `events` dans la réponse de `onFrame` et exécute la fonction `onClick` liée dans l'état courant de la session. Le worker live et `liveRunner` transmettent ces événements avec les entrées.
+- L'exemple **Two buttons and an LED** est adapté : `setToggle(bool)` recopie l'état dans la LED, `setHold(bool)` l'allume une fois, et les deux fonctions sont liées aux cartes. Le `main` boucle sur `SP3_LIVE` pour rester interactif en live tout en restant fini en Run borné.
+- Le dashboard reprend le binding : les boutons exécutent la fonction liée via le moteur réel et affichent directement l'état final ; le toggle répète toutes les 500 ms. Les anciens boutons `isPress()` restent lisibles pour compatibilité.
+- Vérifications : **616 tests Node/Python réussis**, build Vite, `pnpm dashboards:build`. Contrôles navigateur : sélecteur de fonction présent sur les deux cartes, binding et rebinding, toggle on/off de la LED, hold one-shot sans extinction au relâchement, démarrage automatique du live, vue code montrant `onClick` et `setToggle`, dashboard généré avec toggle, hold et LED synchronisés. Limite : les anciens boutons `isPress()` ne proposent pas le binding tant qu'ils n'ont pas été recréés.
+
 ## Boucles live des exemples — 8 novembre 2026
 
 - Convention `SP3_LIVE` : chaque exemple continu déclare une globale booléenne `SP3_LIVE = false` dans le module de sa boucle. `runLiveProgram` la force à `true` après l'initialisation des modules ; `simulateProgram` la laisse à `false`. Les boucles s'écrivent `SP3_LIVE or frame < limite`, ce qui garde une exécution finie en Run borné et une animation ou simulation continue en live.

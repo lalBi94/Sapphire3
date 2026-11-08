@@ -39,8 +39,8 @@ self.onmessage = async (event) => {
     resolveFrame({})
     return
   }
-  if (data.type === 'inputs') {
-    resolveFrame({ inputs: data.inputs ?? {} })
+  if (data.type === 'response') {
+    resolveFrame({ inputs: data.inputs ?? {}, events: data.events ?? [] })
     return
   }
   if (data.type === 'stop') {

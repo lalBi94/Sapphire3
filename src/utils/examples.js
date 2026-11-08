@@ -1,4 +1,4 @@
-import { createProject, createModule, createNode } from './logic/index.js'
+import { createProject, createModule, createNode, bindInputButtonCallback } from './logic/index.js'
 import { createScreenModule, screenDefaults } from './screenNode.js'
 import { createGaugeModule, gaugeDefaults } from './gaugeNode.js'
 import { createLedModule, ledDefaults } from './ledNode.js'
@@ -3939,7 +3939,7 @@ export const exampleCategories = [
   { id: 'hard', labelKey: 'examples.category.hard' },
 ]
 
-// Deux boutons d'entrée pilotent une LED : bascule persistante ou appui maintenu.
+// Deux boutons d'entrée appellent chacun leur fonction onClick(bool).
 function buttonLed() {
   const b = builder()
   const toggle = createInputButtonModule('inputToggle', 'Toggle button', 1, { mode: 'toggle' })
@@ -3952,32 +3952,46 @@ function buttonLed() {
   b.project.modules.push(led.module)
   b.project.nodes.push(...led.nodes)
   const app = b.useModule('inputApp', 'Input app')
+  b.liveFlag()
   const exportId = (module, name) => module.exports.find((entry) => entry.name === name).nodeId
-  importFunction(app, 'inputToggleImport', toggle.module.id, exportId(toggle.module, 'isPress'), 'togglePressed')
-  importFunction(app, 'inputHoldImport', hold.module.id, exportId(hold.module, 'isPress'), 'holdPressed')
   importFunction(app, 'inputLedImport', led.module.id, exportId(led.module, led.functions.setValue), 'setLed')
 
-  b.call('inputToggleCall', 'inputToggleCallee', [])
-  b.make('inputToggleCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'inputToggleImport' } })
-  b.variable('inputToggleVar', 'toggleOn', booleanType, 'inputToggleCall')
-  b.call('inputHoldCall', 'inputHoldCallee', [])
-  b.make('inputHoldCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'inputHoldImport' } })
-  b.variable('inputHoldVar', 'holdOn', booleanType, 'inputHoldCall')
-  b.binary('inputLitValue', 'or', 'inputToggleRead', 'inputHoldRead')
-  b.ref('inputToggleRead', 'toggleOn')
-  b.ref('inputHoldRead', 'holdOn')
-  b.variable('inputLitVar', 'lit', booleanType, 'inputLitValue')
-  b.call('inputSetCall', 'inputSetCallee', ['inputLitRead'])
-  b.make('inputSetCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'inputLedImport' } })
-  b.ref('inputLitRead', 'lit')
-  b.make('inputSetStatement', 'ExpressionStatement', {}, { expression: 'inputSetCall' })
-  b.print('inputPrint', 'inputPrintRead')
-  b.ref('inputPrintRead', 'lit')
-  b.block('inputBody', ['inputToggleVar', 'inputHoldVar', 'inputLitVar', 'inputSetStatement', 'inputPrint'])
+  // setToggle(value) recopie l'état du toggle dans la LED.
+  b.root('inputToggleSet', 'FunctionDeclaration', { name: 'setToggle', type: voidType }, { parameters: ['inputToggleValue'], body: 'inputToggleSetBody' })
+  b.make('inputToggleValue', 'Parameter', { name: 'value', type: booleanType })
+  b.block('inputToggleSetBody', ['inputToggleSetStatement'])
+  b.call('inputToggleSetCall', 'inputToggleSetCallee', ['inputToggleValueRef'])
+  b.make('inputToggleSetCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'inputLedImport' } })
+  b.ref('inputToggleValueRef', 'value')
+  b.make('inputToggleSetStatement', 'ExpressionStatement', {}, { expression: 'inputToggleSetCall' })
+
+  // setHold(value) est une impulsion : elle allume la LED une seule fois.
+  b.root('inputHoldSet', 'FunctionDeclaration', { name: 'setHold', type: voidType }, { parameters: ['inputHoldValue'], body: 'inputHoldSetBody' })
+  b.make('inputHoldValue', 'Parameter', { name: 'value', type: booleanType })
+  b.block('inputHoldSetBody', ['inputHoldIf'])
+  b.ifThen('inputHoldIf', 'inputHoldValueRef', 'inputHoldBody')
+  b.ref('inputHoldValueRef', 'value')
+  b.block('inputHoldBody', ['inputHoldSetStatement'])
+  b.call('inputHoldSetCall', 'inputHoldSetCallee', ['inputHoldTrue'])
+  b.make('inputHoldSetCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'inputLedImport' } })
+  b.make('inputHoldTrue', 'Literal', { type: booleanType, value: true })
+  b.make('inputHoldSetStatement', 'ExpressionStatement', {}, { expression: 'inputHoldSetCall' })
+
+  b.stringValue('inputMessage', 'Two buttons and an LED')
+  b.print('inputPrint', 'inputMessage')
+  b.make('inputLoop', 'WhileStatement', {}, { test: 'inputLoopTest', body: 'inputLoopBody' })
+  b.ref('inputLoopTest', 'SP3_LIVE')
+  b.block('inputLoopBody', [])
+  b.block('inputBody', ['inputPrint', 'inputLoop'])
   b.root('inputMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'inputBody' })
 
-  return workspace(b.project, [
-    note('inputNote', 'Two buttons and an LED', String.raw`Le bouton à bascule garde son état après le clic ; le bouton maintenu n'est vrai que pendant l'appui. La LED s'allume si l'un des deux est vrai. Les deux modules exportent isPress() et App appelle setLed(). Ouvrez la vue code de chaque carte ou importez isPress() dans un autre module pour voir les flèches de dépendance. $$\text{LED} = \text{toggle} \lor \text{hold}$$`, 0, 1000, 1120, 240),
+  // Lie chaque bouton à sa fonction ; l'import et l'export sont créés automatiquement.
+  const toggleBinding = bindInputButtonCallback(b.project, toggle.module.id, 'inputToggleSet')
+  const holdBinding = toggleBinding.ok ? bindInputButtonCallback(toggleBinding.project, hold.module.id, 'inputHoldSet') : toggleBinding
+  const project = holdBinding.ok ? holdBinding.project : b.project
+
+  return workspace(project, [
+    note('inputNote', 'Two buttons and an LED', String.raw`Le toggle appelle setToggle(bool) immédiatement, puis toutes les 500 ms tant qu'il reste actif. Le bouton maintenu appelle setHold(bool) une seule fois avec true à l'appui. Les deux fonctions sont liées sur les cartes et importées par leur module ; setToggle recopie l'état dans la LED, setHold l'allume. $$\text{setToggle} : \text{LED} = \text{state},\quad \text{setHold} : \text{LED} = \text{true}$$`, 0, 1000, 1120, 240),
   ])
 }
 
