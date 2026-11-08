@@ -2,6 +2,13 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Vitrine dashboards enrichie — 8 novembre 2026
+
+- `src/utils/showcaseExamples.js` ajoute cinq créations à la bibliothèque locale : **Harmonic studio** (oscilloscope, trois canaux), **Chirp ribbon** et **Wave packet** (XY plot, 64 points), **Neon rose** (écran 64×40, 32 images) et **Orbital trails** (écran 64×40, 64 images, classe `Rotor`). Chaque démo sépare un module `*Math` du module `*App`, importe les API de widget existantes et porte une formule KaTeX. Le catalogue passe à **62 exemples** (Simple 7, Medium 32, Hard 23).
+- La vitrine `abstract/visual/dashboards.html` et `scripts/build-dashboard-showcase.mjs` retiennent dix démos : Rotating cube, Neon rose, Spirograph, Harmonic studio, Coral growth, Orbital trails, Starfield, Chirp ribbon, RGB mixer et Wave packet. Le script exécute un préflight `simulateProgram` avec le budget du dashboard avant d'écrire chaque fichier.
+- `Neon rose` boucle 128 échantillons sur une rosace à cinq pétales ; le second passage repasse sur les mêmes pixels. La teinte change à chaque image (palette à cinq couleurs de tracé) pour que les 32 images restent visuellement distinctes au lieu de répéter les 16 premières.
+- Vérifications : `pnpm dashboards:build` régénère les dix fichiers ; `node --test tests/workspace/showcaseExamples.test.js` passe (analyse sans diagnostic, exécution bornée, signaux recalculés, images variées, liens intermodules, KaTeX, classe `Rotor`) ; suite complète, build Vite et PDF LaTeX rejoués.
+
 ## Alignement documentaire sur les sources — 8 novembre 2026
 
 - Relecture ciblée du client dashboard, des registres de cartes/disposition et des exemples : correction de la promesse erronée de nouveaux tirages à chaque boucle autonome. Le client rejoue la trace, sans réexécution ; les entrées changent à la prochaine simulation.

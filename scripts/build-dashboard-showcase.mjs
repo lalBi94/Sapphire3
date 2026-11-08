@@ -7,6 +7,8 @@ import { deserializeWorkspace } from '../src/utils/workspaceFile.js'
 import { dashboardWidgets, dashboardInitialStates } from '../src/utils/dashboardWidgets.js'
 import { buildDashboardDocument, dashboardDefaultLayout } from '../src/utils/dashboardExport.js'
 import { repositoryUrl } from '../src/utils/appInfo.js'
+import { simulateProgram } from '../src/utils/logic/simulation.js'
+import { dashboardSimulationBudget } from '../src/utils/dashboardConfig.js'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const outputDirectory = path.join(root, 'abstract', 'visual', 'dashboards')
@@ -14,16 +16,16 @@ const { version } = JSON.parse(await readFile(path.join(root, 'package.json'), '
 
 // Les dix exemples mis en avant sur le site ; la page dashboards.html reprend les mêmes identifiants.
 const showcase = [
-  { id: 'starfield', title: 'Starfield', description: 'Champ d’étoiles aléatoire : seize tirages par image sur un écran 64 × 36.' },
-  { id: 'roverSurvey', title: 'Rover survey', description: 'Rover, artefact aléatoire, jauge et LED : sept modules coopèrent.' },
-  { id: 'rain', title: 'Matrix rain', description: 'Colonnes de pluie matricielle avec positions et couleurs aléatoires.' },
-  { id: 'signalLab', title: 'Signal lab', description: 'Signal, seuils et témoins lumineux répartis sur sept modules.' },
-  { id: 'carDashboard', title: 'Car dashboard', description: 'Tableau de bord : écran, jauge et cible aléatoire.' },
-  { id: 'reactorControl', title: 'Reactor control', description: 'Deux classes coopèrent et pilotent jauge, barres et LED ; cible aléatoire.' },
-  { id: 'thermostat', title: 'Thermostat', description: 'Classe Thermostat, hystérésis et température de départ aléatoire.' },
-  { id: 'dampedSpring', title: 'Damped spring', description: 'Classe Spring, position initiale aléatoire, barres signées et jauge.' },
-  { id: 'rgbMixer', title: 'RGB mixer', description: 'Écran, trois progressions, jauge et LED RVB ; décalage de couleur aléatoire.' },
-  { id: 'trafficControl', title: 'Traffic control', description: 'Heatmap, barres et progression ; charge et files décalées aléatoirement.' },
+  { id: 'rotatingCube', title: 'Rotating cube', description: 'Un cube filaire en rotation, deux projections synchronisées : perspective et orthographique.' },
+  { id: 'neonRose', title: 'Neon rose', description: 'Une rosace multicolore se dessine point par point : cinq pétales, 32 images, calculs SP3.' },
+  { id: 'spirograph', title: 'Spirograph', description: 'Une hypotrochoïde lumineuse se construit progressivement sur un écran pixel.' },
+  { id: 'harmonicStudio', title: 'Harmonic studio', description: 'Trois signaux superposés : porteuse, harmonique, battements. Explorez chaque canal.' },
+  { id: 'coral', title: 'Coral growth', description: 'Une structure organique émerge d’un automate cellulaire, génération après génération.' },
+  { id: 'orbitalTrails', title: 'Orbital trails', description: 'Deux satellites jaune/cyan tracent un huit : une classe Rotor, un module Math, un écran.' },
+  { id: 'starfield', title: 'Starfield', description: 'Un ciel pixel qui se renouvelle : huit étoiles aléatoires par image.' },
+  { id: 'chirpRibbon', title: 'Chirp ribbon', description: 'Une onde se resserre vers les bords : une fréquence qui change sous vos yeux.' },
+  { id: 'rgbMixer', title: 'RGB mixer', description: 'Trois couleurs, quatre bandes, une LED RVB : le mélange se lit en temps réel.' },
+  { id: 'wavePacket', title: 'Wave packet', description: 'Une onde émerge puis s’efface dans une enveloppe gaussienne ; zoom et curseur interactifs.' },
 ]
 
 // Compile un point d'entrée en IIFE et renvoie son code, sans écrire de fichier intermédiaire.
@@ -89,6 +91,8 @@ for (const entry of showcase) {
   const example = examples.find((candidate) => candidate.id === entry.id)
   if (!example) throw new Error(`Unknown example ${entry.id}`)
   const workspace = deserializeWorkspace(JSON.stringify(example.build()))
+  const result = simulateProgram(workspace.project, { maxSteps: dashboardSimulationBudget })
+  if (!result.ok) throw new Error(`${entry.id}: ${result.errorCode ?? 'Simulation failed'}`)
   const widgets = dashboardWidgets(workspace.project, workspace.presentation.cards)
   const html = buildDashboardDocument({
     name: entry.title,

@@ -11,6 +11,7 @@ import { createHeatmapModule } from './heatmapNode.js'
 import { moduleTypes } from './moduleTypes.js'
 import { workspaceFileVersion } from './workspaceFile.js'
 import { widgetExamples } from './widgetExamples.js'
+import { showcaseExamples } from './showcaseExamples.js'
 
 const intType = { kind: 'primitive', name: 'int' }
 const doubleType = { kind: 'primitive', name: 'double' }
@@ -3917,7 +3918,7 @@ export const examples = [
   { id: 'spirograph', labelKey: 'examples.spirograph', category: 'medium', subcategory: 'animation', build: spirograph },
   { id: 'sierpinskiChaos', labelKey: 'examples.sierpinskiChaos', category: 'hard', subcategory: 'animation', build: sierpinskiChaos },
   { id: 'pendulumWave', labelKey: 'examples.pendulumWave', category: 'medium', subcategory: 'animation', build: pendulumWave },
-  ...widgetExamples.map((example) => ({
+  ...[...widgetExamples, ...showcaseExamples].map((example) => ({
     ...example,
     build: () => {
       const { project, description, title } = example.build()
