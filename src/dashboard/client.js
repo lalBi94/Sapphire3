@@ -10,7 +10,10 @@ import {
   dashboardStatesAt,
   dashboardVisibleOutput,
 } from '../utils/dashboardExecution.js'
+import uPlot from 'uplot'
+import uplotCss from 'uplot/dist/uPlot.min.css?raw'
 import { clampSimulationSpeed } from '../utils/simulationSpeed.js'
+import { oscilloscopeColor } from '../utils/oscilloscopeColors.js'
 import {
   dashboardColumns,
   dashboardRowGap,
@@ -33,6 +36,30 @@ import {
 
 const dataElement = document.getElementById('sapphire-dashboard-data')
 const runtimeElement = document.getElementById('sapphire-dashboard-runtime')
+
+// uPlot est embarqué avec ses styles, sans requête ni CDN.
+const uplotStyle = document.createElement('style')
+uplotStyle.textContent = uplotCss
+document.head.append(uplotStyle)
+
+// Construit le domaine X commun d'un oscilloscope.
+function oscilloscopeXValues(xMin, xMax, samples) {
+  const count = Math.max(2, Math.trunc(samples) || 2)
+  const values = new Array(count)
+  const span = xMax - xMin
+  for (let index = 0; index < count; index += 1) values[index] = xMin + (span * index) / (count - 1)
+  return values
+}
+
+// Prépare les séries uPlot d'un oscilloscope, sans recalculer les valeurs du moteur.
+function oscilloscopeData(state) {
+  const channels = Array.isArray(state?.channels) ? state.channels : []
+  const samples = Math.max(2, Math.trunc(Number(state?.samples) || 64))
+  const xMin = Number.isFinite(state?.xMin) ? state.xMin : -10
+  const xMax = Number.isFinite(state?.xMax) && state.xMax > xMin ? state.xMax : xMin + 1
+  const x = oscilloscopeXValues(xMin, xMax, samples)
+  return [x, ...channels.map((channel) => channel.values.map((value) => value == null || !Number.isFinite(value) ? null : value))]
+}
 
 // Convertit un ratio 0..1 en point sur l'arc de jauge, comme la carte Gauge de l'application.
 function gaugePoint(ratio) {
@@ -348,6 +375,21 @@ function start(config, runtimeSource) {
       wrapper.setAttribute('aria-label', panel.name)
       body.append(wrapper)
       ref.heatmap = wrapper
+      return
+    }
+    if (panel.type === 'oscilloscope') {
+      const wrapper = document.createElement('div')
+      wrapper.className = 'db-oscilloscope'
+      const chart = document.createElement('div')
+      chart.className = 'db-oscilloscope__chart'
+      chart.setAttribute('role', 'img')
+      chart.setAttribute('aria-label', panel.name)
+      const readout = document.createElement('p')
+      readout.className = 'db-oscilloscope__readout'
+      readout.textContent = labels.oscilloscopeHint ?? 'Move the cursor over the signal.'
+      wrapper.append(chart, readout)
+      body.append(wrapper)
+      ref.oscilloscope = { chart, readout, plot: null, channelsKey: '', resizeObserver: null }
       return
     }
     if (panel.type === 'output') {
@@ -666,9 +708,84 @@ function start(config, runtimeSource) {
       ref.progressTrack.setAttribute('aria-label', `${widget.name}: ${formatNumber(bar.value)} / ${formatNumber(bar.max)}`)
     } else if (widget.type === 'barChart') {
       renderBars(ref, states.barCharts?.[widget.id]?.values ?? new Array(widget.size ?? 12).fill(0))
+    } else if (widget.type === 'oscilloscope') {
+      renderOscilloscope(ref, widget, states.oscilloscopes?.[widget.id])
     } else if (widget.type === 'heatmap') {
       renderHeatmap(ref, widget, states.heatmaps?.[widget.id])
     }
+  }
+
+  // Trace les canaux de l'oscilloscope avec uPlot, sans recréer le graphique à chaque pas.
+  function renderOscilloscope(ref, widget, state) {
+    const scope = ref.oscilloscope
+    if (!scope) return
+    const channels = Array.isArray(state?.channels) ? state.channels : []
+    const channelsKey = channels.map((channel) => channel.id).join(',')
+    const hint = labels.oscilloscopeHint ?? 'Move the cursor over the signal.'
+    if (channels.length === 0) {
+      if (scope.plot) scope.plot.destroy()
+      scope.resizeObserver?.disconnect()
+      scope.plot = null
+      scope.resizeObserver = null
+      scope.channelsKey = ''
+      scope.chart.replaceChildren()
+      scope.readout.textContent = labels.oscilloscopeEmpty ?? 'No signal yet.'
+      return
+    }
+    const data = oscilloscopeData(state)
+    const chart = scope.chart
+    if (!scope.plot || scope.channelsKey !== channelsKey) {
+      if (scope.plot) scope.plot.destroy()
+      scope.resizeObserver?.disconnect()
+      const computed = getComputedStyle(chart)
+      const textColor = computed.getPropertyValue('--db-muted').trim() || '#b5b2c2'
+      const gridColor = computed.getPropertyValue('--db-grid').trim() || '#ffffff0c'
+      const borderColor = computed.getPropertyValue('--db-border').trim() || '#ffffff24'
+      const channelTemplate = labels.oscilloscopeChannel ?? 'Channel {index}'
+      const plot = new uPlot({
+        width: Math.max(1, chart.clientWidth),
+        height: Math.max(1, chart.clientHeight),
+        padding: [8, 8, 0, 0],
+        cursor: { drag: { x: true, y: true, setScale: true }, points: { show: false } },
+        legend: { show: false },
+        scales: { x: { time: false }, y: {} },
+        axes: [
+          { stroke: textColor, grid: { stroke: gridColor, width: 1 }, ticks: { stroke: borderColor, width: 1 } },
+          { stroke: textColor, grid: { stroke: gridColor, width: 1 }, ticks: { stroke: borderColor, width: 1 } },
+        ],
+        series: [
+          {},
+          ...channels.map((channel, index) => ({ label: formatTemplate(channelTemplate, { index: index + 1 }), stroke: oscilloscopeColor(channel.id), width: 2 })),
+        ],
+        hooks: {
+          setCursor: [(self) => {
+            const index = self.cursor?.idx
+            if (!Number.isInteger(index) || !Array.isArray(self.data?.[0])) {
+              scope.readout.textContent = hint
+              return
+            }
+            const parts = [`x ${formatNumber(self.data[0][index])}`]
+            for (let position = 1; position < self.series.length; position += 1) {
+              if (self.series[position]?.show === false) continue
+              parts.push(`${formatTemplate(channelTemplate, { index: position })} ${formatNumber(self.data[position]?.[index])}`)
+            }
+            scope.readout.textContent = parts.join(' · ')
+          }],
+        },
+      }, data, chart)
+      scope.plot = plot
+      scope.channelsKey = channelsKey
+      scope.readout.textContent = hint
+      const observer = new ResizeObserver(() => {
+        if (!scope.plot) return
+        scope.plot.setSize({ width: Math.max(1, chart.clientWidth), height: Math.max(1, chart.clientHeight) })
+      })
+      observer.observe(chart)
+      scope.resizeObserver = observer
+    } else {
+      scope.plot.setData(data, false)
+    }
+    scope.chart.setAttribute('aria-label', `${widget.name}: ${channels.length}`)
   }
 
   // Dessine le tampon RGBA de l'écran sans interpolation.

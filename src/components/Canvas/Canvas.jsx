@@ -248,6 +248,11 @@ export default function Canvas() {
     ?? (execution ? simulationResult?.xyPlotFrames?.[Math.min(execution.index, (simulationResult?.xyPlotFrames?.length ?? 1) - 1)] : null)
     ?? simulationResult?.xyPlots
     ?? {}
+  // Oscilloscopes : même suivi par pas que les autres widgets.
+  const oscilloscopeStates = debugFrame?.oscilloscopes
+    ?? (execution ? simulationResult?.oscilloscopeFrames?.[Math.min(execution.index, (simulationResult?.oscilloscopeFrames?.length ?? 1) - 1)] : null)
+    ?? simulationResult?.oscilloscopes
+    ?? {}
   const selectedScreen = selected?.kind === 'module' && document.cards.some((card) => card.id === selected.id && card.type === 'screen')
   // Valeurs des variables et paramètres visibles, limitées à l'arrêt de debug courant.
   const debugValues = useMemo(() => debugFrame ? buildDebugValues(document.index, debugFrame) : null, [document.index, debugFrame])
@@ -659,6 +664,7 @@ export default function Canvas() {
           screenFrameProgresses: result.screenFrameProgresses ?? [],
           screenFrameBarCharts: result.screenFrameBarCharts ?? [],
           screenFrameXyPlots: result.screenFrameXyPlots ?? [],
+          screenFrameOscilloscopes: result.screenFrameOscilloscopes ?? [],
         } : current)
       })
     } catch {
@@ -1329,6 +1335,7 @@ export default function Canvas() {
         onProgressViewChange={(id, progressView) => document.updateGeometry(id, { progressView })}
         onBarChartViewChange={(id, barChartView) => document.updateGeometry(id, { barChartView })}
         onXyPlotViewChange={(id, xyPlotView) => document.updateGeometry(id, { xyPlotView })}
+        onOscilloscopeViewChange={(id, oscilloscopeView) => document.updateGeometry(id, { oscilloscopeView })}
         onHeatmapViewChange={(id, heatmapView) => document.updateGeometry(id, { heatmapView })}
         heatmapDimensions={document.index.modules.get(card.id)?.heatmap}
         heatmapState={debugFrame?.heatmaps?.[card.id] ?? (execution ? simulationResult?.heatmapFrames?.[Math.min(execution.index, (simulationResult?.heatmapFrames?.length ?? 1) - 1)]?.[card.id] : null) ?? simulationResult?.heatmaps?.[card.id] ?? null}
@@ -1349,6 +1356,9 @@ export default function Canvas() {
         xyPlotState={xyPlotStates[card.id] ?? null}
         xyPlotFrames={screenPlayback ? simulationResult.screenFrameXyPlots ?? null : null}
         xyPlotPlaying={screenPlayback && Boolean(execution?.running)}
+        oscilloscopeState={oscilloscopeStates[card.id] ?? null}
+        oscilloscopeFrames={screenPlayback ? simulationResult.screenFrameOscilloscopes ?? null : null}
+        oscilloscopePlaying={screenPlayback && Boolean(execution?.running)}
         ledState={ledStates[card.id] ?? null}
         ledFrames={screenPlayback ? simulationResult.screenFrameLeds ?? null : null}
         ledPlaying={screenPlayback && Boolean(execution?.running)}

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Activity, Bot, Box, Braces, Bug, ChartColumn, ChartLine, ChevronsDownUp, ChevronsUpDown, Clock, Cloud, Code2, Cog, Compass, Cpu, Database, FileCode, Flag, FlaskConical, Folder, Gauge, GitBranch, Globe, KeyRound, Lightbulb, Lock, Monitor, Network, Palette, Puzzle, Repeat, Rocket, Server, Shield, Smile, Sparkles, Target, Terminal, Wrench, Zap } from 'lucide-react'
+import { Activity, AudioWaveform, Bot, Box, Braces, Bug, ChartColumn, ChartLine, ChevronsDownUp, ChevronsUpDown, Clock, Cloud, Code2, Cog, Compass, Cpu, Database, FileCode, Flag, FlaskConical, Folder, Gauge, GitBranch, Globe, KeyRound, Lightbulb, Lock, Monitor, Network, Palette, Puzzle, Repeat, Rocket, Server, Shield, Smile, Sparkles, Target, Terminal, Wrench, Zap } from 'lucide-react'
 import { minimumModuleSize, moduleTypes } from '../../utils/moduleTypes.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
 import ScreenCanvas from '../ScreenCanvas/ScreenCanvas.jsx'
@@ -8,6 +8,7 @@ import GaugeCard from '../GaugeCard/GaugeCard.jsx'
 import ProgressCard from '../ProgressCard/ProgressCard.jsx'
 import BarChartCard from '../BarChartCard/BarChartCard.jsx'
 import XyPlotCard from '../XyPlotCard/XyPlotCard.jsx'
+import OscilloscopeCard from '../OscilloscopeCard/OscilloscopeCard.jsx'
 import HeatmapCard from '../HeatmapCard/HeatmapCard.jsx'
 import LedCard from '../LedCard/LedCard.jsx'
 import RgbLedCard from '../RgbLedCard/RgbLedCard.jsx'
@@ -131,7 +132,7 @@ function ModuleEmoji({ emoji, onChange }) {
 }
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onImageFile, onEmojiChange, imageSource = null, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, progressState = null, progressFrames = null, progressPlaying = false, onProgressViewChange, barChartState = null, barChartFrames = null, barChartPlaying = false, onBarChartViewChange, xyPlotState = null, xyPlotFrames = null, xyPlotPlaying = false, onXyPlotViewChange, heatmapState = null, heatmapDimensions, onHeatmapViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, rgbLedState = null, rgbLedFrames = null, rgbLedPlaying = false, onRgbLedViewChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onImageFile, onEmojiChange, imageSource = null, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, progressState = null, progressFrames = null, progressPlaying = false, onProgressViewChange, barChartState = null, barChartFrames = null, barChartPlaying = false, onBarChartViewChange, xyPlotState = null, xyPlotFrames = null, xyPlotPlaying = false, onXyPlotViewChange, oscilloscopeState = null, oscilloscopeFrames = null, oscilloscopePlaying = false, onOscilloscopeViewChange, heatmapState = null, heatmapDimensions, onHeatmapViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, rgbLedState = null, rgbLedFrames = null, rgbLedPlaying = false, onRgbLedViewChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -184,6 +185,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
   // Un graphique à barres montre son aperçu par défaut, ou le code de son module caché.
   const barChartView = module.barChartView === 'code' ? 'code' : 'barChart'
   const xyPlotView = module.xyPlotView === 'code' ? 'code' : 'xyPlot'
+  const oscilloscopeView = module.oscilloscopeView === 'code' ? 'code' : 'oscilloscope'
   const heatmapView = module.heatmapView === 'code' ? 'code' : 'heatmap'
   // Une carte LED montre son voyant par défaut, ou le code de son module caché.
   const ledView = module.ledView === 'code' ? 'code' : 'led'
@@ -497,6 +499,17 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         >
           {xyPlotView === 'code' ? <ChartLine size={13} strokeWidth={2} aria-hidden="true" /> : <Code2 size={13} strokeWidth={2} aria-hidden="true" />}
         </button>}
+        {definition.hasOscilloscope && semanticLevel !== 'modules' && !readOnly && <button
+          type="button"
+          className="canvas-module__view"
+          aria-label={t(oscilloscopeView === 'code' ? 'oscilloscope.viewOscilloscope' : 'oscilloscope.viewCode')}
+          aria-pressed={oscilloscopeView === 'code'}
+          title={t(oscilloscopeView === 'code' ? 'oscilloscope.viewOscilloscope' : 'oscilloscope.viewCode')}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => { event.stopPropagation(); onOscilloscopeViewChange?.(module.id, oscilloscopeView === 'code' ? 'oscilloscope' : 'code') }}
+        >
+          {oscilloscopeView === 'code' ? <AudioWaveform size={13} strokeWidth={2} aria-hidden="true" /> : <Code2 size={13} strokeWidth={2} aria-hidden="true" />}
+        </button>}
         {definition.hasLed && semanticLevel !== 'modules' && !readOnly && <button
           type="button"
           className="canvas-module__view"
@@ -579,6 +592,14 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
             : xyPlotView === 'code'
               ? (deferContent ? null : structuredContent)
               : <XyPlotCard card={module} state={xyPlotState} frames={xyPlotFrames} playing={xyPlotPlaying} />}
+        </div>
+      ) : definition.hasOscilloscope ? (
+        <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>
+          {!contentVisible
+            ? null
+            : oscilloscopeView === 'code'
+              ? (deferContent ? null : structuredContent)
+              : <OscilloscopeCard card={module} state={oscilloscopeState} frames={oscilloscopeFrames} playing={oscilloscopePlaying} />}
         </div>
       ) : definition.hasHeatmap ? (
         <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>

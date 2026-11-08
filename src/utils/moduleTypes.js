@@ -9,6 +9,7 @@ export const moduleTypes = {
   progress: { label: 'Progress', labelKey: 'card.progress', targetLabelKey: 'canvas.progress', actionKey: 'nav.createProgress', width: 420, height: 150, renamable: true, hasProgress: true },
   barChart: { label: 'Bar chart', labelKey: 'card.barChart', targetLabelKey: 'canvas.barChart', actionKey: 'nav.createBarChart', width: 420, height: 220, renamable: true, hasBarChart: true },
   xyPlot: { label: 'XY plot', labelKey: 'card.xyPlot', targetLabelKey: 'canvas.xyPlot', actionKey: 'nav.createXyPlot', width: 440, height: 320, renamable: true, hasXyPlot: true },
+  oscilloscope: { label: 'Oscilloscope', labelKey: 'card.oscilloscope', targetLabelKey: 'canvas.oscilloscope', actionKey: 'nav.createOscilloscope', width: 560, height: 420, renamable: true, hasOscilloscope: true },
   heatmap: { label: 'Heatmap', labelKey: 'card.heatmap', targetLabelKey: 'canvas.heatmap', actionKey: 'nav.createHeatmap', width: 380, height: 280, renamable: true, hasHeatmap: true },
   led: { label: 'LED', labelKey: 'card.led', targetLabelKey: 'canvas.led', actionKey: 'nav.createLed', width: 220, height: 170, renamable: true, hasLed: true },
   rgbLed: { label: 'RGB LED', labelKey: 'card.rgbLed', targetLabelKey: 'canvas.rgbLed', actionKey: 'nav.createRgbLed', width: 240, height: 190, renamable: true, hasRgbLed: true },
@@ -21,7 +22,7 @@ export const minimumModuleSize = { width: 180, height: 120 }
 // Sous-catégories pliables des widgets, dans l'ordre d'affichage.
 const widgetCardGroups = [
   { id: 'displays', labelKey: 'canvas.createCategory.widgetsDisplays', types: ['screen', 'gauge', 'progress'] },
-  { id: 'charts', labelKey: 'canvas.createCategory.widgetsCharts', types: ['barChart', 'xyPlot', 'heatmap'] },
+  { id: 'charts', labelKey: 'canvas.createCategory.widgetsCharts', types: ['barChart', 'xyPlot', 'oscilloscope', 'heatmap'] },
   { id: 'indicators', labelKey: 'canvas.createCategory.widgetsIndicators', types: ['led', 'rgbLed'] },
 ]
 
@@ -52,6 +53,9 @@ export const barChartViews = ['barChart', 'code']
 
 // Vues possibles d'un traceur XY : le graphique, ou le code de son module caché.
 export const xyPlotViews = ['xyPlot', 'code']
+
+// Vues possibles d'un oscilloscope : l'instrument, ou le code de son module caché.
+export const oscilloscopeViews = ['oscilloscope', 'code']
 
 // Vues de la grille fixe et de son module ordinaire.
 export const heatmapViews = ['heatmap', 'code']

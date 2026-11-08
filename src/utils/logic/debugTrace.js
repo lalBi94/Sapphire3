@@ -6,6 +6,7 @@ import { readRgbLedStates } from './rgbLedState.js'
 import { readProgressStates } from './progressState.js'
 import { readBarChartStates } from './barChartState.js'
 import { readXyPlotStates } from './xyPlotState.js'
+import { readOscilloscopeStates } from './oscilloscopeState.js'
 import { readHeatmapStates } from './heatmapState.js'
 
 export function createDebugRecorder(analysis, global, output, uninitialized) {
@@ -22,6 +23,7 @@ export function createDebugRecorder(analysis, global, output, uninitialized) {
   let previousProgresses = null
   let previousBarCharts = null
   let previousXyPlots = null
+  let previousOscilloscopes = null
   let previousHeatmaps = null
 
   // Distingue une valeur non initialisée d'une vraie chaîne ou d'un booléen.
@@ -162,6 +164,7 @@ export function createDebugRecorder(analysis, global, output, uninitialized) {
     const progresses = readProgressStates(analysis.source, global.values)
     const barCharts = readBarChartStates(analysis.source, global.values)
     const xyPlots = readXyPlotStates(analysis.source, global.values)
+    const oscilloscopes = readOscilloscopeStates(analysis.source, global.values)
     const heatmaps = readHeatmapStates(analysis.source, global.values)
     const heatmapsChanged = !previousHeatmaps || JSON.stringify(previousHeatmaps) !== JSON.stringify(heatmaps)
     const frameHeatmaps = heatmapsChanged ? heatmaps : previousHeatmaps
@@ -173,24 +176,28 @@ export function createDebugRecorder(analysis, global, output, uninitialized) {
     const progressesChanged = !previousProgresses || JSON.stringify(previousProgresses) !== JSON.stringify(progresses)
     const barChartsChanged = !previousBarCharts || JSON.stringify(previousBarCharts) !== JSON.stringify(barCharts)
     const xyPlotsChanged = !previousXyPlots || JSON.stringify(previousXyPlots) !== JSON.stringify(xyPlots)
+    const oscilloscopesChanged = !previousOscilloscopes || JSON.stringify(previousOscilloscopes) !== JSON.stringify(oscilloscopes)
     const frameGauges = gaugesChanged ? gauges : previousGauges
     const frameLeds = ledsChanged ? leds : previousLeds
     const frameRgbLeds = rgbLedsChanged ? rgbLeds : previousRgbLeds
     const frameProgresses = progressesChanged ? progresses : previousProgresses
     const frameBarCharts = barChartsChanged ? barCharts : previousBarCharts
     const frameXyPlots = xyPlotsChanged ? xyPlots : previousXyPlots
+    const frameOscilloscopes = oscilloscopesChanged ? oscilloscopes : previousOscilloscopes
     previousGauges = frameGauges
     previousLeds = frameLeds
     previousRgbLeds = frameRgbLeds
     previousProgresses = frameProgresses
     previousBarCharts = frameBarCharts
     previousXyPlots = frameXyPlots
+    previousOscilloscopes = frameOscilloscopes
     if (gaugesChanged) retained.units += Object.keys(gauges).length * 3
     if (ledsChanged) retained.units += Object.keys(leds).length
     if (rgbLedsChanged) retained.units += Object.keys(rgbLeds).length * 3
     if (progressesChanged) retained.units += Object.keys(progresses).length * 3
     if (barChartsChanged) retained.units += Object.values(barCharts).reduce((sum, chart) => sum + chart.values.length, 0)
     if (xyPlotsChanged) retained.units += Object.values(xyPlots).reduce((sum, plot) => sum + plot.points.length * 2, 0)
+    if (oscilloscopesChanged) retained.units += Object.values(oscilloscopes).reduce((sum, scope) => sum + scope.channels.reduce((total, channel) => total + channel.values.length, 0), 0)
     const count = 1 + retained.units + localScopes.length + activeScopes.length + compacted.units
     if (status === 'paused' && entries + count > 200000) throw Object.assign(new Error('Debug history memory limit reached.'), { code: 'DEBUG_HISTORY_LIMIT' })
     entries += count
@@ -200,6 +207,7 @@ export function createDebugRecorder(analysis, global, output, uninitialized) {
       callStack: activeScopes.filter((scope) => scope.scopeId.startsWith('function:')).map((scope) => ({ instanceId: scope.instanceId, nodeId: scope.nodeId })),
       globals, localScopes, output: frameOutput, gauges: frameGauges, leds: frameLeds, rgbLeds: frameRgbLeds, progresses: frameProgresses, barCharts: frameBarCharts,
       xyPlots: frameXyPlots,
+      oscilloscopes: frameOscilloscopes,
       heatmaps: frameHeatmaps,
       ...(compacted.base ? { screenBase: compacted.base } : {}),
       ...(compacted.patch ? { screenPatch: compacted.patch } : {}),

@@ -52,6 +52,22 @@ function hasXyPlot(source) {
   return Array.isArray(source?.modules) && source.modules.some((module) => module?.xyPlot)
 }
 
+// Un oscilloscope SP3 dépend d'uPlot : même refus explicite qu'un traceur XY.
+function hasOscilloscope(source) {
+  return Array.isArray(source?.modules) && source.modules.some((module) => module?.oscilloscope)
+}
+
+// Produit le refus stable opposé à toute transpilation contenant un oscilloscope.
+function oscilloscopeFailure(source, target, analysis = null) {
+  return {
+    ok: false,
+    target,
+    code: 'TRANSPILE_OSCILLOSCOPE_UNSUPPORTED',
+    diagnostics: [{ code: 'TRANSPILE_OSCILLOSCOPE_UNSUPPORTED', severity: 'error', message: 'Un oscilloscope SP3 rend le programme non transpilable.', location: { projectId: source?.id ?? null, moduleId: null, nodeId: null, field: null } }],
+    ...(analysis ? { analysis } : {}),
+  }
+}
+
 // Produit le refus stable opposé à toute transpilation contenant un traceur XY.
 function xyPlotFailure(source, target, analysis = null) {
   return {
@@ -149,6 +165,7 @@ export function transpileSelection(source, selection, { target = 'javascript', a
   if (hasProgress(source)) return progressFailure(source, target, analysis)
   if (hasBarChart(source)) return barChartFailure(source, target, analysis)
   if (hasXyPlot(source)) return xyPlotFailure(source, target, analysis)
+  if (hasOscilloscope(source)) return oscilloscopeFailure(source, target, analysis)
   if (Array.isArray(source?.modules) && source.modules.some((module) => module?.heatmap)) return heatmapFailure(source, target, analysis)
   if (hasLed(source)) return ledFailure(source, target, analysis)
   if (hasRgbLed(source)) return rgbLedFailure(source, target, analysis)
@@ -169,6 +186,7 @@ export function transpileProgram(source, options = {}) {
   if (hasProgress(source)) return progressFailure(source, target, analysis)
   if (hasBarChart(source)) return barChartFailure(source, target, analysis)
   if (hasXyPlot(source)) return xyPlotFailure(source, target, analysis)
+  if (hasOscilloscope(source)) return oscilloscopeFailure(source, target, analysis)
   if (Array.isArray(source?.modules) && source.modules.some((module) => module?.heatmap)) return heatmapFailure(source, target, analysis)
   if (hasLed(source)) return ledFailure(source, target, analysis)
   if (hasRgbLed(source)) return rgbLedFailure(source, target, analysis)

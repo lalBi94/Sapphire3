@@ -926,7 +926,7 @@
       <h3>Dashboard web autonome</h3>
       <p>
         <b>Settings → Export → Web dashboard</b> produit un unique fichier <code>dashboard.html</code> hors ligne.
-        Il embarque le moteur de simulation réel et les sept widgets graphiques, dont l'écran se zoome automatiquement
+        Il embarque le moteur de simulation réel et les huit widgets graphiques, dont l'écran se zoome automatiquement
         pour remplir sa carte sans déformation (bords rognés si nécessaire), avec <b>Run</b>, <b>Pause</b>,
         <b>Stop</b>, un curseur de vitesse de 1 à 100, la sortie, le nœud courant et une
         bascule clair/sombre. Il reprend la direction Void/Acid de
@@ -968,7 +968,7 @@
           <tr><td>Sorties du simulateur</td><td>Une seule capacité&nbsp;: <code>Afficher</code>. Pas de saisie interactive, pas d'effet natif, pas de réseau, pas de journal persistant.</td></tr>
           <tr><td>Exécution</td><td>Uniquement sur action explicite&nbsp;; le débogueur, la mémoire abstraite et la simulation graphique simplifiée sont des options distinctes de Run.</td></tr>
           <tr><td>Langages cibles</td><td>JavaScript et Python opérationnels. C/C++ et Java désactivés&nbsp;— aucune promesse de génération.</td></tr>
-          <tr><td>Cartes spéciales</td><td>Screen, Gauge, ProgressBar, BarChart, Heatmap et LED adossées à des modules cachés normaux&nbsp;: aperçu ou code et flèches de dépendance. BarChart expose <code>SET_VALUE</code>, <code>SET_DATA</code>, <code>CLEAR</code> sur un <code>int[]</code>. Heatmap est une grille fixe (12×8 par défaut) avec <code>SET_CELL(x, y, value)</code> et <code>CLEAR</code>&nbsp;: intensité simple du thème, pas de lecture à 24 fps, seulement le suivi Run/Debug.</td></tr>
+          <tr><td>Cartes spéciales</td><td>Screen, Gauge, ProgressBar, BarChart, XY plot, Oscilloscope, Heatmap et LED adossées à des modules cachés normaux&nbsp;: aperçu ou code et flèches de dépendance. BarChart expose <code>SET_VALUE</code>, <code>SET_DATA</code>, <code>CLEAR</code> sur un <code>int[]</code>. XY plot utilise Mafs et <code>SET_FUNCTION</code>. L'oscilloscope utilise uPlot et jusqu'à six canaux avec <code>ADD_CHANNEL</code>, <code>SET_CHANNEL</code>, <code>REMOVE_CHANNEL</code>, <code>SET_RANGE</code> et <code>CLEAR</code>. Heatmap est une grille fixe (12×8 par défaut) avec <code>SET_CELL(x, y, value)</code> et <code>CLEAR</code>&nbsp;: intensité simple du thème, pas de lecture à 24 fps, seulement le suivi Run/Debug.</td></tr>
           <tr><td>Contrats</td><td>Contraintes vérifiables sur variables, constantes et paramètres, filtrées par type déclaré et signalées pendant Run.</td></tr>
           <tr><td>Exercices</td><td>Manifeste dans le <code>.sp3</code>, tests d'entrée ou de fonction exécutés par Check, snapshot de départ et Reset. Le verrou par mot de passe protège l'interface seulement ; les tests restent lisibles et modifiables dans le JSON. Pas encore d'indices, de notation partielle, de soumission ni de verrouillage des cartes.</td></tr>
           <tr><td>Analyse</td><td>Conservatrice&nbsp;: aucune preuve générale sur les valeurs, les comparaisons numériques, les dépendances globales ou la terminaison.</td></tr>

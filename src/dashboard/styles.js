@@ -698,6 +698,13 @@ p, h1, h2, h3 { margin: 0; }
 }
 .db-bar span.db-bar__fill--negative { background: linear-gradient(0deg, var(--db-secondary), var(--db-primary) 58%, var(--db-condition)); }
 
+.db-oscilloscope { display: flex; flex-direction: column; gap: 4px; width: 100%; height: 100%; min-height: 120px; }
+.db-oscilloscope__chart { position: relative; flex: 1; min-height: 0; overflow: hidden; border: 1px solid var(--db-border); border-radius: var(--db-radius-small); background: var(--db-surface); }
+.db-oscilloscope__chart .uplot { font-family: var(--db-mono); }
+.db-oscilloscope__chart .u-hz .u-cursor-x,
+.db-oscilloscope__chart .u-vt .u-cursor-y { border-color: var(--db-border-hover); }
+.db-oscilloscope__chart .u-select { background: var(--db-primary-soft); }
+.db-oscilloscope__readout { margin: 0; overflow: hidden; color: var(--db-muted); font-family: var(--db-mono); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .db-heatmap { display: grid; gap: 2px; width: 100%; height: 100%; min-height: 40px; }
 .db-heatmap__cell {
   min-width: 0;

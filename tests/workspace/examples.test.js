@@ -48,6 +48,7 @@ const expectedOutput = {
   linearPlot: ['Linear function plotted'],
   waveInterference: ['Wave interference plotted'],
   fourierSquare: ['Square wave plotted'],
+  oscilloscopeDemo: ['Oscilloscope demo'],
   rotatingCube: ['Rotating cube'],
   rotatingTriangle: ['Rotating triangle'],
   spirograph: ['Spirograph'],
@@ -68,7 +69,7 @@ const expectedOutput = {
 }
 
 test('bibliothèque d’exemples : chaque projet est valide, analysable et s’exécute', () => {
-  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'recursion', 'arrays', 'foreach', 'sorting', 'maths', 'imports', 'rgbLedDemo', 'pointers', 'higherOrder', 'quickSort', 'coinChange', 'gaugeDemo', 'carDashboard', 'trafficControl', 'dnaAnalyzer', 'signalProcessing', 'mandelbrotEscape', 'collatzAtlas', 'sortRace', 'heatDiffusion', 'imageConvolution', 'weatherStation', 'networkMonitor', 'pixelScreens', 'rain', 'knapsack', 'calculus', 'gameOfLife', 'roverSurvey', 'signalLab', 'coral', 'labyrinth', 'starfield', 'colorFlow', 'rgbMixer', 'functionPlot', 'linearPlot', 'waveInterference', 'fourierSquare', 'rotatingCube', 'rotatingTriangle', 'spirograph', 'sierpinskiChaos', 'pendulumWave', 'euclid', 'binarySearch', 'primeSieve', 'insertionSort', 'diceHistogram', 'checkoutQueue', 'thermostat', 'dampedSpring', 'reactorControl', 'floodFill', 'pascalTriangle'])
+  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'recursion', 'arrays', 'foreach', 'sorting', 'maths', 'imports', 'rgbLedDemo', 'pointers', 'higherOrder', 'quickSort', 'coinChange', 'gaugeDemo', 'carDashboard', 'trafficControl', 'dnaAnalyzer', 'signalProcessing', 'mandelbrotEscape', 'collatzAtlas', 'sortRace', 'heatDiffusion', 'imageConvolution', 'weatherStation', 'networkMonitor', 'pixelScreens', 'rain', 'knapsack', 'calculus', 'gameOfLife', 'roverSurvey', 'signalLab', 'coral', 'labyrinth', 'starfield', 'colorFlow', 'rgbMixer', 'functionPlot', 'linearPlot', 'waveInterference', 'fourierSquare', 'oscilloscopeDemo', 'rotatingCube', 'rotatingTriangle', 'spirograph', 'sierpinskiChaos', 'pendulumWave', 'euclid', 'binarySearch', 'primeSieve', 'insertionSort', 'diceHistogram', 'checkoutQueue', 'thermostat', 'dampedSpring', 'reactorControl', 'floodFill', 'pascalTriangle'])
   assert.deepEqual(exampleCategories.map((category) => category.id), ['simple', 'medium', 'hard'])
   for (const example of examples) {
     assert.ok(exampleCategories.some((category) => category.id === example.category), `${example.id}: catégorie connue`)

@@ -5,6 +5,7 @@ import { createGaugeModule, gaugeDefaults } from '../utils/gaugeNode.js'
 import { createProgressModule, progressDefaults } from '../utils/progressNode.js'
 import { createBarChartModule, barChartDefaults } from '../utils/barChartNode.js'
 import { createXyPlotModule, xyPlotDefaultSamples } from '../utils/xyPlotNode.js'
+import { createOscilloscopeModule, oscilloscopeDefaultSamples } from '../utils/oscilloscopeNode.js'
 import { createHeatmapModule } from '../utils/heatmapNode.js'
 import { createLedModule, ledDefaults } from '../utils/ledNode.js'
 import { createRgbLedModule, rgbLedDefaults } from '../utils/rgbLedNode.js'
@@ -75,6 +76,14 @@ export default function useCanvasDocument() {
       const xyPlotName = `${name} ${index}`
       const xyPlot = createXyPlotModule(id, xyPlotName, index, { samples: xyPlotDefaultSamples })
       dispatch({ type: 'createXyPlot', card: { id, type, name: xyPlotName, ...position, width: definition.width, height: definition.height, expandedNodeIds: [] }, xyPlot })
+      return
+    }
+    if (type === 'oscilloscope') {
+      const id = crypto.randomUUID()
+      const index = Math.max(0, ...document.project.modules.map((module) => Number(module.oscilloscope?.index) || 0)) + 1
+      const oscilloscopeName = `${name} ${index}`
+      const oscilloscope = createOscilloscopeModule(id, oscilloscopeName, index, { samples: oscilloscopeDefaultSamples })
+      dispatch({ type: 'createOscilloscope', card: { id, type, name: oscilloscopeName, ...position, width: definition.width, height: definition.height, expandedNodeIds: [] }, oscilloscope })
       return
     }
     if (type === 'led') {

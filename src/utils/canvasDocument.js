@@ -110,6 +110,11 @@ export function reduceDocument(state, action) {
     if (state.cards.some((entry) => entry.id === card.id)) return state
     return withSource({ ...state, cards: [...state.cards, card] }, { ...state.project, modules: [...state.project.modules, action.xyPlot.module], nodes: [...state.project.nodes, ...action.xyPlot.nodes] })
   }
+  if (action.type === 'createOscilloscope') {
+    const card = action.card
+    if (state.cards.some((entry) => entry.id === card.id)) return state
+    return withSource({ ...state, cards: [...state.cards, card] }, { ...state.project, modules: [...state.project.modules, action.oscilloscope.module], nodes: [...state.project.nodes, ...action.oscilloscope.nodes] })
+  }
   if (action.type === 'insertBookmark') {
     const result = state.project === action.previousProject
       ? action.prepared

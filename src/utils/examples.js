@@ -6,6 +6,7 @@ import { createRgbLedModule, rgbLedDefaults } from './rgbLedNode.js'
 import { createProgressModule, progressDefaults } from './progressNode.js'
 import { createBarChartModule, barChartDefaults } from './barChartNode.js'
 import { createXyPlotModule } from './xyPlotNode.js'
+import { createOscilloscopeModule } from './oscilloscopeNode.js'
 import { createHeatmapModule } from './heatmapNode.js'
 import { moduleTypes } from './moduleTypes.js'
 import { workspaceFileVersion } from './workspaceFile.js'
@@ -80,6 +81,8 @@ function workspace(project, notes = []) {
           ? { id: module.id, type: 'barChart', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.barChart.width, height: moduleTypes.barChart.height, expandedNodeIds: [] }
           : module.xyPlot
             ? { id: module.id, type: 'xyPlot', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.xyPlot.width, height: moduleTypes.xyPlot.height, expandedNodeIds: [] }
+            : module.oscilloscope
+              ? { id: module.id, type: 'oscilloscope', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.oscilloscope.width, height: moduleTypes.oscilloscope.height, expandedNodeIds: [] }
             : module.led
             ? { id: module.id, type: 'led', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.led.width, height: moduleTypes.led.height, expandedNodeIds: [] }
             : module.rgbLed
@@ -3716,6 +3719,62 @@ function fourierSquare() {
   ])
 }
 
+// Oscilloscope : trois canaux indépendants tracés simultanément.
+function oscilloscopeDemo() {
+  const b = builder()
+  const scope = createOscilloscopeModule('oscilloscopeDemoScope', 'Oscilloscope', 1)
+  b.project.modules.push(scope.module)
+  b.project.nodes.push(...scope.nodes)
+  b.useModule('oscilloscopeDemoApp', 'Oscilloscope demo')
+  const app = b.project.modules.find((module) => module.id === 'oscilloscopeDemoApp')
+  const exported = (name) => scope.module.exports.find((entry) => entry.name === name).nodeId
+  app.imports.push(
+    { id: 'oscilloscopeAddImport', moduleId: scope.module.id, nodeId: exported('OSC_SP3_ADD_CHANNEL_1'), localName: 'addChannel' },
+    { id: 'oscilloscopeRangeImport', moduleId: scope.module.id, nodeId: exported('OSC_SP3_SET_RANGE_1'), localName: 'setRange' },
+  )
+  b.root('oscilloscopeSin', 'FunctionDeclaration', { name: 'waveSin', type: doubleType }, { parameters: ['oscilloscopeSinX'], body: 'oscilloscopeSinBody' })
+  b.make('oscilloscopeSinX', 'Parameter', { name: 'x', type: doubleType })
+  b.block('oscilloscopeSinBody', ['oscilloscopeSinReturn'])
+  b.returnValue('oscilloscopeSinReturn', 'oscilloscopeSinCall')
+  b.math('oscilloscopeSinCall', 'sin', ['oscilloscopeSinXRef'])
+  b.ref('oscilloscopeSinXRef', 'x')
+  b.root('oscilloscopeCos', 'FunctionDeclaration', { name: 'waveCos', type: doubleType }, { parameters: ['oscilloscopeCosX'], body: 'oscilloscopeCosBody' })
+  b.make('oscilloscopeCosX', 'Parameter', { name: 'x', type: doubleType })
+  b.block('oscilloscopeCosBody', ['oscilloscopeCosReturn'])
+  b.returnValue('oscilloscopeCosReturn', 'oscilloscopeCosCall')
+  b.math('oscilloscopeCosCall', 'cos', ['oscilloscopeCosXRef'])
+  b.ref('oscilloscopeCosXRef', 'x')
+  b.root('oscilloscopeDouble', 'FunctionDeclaration', { name: 'waveDouble', type: doubleType }, { parameters: ['oscilloscopeDoubleX'], body: 'oscilloscopeDoubleBody' })
+  b.make('oscilloscopeDoubleX', 'Parameter', { name: 'x', type: doubleType })
+  b.block('oscilloscopeDoubleBody', ['oscilloscopeDoubleReturn'])
+  b.returnValue('oscilloscopeDoubleReturn', 'oscilloscopeDoubleCall')
+  b.math('oscilloscopeDoubleCall', 'sin', ['oscilloscopeDoubleAngle'])
+  b.binary('oscilloscopeDoubleAngle', '*', 'oscilloscopeDoubleTwo', 'oscilloscopeDoubleXRef')
+  b.doubleValue('oscilloscopeDoubleTwo', 2)
+  b.ref('oscilloscopeDoubleXRef', 'x')
+  b.root('oscilloscopeMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'oscilloscopeBody' })
+  b.block('oscilloscopeBody', ['oscilloscopeRange', 'oscilloscopeAddSin', 'oscilloscopeAddCos', 'oscilloscopeAddDouble', 'oscilloscopePrint'])
+  b.make('oscilloscopeRange', 'ExpressionStatement', {}, { expression: 'oscilloscopeRangeCall' })
+  b.call('oscilloscopeRangeCall', 'oscilloscopeRangeCallee', ['oscilloscopeRangeMin', 'oscilloscopeRangeMax'])
+  b.make('oscilloscopeRangeCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'oscilloscopeRangeImport' } })
+  b.doubleValue('oscilloscopeRangeMin', -6.283185307179586)
+  b.doubleValue('oscilloscopeRangeMax', 6.283185307179586)
+  const addCall = (prefix, functionName) => {
+    b.make(prefix, 'ExpressionStatement', {}, { expression: `${prefix}Call` })
+    b.call(`${prefix}Call`, `${prefix}Callee`, [`${prefix}Ref`])
+    b.make(`${prefix}Callee`, 'Reference', {}, {}, { target: { kind: 'import', importId: 'oscilloscopeAddImport' } })
+    b.ref(`${prefix}Ref`, functionName)
+  }
+  addCall('oscilloscopeAddSin', 'waveSin')
+  addCall('oscilloscopeAddCos', 'waveCos')
+  addCall('oscilloscopeAddDouble', 'waveDouble')
+  b.stringValue('oscilloscopeMessage', 'Oscilloscope demo')
+  b.print('oscilloscopePrint', 'oscilloscopeMessage')
+  return workspace(b.project, [
+    note('oscilloscopeDemoNote', 'Oscilloscope demo', 'Trois canaux indépendants sont ajoutés avec `ADD_CHANNEL` sur une fenêtre commune : `sin(x)`, `cos(x)` et `sin(2x)`. uPlot trace les signaux ; les commandes de la carte règlent le zoom, le déplacement, l’amplitude et l’offset sans relancer la simulation.', 0, 620, 900, 260),
+  ])
+}
+
 // Spirographe : hypotrochoïde tracée progressivement.
 function spirograph() {
   const b = builder()
@@ -3839,6 +3898,7 @@ export const examples = [
   { id: 'linearPlot', labelKey: 'examples.linearPlot', category: 'simple', subcategory: 'widgets', build: linearPlot },
   { id: 'waveInterference', labelKey: 'examples.waveInterference', category: 'medium', subcategory: 'widgets', build: waveInterference },
   { id: 'fourierSquare', labelKey: 'examples.fourierSquare', category: 'hard', subcategory: 'widgets', build: fourierSquare },
+  { id: 'oscilloscopeDemo', labelKey: 'examples.oscilloscopeDemo', category: 'medium', subcategory: 'widgets', build: oscilloscopeDemo },
   { id: 'rotatingCube', labelKey: 'examples.rotatingCube', category: 'hard', subcategory: 'animation', build: rotatingCube },
   { id: 'rotatingTriangle', labelKey: 'examples.rotatingTriangle', category: 'medium', subcategory: 'animation', build: rotatingTriangle },
   { id: 'spirograph', labelKey: 'examples.spirograph', category: 'medium', subcategory: 'animation', build: spirograph },
