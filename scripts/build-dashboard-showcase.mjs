@@ -1,6 +1,6 @@
 import { build } from 'vite'
 import path from 'node:path'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { examples } from '../src/utils/examples.js'
 import { deserializeWorkspace } from '../src/utils/workspaceFile.js'
@@ -14,16 +14,16 @@ const { version } = JSON.parse(await readFile(path.join(root, 'package.json'), '
 
 // Les dix exemples mis en avant sur le site ; la page dashboards.html reprend les mêmes identifiants.
 const showcase = [
-  { id: 'rgbMixer', title: 'RGB mixer', description: 'Écran, trois barres de progression, jauge et LED RVB dans un même dashboard.' },
-  { id: 'gaugeDemo', title: 'Gauge demo', description: 'Une jauge seule, pour lire la valeur, les bornes et le pourcentage.' },
-  { id: 'trafficControl', title: 'Traffic control', description: 'Heatmap, graphique à barres et progression sur une simulation de trafic.' },
-  { id: 'dampedSpring', title: 'Damped spring', description: 'Ressort amorti : barres signées et jauge suivent chaque pas du calcul.' },
-  { id: 'rotatingCube', title: 'Rotating cube', description: 'Deux écrans synchronisés, projection perspective et orthographique.' },
-  { id: 'gameOfLife', title: 'Game of Life', description: 'Automate de Conway sur un écran 90 × 56, image par génération.' },
-  { id: 'pendulumWave', title: 'Pendulum wave', description: 'Huit pendules animés sur neuf images précalculées.' },
-  { id: 'checkoutQueue', title: 'Checkout queue', description: 'File d’attente : barres, jauge et LED pour suivre l’état du service.' },
-  { id: 'primeSieve', title: 'Prime sieve', description: 'Crible d’Ératosthène : heatmap des nombres et progression.' },
-  { id: 'reactorControl', title: 'Reactor control', description: 'Deux classes coopèrent et pilotent jauge, barres et LED.' },
+  { id: 'starfield', title: 'Starfield', description: 'Champ d’étoiles aléatoire : seize tirages par image sur un écran 64 × 36.' },
+  { id: 'roverSurvey', title: 'Rover survey', description: 'Rover, artefact aléatoire, jauge et LED : sept modules coopèrent.' },
+  { id: 'rain', title: 'Matrix rain', description: 'Colonnes de pluie matricielle avec positions et couleurs aléatoires.' },
+  { id: 'signalLab', title: 'Signal lab', description: 'Signal, seuils et témoins lumineux répartis sur sept modules.' },
+  { id: 'carDashboard', title: 'Car dashboard', description: 'Tableau de bord : écran, jauge et cible aléatoire.' },
+  { id: 'reactorControl', title: 'Reactor control', description: 'Deux classes coopèrent et pilotent jauge, barres et LED ; cible aléatoire.' },
+  { id: 'thermostat', title: 'Thermostat', description: 'Classe Thermostat, hystérésis et température de départ aléatoire.' },
+  { id: 'dampedSpring', title: 'Damped spring', description: 'Classe Spring, position initiale aléatoire, barres signées et jauge.' },
+  { id: 'rgbMixer', title: 'RGB mixer', description: 'Écran, trois progressions, jauge et LED RVB ; décalage de couleur aléatoire.' },
+  { id: 'trafficControl', title: 'Traffic control', description: 'Heatmap, barres et progression ; charge et files décalées aléatoirement.' },
 ]
 
 // Compile un point d'entrée en IIFE et renvoie son code, sans écrire de fichier intermédiaire.
@@ -81,6 +81,9 @@ const palette = {
 const runtimeSource = await bundle('src/dashboard/runtimeEntry.js', 'SapphireDashboardRuntime')
 const clientSource = await bundle('src/dashboard/client.js', 'SapphireDashboardClient')
 await mkdir(outputDirectory, { recursive: true })
+for (const file of await readdir(outputDirectory)) {
+  if (file.endsWith('.html')) await rm(path.join(outputDirectory, file))
+}
 
 for (const entry of showcase) {
   const example = examples.find((candidate) => candidate.id === entry.id)

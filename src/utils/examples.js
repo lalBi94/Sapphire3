@@ -1122,6 +1122,9 @@ function trafficControl() {
   b.intValue('trafficEleven', 11); b.intValue('trafficNine', 9); b.intValue('trafficSeven', 7); b.intValue('trafficFive', 5)
   b.intValue('trafficSevenLane', 7); b.intValue('trafficFiveLane', 5)
   b.intValue('trafficThree', 3); b.intValue('trafficTwo', 2); b.intValue('trafficForty', 40); b.intValue('trafficHundred', 100)
+  b.intValue('trafficSeedMin', 0); b.intValue('trafficSeedMax', 10)
+  b.make('trafficSeedDecl', 'VariableDeclaration', { name: 'trafficSeed', type: intType }, { initializer: 'trafficSeedValue' })
+  b.make('trafficSeedValue', 'MathCall', { name: 'randomInt' }, { arguments: ['trafficSeedMin', 'trafficSeedMax'] })
   b.doubleValue('trafficMin', '0.0'); b.doubleValue('trafficMax', '100.0')
   const range = callStatement(b, 'trafficRange', 'flowRange', ['trafficMin', 'trafficMax'])
 
@@ -1131,7 +1134,9 @@ function trafficControl() {
   b.binary('trafficP2', '*', 'trafficP2Read', 'trafficTwo'); b.ref('trafficP2Read', 'phase')
   b.binary('trafficSum1', '+', 'trafficX3', 'trafficY5')
   b.binary('trafficSum2', '+', 'trafficSum1', 'trafficP2')
-  b.binary('trafficDensity', '%', 'trafficSum2', 'trafficEleven')
+  b.binary('trafficSumSeed', '+', 'trafficSum2', 'trafficSeedRef')
+  b.ref('trafficSeedRef', 'trafficSeed')
+  b.binary('trafficDensity', '%', 'trafficSumSeed', 'trafficEleven')
   b.binary('trafficLoad', '*', 'trafficDensity', 'trafficNine')
   callStatement(b, 'trafficCell', 'heatCell', ['trafficXRef', 'trafficYRef', 'trafficLoad'])
   b.ref('trafficXRef', 'x'); b.ref('trafficYRef', 'y')
@@ -1142,7 +1147,9 @@ function trafficControl() {
   b.binary('trafficLane7', '*', 'trafficLane7Read', 'trafficSevenLane'); b.ref('trafficLane7Read', 'lane')
   b.binary('trafficLanePhase', '*', 'trafficLanePhaseRead', 'trafficFiveLane'); b.ref('trafficLanePhaseRead', 'phase')
   b.binary('trafficLaneSum', '+', 'trafficLane7', 'trafficLanePhase')
-  b.binary('trafficQueue', '%', 'trafficLaneSum', 'trafficForty')
+  b.binary('trafficLaneSeed', '+', 'trafficLaneSum', 'trafficLaneSeedRef')
+  b.ref('trafficLaneSeedRef', 'trafficSeed')
+  b.binary('trafficQueue', '%', 'trafficLaneSeed', 'trafficForty')
   callStatement(b, 'trafficLaneSet', 'laneValue', ['trafficLaneRef', 'trafficQueue'])
   b.ref('trafficLaneRef', 'lane')
   const laneLoop = b.countedLoop('trafficLane', 'lane', 'trafficLanes', ['trafficLaneSetStatement'])
@@ -1157,7 +1164,7 @@ function trafficControl() {
   b.root('trafficMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'trafficBody' })
   b.stringValue('trafficMessage', 'Traffic control')
   b.print('trafficPrint', 'trafficMessage')
-  b.block('trafficBody', [range, phaseLoop, 'trafficPrint'])
+  b.block('trafficBody', ['trafficSeedDecl', range, phaseLoop, 'trafficPrint'])
 
   return workspace(b.project, [
     note('trafficNote', 'Traffic control', 'Deux phases de trafic. La heatmap 10×5 calcule une charge de route déterministe par cellule ; le graphique à barres montre six files de véhicules ; la barre de progression suit le débit global. Chaque phase met à jour les trois widgets, donc Run les anime pas à pas. Aucune horloge ni image écran.', 0, 1000, 900, 220),
@@ -3123,7 +3130,9 @@ function rgbMixer() {
     b.intValue(`${prefix}Step`, 10)
     b.binary(`${prefix}Shifted`, '+', `${prefix}Times`, `${prefix}Offset`)
     b.intValue(`${prefix}Offset`, offset)
-    b.binary(`${prefix}Value`, '%', `${prefix}Shifted`, `${prefix}Modulo`)
+    b.binary(`${prefix}ShiftedSeed`, '+', `${prefix}Shifted`, `${prefix}SeedRef`)
+    b.ref(`${prefix}SeedRef`, 'mixSeed')
+    b.binary(`${prefix}Value`, '%', `${prefix}ShiftedSeed`, `${prefix}Modulo`)
     b.intValue(`${prefix}Modulo`, 240)
     b.variable(`${prefix}Variable`, prefix, intType, `${prefix}Value`)
     return `${prefix}Variable`
@@ -3199,7 +3208,11 @@ function rgbMixer() {
   b.root('mixMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'mixBody' })
   b.stringValue('mixMessage', 'RGB mixer')
   b.print('mixPrint', 'mixMessage')
-  b.block('mixBody', [loop, 'mixPrint'])
+  b.intValue('mixSeedMin', 0)
+  b.intValue('mixSeedMax', 239)
+  b.variable('mixSeed', 'mixSeed', intType, 'mixSeedValue')
+  b.make('mixSeedValue', 'MathCall', { name: 'randomInt' }, { arguments: ['mixSeedMin', 'mixSeedMax'] })
+  b.block('mixBody', ['mixSeed', loop, 'mixPrint'])
 
   return workspace(b.project, [
     note('mixNote', 'RGB mixer', `Écran ${width}×${height}. Trois canaux parcourent 0–255 sur 24 images ; les barres de progression les affichent, la jauge calcule la luminosité et la LED RVB montre la couleur obtenue. L'écran présente quatre bandes — rouge, vert, bleu, mélange — sans un pas par pixel.`, 0, 1500, 900, 220),

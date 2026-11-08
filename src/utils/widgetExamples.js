@@ -276,7 +276,8 @@ function thermostat() {
 
   const b = demo('thermostat', 'Thermostat control', [bars, gauge, led], [room])
   return b.finish([
-    b.declare('thermostat', b.newObject('thermostatClass', [b.integer(18)]), b.classType('thermostatClass')),
+    b.declare('thermostatStart', b.math('randomInt', [b.integer(16), b.integer(20)]), intType),
+    b.declare('thermostat', b.newObject('thermostatClass', [b.read('thermostatStart')]), b.classType('thermostatClass')),
     b.loop('step', 0, b.integer(24), [
       b.statement(b.methodCall(b.read('thermostat'), 'step', [])),
       b.widgetCall(gauge, gauge.functions.setValue, [b.asDouble(b.methodCall(b.read('thermostat'), 'current', []))]),
@@ -309,7 +310,8 @@ function dampedSpring() {
 
   const b = demo('dampedSpring', 'Damped spring', [bars, gauge], [spring])
   return b.finish([
-    b.declare('spring', b.newObject('springClass', [b.real(10)]), b.classType('springClass')),
+    b.declare('springStart', b.op('+', b.real(8), b.op('*', b.math('randomDouble', []), b.real(4))), doubleType),
+    b.declare('spring', b.newObject('springClass', [b.read('springStart')]), b.classType('springClass')),
     b.loop('step', 0, b.integer(24), [
       b.statement(b.methodCall(b.read('spring'), 'step', [])),
       b.widgetCall(gauge, gauge.functions.setValue, [b.methodCall(b.read('spring'), 'current', [])]),
@@ -441,7 +443,8 @@ function reactorControl() {
   const b = demo('reactorControl', 'Reactor control', [gauge, bars, led], [reactor, controller])
   return b.finish([
     b.declare('reactor', b.newObject('reactorControlClass', [b.real(40)]), b.classType('reactorControlClass')),
-    b.declare('controller', b.newObject('controllerControlClass', [b.real(70)]), b.classType('controllerControlClass')),
+    b.declare('controllerTarget', b.op('+', b.real(60), b.op('*', b.math('randomDouble', []), b.real(20))), doubleType),
+    b.declare('controller', b.newObject('controllerControlClass', [b.read('controllerTarget')]), b.classType('controllerControlClass')),
     b.loop('step', 0, b.integer(12), [
       b.statement(b.methodCall(b.read('controller'), 'regulate', [b.read('reactor')])),
       b.statement(b.methodCall(b.read('reactor'), 'tick', [])),
