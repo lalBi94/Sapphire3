@@ -346,9 +346,9 @@ test('exemples mathématiques visuels : résolutions, images et budgets bornés'
   const expectations = {
     rotatingCube: { width: 48, height: 30, frames: 12, screens: 2 },
     rotatingTriangle: { width: 48, height: 30, frames: 20, screens: 1 },
-    spirograph: { width: 96, height: 64, frames: 1, screens: 1 },
+    spirograph: { width: 64, height: 40, frames: 12, screens: 1 },
     sierpinskiChaos: { width: 64, height: 40, frames: 1, screens: 1 },
-    pendulumWave: { width: 96, height: 48, frames: 1, screens: 1 },
+    pendulumWave: { width: 56, height: 24, frames: 9, screens: 1 },
   }
   const results = new Map()
   for (const [id, expected] of Object.entries(expectations)) {
@@ -368,6 +368,8 @@ test('exemples mathématiques visuels : résolutions, images et budgets bornés'
   // Les deux animations montrent bien plusieurs images distinctes.
   assert.ok(new Set(results.get('rotatingCube').screenFrames.map((frame) => JSON.stringify(frame))).size > 1, 'rotatingCube: images distinctes')
   assert.ok(new Set(results.get('rotatingTriangle').screenFrames.map((frame) => JSON.stringify(frame))).size > 1, 'rotatingTriangle: images distinctes')
+  assert.ok(new Set(results.get('spirograph').screenFrames.map((frame) => JSON.stringify(frame))).size > 1, 'spirograph: images distinctes')
+  assert.ok(new Set(results.get('pendulumWave').screenFrames.map((frame) => JSON.stringify(frame))).size > 1, 'pendulumWave: images distinctes')
 })
 
 test('les douze exemples transpilables : JavaScript et Python reproduisent la simulation', () => {

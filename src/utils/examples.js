@@ -3448,10 +3448,10 @@ function triangleGrid(width, height, frame, frames) {
   return grid
 }
 
-// Grille d'un spirographe (hypotrochoïde) statique, ajustée à l'écran.
-function spirographGrid(width, height) {
+// Grille d'un spirographe (hypotrochoïde) tracée progressivement.
+function spirographGrid(width, height, frame, frames) {
   const grid = emptyGrid(width, height)
-  const samples = 1600
+  const samples = 700
   const points = []
   // Deux tours suffisent à refermer la courbe, car (R - r) / r vaut 3 / 2.
   for (let index = 0; index <= samples; index += 1) {
@@ -3464,7 +3464,11 @@ function spirographGrid(width, height) {
   const extentX = Math.max(...points.map((point) => Math.abs(point[0])))
   const extentY = Math.max(...points.map((point) => Math.abs(point[1])))
   const scale = Math.min((width / 2 - 2) / extentX, (height / 2 - 2) / extentY)
-  for (const [x, y] of points) drawPoint(grid, width / 2 + x * scale, height / 2 + y * scale)
+  const visible = Math.max(1, Math.ceil((points.length * (frame + 1)) / frames))
+  for (let index = 0; index < visible; index += 1) {
+    const [x, y] = points[index]
+    drawPoint(grid, width / 2 + x * scale, height / 2 + y * scale)
+  }
   return grid
 }
 
@@ -3488,15 +3492,15 @@ function sierpinskiGrid(width, height) {
   return grid
 }
 
-// Grille d'une onde de pendules statique.
-function pendulumGrid(width, height) {
+// Grille d'une onde de pendules animée.
+function pendulumGrid(width, height, frame, frames) {
   const grid = emptyGrid(width, height)
-  const pendulums = 12
-  const time = 0.35
+  const pendulums = 8
+  const time = frame / frames
   const amplitude = 0.5
-  const length = 34
-  const pivotY = 6
-  const margin = 18
+  const length = height - 8
+  const pivotY = 3
+  const margin = Math.max(8, Math.round(width * 0.14))
   // Support horizontal commun aux douze pendules.
   drawLine(grid, margin - 3, pivotY, width - margin + 3, pivotY)
   for (let index = 0; index < pendulums; index += 1) {
@@ -3575,25 +3579,29 @@ function rotatingTriangle() {
   ])
 }
 
-// Spirographe : hypotrochoïde statique de haute densité.
+// Spirographe : hypotrochoïde tracée progressivement.
 function spirograph() {
   const b = builder()
-  const width = 96
-  const height = 64
+  const width = 64
+  const height = 40
+  const frames = 12
   const screen = screenModule(b, 'spiro', 'Spirograph', width, height, 1)
   b.useModule('spiroApp', 'Spirograph')
   const app = b.project.modules.find((module) => module.id === 'spiroApp')
   const api = screenBlitImports(app, screen, 'spiro')
   const grid = gridVariable(b, 'spiroGrid', width, height)
   twoColorPalette(b, 'spiroPalette', [120, 220, 255])
-  const body = presentFrame(b, 'spiro', api, grid, 'spiroPalette', spirographGrid(width, height))
+  const body = []
+  for (let frame = 0; frame < frames; frame += 1) {
+    body.push(...presentFrame(b, `spiro${frame}`, api, grid, 'spiroPalette', spirographGrid(width, height, frame, frames)))
+  }
   b.root('spiroMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'spiroBody' })
   b.stringValue('spiroMessage', 'Spirograph')
   b.print('spiroPrint', 'spiroMessage')
   b.block('spiroBody', [...body, 'spiroPrint'])
 
   return workspace(b.project, [
-    note('spiroNote', 'Spirograph', `Écran ${width}×${height}. Hypotrochoïde \`R=5\`, \`r=2\`, \`d=3.5\`, tracée sur deux tours avec 1600 échantillons puis ajustée à l'écran. $$x=(R-r)\\cos\\theta+d\\cos\\!\\left(\\frac{R-r}{r}\\theta\\right),\\quad y=(R-r)\\sin\\theta-d\\sin\\!\\left(\\frac{R-r}{r}\\theta\\right)$$`, 0, 620, 900, 260),
+    note('spiroNote', 'Spirograph', `Écran ${width}×${height}. Hypotrochoïde \`R=5\`, \`r=2\`, \`d=3.5\`, tracée progressivement en ${frames} images avec 700 échantillons. $$x=(R-r)\\cos\\theta+d\\cos\\!\\left(\\frac{R-r}{r}\\theta\\right),\\quad y=(R-r)\\sin\\theta-d\\sin\\!\\left(\\frac{R-r}{r}\\theta\\right)$$`, 0, 620, 900, 260),
   ])
 }
 
@@ -3622,22 +3630,26 @@ function sierpinskiChaos() {
 // Onde de pendules : douze longueurs identiques, fréquences entières croissantes.
 function pendulumWave() {
   const b = builder()
-  const width = 96
-  const height = 48
+  const width = 56
+  const height = 24
+  const frames = 9
   const screen = screenModule(b, 'pendulum', 'Pendulum wave', width, height, 1)
   b.useModule('pendulumApp', 'Pendulum wave')
   const app = b.project.modules.find((module) => module.id === 'pendulumApp')
   const api = screenBlitImports(app, screen, 'pendulum')
   const grid = gridVariable(b, 'pendulumGrid', width, height)
   twoColorPalette(b, 'pendulumPalette', [160, 220, 255])
-  const body = presentFrame(b, 'pendulum', api, grid, 'pendulumPalette', pendulumGrid(width, height))
+  const body = []
+  for (let frame = 0; frame < frames; frame += 1) {
+    body.push(...presentFrame(b, `pendulum${frame}`, api, grid, 'pendulumPalette', pendulumGrid(width, height, frame, frames)))
+  }
   b.root('pendulumMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'pendulumBody' })
   b.stringValue('pendulumMessage', 'Pendulum wave')
   b.print('pendulumPrint', 'pendulumMessage')
   b.block('pendulumBody', [...body, 'pendulumPrint'])
 
   return workspace(b.project, [
-    note('pendulumNote', 'Pendulum wave', `Écran ${width}×${height}. Douze pendules de même longueur ont des fréquences entières de 1 à 12. L'image montre la position à \`t = 0,35\`, précalculée en JavaScript. $$\\theta_i(t)=A\\sin(2\\pi f_i t),\\quad f_i=1,\\dots,12$$`, 0, 620, 900, 240),
+    note('pendulumNote', 'Pendulum wave', `Écran ${width}×${height}. Huit pendules de même longueur ont des fréquences entières de 1 à 8. Les positions sont calculées pour ${frames} images sur une période complète. $$\\theta_i(t)=A\\sin(2\\pi f_i t),\\quad f_i=1,\\dots,8$$`, 0, 620, 900, 240),
   ])
 }
 
