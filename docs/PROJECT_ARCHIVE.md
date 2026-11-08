@@ -4,9 +4,8 @@
 
 ## Catégories de cartes pliables — 8 novembre 2026
 
-- Les trois catégories du menu de création (Programmation, Widgets, Annotations) sont désormais pliables individuellement : en-tête bouton avec chevron, `aria-expanded`, `title` traduit et état local au menu. La recherche force l'affichage des catégories correspondantes et l'entrée en recherche choisit toujours la première carte, jamais un en-tête.
-- La catégorie **Widgets** est en plus divisée en sous-catégories pliables : **Affichages** (écran, jauge, progression), **Graphiques** (barres, XY plot, heatmap) et **Indicateurs** (LED, LED RVB). Les listes sont centralisées dans `cardCategories` (`groups`) et couvertes par un test de partition sans doublon.
-- Vérifications : **592 tests Node/Python réussis**, `pnpm build` réussi, contrôle navigateur du menu (trois catégories, trois sous-catégories de widgets, repli/dépli indépendants, recherche « plot » forçant l'affichage de **Create XY plot**) sans erreur console.
+- Les trois catégories du menu de création (Programmation, Widgets, Annotations) restent des en-têtes fixes et non pliables. Seule la catégorie **Widgets** est divisée en sous-catégories pliables : **Affichages** (écran, jauge, progression), **Graphiques** (barres, XY plot, heatmap) et **Indicateurs** (LED, LED RVB). Chaque sous-catégorie a son bouton avec chevron, `aria-expanded`, `title` traduit et état local au menu ; la recherche force l'affichage des résultats et l'entrée en recherche choisit toujours la première carte, jamais un en-tête. Les listes sont centralisées dans `cardCategories` (`groups`) et couvertes par un test de partition sans doublon.
+- Vérifications : **592 tests Node/Python réussis**, `pnpm build` réussi, contrôle navigateur du menu (trois catégories fixes, trois sous-catégories de widgets, repli/dépli indépendants, recherche « plot » forçant l'affichage de **Create XY plot**) sans erreur console.
 
 ## XY plot et Mafs — 8 novembre 2026
 

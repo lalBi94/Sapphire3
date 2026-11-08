@@ -59,7 +59,7 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId =
     return { ...category, grouped, groups }
   }).filter((category) => category.groups.length > 0)
 
-  // Déplie ou replie une catégorie ou une sous-catégorie ; la recherche force l'affichage des résultats.
+  // Déplie ou replie une sous-catégorie de widgets ; la recherche force l'affichage des résultats.
   function toggleGroup(id) {
     setCollapsedGroups((current) => {
       const next = new Set(current)
@@ -136,43 +136,29 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId =
         {categories.length === 0
           ? <p className="canvas-context-menu__empty">{t('canvas.createNone', { term })}</p>
           : <div role="menu" className="canvas-context-menu__columns" aria-label={t('canvas.addMenu')}>
-            {categories.map((category) => {
-              const collapsed = !normalizedTerm && collapsedGroups.has(category.id)
-              return <div className="canvas-context-menu__group" role="group" aria-label={t(category.labelKey)} key={category.id}>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="canvas-context-menu__group-title"
-                  data-group-toggle
-                  aria-expanded={!collapsed}
-                  title={t(collapsed ? 'menu.groupExpand' : 'menu.groupCollapse')}
-                  onClick={() => toggleGroup(category.id)}
-                >
-                  {collapsed ? <ChevronRight size={12} strokeWidth={2} aria-hidden="true" /> : <ChevronDown size={12} strokeWidth={2} aria-hidden="true" />}
-                  {t(category.labelKey)}
-                </button>
-                {!collapsed && category.groups.map((group) => {
-                  if (!category.grouped) return group.types.map(renderAction)
-                  const groupKey = `${category.id}.${group.id}`
-                  const groupCollapsed = !normalizedTerm && collapsedGroups.has(groupKey)
-                  return <div className="canvas-context-menu__subgroup" role="group" aria-label={t(group.labelKey)} key={group.id}>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="canvas-context-menu__subgroup-title"
-                      data-group-toggle
-                      aria-expanded={!groupCollapsed}
-                      title={t(groupCollapsed ? 'menu.groupExpand' : 'menu.groupCollapse')}
-                      onClick={() => toggleGroup(groupKey)}
-                    >
-                      {groupCollapsed ? <ChevronRight size={12} strokeWidth={2} aria-hidden="true" /> : <ChevronDown size={12} strokeWidth={2} aria-hidden="true" />}
-                      {t(group.labelKey)}
-                    </button>
-                    {!groupCollapsed && group.types.map(renderAction)}
-                  </div>
-                })}
-              </div>
-            })}
+            {categories.map((category) => <div className="canvas-context-menu__group" role="group" aria-label={t(category.labelKey)} key={category.id}>
+              <p className="canvas-context-menu__group-title" aria-hidden="true">{t(category.labelKey)}</p>
+              {category.groups.map((group) => {
+                if (!category.grouped) return group.types.map(renderAction)
+                const groupKey = `${category.id}.${group.id}`
+                const groupCollapsed = !normalizedTerm && collapsedGroups.has(groupKey)
+                return <div className="canvas-context-menu__subgroup" role="group" aria-label={t(group.labelKey)} key={group.id}>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="canvas-context-menu__subgroup-title"
+                    data-group-toggle
+                    aria-expanded={!groupCollapsed}
+                    title={t(groupCollapsed ? 'menu.groupExpand' : 'menu.groupCollapse')}
+                    onClick={() => toggleGroup(groupKey)}
+                  >
+                    {groupCollapsed ? <ChevronRight size={12} strokeWidth={2} aria-hidden="true" /> : <ChevronDown size={12} strokeWidth={2} aria-hidden="true" />}
+                    {t(group.labelKey)}
+                  </button>
+                  {!groupCollapsed && group.types.map(renderAction)}
+                </div>
+              })}
+            </div>)}
           </div>}
       </>}
     </div>

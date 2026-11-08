@@ -128,29 +128,6 @@
   text-transform: uppercase;
 }
 
-/* L'en-tête de catégorie est un bouton compact qui déplie ou replie ses cartes. */
-.canvas-context-menu__group .canvas-context-menu__group-title {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  width: 100%;
-  min-height: 0;
-  padding: 3px 8px 4px;
-  border-radius: var(--radius-control);
-  color: var(--color-text-muted);
-  background: transparent;
-  font-size: 9px;
-  font-weight: inherit;
-  letter-spacing: 0.06em;
-  text-align: left;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-
-.canvas-context-menu__group .canvas-context-menu__group-title svg {
-  flex: 0 0 auto;
-}
-
 /* Sous-catégories de widgets : en-têtes plus discrets et actions légèrement indentées. */
 .canvas-context-menu__subgroup {
   margin-top: 2px;
