@@ -216,8 +216,8 @@ p, h1, h2, h3 { margin: 0; }
   padding: 0 24px 0 9px;
   border: 1px solid var(--db-border);
   border-radius: var(--db-radius-small);
-  background: transparent;
-  color: var(--db-muted);
+  background: var(--db-raised);
+  color: var(--db-text);
   font-family: var(--db-font);
   font-size: 10px;
   font-weight: 600;
@@ -226,9 +226,17 @@ p, h1, h2, h3 { margin: 0; }
   appearance: none;
   -webkit-appearance: none;
 }
+.db-lang__select option {
+  background: var(--db-raised);
+  color: var(--db-text);
+}
+.db-lang__select option:checked {
+  background: var(--db-raised);
+  color: var(--db-primary);
+}
 .db-lang__select:hover {
-  border-color: var(--db-border);
-  background: var(--db-hover);
+  border-color: var(--db-border-hover);
+  background: var(--db-raised);
   color: var(--db-text);
 }
 .db-lang__select:focus-visible {
