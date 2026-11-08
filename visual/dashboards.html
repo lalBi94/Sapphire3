@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboards exportés — Sapphire 3</title>
+  <meta name="description" content="Dix dashboards Sapphire 3 réellement exportés et interactifs : widgets, Run/Pause/Stop, Run autonomous, thèmes et langues.">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body class="page page-dashboards">
+  <a class="skip-link" href="#contenu">Aller au contenu</a>
+  <header class="site-header">
+    <p class="mark">Sapphire<span>3</span></p>
+    <span class="header-status"><span aria-hidden="true"></span>Dashboards exportés</span>
+    <nav aria-label="Navigation du site">
+      <a href="index.html">Projet</a>
+      <a href="documentation.html">Documentation visuelle</a>
+      <a href="ast.html">Le modèle AST</a>
+      <a href="dashboards.html" aria-current="page">Dashboards</a>
+    </nav>
+  </header>
+
+  <main id="contenu">
+    <section class="page-intro">
+      <p class="kicker">Sorties réelles · HTML autonome</p>
+      <h1>Dix dashboards exportés, interactifs</h1>
+      <p class="lede">
+        Chaque cadre ci-dessous est un fichier <code>dashboard.html</code> réellement produit par
+        <b>Settings → Export → Web dashboard</b>, pas une capture. Les panneaux sont déplaçables, les thèmes et
+        les langues sont réglables, et les commandes exécutent le vrai moteur embarqué. Rien ne démarre avant
+        un clic sur <b>Run</b> ou <b>Run autonomous</b>.
+      </p>
+      <ul class="chips">
+        <li>10 fichiers autonomes</li>
+        <li>7 familles de widgets</li>
+        <li>Run / Pause / Stop</li>
+        <li>Run autonomous</li>
+        <li>8 langues</li>
+        <li>Clair / sombre</li>
+        <li>Aucune ressource distante</li>
+      </ul>
+    </section>
+
+    <section id="galerie">
+      <div class="section-title">
+        <h2>Les dix exemples</h2>
+        <span class="tag">Générés depuis les exemples locaux</span>
+      </div>
+      <p>
+        La sélection couvre les widgets Screen, LED, RGB LED, Gauge, ProgressBar, BarChart et Heatmap, ainsi que
+        les niveaux Simple, Medium et Hard. Les fichiers sont régénérés depuis le code courant du dashboard.
+      </p>
+
+      <div class="dashboard-gallery">
+        <article class="dashboard-card">
+          <div class="dashboard-card__head">
+            <p class="kicker">01 · Widgets</p>
+            <h3>RGB mixer</h3>
+            <p>Écran 48 × 28, trois barres de progression, jauge et LED RVB. Le dashboard le plus complet.</p>
+            <ul class="meta-chips"><li>Screen</li><li>ProgressBar</li><li>Gauge</li><li>RGB LED</li></ul>
+          </div>
+          <div class="dashboard-frame"><iframe src="dashboards/rgbMixer.html" title="Dashboard RGB mixer" loading="lazy"></iframe></div>
+          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/rgbMixer.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
+        </article>
+
+        <article class="dashboard-card">
+          <div class="dashboard-card__head">
+            <p class="kicker">02 · Widgets</p>
+            <h3>Gauge demo</h3>
+            <p>Une jauge seule, graduée, avec valeur, bornes et pourcentage.</p>
+            <ul class="meta-chips"><li>Gauge</li></ul>
+          </div>
+          <div class="dashboard-frame"><iframe src="dashboards/gaugeDemo.html" title="Dashboard Gauge demo" loading="lazy"></iframe></div>
+          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/gaugeDemo.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
+        </article>
+
+        <article class="dashboard-card">
+          <div class="dashboard-card__head">
+            <p class="kicker">03 · Simulation</p>
+            <h3>Traffic control</h3>
+            <p>Simulation de trafic : heatmap 12 × 8, graphique à barres et progression.</p>
+            <ul class="meta-chips"><li>Heatmap</li><li>BarChart</li><li>ProgressBar</li></ul>
+          </div>
+          <div class="dashboard-frame"><iframe src="dashboards/trafficControl.html" title="Dashboard Traffic control" loading="lazy"></iframe></div>
+          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/trafficControl.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
+        </article>
+
+        <article class="dashboard-card">
+          <div class="dashboard-card__head">
+            <p class="kicker">04 · Simulation</p>
+            <h3>Damped spring</h3>
+            <p>Ressort amorti : barres signées et jauge suivent chaque pas du calcul.</p>
+            <ul class="meta-chips"><li>BarChart</li><li>Gauge</li></ul>
+          </div>
+          <div class="dashboard-frame"><iframe src="dashboards/dampedSpring.html" title="Dashboard Damped spring" loading="lazy"></iframe></div>
+          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/dampedSpring.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
+        </article>
+
+        <article class="dashboard-card">
+          <div class="dashboard-card__head">
+            <p class="kicker">05 · Animation</p>
+            <h3>Rotating cube</h3>
+            <p>Deux écrans synchronisés, projection perspective et orthographique.</p>
+            <ul class="meta-chips"><li>Screen ×2</li></ul>
+          </div>
+          <div class="dashboard-frame"><iframe src="dashboards/rotatingCube.html" title="Dashboard Rotating cube" loading="lazy"></iframe></div>
+          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/rotatingCube.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
+        </article>
+
+        <article class="dashboard-card">
+          <div class="dashboard-card__head">
+            <p class="kicker">06 · Automate</p>
+            <h3>Game of Life</h3>
+            <p>Automate de Conway sur un écran 90 × 56, une image par génération.</p>
+            <ul class="meta-chips"><li>Screen</li></ul>
+          </div>
+          <div class="dashboard-frame"><iframe src="dashboards/gameOfLife.html" title="Dashboard Game of Life" loading="lazy"></iframe></div>
+          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/gameOfLife.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
+        </article>
+
+        <article class="dashboard-card">
+          <div class="dashboard-card__head">
+            <p class="kicker">07 · Animation</p>
+            <h3>Pendulum wave</h3>
+            <p>Huit pendules animés sur neuf images précalculées.</p>
+            <ul class="meta-chips"><li>Screen</li></ul>
+          </div>
+          <div class="dashboard-frame"><iframe src="dashboards/pendulumWave.html" title="Dashboard Pendulum wave" loading="lazy"></iframe></div>
+          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/pendulumWave.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
+        </article>
+
+        <article class="dashboard-card">
+          <div class="dashboard-card__head">
+            <p class="kicker">08 · Simulation</p>
+            <h3>Checkout queue</h3>
+            <p>File d’attente : barres, jauge et LED pour suivre l’état du service.</p>
+            <ul class="meta-chips"><li>BarChart</li><li>Gauge</li><li>LED</li></ul>
+          </div>
+          <div class="dashboard-frame"><iframe src="dashboards/checkoutQueue.html" title="Dashboard Checkout queue" loading="lazy"></iframe></div>
+          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/checkoutQueue.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
+        </article>
+
+        <article class="dashboard-card">
+          <div class="dashboard-card__head">
+            <p class="kicker">09 · Tableaux</p>
+            <h3>Prime sieve</h3>
+            <p>Crible d’Ératosthène : heatmap des nombres et progression.</p>
+            <ul class="meta-chips"><li>Heatmap</li><li>ProgressBar</li></ul>
+          </div>
+          <div class="dashboard-frame"><iframe src="dashboards/primeSieve.html" title="Dashboard Prime sieve" loading="lazy"></iframe></div>
+          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/primeSieve.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
+        </article>
+
+        <article class="dashboard-card">
+          <div class="dashboard-card__head">
+            <p class="kicker">10 · Classes</p>
+            <h3>Reactor control</h3>
+            <p>Deux classes coopèrent et pilotent jauge, barres et LED.</p>
+            <ul class="meta-chips"><li>Gauge</li><li>BarChart</li><li>LED</li></ul>
+          </div>
+          <div class="dashboard-frame"><iframe src="dashboards/reactorControl.html" title="Dashboard Reactor control" loading="lazy"></iframe></div>
+          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/reactorControl.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
+        </article>
+      </div>
+    </section>
+
+    <section id="maintenance">
+      <div class="section-title">
+        <h2>Rester à jour</h2>
+        <span class="tag">Après chaque changement du dashboard</span>
+      </div>
+      <p>
+        Ces fichiers sont des artefacts générés, pas des maquettes. La commande suivante les reconstruit depuis les
+        exemples locaux et le code courant du dashboard :
+      </p>
+      <pre><code>pnpm dashboards:build</code></pre>
+      <p>
+        La CI régénère les dix fichiers et refuse une pull request si le résultat diffère de ce qui est commité.
+        Relancer la commande après tout changement qui impacte l’export : widgets, commandes d’exécution, thèmes,
+        langues, mise en page, polices ou pied de page.
+      </p>
+    </section>
+
+    <footer class="site-footer">
+      <div class="credits">
+        <p><b>Projet et direction</b><br>Bilal Boudjemline — Threadlock Systems</p>
+        <p><b>Dashboards</b><br>Dix fichiers HTML autonomes générés depuis les exemples locaux ; aucun serveur, CDN ou ressource distante.</p>
+        <p><b>Interaction</b><br>Chaque cadre exécute le vrai moteur embarqué. Rien ne démarre sans Run ou Run autonomous.</p>
+      </div>
+      <p>Sapphire 3 — document de travail. Les exemples suivent le code courant du dashboard.</p>
+    </footer>
+  </main>
+
+  <script src="assets/site.js"></script>
+</body>
+</html>

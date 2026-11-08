@@ -28,11 +28,14 @@ possibilité d'inspecter l'arbre.
 Le périmètre livré couvre l'AST, les portées lexicales, les références locales
 et intermodules, un typage statique strict — primitifs, tableaux, pointeurs,
 signatures de fonction, génériques avancés (plusieurs paramètres, contraintes
-exactes et tableaux génériques) et lambdas/fermetures — et la sérialisation JSON.
+exactes et tableaux génériques), classes et lambdas/fermetures — et la sérialisation JSON.
 S'y ajoutent, sur action explicite, la \textbf{simulation locale} déterministe,
 le \textbf{débogage pas à pas} avec points d'arrêt et mémoire pédagogique, les
 \textbf{contrats}, l'\textbf{analyse de graphes}, la \textbf{simulation
-graphique simplifiée} et la \textbf{transpilation} JavaScript/Python. Les
+graphique simplifiée} et la \textbf{transpilation} JavaScript/Python. Une
+\textbf{Discord Rich Presence} optionnelle est fournie par un sidecar C++20 local
+relié à l'IPC Discord ; elle ne fait pas partie du moteur pur et ne publie que
+des libellés génériques et des compteurs. Les
 opérations natives (\code{Print}, \code{MathCall}, \code{ForEach}) restent
 locales et sans effet système. Moteur JavaScript pur, sans React, DOM,
 Neutralinojs ni npm ; l'interface y est branchée et déporte les calculs lourds
@@ -302,14 +305,72 @@ d'exécutabilité. Aucun moteur de suggestion ni système de plugins n'est
 implémenté.
 
 Le format source v1 préserve les champs supplémentaires. Une version source
-inconnue est conservée et signalée. L'enveloppe workspace est en version 2 : un
-fichier version 1 est migré explicitement à la lecture (drapeau générique
+inconnue est conservée et signalée. L'enveloppe workspace est en version 3 : les
+fichiers versions 1 et 2 sont migrés explicitement à la lecture (drapeau générique
 historique et \code{screenScale}) avant validation ; une version future est
 refusée avant tout remplacement. La sérialisation refuse les données non JSON au
 lieu de les supprimer silencieusement. Les profondeurs d'analyse et de
 sérialisation sont bornées pour éviter les dépassements de pile.
 
-\textbf{Limites assumées :} pas de sous-modules, objets, réexports ni
+La \textbf{Discord Rich Presence} reste hors du moteur logique : un sidecar C++20
+statique est lancé par Neutralinojs, se connecte à l'IPC local de Discord et
+reçoit des activités déjà construites par l'interface. Aucun OAuth, token,
+compte ou backend n'est utilisé ; seuls des libellés fixes et des compteurs de
+modules/nœuds sont transmis. Le sidecar est compilé pour Windows, Linux et macOS
+lors de la distribution ; CMake et Zig ne sont requis qu'à la construction. Le
+réglage \code{sapphire-discord-presence} est activé par défaut et arrête
+immédiatement la présence lorsqu'il est désactivé.
+
+Le workspace est un dossier choisi : \code{workspace.sp3}, images liées dans
+\code{images/}, trois sauvegardes directes au plus dans \code{backups/}, export ZIP.
+Un document neuf non vierge utilise le dossier persistant \code{sapphire3-recovery/}.
+
+L'\textbf{Export Web Dashboard} produit un unique \code{dashboard.html} autonome :
+le moteur de simulation réel y est embarqué et exécuté dans un Web Worker, avec un
+repli synchrone borné. Le dashboard reprend les sept widgets graphiques, dont l'écran
+se zoome automatiquement pour remplir sa carte en conservant les proportions
+et en rognant les bords si nécessaire, Run/Pause/Stop,
+un curseur de vitesse de 1 à 100, un mode Run autonomous qui rejoue la trace
+en boucle avec les mêmes commandes que Run, la sortie,
+le nœud courant et une bascule clair/sombre. Il reprend la direction
+Void/Acid de l'application : tokens, panneaux biseautés sans halo décoratif et polices Inter, Space Grotesk
+et JetBrains Mono embarquées en data URL. La barre de progression permet de revenir à
+un pas en cliquant ou au clavier ; l'exécution se met alors en pause. Les actions et
+les modes portent des icônes SVG inline, avec un toast local qui confirme chaque action. Un sélecteur reprend les langues de l'application. Le pied de page affiche le logo Sapphire 3,
+la version utilisée, la mention Threadlock Systems et un bouton GitHub sombre vers le dépôt.
+La palette sombre choisie est imposée et sa
+variante claire est dérivée avec contrôle du contraste. Les panneaux sont déplaçables,
+redimensionnables et masquables ; la disposition reste dans le \code{localStorage} du
+visiteur, sans modifier le fichier ni le workspace. La configuration est stockée dans la
+clef racine optionnelle \code{dashboard} de l'enveloppe version 3, sans migration de
+version. Aucun serveur, CDN, police distante ou dépendance externe n'est utilisé ;
+seule l'ouverture volontaire du lien GitHub quitte le fonctionnement hors ligne. Un
+préflight exécute le vrai moteur avant l'écriture et refuse les programmes incompatibles.
+Les noms saisis et les sorties du programme ne sont pas traduits. Le choix de langue
+est mémorisé dans le navigateur ; l'arabe active la direction droite à gauche.
+Limite actuelle : le genre du nœud affiché dans Current execution reste dans la
+langue d'export, même après un changement de langue du visiteur.
+Le mode Run autonomous rejoue la même trace en boucle jusqu'à Pause ou Stop ;
+pause, reprise, vitesse et retour arrière restent disponibles. Aucun historique
+supplémentaire n'est calculé et le préflight d'export reste inchangé.
+Le site de présentation expose dix dashboards générés dans \code{abstract/visual/dashboards.html} ;
+\code{pnpm dashboards:build} et la CI les maintiennent alignés après tout changement du dashboard.
+
+La bibliothèque locale compte 52 exemples (6 simples, 26 moyens et 20 difficiles).
+Spirograph trace progressivement sa courbe en 12 images (64×40) ; Pendulum wave
+anime huit pendules en 9 images (56×24). Ces images sont précalculées à la construction
+du projet puis envoyées par \code{blit}/\code{present}, sous le budget de 10\,000 pas.
+
+\textbf{Classes :} un module \code{kind:'class'} contient seulement attributs,
+constantes, méthodes et constructeur, avec visibilité \code{public}/\code{private}.
+\code{NewExpression} crée une instance, \code{ThisExpression} la désigne dans les
+méthodes et \code{MemberExpression} accède aux membres. Le type
+\code{\{kind:'class', classId\}} est annotable sur variables, constantes,
+paramètres et retours. Les accès privés sont vérifiés ; les méthodes extraites
+conservent leur instance. Une classe et ses consommateurs partagent les flèches
+de dépendance des modules. La transpilation des classes est refusée explicitement.
+
+\textbf{Limites assumées :} pas de sous-modules, héritage, polymorphisme, réexports ni
 résolution de fichiers ; un tableau porte un élément primitif unique, sans
 tableau imbriqué ; les génériques acceptent plusieurs paramètres, des tableaux
 génériques et des contraintes exactes, mais refusent \code{T*}, \code{T[][]} et

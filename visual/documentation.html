@@ -16,6 +16,7 @@
       <a href="index.html">Projet</a>
       <a href="documentation.html" aria-current="page">Documentation visuelle</a>
       <a href="ast.html">Le modèle AST</a>
+      <a href="dashboards.html">Dashboards</a>
     </nav>
   </header>
 
@@ -769,7 +770,7 @@
             <img src="assets/shots/35-themes.png" alt="Volet des thèmes avec les six palettes proposées et leurs couleurs." width="1600" height="900">
           </div>
           <ol class="notes">
-            <li data-marker="menu">Six palettes prédéfinies et des thèmes personnalisés, tous construits sur les mêmes jetons&nbsp;: fond, surface, bordure, primaire, sélection, diagnostics.</li>
+            <li data-marker="menu">La capture montre six palettes ; le catalogue actuel en propose sept et des thèmes personnalisés, avec apparences sombre et claire, tous construits sur les mêmes jetons : fond, surface, bordure, primaire, sélection, diagnostics.</li>
             <li data-marker="option">Aperçu couleur par entrée, sélection immédiate, mémorisée en préférence locale.</li>
           </ol>
         </div>
@@ -874,35 +875,83 @@
         <span class="tag">Persistance</span>
       </div>
       <p>
-        Le document est un fichier choisi par l'utilisateur, jamais un répertoire imposé. Il est écrit à la demande,
-        puis réécrit automatiquement dans ce même fichier après chaque modification. Trois voies explicites&nbsp;:
-        ouvrir, enregistrer, importer ou exporter.
+        Le workspace est un dossier choisi par l'utilisateur, jamais un répertoire imposé. Son document interne
+        <code>workspace.sp3</code> est sauvegardé après modification ; les images liées restent dans
+        <code>images/</code>. Les anciens fichiers restent importables et le dossier s'exporte en ZIP.
       </p>
       <ul>
-        <li>Une enveloppe <em>workspace</em> <b>version 2</b> contient le document logique et les informations de
-        présentation — positions des cartes, notes, images intégrées. Les deux formats sont distincts&nbsp;: le
-        modèle logique ne dépend ni de la fenêtre ni de la mise en page. Les fichiers version 1 sont migrés à la
+        <li>Une enveloppe <em>workspace</em> <b>version 3</b> contient le document logique et les informations de
+        présentation — positions des cartes, notes, images intégrées ou liées. Les deux formats sont distincts&nbsp;: le
+        modèle logique ne dépend ni de la fenêtre ni de la mise en page. Les fichiers versions 1 et 2 sont migrés à la
         lecture (ancien drapeau générique et <code>screenScale</code>) ; une version future est refusée avant tout
         remplacement.</li>
-        <li>Un fichier <code>.sp3</code> ou un JSON logique se lisent et s'écrivent par les dialogues natifs de
-        l'application&nbsp;; <code>Ctrl+S</code> enregistre le fichier courant.</li>
+        <li>L'ouverture de dossier, l'import d'un ancien <code>.sp3</code> ou JSON et les exports utilisent les dialogues
+        natifs ; <code>Ctrl+S</code> enregistre le workspace courant.</li>
         <li>Avant remplacement, la source est validée&nbsp;: en cas d'erreur ou d'annulation, le document en cours
         reste intact.</li>
-        <li>Un enregistrement direct conserve jusqu'à trois sauvegardes adjacentes
-        (<code>&lt;base&gt;.backup-1.sp3</code> à <code>3</code>). Une génération absente est ignorée et un échec de
+        <li>Un enregistrement direct conserve jusqu'à trois sauvegardes dans <code>backups/</code>
+        (<code>workspace.backup-1.sp3</code> à <code>3</code>). Une génération absente est ignorée et un échec de
         copie est affiché comme statut, sans bloquer l'enregistrement.</li>
         <li>Les préférences — langue, thème, cinq chemins récents, dernier fichier et raccourcis clavier personnalisés — sont stockées à part, dans un répertoire
         persistant utilisateur, jamais à côté de l'exécutable.</li>
+        <li>La configuration d'export <b>Web Dashboard</b> — nom, description, thème et palette — est une clef racine
+        optionnelle <code>dashboard</code> du document&nbsp;; elle ne contient aucun chemin ni donnée de visiteur. Aucune
+        migration de version n'est nécessaire.</li>
       </ul>
       <div class="notes-soft">
         <p style="margin:0">
           Un document neuf non vierge sans chemin est protégé par une copie
-          <code>sapphire3-recovery.sp3</code> dans le répertoire de données persistant, restaurée au prochain
+          dans le dossier <code>sapphire3-recovery/</code> du répertoire de données persistant, restaurée au prochain
           lancement. Après sa première sauvegarde, chaque modification est réécrite dans le fichier
           <code>.sp3</code> (retard de 500&nbsp;ms), le dernier fichier est rouvert au lancement et les sauvegardes
           de secours restent disponibles.
         </p>
       </div>
+      <h3>Exercices dans le fichier</h3>
+      <p>
+        Un <code>.sp3</code> peut aussi porter un <b>exercice</b>, sous la clef racine <code>exercise</code>&nbsp;:
+        titre, consignes, snapshot de départ et tests. L'élève ouvre le fichier, travaille, puis <b>Check</b> exécute
+        les tests d'entrée ou de fonction dans le Web Worker. Le panneau affiche l'attendu et l'obtenu&nbsp;;
+        <b>Reset to starter</b> restaure le squelette sans effacer les tests&nbsp;; le robot réagit au résultat.
+      </p>
+      <ul>
+        <li>Un mot de passe optionnel verrouille l'<b>édition</b> de l'exercice. Seule une empreinte
+        PBKDF2-SHA256 est stockée&nbsp;; le fichier lui-même n'est pas chiffré et reste modifiable dans un éditeur
+        de texte.</li>
+        <li>Quand tous les tests passent, <b>Save solution</b> écrit une copie
+        <code>&lt;titre&gt;-solution.zip</code>. Ces archives servent de banque de corrections&nbsp;:
+        aucun stockage interne supplémentaire.</li>
+        <li>Les tests restent lisibles dans le JSON&nbsp;: c'est un outil d'entraînement, pas un examen surveillé.</li>
+      </ul>
+      <h3>Dashboard web autonome</h3>
+      <p>
+        <b>Settings → Export → Web dashboard</b> produit un unique fichier <code>dashboard.html</code> hors ligne.
+        Il embarque le moteur de simulation réel et les sept widgets graphiques, dont l'écran se zoome automatiquement
+        pour remplir sa carte sans déformation (bords rognés si nécessaire), avec <b>Run</b>, <b>Pause</b>,
+        <b>Stop</b>, un curseur de vitesse de 1 à 100, la sortie, le nœud courant et une
+        bascule clair/sombre. Il reprend la direction Void/Acid de
+        l'application — tokens, panneaux biseautés sans halo décoratif et polices Inter, Space Grotesk et JetBrains Mono embarquées.
+        Le pied de page affiche le logo Sapphire 3, la version utilisée, la mention <b>Threadlock Systems</b> et un
+        bouton GitHub sombre vers le dépôt.
+        Rien ne s'exécute au chargement&nbsp;; Pause conserve l'état visible et Stop réinitialise la session. Cliquer
+        sur la barre de progression met immédiatement en pause et revient au pas choisi. Les actions et les modes
+        portent des icônes SVG inline&nbsp;; un toast local confirme chaque action et l'annonce aux lecteurs d'écran.
+        Un sélecteur reprend les langues de l'application et mémorise le choix du visiteur ; l'arabe active la
+        direction droite à gauche. Les noms saisis et les sorties du programme restent inchangés.
+        Aucun chargement distant n'est nécessaire ; seul le clic volontaire sur GitHub ouvre le dépôt en ligne.
+        Le mode <b>Run autonomous</b> rejoue la même trace en boucle jusqu'à Pause ou Stop&nbsp;; pause, reprise,
+        vitesse et retour arrière restent disponibles. Aucun historique supplémentaire n'est calculé.
+        Le visiteur peut déplacer, redimensionner, masquer et restaurer les panneaux&nbsp;; sa disposition reste dans son
+        navigateur, sans modifier le HTML ni le projet. La palette choisie est imposée et sa variante claire est
+        dérivée avec contrôle du contraste.
+        Limite actuelle de traduction : le genre du nœud dans <b>Current execution</b> reste dans la langue d'export.
+      </p>
+      <p><a href="dashboards.html">Voir dix dashboards interactifs →</a></p>
+      <p>
+        Dans <b>Medium → Animation</b>, Spirograph trace sa courbe en 12 images (64×40) et Pendulum wave anime
+        huit pendules en 9 images (56×24). Les grilles sont précalculées à la construction des exemples puis
+        affichées par <code>blit</code>/<code>present</code>, sans dépasser 10&nbsp;000 pas de simulation.
+      </p>
     </section>
 
     <section id="limites" class="shot-anchor">
@@ -921,13 +970,15 @@
           <tr><td>Langages cibles</td><td>JavaScript et Python opérationnels. C/C++ et Java désactivés&nbsp;— aucune promesse de génération.</td></tr>
           <tr><td>Cartes spéciales</td><td>Screen, Gauge, ProgressBar, BarChart, Heatmap et LED adossées à des modules cachés normaux&nbsp;: aperçu ou code et flèches de dépendance. BarChart expose <code>SET_VALUE</code>, <code>SET_DATA</code>, <code>CLEAR</code> sur un <code>int[]</code>. Heatmap est une grille fixe (12×8 par défaut) avec <code>SET_CELL(x, y, value)</code> et <code>CLEAR</code>&nbsp;: intensité simple du thème, pas de lecture à 24 fps, seulement le suivi Run/Debug.</td></tr>
           <tr><td>Contrats</td><td>Contraintes vérifiables sur variables, constantes et paramètres, filtrées par type déclaré et signalées pendant Run.</td></tr>
+          <tr><td>Exercices</td><td>Manifeste dans le <code>.sp3</code>, tests d'entrée ou de fonction exécutés par Check, snapshot de départ et Reset. Le verrou par mot de passe protège l'interface seulement ; les tests restent lisibles et modifiables dans le JSON. Pas encore d'indices, de notation partielle, de soumission ni de verrouillage des cartes.</td></tr>
           <tr><td>Analyse</td><td>Conservatrice&nbsp;: aucune preuve générale sur les valeurs, les comparaisons numériques, les dépendances globales ou la terminaison.</td></tr>
-          <tr><td>Modèle objet</td><td>Évoqué comme direction, aucun contrat décidé. Pas de classes ni de structures dans le modèle source actuel&nbsp;; <code>TypeDeclaration</code> est un alias transparent.</td></tr>
+          <tr><td>Classes</td><td>Carte Class avec scopes Public/Private, attributs, constantes, méthodes et constructeur. Instances via <code>new</code>, <code>this</code>, types de classe et contrôle des accès privés. Flèches vers les utilisateurs de la classe et depuis les exports qu'elle utilise. Pas d'héritage ni de polymorphisme ; transpilation refusée. Thermostat, Spring et Reactor control illustrent cette approche.</td></tr>
           <tr><td>Sous-modules</td><td>Absents&nbsp;: la hiérarchie des portées lexicales ne doit pas être confondue avec un rangement de modules.</td></tr>
           <tr><td>Génériques</td><td>Plusieurs paramètres, tableaux génériques et contraintes exactes. Pas de <code>T*</code>, de <code>T[][]</code>, de génériques locaux ni de lambda générique.</td></tr>
           <tr><td>Lambdas</td><td>Corps expression unique, captures lexicales en lecture, retours de type fonction. Pas d'affectation ni de boucle interne, pas d'adresse sur un paramètre de lambda.</td></tr>
           <tr><td>Exécution hors fil</td><td>Simulation, debug, transpilation et vérifications dans un Web Worker avec progression et annulation. Les mutations structurelles gardent une analyse synchrone.</td></tr>
-          <tr><td>Migrations</td><td>Workspace version 1 migré vers la version 2 à la lecture. Une version future ou malformée est refusée sans remplacer le document ; la source logique reste en version 1.</td></tr>
+          <tr><td>Discord</td><td>Rich Presence optionnelle par sidecar C++20 local (CMake/Zig) et IPC Discord : activités génériques, chronomètre, deux boutons GitHub, réglage activé par défaut. Aucun compte, token, OAuth ni backend ; aucun nom de fichier ou de variable publié. Windows validé ; Linux/macOS compilés mais non exécutés.</td></tr>
+          <tr><td>Migrations</td><td>Workspaces versions 1 et 2 migrés vers la version 3 à la lecture. Une version future ou malformée est refusée sans remplacer le document ; la source logique reste en version 1.</td></tr>
           <tr><td>Documentation</td><td>Évolutive&nbsp;: elle décrit l'incrément livré, pas le plan. Les sections manquantes signifient des fonctionnalités non encore demandées.</td></tr>
         </tbody>
       </table>
@@ -938,7 +989,7 @@
     </div>
 
     <footer class="site-footer">
-      <p>Sapphire 3 · documentation visuelle · 42 captures réelles, 20 sections. Les captures précèdent les derniers incréments (généricité avancée, lambdas et fermetures, Web Worker, sauvegardes, workspace version 2, zoom sémantique), décrits dans le texte. Les repères d'annotation sont produits par la campagne de captures de l'application, en pourcentages de la vue 1600 × 900.</p>
+      <p>Sapphire 3 · documentation visuelle · 42 captures réelles, 20 sections. Les captures sont conservées ; elles précèdent notamment les classes, les apparences sombre/claire, les images liées et le workspace version 3. Les fonctionnalités courantes sont décrites dans le texte. Les repères d'annotation sont produits par la campagne de captures de l'application, en pourcentages de la vue 1600 × 900.</p>
     </footer>
   </main>
 

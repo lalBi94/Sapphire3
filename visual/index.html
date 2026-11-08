@@ -1,10 +1,10 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="fr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sapphire 3 — programmation visuelle fondée sur un AST</title>
-  <meta name="description" content="Sapphire 3 : environnement de programmation visuelle pour Windows, fondé sur un AST indépendant des langages cibles. Présentation, documentation visuelle et architecture du modèle logique.">
+  <meta name="description" content="Sapphire 3 : environnement desktop de programmation visuelle, avec classes, simulation locale et AST indépendant des langages cibles. Présentation, documentation et architecture.">
   <link rel="stylesheet" href="assets/site.css">
 </head>
 <body class="page page-home">
@@ -16,6 +16,7 @@
       <a href="index.html" aria-current="page">Projet</a>
       <a href="documentation.html">Documentation visuelle</a>
       <a href="ast.html">Le modèle AST</a>
+      <a href="dashboards.html">Dashboards</a>
     </nav>
   </header>
 
@@ -23,7 +24,9 @@
     <section class="hero" id="presentation">
       <div class="hero-layout">
         <div class="hero-copy">
-          <p class="kicker">Application desktop Windows · 0.1.0-beta.2</p>
+          <p class="kicker">Application desktop Windows, Linux et macOS · 0.1.0-beta.7</p>
+          <p>Windows vérifié ; paquets Linux et macOS construits mais non testés à l'exécution.
+          Le texte décrit le code courant, qui peut être plus récent que la release publiée.</p>
           <h1>Des blocs qui sont de vrai code, pas des dessins qui y ressemblent</h1>
           <p class="lede">
             Sapphire 3 est un environnement de programmation visuelle. Chaque carte posée sur le canvas est une
@@ -57,7 +60,7 @@
     <section class="stats" aria-label="Chiffres clés">
       <div class="stat"><b>20</b><span>sections de documentation</span></div>
       <div class="stat"><b>42</b><span>captures réelles annotées</span></div>
-      <div class="stat"><b>508</b><span>tests automatisés</span></div>
+      <div class="stat"><b>52</b><span>exemples locaux</span></div>
       <div class="stat"><b>8</b><span>langues d'interface</span></div>
     </section>
 
@@ -70,7 +73,10 @@
         <div class="card">
           <h3>Ce qui fonctionne aujourd'hui</h3>
           <p>
-            Canvas navigable, zoom sémantique et cartes Module, notes et images. Le langage couvre les fonctions et
+            Canvas navigable, zoom sémantique et cartes Module, Class, notes et images. Les classes proposent
+            des membres public/private, un constructeur, des instances avec <code>new</code>, <code>this</code>
+            et des types de classe. Pas d'héritage ni de polymorphisme ; les classes ne sont pas encore transpilées.
+            Le langage couvre les fonctions et
             types déclarés à la racine d'un module, conditions, boucles, <code>ForEach</code>, affectations, appels,
             tableaux, typage statique strict, références de fonction, pointeurs avec adresse, déréférencement et
             écriture, génériques avancés (plusieurs paramètres <code>T</code>, <code>U</code>, tableaux génériques
@@ -83,7 +89,13 @@
             fixes suivies par pas sans horloge de lecture, les contrats vérifiables, le gestionnaire de fenêtres, le constructeur
             de signatures de fonction, les thèmes prédéfinis et personnalisés, huit langues, l'import/export
             <code>.sp3</code>/JSON, l'autosauvegarde, la récupération des documents neufs, trois sauvegardes de
-            secours et un workspace version 2 migré depuis la version 1.
+            secours et un workspace version 3 : dossier choisi, <code>workspace.sp3</code>, images liées et export ZIP,
+            avec migration des versions 1 et 2. Le <b>mode exercice</b> ajoute un manifeste
+            dans le document : consignes, snapshot de départ, tests d'entrée ou de fonction exécutés par
+            <b>Check</b>, retour du robot, verrou d'édition par mot de passe haché (PBKDF2) et enregistrement d'une
+            solution ZIP lorsque tous les tests passent. Les thèmes ont une apparence sombre et claire commune.
+            Une <b>Discord Rich Presence</b> optionnelle, via un sidecar local sans compte ni token, affiche
+            l'activité courante, un chronomètre et deux boutons GitHub ; seuls des compteurs génériques sont publiés.
           </p>
         </div>
         <div class="card">
@@ -96,7 +108,8 @@
             ne tournent que lors d'un enregistrement direct. Les mutations structurelles du document gardent une
             analyse synchrone, même si les calculs lourds explicites passent par un Web Worker. Le rendu de monnaie
             des exemples est glouton pour un jeu canonique, et l'exemple de calcul utilise une intégrale numérique de
-            Simpson.
+            Simpson. Le mode exercice ne verrouille que l'interface&nbsp;: les tests restent lisibles et modifiables
+            dans le JSON, et le mot de passe ne chiffre pas le fichier.
           </p>
         </div>
         <div class="card">
@@ -127,6 +140,23 @@
       </div>
     </section>
 
+    <section id="dashboards">
+      <div class="section-title">
+        <h2>Dashboards exportés</h2>
+        <span class="tag">10 exemples réels</span>
+      </div>
+      <p>
+        Dix fichiers HTML autonomes, interactifs, générés depuis les exemples locaux : widgets, Run/Pause/Stop,
+        Run autonomous, thèmes clair/sombre et huit langues. Les cadres ci-dessous exécutent le vrai moteur ;
+        rien ne démarre avant un clic.
+      </p>
+      <div class="dashboard-preview-grid">
+        <iframe src="dashboards/rgbMixer.html" title="Dashboard RGB mixer" loading="lazy"></iframe>
+        <iframe src="dashboards/trafficControl.html" title="Dashboard Traffic control" loading="lazy"></iframe>
+      </div>
+      <p><a class="button button--primary" href="dashboards.html">Voir les 10 dashboards</a></p>
+    </section>
+
     <section id="demarche">
       <h2>Comment le projet est conduit</h2>
       <p>
@@ -139,13 +169,13 @@
         <p><b>Le code est écrit avec des assistants.</b> Sapphire 3 est un projet conduit en dialogue avec des
         outils d'assistance au développement (OpenCode, DeepSeek V3.2, ChatGPT Sol&nbsp;6.1, GLM 3.2, Nemotron de
         NVIDIA)&nbsp;: c'est un mode de fabrication assumé, pas un détail caché. Ce qui l'encadre&nbsp;: chaque
-        incrément est relu, testé (508 tests Node et Python, runner Node natif, sans dépendance de test) et
+        incrément est relu, testé (suite Node et Python, runner Node natif, sans dépendance de test) et
         validé dans l'interface avant d'être retenu ; la CI GitHub Actions rejoue tests et build sur chaque pull
         request. Le vocabulaire, les contrats et les limites sont décidés par le projet, pas par le générateur.</p>
         <p style="margin-bottom:0"><b>Cette documentation évolue avec le projet.</b> Elle décrit l'état atteint, pas
         un plan. Les pages sont produites en même temps que les fonctionnalités&nbsp;: une capacité ajoutée ailleurs
-        se traduit ici par une nouvelle capture et une nouvelle section, et une capacité non encore livrée y est
-        explicitement marquée comme absente.</p>
+        se traduit ici par une nouvelle section ou sous-section, parfois sans nouvelle capture, et une capacité non
+        encore livrée y est explicitement marquée comme absente.</p>
       </div>
       <h3>Technologies</h3>
       <table>
@@ -156,10 +186,10 @@
           <tr><td>Interface</td><td><code>React 19.3.1</code>, composants fonctionnels JSX</td><td>Canvas plein écran, panneaux flottants déplacables, aucune bibliothèque d'interface tierce</td></tr>
           <tr><td>Build</td><td><code>Vite 8.3.5</code></td><td>Serveur de développement local, compilation du frontend pour la distribution</td></tr>
           <tr><td>Desktop</td><td><code>Neutralinojs 6.10.0</code> (<code>neu 11.8.0</code>)</td><td>Fenêtre native, dialogues de fichiers, accès disque&nbsp;; aucun backend, aucun service distant à l'exécution</td></tr>
-          <tr><td>Style</td><td>CSS natif + jetons dans <code>src/styles/tokens.css</code></td><td>Six palettes prédéfinies et thèmes personnalisés, variables sémantiques, pas de charge distant de police ou de feuille de style</td></tr>
+          <tr><td>Style</td><td>CSS natif + jetons dans <code>src/styles/tokens.css</code></td><td>Sept palettes prédéfinies et thèmes personnalisés, variables sémantiques, pas de charge distant de police ou de feuille de style</td></tr>
           <tr><td>Icônes</td><td><code>lucide-react ^1.64.0</code></td><td>Utilisés comme glyphes décoratifs, toujours accompagnés d'un libellé ou d'<code>aria-label</code></td></tr>
           <tr><td>Moteur logique</td><td>JavaScript pur dans <code>src/utils/logic/</code></td><td>Sans React, sans DOM, sans API native&nbsp;; source JSON versionnée, importable et testable seul</td></tr>
-          <tr><td>Tests</td><td><code>node --test</code></td><td>508 tests&nbsp;: scénarios valides, invalides, incomplets, localisations, non-mutation, conservation JSON, migrations, sauvegardes, widgets graphiques, notifications par mascotte, aimantation des modules et vitesse de simulation</td></tr>
+          <tr><td>Tests</td><td><code>node --test</code></td><td>Scénarios Node et Python : valides, invalides, incomplets, classes, localisations, non-mutation, conservation JSON, migrations, sauvegardes, widgets graphiques, exercices et verrou PBKDF2, notifications par mascotte, aimantation des modules et vitesse de simulation</td></tr>
           <tr><td>Documentation AST</td><td>LaTeX → PDF</td><td><code>abstract/ARCHITECTURE_AST.tex</code> et son PDF, compilés par <code>pnpm docs:ast</code></td></tr>
         </tbody>
       </table>
@@ -171,7 +201,7 @@
     </section>
 
     <section id="par-ou-commencer">
-      <h2>Trois lectures possibles</h2>
+      <h2>Quatre lectures possibles</h2>
       <div class="grid">
         <div class="card">
           <h3><a href="documentation.html">Documentation visuelle</a></h3>
@@ -186,6 +216,11 @@
           <p>Ce que le moteur stocke vraiment&nbsp;: la source JSON v1, les trois relations indépendantes, les
           vingt-huit constructions et leurs slots, le typage strict, les portées, les diagnostics, puis la route
           vers l'analyse, la simulation et la transpilation.</p>
+        </div>
+        <div class="card">
+          <h3><a href="dashboards.html">Dashboards exportés</a></h3>
+          <p>Dix fichiers HTML autonomes et interactifs : widgets, Run/Pause/Stop, Run autonomous, thèmes et
+          langues. Chaque exemple est régénéré après les changements du dashboard.</p>
         </div>
         <div class="card">
           <h3><a href="../ARCHITECTURE_AST.pdf">Architecture AST (PDF)</a></h3>
