@@ -34,7 +34,7 @@
         <li>10 fichiers autonomes</li>
         <li>Entrées aléatoires</li>
         <li>Classes et modules</li>
-        <li>7 familles de widgets</li>
+        <li>6 familles de widgets</li>
         <li>Run / Pause / Stop</li>
         <li>Run autonomous</li>
         <li>8 langues</li>
@@ -48,18 +48,84 @@
         <span class="tag">Générés depuis les exemples locaux</span>
       </div>
       <p>
-        La sélection privilégie les entrées aléatoires à chaque nouvelle simulation et les exemples à classes/modules.
-        <b>Run autonomous</b> rejoue la même trace calculée : ses boucles ne tirent pas de nouvelles valeurs.
-        Arrêtez puis relancez pour renouveler les données. La sélection couvre Screen, LED, RGB LED, Gauge,
-        ProgressBar, BarChart et Heatmap, aux niveaux Medium et Hard.
+        La sélection mêle cinq démos visuelles déjà présentes et cinq créations dédiées. Elle couvre géométrie 3D,
+        rosaces progressives, signaux, croissance cellulaire et trajectoires. <b>Run autonomous</b> rejoue la même
+        trace calculée : ses boucles ne tirent pas de nouvelles valeurs. Arrêtez puis relancez pour renouveler les
+        données. Widgets représentés : Screen, XY plot, Oscilloscope, ProgressBar, Gauge et RGB LED.
       </p>
 
       <div class="dashboard-gallery">
         <article class="dashboard-card">
           <div class="dashboard-card__head">
-            <p class="kicker">01 · Aléatoire</p>
+            <p class="kicker">01 · 3D</p>
+            <h3>Rotating cube</h3>
+            <p>Un cube filaire en rotation, deux projections synchronisées : perspective et orthographique.</p>
+            <ul class="meta-chips"><li>Screen ×2</li><li>Géométrie 3D</li></ul>
+          </div>
+          <div class="dashboard-frame"><iframe src="dashboards/rotatingCube.html" title="Dashboard Rotating cube" loading="lazy"></iframe></div>
+          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/rotatingCube.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
+        </article>
+
+        <article class="dashboard-card">
+          <div class="dashboard-card__head">
+            <p class="kicker">02 · Animation</p>
+            <h3>Neon rose</h3>
+            <p>Une rosace multicolore se dessine point par point : cinq pétales, 32 images, calculs SP3.</p>
+            <ul class="meta-chips"><li>Screen</li><li>32 images</li><li>Module Math</li></ul>
+          </div>
+          <div class="dashboard-frame"><iframe src="dashboards/neonRose.html" title="Dashboard Neon rose" loading="lazy"></iframe></div>
+          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/neonRose.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
+        </article>
+
+        <article class="dashboard-card">
+          <div class="dashboard-card__head">
+            <p class="kicker">03 · Animation</p>
+            <h3>Spirograph</h3>
+            <p>Une hypotrochoïde lumineuse se construit progressivement sur un écran pixel.</p>
+            <ul class="meta-chips"><li>Screen</li><li>Trace progressive</li></ul>
+          </div>
+          <div class="dashboard-frame"><iframe src="dashboards/spirograph.html" title="Dashboard Spirograph" loading="lazy"></iframe></div>
+          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/spirograph.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
+        </article>
+
+        <article class="dashboard-card">
+          <div class="dashboard-card__head">
+            <p class="kicker">04 · Signaux</p>
+            <h3>Harmonic studio</h3>
+            <p>Trois signaux superposés : porteuse, harmonique, battements. Explorez chaque canal.</p>
+            <ul class="meta-chips"><li>Oscilloscope</li><li>3 canaux</li><li>Module Math</li></ul>
+          </div>
+          <div class="dashboard-frame"><iframe src="dashboards/harmonicStudio.html" title="Dashboard Harmonic studio" loading="lazy"></iframe></div>
+          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/harmonicStudio.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
+        </article>
+
+        <article class="dashboard-card">
+          <div class="dashboard-card__head">
+            <p class="kicker">05 · Simulation</p>
+            <h3>Coral growth</h3>
+            <p>Une structure organique émerge d’un automate cellulaire, génération après génération.</p>
+            <ul class="meta-chips"><li>Screen</li><li>Automate cellulaire</li></ul>
+          </div>
+          <div class="dashboard-frame"><iframe src="dashboards/coral.html" title="Dashboard Coral growth" loading="lazy"></iframe></div>
+          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/coral.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
+        </article>
+
+        <article class="dashboard-card">
+          <div class="dashboard-card__head">
+            <p class="kicker">06 · Classes</p>
+            <h3>Orbital trails</h3>
+            <p>Deux satellites jaune/cyan tracent un huit : une classe Rotor, un module Math, un écran.</p>
+            <ul class="meta-chips"><li>Screen</li><li>Classe Rotor</li><li>Module Math</li></ul>
+          </div>
+          <div class="dashboard-frame"><iframe src="dashboards/orbitalTrails.html" title="Dashboard Orbital trails" loading="lazy"></iframe></div>
+          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/orbitalTrails.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
+        </article>
+
+        <article class="dashboard-card">
+          <div class="dashboard-card__head">
+            <p class="kicker">07 · Aléatoire</p>
             <h3>Starfield</h3>
-            <p>Champ d’étoiles : seize tirages aléatoires par image sur un écran 64 × 36.</p>
+            <p>Un ciel pixel qui se renouvelle : huit étoiles aléatoires par image.</p>
             <ul class="meta-chips"><li>Screen</li><li>Random</li></ul>
           </div>
           <div class="dashboard-frame"><iframe src="dashboards/starfield.html" title="Dashboard Starfield" loading="lazy"></iframe></div>
@@ -68,86 +134,20 @@
 
         <article class="dashboard-card">
           <div class="dashboard-card__head">
-            <p class="kicker">02 · Modules</p>
-            <h3>Rover survey</h3>
-            <p>Rover, artefact aléatoire, jauge et LED : sept modules coopèrent.</p>
-            <ul class="meta-chips"><li>Screen</li><li>Gauge</li><li>LED</li><li>7 modules</li></ul>
+            <p class="kicker">08 · Signaux</p>
+            <h3>Chirp ribbon</h3>
+            <p>Une onde se resserre vers les bords : une fréquence qui change sous vos yeux.</p>
+            <ul class="meta-chips"><li>XY plot</li><li>64 points</li><li>Module Math</li></ul>
           </div>
-          <div class="dashboard-frame"><iframe src="dashboards/roverSurvey.html" title="Dashboard Rover survey" loading="lazy"></iframe></div>
-          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/roverSurvey.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
-        </article>
-
-        <article class="dashboard-card">
-          <div class="dashboard-card__head">
-            <p class="kicker">03 · Aléatoire</p>
-            <h3>Matrix rain</h3>
-            <p>Pluie matricielle verte : hauteurs initiales aléatoires de trois colonnes, puis boucle périodique.</p>
-            <ul class="meta-chips"><li>Screen</li><li>Random</li></ul>
-          </div>
-          <div class="dashboard-frame"><iframe src="dashboards/rain.html" title="Dashboard Matrix rain" loading="lazy"></iframe></div>
-          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/rain.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
-        </article>
-
-        <article class="dashboard-card">
-          <div class="dashboard-card__head">
-            <p class="kicker">04 · Modules</p>
-            <h3>Signal lab</h3>
-            <p>Signal, seuils et témoins lumineux répartis sur sept modules.</p>
-            <ul class="meta-chips"><li>Screen</li><li>Gauge</li><li>LED</li><li>7 modules</li></ul>
-          </div>
-          <div class="dashboard-frame"><iframe src="dashboards/signalLab.html" title="Dashboard Signal lab" loading="lazy"></iframe></div>
-          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/signalLab.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
-        </article>
-
-        <article class="dashboard-card">
-          <div class="dashboard-card__head">
-            <p class="kicker">05 · Aléatoire</p>
-            <h3>Car dashboard</h3>
-            <p>Tableau de bord : écran, jauge et cible aléatoire.</p>
-            <ul class="meta-chips"><li>Screen</li><li>Gauge</li><li>Random</li></ul>
-          </div>
-          <div class="dashboard-frame"><iframe src="dashboards/carDashboard.html" title="Dashboard Car dashboard" loading="lazy"></iframe></div>
-          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/carDashboard.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
-        </article>
-
-        <article class="dashboard-card">
-          <div class="dashboard-card__head">
-            <p class="kicker">06 · Classes</p>
-            <h3>Reactor control</h3>
-            <p>Deux classes coopèrent et pilotent jauge, barres et LED ; cible aléatoire.</p>
-            <ul class="meta-chips"><li>Gauge</li><li>BarChart</li><li>LED</li><li>2 classes</li></ul>
-          </div>
-          <div class="dashboard-frame"><iframe src="dashboards/reactorControl.html" title="Dashboard Reactor control" loading="lazy"></iframe></div>
-          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/reactorControl.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
-        </article>
-
-        <article class="dashboard-card">
-          <div class="dashboard-card__head">
-            <p class="kicker">07 · Classes</p>
-            <h3>Thermostat</h3>
-            <p>Classe Thermostat, hystérésis et température de départ aléatoire.</p>
-            <ul class="meta-chips"><li>BarChart</li><li>Gauge</li><li>LED</li><li>Classe</li></ul>
-          </div>
-          <div class="dashboard-frame"><iframe src="dashboards/thermostat.html" title="Dashboard Thermostat" loading="lazy"></iframe></div>
-          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/thermostat.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
-        </article>
-
-        <article class="dashboard-card">
-          <div class="dashboard-card__head">
-            <p class="kicker">08 · Classes</p>
-            <h3>Damped spring</h3>
-            <p>Classe Spring, position initiale aléatoire, barres signées et jauge.</p>
-            <ul class="meta-chips"><li>BarChart</li><li>Gauge</li><li>Classe</li></ul>
-          </div>
-          <div class="dashboard-frame"><iframe src="dashboards/dampedSpring.html" title="Dashboard Damped spring" loading="lazy"></iframe></div>
-          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/dampedSpring.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
+          <div class="dashboard-frame"><iframe src="dashboards/chirpRibbon.html" title="Dashboard Chirp ribbon" loading="lazy"></iframe></div>
+          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/chirpRibbon.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
         </article>
 
         <article class="dashboard-card">
           <div class="dashboard-card__head">
             <p class="kicker">09 · Widgets</p>
             <h3>RGB mixer</h3>
-            <p>Écran, trois progressions, jauge et LED RVB ; décalage de couleur aléatoire.</p>
+            <p>Trois couleurs, quatre bandes, une LED RVB : le mélange se lit en temps réel.</p>
             <ul class="meta-chips"><li>Screen</li><li>ProgressBar</li><li>Gauge</li><li>RGB LED</li></ul>
           </div>
           <div class="dashboard-frame"><iframe src="dashboards/rgbMixer.html" title="Dashboard RGB mixer" loading="lazy"></iframe></div>
@@ -156,13 +156,13 @@
 
         <article class="dashboard-card">
           <div class="dashboard-card__head">
-            <p class="kicker">10 · Simulation</p>
-            <h3>Traffic control</h3>
-            <p>Heatmap, barres et progression ; charge et files décalées aléatoirement.</p>
-            <ul class="meta-chips"><li>Heatmap</li><li>BarChart</li><li>ProgressBar</li></ul>
+            <p class="kicker">10 · Signaux</p>
+            <h3>Wave packet</h3>
+            <p>Une onde émerge puis s’efface dans une enveloppe gaussienne ; zoom et curseur interactifs.</p>
+            <ul class="meta-chips"><li>XY plot</li><li>64 points</li><li>Module Math</li></ul>
           </div>
-          <div class="dashboard-frame"><iframe src="dashboards/trafficControl.html" title="Dashboard Traffic control" loading="lazy"></iframe></div>
-          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/trafficControl.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
+          <div class="dashboard-frame"><iframe src="dashboards/wavePacket.html" title="Dashboard Wave packet" loading="lazy"></iframe></div>
+          <p class="dashboard-card__actions"><a class="button button--ghost" href="dashboards/wavePacket.html" target="_blank" rel="noopener">Ouvrir en plein écran</a></p>
         </article>
       </div>
     </section>
