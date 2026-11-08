@@ -30,8 +30,8 @@ export const dashboardStyles = String.raw`
   --db-radius-control: 3px;
   --db-radius-panel: 5px;
   --db-corner: bevel;
-  --db-panel-surface: linear-gradient(90deg, transparent, var(--db-primary) 35%, var(--db-secondary) 65%, transparent) -100% 0 / 28% 2px no-repeat, var(--db-raised);
-  --db-shadow-panel: 0 12px 28px color-mix(in srgb, black 42%, transparent), 0 -8px 18px -8px color-mix(in srgb, var(--db-primary) 30%, transparent), inset 0 0 0 1px #ffffff08;
+  --db-panel-surface: var(--db-raised);
+  --db-shadow-panel: 0 12px 28px color-mix(in srgb, black 42%, transparent), inset 0 0 0 1px #ffffff08;
   --db-duration: 120ms;
   --db-easing: ease-out;
   --db-focus: var(--color-focus, var(--db-primary));
@@ -398,20 +398,8 @@ p, h1, h2, h3 { margin: 0; }
   border-radius: var(--db-radius-panel);
   corner-shape: var(--db-corner);
   background: var(--db-panel-surface);
-  box-shadow: var(--db-shadow-panel), 0 -16px 30px -6px color-mix(in srgb, var(--db-primary) 52%, transparent);
+  box-shadow: var(--db-shadow-panel);
   overflow: hidden;
-}
-.db-panel::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--db-primary) 18%, var(--db-secondary) 82%, transparent);
-  box-shadow: 0 3px 16px color-mix(in srgb, var(--db-primary) 38%, transparent);
-  opacity: 0.9;
-  pointer-events: none;
 }
 .db-panel[hidden] { display: none !important; }
 .db-panel--dragging { outline: 1px dashed var(--db-primary); outline-offset: 2px; }
@@ -852,7 +840,6 @@ p, h1, h2, h3 { margin: 0; }
 }
 
 @media (prefers-contrast: more), (forced-colors: active) {
-  .db-panel::before { display: none; }
   .db-button--primary { background: var(--db-primary); color: var(--db-on-primary); border-color: currentColor; }
   .db-led__dot--on { background: var(--db-primary); box-shadow: none; border-color: currentColor; }
   .db-led__dot--rgb { background: var(--rgb-led-color, #000); box-shadow: none; border-color: currentColor; }
