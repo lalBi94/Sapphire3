@@ -2,6 +2,12 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Alignement documentaire — 8 novembre 2026
+
+- Comparaison ciblée avec `src/dashboard/client.js`, `styles.js`, `src/utils/dashboardExport.js`, `examples.js` et les tests associés : catalogue courant de 52 exemples (6 simples, 26 moyens, 20 difficiles), Spirograph en 12 images 64×40 et Pendulum wave en 9 images 56×24 avec huit pendules. Les images sont précalculées à la construction des exemples, puis présentées par le moteur ; aucune modification du simulateur.
+- Clarifications : cartes du dashboard sans halo, vitesse par curseur 1–100, zoom `cover` avec recadrage, lien GitHub uniquement sur clic. Les noms et sorties ne sont pas traduits ; le genre du nœud courant reste dans la langue d'export dans le code observé.
+- Doublon Threadlock Systems supprimé du rapport LaTeX ; aucune capture renouvelée, aucun code source modifié. Les rapports de tests et de release antérieurs restent historiques, sans nouvelle certification applicative.
+
 ## Export Web Dashboard — 8 novembre 2026
 
 - **Settings → Export → Web dashboard** configure `name`, `description`, `themeId` et une palette personnalisée issue des thèmes existants, puis produit un unique `dashboard.html` autonome. Aucun serveur, CDN, police distante ou dépendance externe ; le fichier s'ouvre hors ligne.

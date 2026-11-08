@@ -926,20 +926,27 @@
       <p>
         <b>Settings → Export → Web dashboard</b> produit un unique fichier <code>dashboard.html</code> hors ligne.
         Il embarque le moteur de simulation réel et les sept widgets graphiques, dont l'écran se zoome automatiquement
-        pour remplir sa carte, avec <b>Run</b>, <b>Pause</b>,
+        pour remplir sa carte sans déformation (bords rognés si nécessaire), avec <b>Run</b>, <b>Pause</b>,
         <b>Stop</b>, un curseur de vitesse de 1 à 100, la sortie, le nœud courant et une
         bascule clair/sombre. Il reprend la direction Void/Acid de
-        l'application — tokens, panneaux biseautés et polices Inter, Space Grotesk et JetBrains Mono embarquées.
+        l'application — tokens, panneaux biseautés sans halo décoratif et polices Inter, Space Grotesk et JetBrains Mono embarquées.
         Le pied de page affiche le logo Sapphire 3, la version utilisée, la mention <b>Threadlock Systems</b> et un
         bouton GitHub sombre vers le dépôt.
         Rien ne s'exécute au chargement&nbsp;; Pause conserve l'état visible et Stop réinitialise la session. Cliquer
         sur la barre de progression met immédiatement en pause et revient au pas choisi. Les actions et les modes
         portent des icônes SVG inline&nbsp;; un toast local confirme chaque action et l'annonce aux lecteurs d'écran.
-        Un sélecteur reprend les langues de l'application et mémorise le choix du visiteur.
-        Le
+        Un sélecteur reprend les langues de l'application et mémorise le choix du visiteur ; l'arabe active la
+        direction droite à gauche. Les noms saisis et les sorties du programme restent inchangés.
+        Aucun chargement distant n'est nécessaire ; seul le clic volontaire sur GitHub ouvre le dépôt en ligne. Le
         visiteur peut déplacer, redimensionner, masquer et restaurer les panneaux&nbsp;; sa disposition reste dans son
         navigateur, sans modifier le HTML ni le projet. La palette choisie est imposée et sa variante claire est
         dérivée avec contrôle du contraste.
+        Limite actuelle de traduction : le genre du nœud dans <b>Current execution</b> reste dans la langue d'export.
+      </p>
+      <p>
+        Dans <b>Medium → Animation</b>, Spirograph trace sa courbe en 12 images (64×40) et Pendulum wave anime
+        huit pendules en 9 images (56×24). Les grilles sont précalculées à la construction des exemples puis
+        affichées par <code>blit</code>/<code>present</code>, sans dépasser 10&nbsp;000 pas de simulation.
       </p>
     </section>
 
