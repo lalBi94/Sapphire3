@@ -165,7 +165,6 @@ export function buildDashboardDocument({
 <a class="db-skip-link" data-skip href="#dashboard-stage">${escapeDashboardHtml(labels.skip ?? 'Skip to widgets')}</a>
 <header class="db-header">
   <div class="db-identity">
-    <p class="db-eyebrow">Sapphire 3</p>
     <h1 class="db-title">${title}</h1>
     ${summary ? `<p class="db-description">${summary}</p>` : ''}
   </div>

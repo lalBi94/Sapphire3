@@ -92,25 +92,6 @@ p, h1, h2, h3 { margin: 0; }
 }
 
 .db-identity { min-width: 0; max-width: 820px; }
-.db-eyebrow {
-  margin: 0 0 8px;
-  color: var(--db-primary);
-  font-family: var(--db-display);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-.db-eyebrow::before {
-  content: '';
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-right: 8px;
-  border-radius: 1px;
-  background: var(--db-primary);
-  vertical-align: 1px;
-}
 .db-title {
   margin: 0;
   color: var(--db-text);
