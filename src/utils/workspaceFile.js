@@ -2,7 +2,7 @@ import { isId, isRecord, sourceFormatVersion, moduleKinds, createProject } from 
 import { isContract } from './logic/contracts.js'
 import { serializeSource } from './logic/serialization.js'
 import { screenLimits } from './logic/mathNatives.js'
-import { barChartViews, heatmapViews, logicalCardTypes, moduleCardTypes, gaugeViews, ledViews, oscilloscopeViews, rgbLedViews, moduleTypes, minimumModuleSize, progressViews, screenViews, xyPlotViews } from './moduleTypes.js'
+import { barChartViews, heatmapViews, logicalCardTypes, moduleCardTypes, gaugeViews, inputButtonViews, ledViews, oscilloscopeViews, rgbLedViews, moduleTypes, minimumModuleSize, progressViews, screenViews, xyPlotViews } from './moduleTypes.js'
 import { heatmapMaximumDimension } from './logic/heatmapState.js'
 import { isEmbeddedImage, isImageReference } from './embeddedImage.js'
 import { validateExercise } from './exercise.js'
@@ -83,6 +83,7 @@ function validateProject(project) {
   const heatmapIndices = new Set()
   const ledIndices = new Set()
   const rgbLedIndices = new Set()
+  const inputButtonIndices = new Set()
   for (const module of project.modules) {
     if (!isRecord(module) || !isId(module.id) || moduleIds.has(module.id) || !Object.values(moduleKinds).includes(module.kind) || !isId(module.name) || !['rootNodeIds', 'imports', 'exports'].every((field) => Array.isArray(module[field]))) {
       throw workspaceError('Invalid module data. Legacy Main modules are not supported.')
@@ -107,6 +108,8 @@ function validateProject(project) {
     if (module.led) ledIndices.add(module.led.index)
     if (module.rgbLed !== undefined && (!isRecord(module.rgbLed) || !Number.isInteger(module.rgbLed.index) || module.rgbLed.index < 1 || rgbLedIndices.has(module.rgbLed.index))) throw workspaceError('Invalid RGB LED module data.')
     if (module.rgbLed) rgbLedIndices.add(module.rgbLed.index)
+    if (module.inputButton !== undefined && (!isRecord(module.inputButton) || !Number.isInteger(module.inputButton.index) || module.inputButton.index < 1 || !['toggle', 'hold'].includes(module.inputButton.mode) || inputButtonIndices.has(module.inputButton.index))) throw workspaceError('Invalid input button module data.')
+    if (module.inputButton) inputButtonIndices.add(module.inputButton.index)
   }
   const nodeIds = new Set()
   for (const node of project.nodes) {
@@ -164,7 +167,9 @@ function validatePresentation(project, presentation) {
                 ? !modules.has(card.id) || !modules.get(card.id).oscilloscope
               : card.type === 'heatmap'
                 ? !modules.has(card.id) || !modules.get(card.id).heatmap
-                : card.type === 'led'
+                : card.type === 'toggleButton' || card.type === 'holdButton'
+                  ? !modules.has(card.id) || !modules.get(card.id).inputButton || !Number.isInteger(modules.get(card.id).inputButton.index) || modules.get(card.id).inputButton.mode !== (card.type === 'holdButton' ? 'hold' : 'toggle') || (card.pressed !== undefined && typeof card.pressed !== 'boolean')
+                  : card.type === 'led'
                   ? !modules.has(card.id) || !modules.get(card.id).led
                   : card.type === 'rgbLed'
                     ? !modules.has(card.id) || !modules.get(card.id).rgbLed
@@ -186,6 +191,7 @@ function validatePresentation(project, presentation) {
     if (card.heatmapView !== undefined && !heatmapViews.includes(card.heatmapView)) throw workspaceError('Invalid heatmap view.')
     if (card.ledView !== undefined && !ledViews.includes(card.ledView)) throw workspaceError('Invalid LED view.')
     if (card.rgbLedView !== undefined && !rgbLedViews.includes(card.rgbLedView)) throw workspaceError('Invalid RGB LED view.')
+    if (card.inputButtonView !== undefined && !inputButtonViews.includes(card.inputButtonView)) throw workspaceError('Invalid input button view.')
     ids.add(card.id)
   }
   if (project.modules.some((module) => !ids.has(module.id))) throw workspaceError('A module is missing its visual card.')
@@ -198,8 +204,8 @@ function validatePresentation(project, presentation) {
 // N'écrit l'emoji ou les drapeaux de carte que lorsqu'ils sont définis, pour garder les fichiers habituels inchangés.
 function exportableCard(card, nodes) {
   // `screenScale` n'est plus produit : l'écran se dimensionne avec la carte, mais reste toléré à la relecture.
-  const { hidden, locked, emoji, screenView, gaugeView, progressView, barChartView, xyPlotView, oscilloscopeView, heatmapView, ledView, rgbLedView, screenScale, imageRef, ...rest } = card
-  return { ...rest, ...(typeof imageRef === 'string' && imageRef.length > 0 ? { imageRef } : {}), ...(hidden ? { hidden: true } : {}), ...(locked ? { locked: true } : {}), ...(emoji ? { emoji } : {}), ...(screenView && screenView !== 'screen' ? { screenView } : {}), ...(gaugeView && gaugeView !== 'gauge' ? { gaugeView } : {}), ...(progressView && progressView !== 'progress' ? { progressView } : {}), ...(barChartView && barChartView !== 'barChart' ? { barChartView } : {}), ...(xyPlotView && xyPlotView !== 'xyPlot' ? { xyPlotView } : {}), ...(oscilloscopeView && oscilloscopeView !== 'oscilloscope' ? { oscilloscopeView } : {}), ...(heatmapView && heatmapView !== 'heatmap' ? { heatmapView } : {}), ...(ledView && ledView !== 'led' ? { ledView } : {}), ...(rgbLedView && rgbLedView !== 'rgbLed' ? { rgbLedView } : {}), expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) }
+  const { hidden, locked, emoji, screenView, gaugeView, progressView, barChartView, xyPlotView, oscilloscopeView, heatmapView, ledView, rgbLedView, inputButtonView, screenScale, imageRef, ...rest } = card
+  return { ...rest, ...(typeof imageRef === 'string' && imageRef.length > 0 ? { imageRef } : {}), ...(hidden ? { hidden: true } : {}), ...(locked ? { locked: true } : {}), ...(emoji ? { emoji } : {}), ...(screenView && screenView !== 'screen' ? { screenView } : {}), ...(gaugeView && gaugeView !== 'gauge' ? { gaugeView } : {}), ...(progressView && progressView !== 'progress' ? { progressView } : {}), ...(barChartView && barChartView !== 'barChart' ? { barChartView } : {}), ...(xyPlotView && xyPlotView !== 'xyPlot' ? { xyPlotView } : {}), ...(oscilloscopeView && oscilloscopeView !== 'oscilloscope' ? { oscilloscopeView } : {}), ...(heatmapView && heatmapView !== 'heatmap' ? { heatmapView } : {}), ...(ledView && ledView !== 'led' ? { ledView } : {}), ...(rgbLedView && rgbLedView !== 'rgbLed' ? { rgbLedView } : {}), ...(inputButtonView && inputButtonView !== 'button' ? { inputButtonView } : {}), expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) }
 }
 
 // Contrôle aussi le snapshot de départ d'un exercice, avec les mêmes règles que le document courant.

@@ -79,6 +79,12 @@ export function reduceDocument(state, action) {
     if (state.cards.some((entry) => entry.id === card.id)) return state
     return withSource({ ...state, cards: [...state.cards, card] }, { ...state.project, modules: [...state.project.modules, action.led.module], nodes: [...state.project.nodes, ...action.led.nodes] })
   }
+  // Un bouton d'entrée est une globale booléenne derrière une carte interactive.
+  if (action.type === 'createInputButton') {
+    const card = action.card
+    if (state.cards.some((entry) => entry.id === card.id)) return state
+    return withSource({ ...state, cards: [...state.cards, card] }, { ...state.project, modules: [...state.project.modules, action.inputButton.module], nodes: [...state.project.nodes, ...action.inputButton.nodes] })
+  }
   // Une LED RVB reprend la même carte logique, avec trois canaux au lieu d'un booléen.
   if (action.type === 'createRgbLed') {
     const card = action.card

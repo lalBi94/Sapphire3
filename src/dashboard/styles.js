@@ -589,6 +589,30 @@ p, h1, h2, h3 { margin: 0; }
 }
 .db-led__label { color: var(--db-muted); font-family: var(--db-mono); font-size: 10px; letter-spacing: 0.04em; }
 
+.db-input { display: grid; place-items: center; align-content: center; gap: 8px; width: 100%; height: 100%; padding: 10px; }
+.db-input__button {
+  width: 100%;
+  min-height: 58px;
+  padding: 10px 12px;
+  border: 1px solid var(--db-border);
+  border-radius: var(--db-radius-control);
+  color: var(--db-text);
+  background: linear-gradient(180deg, var(--db-raised), var(--db-surface));
+  font-family: var(--db-mono);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: border-color var(--db-duration) var(--db-easing), background var(--db-duration) var(--db-easing), box-shadow var(--db-duration) var(--db-easing);
+}
+.db-input__button:hover { border-color: var(--db-border-hover); }
+.db-input__button:focus-visible { outline: 2px solid var(--db-focus); outline-offset: 2px; }
+.db-input__button--pressed {
+  border-color: var(--db-primary);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--db-primary) 28%, var(--db-raised)), color-mix(in srgb, var(--db-primary) 14%, var(--db-surface)));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--db-primary) 40%, transparent), 0 0 12px color-mix(in srgb, var(--db-primary) 20%, transparent);
+}
+.db-input__label { color: var(--db-muted); font-family: var(--db-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
+
 .db-gauge { display: grid; place-items: center; width: 100%; height: 100%; min-height: 0; padding: 6px; }
 .db-gauge svg { width: 100%; height: 100%; max-width: 260px; max-height: 260px; overflow: visible; }
 .db-gauge__track { fill: none; stroke: color-mix(in srgb, var(--db-border) 65%, transparent); stroke-width: 13; stroke-linecap: round; }

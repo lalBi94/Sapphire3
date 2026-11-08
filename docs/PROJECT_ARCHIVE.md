@@ -2,6 +2,13 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Boutons d'entrée interactifs — 8 novembre 2026
+
+- Ajout de **Widgets → Entrées** avec `toggleButton` et `holdButton`. Chaque carte est adossée à un module caché ordinaire qui déclare une globale booléenne `INPUT_SP3_GLOBAL_ISPRESS_<n>` et exporte `isPress()`. Le toggle bascule à chaque clic ; le hold reste vrai pendant l'appui et redevient faux au relâchement (pointeur, clavier ou perte de focus).
+- L'état `pressed` est conservé dans la présentation de la carte, hors source logique. L'application relance le Run au changement ; le dashboard reprend les boutons, met à jour `state.inputs` et relance le moteur. Le moteur accepte désormais l'option `inputs` (identifiant de nœud global → valeur) appliquée après l'initialisation des globales et avant le point d'entrée.
+- Aperçu/code, flèches de dépendance, renommage, redimensionnement et dashboard sont pris en charge. La transpilation JavaScript/Python est refusée par `TRANSPILE_INPUT_BUTTON_UNSUPPORTED`.
+- Vérifications : **610 tests Node/Python réussis**, build Vite, `pnpm dashboards:build`, contrôle navigateur des deux boutons (toggle, hold), de la vue code (`INPUT_SP3_GLOBAL_ISPRESS_1`, `isPress`) et d'un dashboard généré (sortie `false`, puis `true` après clic). Détail des tests dans `tests/workspace/inputButtons.test.js`.
+
 ## Système solaire képlérien — 8 novembre 2026
 
 - Nouvel exemple **Solar system** (Hard → Simulation), écran 128×96 : huit planètes suivent des ellipses képlériennes autour du Soleil, avec demi-grands axes, excentricités et périodes réelles. Une projection radiale logarithmique garde tout le système visible. Seule la Terre (bloc bleu 2×2 avec un pixel clair) reçoit une traînée : son orbite complète est dessinée en 64 repères, puis sa position courante et sa traînée accumulée sont ajoutées à une grille persistante. Les autres planètes sont copiées chaque image dans une grille temporaire, sans accumulation, et restent des points uniques. L'écran rejoue la séquence tant que le Run est actif : la lecture boucle sur les images existantes pendant que la simulation est relancée, sans figer le canvas.

@@ -4,8 +4,9 @@ import { ledGlobalName } from './logic/ledState.js'
 import { rgbLedGlobalName } from './logic/rgbLedState.js'
 import { barChartGlobalName } from './logic/barChartState.js'
 import { heatmapGlobalName } from './logic/heatmapState.js'
+import { inputButtonGlobalName } from './logic/inputButtonState.js'
 
-export const dashboardWidgetTypes = Object.freeze(['screen', 'led', 'rgbLed', 'gauge', 'progress', 'barChart', 'xyPlot', 'oscilloscope', 'heatmap', 'comment'])
+export const dashboardWidgetTypes = Object.freeze(['screen', 'led', 'rgbLed', 'gauge', 'progress', 'barChart', 'xyPlot', 'oscilloscope', 'heatmap', 'toggleButton', 'holdButton', 'comment'])
 
 // Retrouve la déclaration globale interne à un widget.
 function globalDeclaration(project, moduleId, name) {
@@ -51,6 +52,15 @@ export function dashboardWidgets(project, cards) {
       }
       if (card.type === 'progress') {
         return { ...base, min: module.progress?.min ?? 0, max: module.progress?.max ?? 100 }
+      }
+      if (card.type === 'toggleButton' || card.type === 'holdButton') {
+        const declaration = globalDeclaration(project, module.id, inputButtonGlobalName(module.inputButton?.index))
+        return {
+          ...base,
+          pressed: Boolean(card.pressed),
+          mode: module.inputButton?.mode === 'hold' ? 'hold' : 'toggle',
+          globalNodeId: declaration?.id ?? null,
+        }
       }
       if (card.type === 'led') {
         return { ...base, value: String(initialLiteral(project, module.id, ledGlobalName(module.led?.index)) ?? 'false') === 'true' }

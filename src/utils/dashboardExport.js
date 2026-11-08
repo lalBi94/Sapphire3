@@ -31,6 +31,8 @@ const panelDefaults = Object.freeze({
   gauge: { w: 3, h: 8, span: 'half', group: 'indicator' },
   led: { w: 3, h: 5, span: 'half', group: 'indicator' },
   rgbLed: { w: 3, h: 5, span: 'half', group: 'indicator' },
+  toggleButton: { w: 3, h: 5, span: 'half', group: 'indicator' },
+  holdButton: { w: 3, h: 5, span: 'half', group: 'indicator' },
   output: { w: 6, h: 8, span: 'full', group: 'output' },
   execution: { w: 6, h: 5, span: 'full', group: 'execution' },
   comment: { w: 6, h: 4, span: 'full', group: 'comment' },

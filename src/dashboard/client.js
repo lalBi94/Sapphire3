@@ -201,6 +201,7 @@ function start(config, runtimeSource) {
   const defaults = normalizeDashboardLayout(config.layout, panels)
   const storageKey = dashboardLayoutStorageKey(config.layoutKey)
   const refs = new Map()
+  const inputWidgets = (config.widgets ?? []).filter((widget) => widget.type === 'toggleButton' || widget.type === 'holdButton')
   let state = {
     ...dashboardExecutionInitial,
     layout: readDashboardLayout(window.localStorage, storageKey, defaults, panels),
@@ -208,6 +209,7 @@ function start(config, runtimeSource) {
     speed: 1,
     language: initialLanguage,
     autonomous: false,
+    inputs: Object.fromEntries(inputWidgets.filter((widget) => widget.globalNodeId).map((widget) => [widget.globalNodeId, Boolean(widget.pressed)])),
   }
   let worker = null
   let workerUrl = null
@@ -299,6 +301,35 @@ function start(config, runtimeSource) {
       ref.canvas = canvas
       ref.context = canvas.getContext('2d')
       ref.screenMeta = dimensions
+      return
+    }
+    if (panel.type === 'toggleButton' || panel.type === 'holdButton') {
+      const wrapper = document.createElement('div')
+      wrapper.className = 'db-input'
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className = 'db-input__button'
+      button.textContent = 'isPress'
+      const label = document.createElement('span')
+      label.className = 'db-input__label'
+      wrapper.append(button, label)
+      body.append(wrapper)
+      ref.inputButton = button
+      ref.inputLabel = label
+      const widget = panel.widget
+      if (widget?.mode === 'hold') {
+        const press = (event) => { event.preventDefault(); handleInputChange(widget, true) }
+        const release = () => handleInputChange(widget, false)
+        button.addEventListener('pointerdown', press)
+        button.addEventListener('pointerup', release)
+        button.addEventListener('pointerleave', release)
+        button.addEventListener('pointercancel', release)
+        button.addEventListener('keydown', (event) => { if (event.key === ' ' || event.key === 'Enter') press(event) })
+        button.addEventListener('keyup', (event) => { if (event.key === ' ' || event.key === 'Enter') release() })
+        button.addEventListener('blur', release)
+      } else {
+        button.addEventListener('click', () => handleInputChange(widget, !widget?.pressed))
+      }
       return
     }
     if (panel.type === 'led' || panel.type === 'rgbLed') {
@@ -775,6 +806,11 @@ function start(config, runtimeSource) {
       const value = Boolean(states.leds?.[widget.id]?.value)
       ref.dot.classList.toggle('db-led__dot--on', value)
       ref.label.textContent = value ? (labels.on ?? 'On') : (labels.off ?? 'Off')
+    } else if (widget.type === 'toggleButton' || widget.type === 'holdButton') {
+      const pressed = Boolean(widget.pressed)
+      ref.inputButton.classList.toggle('db-input__button--pressed', pressed)
+      ref.inputButton.setAttribute('aria-pressed', String(pressed))
+      ref.inputLabel.textContent = pressed ? (labels.inputPressed ?? 'Pressed') : (labels.inputReleased ?? 'Released')
     } else if (widget.type === 'rgbLed') {
       const led = states.rgbLeds?.[widget.id] ?? { red: 0, green: 0, blue: 0 }
       const brightest = Math.max(led.red, led.green, led.blue)
@@ -1452,6 +1488,27 @@ function start(config, runtimeSource) {
     announcePaused()
   }
 
+  // Met à jour un bouton d'entrée et relance le moteur avec la nouvelle globale.
+  function handleInputChange(widget, pressed) {
+    if (!widget) return
+    const next = Boolean(pressed)
+    if (widget.pressed === next) return
+    widget.pressed = next
+    if (widget.globalNodeId) state.inputs = { ...state.inputs, [widget.globalNodeId]: next }
+    renderStates()
+    if (state.status === 'idle' && !state.result) return
+    requestId += 1
+    terminateWorker()
+    cancelAnimation()
+    const autonomous = state.autonomous
+    state = dashboardExecutionReducer(state, { type: 'start' })
+    state.autonomous = autonomous
+    renderControls()
+    renderStates()
+    announce(labels.feedbackStarted ?? 'Execution started.')
+    runProgram(requestId)
+  }
+
   // Lance une nouvelle session, ou reprend une session en pause.
   function handleRun() {
     if (state.status === 'paused') {
@@ -1536,7 +1593,7 @@ function start(config, runtimeSource) {
           terminateWorker()
           handleFailure({ message: event.message || 'Worker failed.', code: 'SIMULATION_FAILED' })
         }
-        worker.postMessage({ id, project: config.project, options: { maxSteps: config.simulationBudget } })
+        worker.postMessage({ id, project: config.project, options: { maxSteps: config.simulationBudget, inputs: state.inputs } })
         return
       } catch {
         terminateWorker()
@@ -1549,7 +1606,7 @@ function start(config, runtimeSource) {
     window.setTimeout(() => {
       if (id !== requestId) return
       try {
-        handlePrepared(runtime.simulate(config.project, { maxSteps: config.simulationBudget }))
+        handlePrepared(runtime.simulate(config.project, { maxSteps: config.simulationBudget, inputs: state.inputs }))
       } catch (error) {
         handleFailure({ message: error?.message ?? String(error), code: error?.code ?? 'SIMULATION_FAILED' })
       }

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Activity, AudioWaveform, Bot, Box, Braces, Bug, ChartColumn, ChartLine, ChevronsDownUp, ChevronsUpDown, Clock, Cloud, Code2, Cog, Compass, Cpu, Database, FileCode, Flag, FlaskConical, Folder, Gauge, GitBranch, Globe, KeyRound, Lightbulb, Lock, Monitor, Network, Palette, Puzzle, Repeat, Rocket, Server, Shield, Smile, Sparkles, Target, Terminal, Wrench, Zap } from 'lucide-react'
+import { Activity, AudioWaveform, Bot, Box, Braces, Bug, ChartColumn, ChartLine, ChevronsDownUp, ChevronsUpDown, Clock, Cloud, Code2, Cog, Compass, Cpu, Database, FileCode, Flag, FlaskConical, Folder, Gauge, GitBranch, Globe, KeyRound, Lightbulb, Lock, Monitor, MousePointerClick, Network, Palette, Puzzle, Repeat, Rocket, Server, Shield, Smile, Sparkles, Target, Terminal, Wrench, Zap } from 'lucide-react'
 import { minimumModuleSize, moduleTypes } from '../../utils/moduleTypes.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
 import ScreenCanvas from '../ScreenCanvas/ScreenCanvas.jsx'
@@ -12,6 +12,7 @@ import OscilloscopeCard from '../OscilloscopeCard/OscilloscopeCard.jsx'
 import HeatmapCard from '../HeatmapCard/HeatmapCard.jsx'
 import LedCard from '../LedCard/LedCard.jsx'
 import RgbLedCard from '../RgbLedCard/RgbLedCard.jsx'
+import InputButtonCard from '../InputButtonCard/InputButtonCard.jsx'
 import CommentText from '../CommentText/CommentText.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './CanvasModule.css'
@@ -132,7 +133,7 @@ function ModuleEmoji({ emoji, onChange }) {
 }
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onImageFile, onEmojiChange, imageSource = null, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, progressState = null, progressFrames = null, progressPlaying = false, onProgressViewChange, barChartState = null, barChartFrames = null, barChartPlaying = false, onBarChartViewChange, xyPlotState = null, xyPlotFrames = null, xyPlotPlaying = false, onXyPlotViewChange, oscilloscopeState = null, oscilloscopeFrames = null, oscilloscopePlaying = false, onOscilloscopeViewChange, heatmapState = null, heatmapDimensions, onHeatmapViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, rgbLedState = null, rgbLedFrames = null, rgbLedPlaying = false, onRgbLedViewChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onImageFile, onEmojiChange, imageSource = null, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, progressState = null, progressFrames = null, progressPlaying = false, onProgressViewChange, barChartState = null, barChartFrames = null, barChartPlaying = false, onBarChartViewChange, xyPlotState = null, xyPlotFrames = null, xyPlotPlaying = false, onXyPlotViewChange, oscilloscopeState = null, oscilloscopeFrames = null, oscilloscopePlaying = false, onOscilloscopeViewChange, heatmapState = null, heatmapDimensions, onHeatmapViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, rgbLedState = null, rgbLedFrames = null, rgbLedPlaying = false, onRgbLedViewChange, onInputButtonViewChange, onInputChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -191,6 +192,8 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
   const ledView = module.ledView === 'code' ? 'code' : 'led'
   // Une LED RVB suit la même bascule, avec son propre aperçu coloré.
   const rgbLedView = module.rgbLedView === 'code' ? 'code' : 'rgbLed'
+  // Un bouton d'entrée montre son bouton ou le code de sa globale booléenne.
+  const inputButtonView = module.inputButtonView === 'code' ? 'code' : 'button'
   // La bascule d'en-tête promet l'action inverse de l'état actuel du pliage.
   const expansionLabel = t(expansionState === 'collapse' ? 'canvas.collapseAll' : 'canvas.expandAll')
   // Le zoom sémantique remplace les instructions par les fonctions, puis masque le contenu au niveau modules.
@@ -532,6 +535,17 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         >
           {rgbLedView === 'code' ? <Palette size={13} strokeWidth={2} aria-hidden="true" /> : <Code2 size={13} strokeWidth={2} aria-hidden="true" />}
         </button>}
+        {definition.hasInputButton && semanticLevel !== 'modules' && !readOnly && <button
+          type="button"
+          className="canvas-module__view"
+          aria-label={t(inputButtonView === 'code' ? 'inputButton.viewButton' : 'inputButton.viewCode')}
+          aria-pressed={inputButtonView === 'code'}
+          title={t(inputButtonView === 'code' ? 'inputButton.viewButton' : 'inputButton.viewCode')}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => { event.stopPropagation(); onInputButtonViewChange?.(module.id, inputButtonView === 'code' ? 'button' : 'code') }}
+        >
+          {inputButtonView === 'code' ? <MousePointerClick size={13} strokeWidth={2} aria-hidden="true" /> : <Code2 size={13} strokeWidth={2} aria-hidden="true" />}
+        </button>}
         {module.locked && !readOnly && <button
           type="button"
           className="canvas-module__lock"
@@ -553,7 +567,15 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
           {expansionState === 'collapse' ? <ChevronsDownUp size={14} strokeWidth={2} aria-hidden="true" /> : <ChevronsUpDown size={14} strokeWidth={2} aria-hidden="true" />}
         </button>}
       </header>
-      {definition.hasLed ? (
+      {definition.hasInputButton ? (
+        <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>
+          {!contentVisible
+            ? null
+            : inputButtonView === 'code'
+              ? (deferContent ? null : structuredContent)
+              : <InputButtonCard card={module} onChange={(pressed) => onInputChange?.(module.id, pressed)} />}
+        </div>
+      ) : definition.hasLed ? (
         <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>
           {!contentVisible
             ? null

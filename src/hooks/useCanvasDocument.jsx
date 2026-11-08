@@ -9,6 +9,7 @@ import { createOscilloscopeModule, oscilloscopeDefaultSamples } from '../utils/o
 import { createHeatmapModule } from '../utils/heatmapNode.js'
 import { createLedModule, ledDefaults } from '../utils/ledNode.js'
 import { createRgbLedModule, rgbLedDefaults } from '../utils/rgbLedNode.js'
+import { createInputButtonModule, inputButtonDefaults } from '../utils/inputButtonNode.js'
 import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol, deleteSourceTargets, duplicateSourceTargets, moveSourceNodes } from '../utils/logic/index.js'
 import { initialDocument, reduceHistory } from '../utils/canvasDocument.js'
 
@@ -102,12 +103,25 @@ export default function useCanvasDocument() {
       dispatch({ type: 'createRgbLed', card: { id, type, name: rgbLedName, ...position, width: definition.width, height: definition.height, expandedNodeIds: [] }, rgbLed })
       return
     }
+    if (type === 'toggleButton' || type === 'holdButton') {
+      const id = crypto.randomUUID()
+      const index = Math.max(0, ...document.project.modules.map((module) => Number(module.inputButton?.index) || 0)) + 1
+      const buttonName = `${name} ${index}`
+      const inputButton = createInputButtonModule(id, buttonName, index, { ...inputButtonDefaults, mode: definition.inputMode })
+      dispatch({ type: 'createInputButton', card: { id, type, name: buttonName, ...position, width: definition.width, height: definition.height, expandedNodeIds: [], pressed: inputButtonDefaults.pressed }, inputButton })
+      return
+    }
     dispatch({ type: 'createCard', card: { id: crypto.randomUUID(), type, name, ...(definition.hasText ? { text: '' } : {}), ...(definition.hasImage ? { image: '', caption: '' } : {}), ...position, width: definition.width, height: definition.height, expandedNodeIds: [] } })
   }
 
   // Modifie la présentation sans réanalyser le programme.
   function updateGeometry(id, patch) {
     dispatch({ type: 'geometry', id, patch })
+  }
+
+  // Met à jour l'état visuel d'un bouton d'entrée sans toucher à la source logique.
+  function updateInputButton(id, pressed) {
+    dispatch({ type: 'presentation', id, patch: { pressed: Boolean(pressed) } })
   }
 
   // Applique d'un coup de nouvelles positions de cartes, sans toucher au programme.
@@ -357,5 +371,5 @@ export default function useCanvasDocument() {
     dispatch({ type: 'redo' })
   }
 
-  return { ...document, createCard, updateGeometry, arrangeModules, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, moveNodes, duplicateNode, duplicateSelection, deleteNode, deleteModule, deleteSelection, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, previewSymbolRename, applySymbolRename, setExpandedNodes, setCardHidden, setCardLocked, setCardEmoji, setExercise, setDashboard, restoreStarter, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
+  return { ...document, createCard, updateGeometry, updateInputButton, arrangeModules, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, moveNodes, duplicateNode, duplicateSelection, deleteNode, deleteModule, deleteSelection, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, previewSymbolRename, applySymbolRename, setExpandedNodes, setCardHidden, setCardLocked, setCardEmoji, setExercise, setDashboard, restoreStarter, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
 }

@@ -20,7 +20,7 @@ function simulationError(code, message) {
 }
 
 // Exécute le sous-ensemble déterministe du langage sans accéder au DOM ni au système.
-export function simulateProgram(project, { maxSteps = 10000, captureDebug = false, functionId = null, args = [], onProgress = null } = {}) {
+export function simulateProgram(project, { maxSteps = 10000, captureDebug = false, functionId = null, args = [], inputs = {}, onProgress = null } = {}) {
   if (!Number.isSafeInteger(maxSteps) || maxSteps < 1 || maxSteps > 100000) return { ok: false, output: [], trace: [], errorCode: 'SIMULATION_BUDGET_INVALID', error: 'The step budget must be an integer between 1 and 100000.' }
   const analysis = analyzeProgram(project)
   if (!analysis.canGenerate) return { ok: false, output: [], trace: [], errorCode: 'SIMULATION_DIAGNOSTICS', error: 'The program has blocking diagnostics.', diagnostics: analysis.diagnostics }
@@ -649,6 +649,15 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       for (const id of module.rootNodeIds) {
         const node = nodes.get(id)
         if (node && node.kind !== 'FunctionDeclaration') executeStatement(node, global)
+      }
+    }
+    // Les entrées interactives remplacent la valeur initiale des globales visées,
+    // après leur déclaration et avant l'exécution du point d'entrée.
+    if (inputs && typeof inputs === 'object' && !Array.isArray(inputs)) {
+      for (const [nodeId, value] of Object.entries(inputs)) {
+        const node = nodes.get(nodeId)
+        if (!node || (node.kind !== 'VariableDeclaration' && node.kind !== 'ConstantDeclaration')) continue
+        global.values.set(nodeId, checked(validateLiteral(types.get(nodeId)?.name, value)))
       }
     }
     const returned = executeFunction(target, callArguments)

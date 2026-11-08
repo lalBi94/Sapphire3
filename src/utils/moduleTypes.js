@@ -13,6 +13,8 @@ export const moduleTypes = {
   heatmap: { label: 'Heatmap', labelKey: 'card.heatmap', targetLabelKey: 'canvas.heatmap', actionKey: 'nav.createHeatmap', width: 380, height: 280, renamable: true, hasHeatmap: true },
   led: { label: 'LED', labelKey: 'card.led', targetLabelKey: 'canvas.led', actionKey: 'nav.createLed', width: 220, height: 170, renamable: true, hasLed: true },
   rgbLed: { label: 'RGB LED', labelKey: 'card.rgbLed', targetLabelKey: 'canvas.rgbLed', actionKey: 'nav.createRgbLed', width: 240, height: 190, renamable: true, hasRgbLed: true },
+  toggleButton: { label: 'Toggle button', labelKey: 'card.toggleButton', targetLabelKey: 'canvas.toggleButton', actionKey: 'nav.createToggleButton', width: 280, height: 190, renamable: true, hasInputButton: true, inputMode: 'toggle' },
+  holdButton: { label: 'Hold button', labelKey: 'card.holdButton', targetLabelKey: 'canvas.holdButton', actionKey: 'nav.createHoldButton', width: 280, height: 190, renamable: true, hasInputButton: true, inputMode: 'hold' },
   comment: { label: 'Comment', labelKey: 'card.comment', targetLabelKey: 'canvas.note', actionKey: 'nav.createComment', width: 320, height: 220, renamable: true, hasText: true },
   image: { label: 'Image', labelKey: 'card.image', targetLabelKey: 'canvas.image', actionKey: 'nav.createImage', width: 420, height: 260, renamable: true, hasImage: true },
 }
@@ -24,6 +26,7 @@ const widgetCardGroups = [
   { id: 'displays', labelKey: 'canvas.createCategory.widgetsDisplays', types: ['screen', 'gauge', 'progress'] },
   { id: 'charts', labelKey: 'canvas.createCategory.widgetsCharts', types: ['barChart', 'xyPlot', 'oscilloscope', 'heatmap'] },
   { id: 'indicators', labelKey: 'canvas.createCategory.widgetsIndicators', types: ['led', 'rgbLed'] },
+  { id: 'inputs', labelKey: 'canvas.createCategory.widgetsInputs', types: ['toggleButton', 'holdButton'] },
 ]
 
 // Catégories stables du menu de création, dans l'ordre d'affichage.
@@ -65,3 +68,6 @@ export const ledViews = ['led', 'code']
 
 // Vues possibles d'une LED RVB : le voyant coloré, ou le code de son module caché.
 export const rgbLedViews = ['rgbLed', 'code']
+
+// Vues possibles d'un bouton d'entrée : le bouton, ou le code de son module caché.
+export const inputButtonViews = ['button', 'code']

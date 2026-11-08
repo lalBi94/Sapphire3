@@ -29,6 +29,7 @@ import { scrollNodeIntoCard } from '../../utils/cardScroll.js'
 import { buildWorkspaceSvg } from '../../utils/workspaceSvg.js'
 import { dashboardLabels, dashboardSimulationBudget, defaultDashboardConfig, resolveDashboardPalette } from '../../utils/dashboardConfig.js'
 import { dashboardWidgets, dashboardInitialStates, dashboardWidgetTypes } from '../../utils/dashboardWidgets.js'
+import { collectInputButtonValues } from '../../utils/logic/inputButtonState.js'
 import { buildDashboardDocument, dashboardDefaultLayout } from '../../utils/dashboardExport.js'
 import dashboardRuntimeSource from 'virtual:dashboard-runtime'
 import dashboardClientSource from 'virtual:dashboard-client'
@@ -608,18 +609,18 @@ export default function Canvas() {
   }
 
   // Lance une simulation locale uniquement sur un programme statiquement valide.
-  async function handleRunSimulation() {
+  async function handleRunSimulation({ inputs = collectInputButtonValues(document.project, document.cards), silent = false } = {}) {
     const epoch = ++simulationEpochRef.current
     cancelEngineWork()
     const work = beginEngineWork('simulation')
-    notify({ type: 'loading', title: t('simulation.title'), message: t('simulation.running'), key: 'simulation', duration: 0 })
+    if (!silent) notify({ type: 'loading', title: t('simulation.title'), message: t('simulation.running'), key: 'simulation', duration: 0 })
     setFlowRun(null)
     setDebugSession(null)
     setExecutionFree(false)
     try {
-      const result = await runSimulation(document.project, {}, { onProgress: (progress) => updateEngineWork(work, progress) })
+      const result = await runSimulation(document.project, { inputs }, { onProgress: (progress) => updateEngineWork(work, progress) })
       if (epoch !== simulationEpochRef.current) return
-      notify(result.ok
+      if (!silent) notify(result.ok
         ? { type: 'simulation_finished', title: t('simulation.title'), message: t('simulation.completed'), key: 'simulation', duration: 6000 }
         : { type: 'error', title: t('simulation.title'), message: failureLabel({ code: result.errorCode }, t), key: 'simulation', duration: 0 })
       startTransition(() => {
@@ -628,7 +629,7 @@ export default function Canvas() {
       })
     } catch (error) {
       if (isEngineCancelled(error) || epoch !== simulationEpochRef.current) return
-      notify({ type: 'error', title: t('simulation.title'), message: failureLabel({ code: 'SIMULATION_FAILED' }, t), key: 'simulation', duration: 0 })
+      if (!silent) notify({ type: 'error', title: t('simulation.title'), message: failureLabel({ code: 'SIMULATION_FAILED' }, t), key: 'simulation', duration: 0 })
       startTransition(() => {
         setSimulationResult({ ok: false, output: [], outputSteps: [], trace: [], errorCode: 'SIMULATION_FAILED', error: error?.message ?? '' })
         setExecution(null)
@@ -646,7 +647,7 @@ export default function Canvas() {
     const epoch = simulationEpochRef.current
     screenRerunRef.current = { at: now, inFlight: true }
     try {
-      const result = await runSimulation(document.project, { screenOnly: true })
+      const result = await runSimulation(document.project, { screenOnly: true, inputs: collectInputButtonValues(document.project, document.cards) })
       if (epoch !== simulationEpochRef.current || !result.ok || !result.screenFrames?.length) return
       startTransition(() => {
         setSimulationResult((current) => current ? {
@@ -674,6 +675,13 @@ export default function Canvas() {
     }
   }
 
+  // Met à jour un bouton d'entrée et relance le Run avec la nouvelle globale.
+  function handleInputChange(id, pressed) {
+    document.updateInputButton(id, pressed)
+    const cards = document.cards.map((card) => card.id === id ? { ...card, pressed: Boolean(pressed) } : card)
+    if (simulationResult) handleRunSimulation({ inputs: collectInputButtonValues(document.project, cards), silent: true })
+  }
+
   // Ouvre la simulation graphique simplifiée sur la trace du moteur, sans code mort.
   async function handleRunGraphical() {
     const epoch = ++simulationEpochRef.current
@@ -685,7 +693,7 @@ export default function Canvas() {
     setDebugSession(null)
     setContextMenu(null)
     try {
-      const session = await runDebugSession(document.project, {}, { onProgress: (progress) => updateEngineWork(work, progress) })
+      const session = await runDebugSession(document.project, { inputs: collectInputButtonValues(document.project, document.cards) }, { onProgress: (progress) => updateEngineWork(work, progress) })
       if (epoch !== simulationEpochRef.current) return
       notify(session.errorCode
         ? { type: 'error', title: t('simulation.title'), message: failureLabel({ code: session.errorCode }, t), key: 'graphical', duration: 0 }
@@ -861,7 +869,7 @@ export default function Canvas() {
         return
       }
       const nextConfig = { ...config, palette }
-      const result = await runSimulation(project, { maxSteps: dashboardSimulationBudget })
+      const result = await runSimulation(project, { maxSteps: dashboardSimulationBudget, inputs: collectInputButtonValues(project, document.cards) })
       if (!result.ok) {
         notify({ type: 'error', message: t('dashboard.preflightFailed', { code: result.errorCode ?? 'SIMULATION_FAILED' }), duration: 0 })
         return
@@ -948,7 +956,7 @@ export default function Canvas() {
     const work = beginEngineWork('function')
     setFlowRun(null)
     try {
-      const result = await runSimulation(document.project, { functionId, args }, { onProgress: (progress) => updateEngineWork(work, progress) })
+      const result = await runSimulation(document.project, { functionId, args, inputs: collectInputButtonValues(document.project, document.cards) }, { onProgress: (progress) => updateEngineWork(work, progress) })
       if (token !== functionRunTokenRef.current || epoch !== simulationEpochRef.current) return
       startTransition(() => setFunctionResult({ functionId, result }))
     } catch (error) {
@@ -1341,6 +1349,8 @@ export default function Canvas() {
         heatmapState={debugFrame?.heatmaps?.[card.id] ?? (execution ? simulationResult?.heatmapFrames?.[Math.min(execution.index, (simulationResult?.heatmapFrames?.length ?? 1) - 1)]?.[card.id] : null) ?? simulationResult?.heatmaps?.[card.id] ?? null}
         onLedViewChange={(id, ledView) => document.updateGeometry(id, { ledView })}
         onRgbLedViewChange={(id, rgbLedView) => document.updateGeometry(id, { rgbLedView })}
+        onInputButtonViewChange={(id, inputButtonView) => document.updateGeometry(id, { inputButtonView })}
+        onInputChange={handleInputChange}
         screenState={screenPlayback ? null : screenStates[card.id] ?? null}
         screenFrames={screenPlayback ? simulationResult.screenFrames : null}
         screenPlaying={screenPlayback && Boolean(execution?.running)}
