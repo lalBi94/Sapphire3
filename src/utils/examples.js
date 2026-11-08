@@ -3,6 +3,7 @@ import { createScreenModule, screenDefaults } from './screenNode.js'
 import { createGaugeModule, gaugeDefaults } from './gaugeNode.js'
 import { createLedModule, ledDefaults } from './ledNode.js'
 import { createRgbLedModule, rgbLedDefaults } from './rgbLedNode.js'
+import { createInputButtonModule, inputButtonDefaults } from './inputButtonNode.js'
 import { createProgressModule, progressDefaults } from './progressNode.js'
 import { createBarChartModule, barChartDefaults } from './barChartNode.js'
 import { createXyPlotModule } from './xyPlotNode.js'
@@ -15,6 +16,7 @@ import { showcaseExamples } from './showcaseExamples.js'
 
 const intType = { kind: 'primitive', name: 'int' }
 const doubleType = { kind: 'primitive', name: 'double' }
+const booleanType = { kind: 'primitive', name: 'boolean' }
 const voidType = { kind: 'primitive', name: 'void' }
 const intArrayType = { kind: 'array', elementType: intType }
 const intPointerType = { kind: 'pointer', pointee: intType }
@@ -88,6 +90,11 @@ function workspace(project, notes = []) {
             ? { id: module.id, type: 'led', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.led.width, height: moduleTypes.led.height, expandedNodeIds: [] }
             : module.rgbLed
               ? { id: module.id, type: 'rgbLed', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.rgbLed.width, height: moduleTypes.rgbLed.height, expandedNodeIds: [] }
+              : module.inputButton
+                ? (() => {
+                  const type = module.inputButton.mode === 'hold' ? 'holdButton' : 'toggleButton'
+                  return { id: module.id, type, name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes[type].width, height: moduleTypes[type].height, expandedNodeIds: [], pressed: false }
+                })()
               : module.kind === 'class'
                 ? { id: module.id, type: 'class', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.class.width, height: moduleTypes.class.height, expandedNodeIds: [] }
                 : { id: module.id, type: 'module', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: Math.max(definition.width, 520), height: Math.max(definition.height, 420), expandedNodeIds: [] })
@@ -3870,6 +3877,48 @@ export const exampleCategories = [
   { id: 'hard', labelKey: 'examples.category.hard' },
 ]
 
+// Deux boutons d'entrée pilotent une LED : bascule persistante ou appui maintenu.
+function buttonLed() {
+  const b = builder()
+  const toggle = createInputButtonModule('inputToggle', 'Toggle button', 1, { mode: 'toggle' })
+  b.project.modules.push(toggle.module)
+  b.project.nodes.push(...toggle.nodes)
+  const hold = createInputButtonModule('inputHold', 'Hold button', 2, { mode: 'hold' })
+  b.project.modules.push(hold.module)
+  b.project.nodes.push(...hold.nodes)
+  const led = createLedModule('inputLed', 'LED', 1, ledDefaults)
+  b.project.modules.push(led.module)
+  b.project.nodes.push(...led.nodes)
+  const app = b.useModule('inputApp', 'Input app')
+  const exportId = (module, name) => module.exports.find((entry) => entry.name === name).nodeId
+  importFunction(app, 'inputToggleImport', toggle.module.id, exportId(toggle.module, 'isPress'), 'togglePressed')
+  importFunction(app, 'inputHoldImport', hold.module.id, exportId(hold.module, 'isPress'), 'holdPressed')
+  importFunction(app, 'inputLedImport', led.module.id, exportId(led.module, led.functions.setValue), 'setLed')
+
+  b.call('inputToggleCall', 'inputToggleCallee', [])
+  b.make('inputToggleCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'inputToggleImport' } })
+  b.variable('inputToggleVar', 'toggleOn', booleanType, 'inputToggleCall')
+  b.call('inputHoldCall', 'inputHoldCallee', [])
+  b.make('inputHoldCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'inputHoldImport' } })
+  b.variable('inputHoldVar', 'holdOn', booleanType, 'inputHoldCall')
+  b.binary('inputLitValue', 'or', 'inputToggleRead', 'inputHoldRead')
+  b.ref('inputToggleRead', 'toggleOn')
+  b.ref('inputHoldRead', 'holdOn')
+  b.variable('inputLitVar', 'lit', booleanType, 'inputLitValue')
+  b.call('inputSetCall', 'inputSetCallee', ['inputLitRead'])
+  b.make('inputSetCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'inputLedImport' } })
+  b.ref('inputLitRead', 'lit')
+  b.make('inputSetStatement', 'ExpressionStatement', {}, { expression: 'inputSetCall' })
+  b.print('inputPrint', 'inputPrintRead')
+  b.ref('inputPrintRead', 'lit')
+  b.block('inputBody', ['inputToggleVar', 'inputHoldVar', 'inputLitVar', 'inputSetStatement', 'inputPrint'])
+  b.root('inputMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'inputBody' })
+
+  return workspace(b.project, [
+    note('inputNote', 'Two buttons and an LED', String.raw`Le bouton à bascule garde son état après le clic ; le bouton maintenu n'est vrai que pendant l'appui. La LED s'allume si l'un des deux est vrai. Les deux modules exportent isPress() et App appelle setLed(). Ouvrez la vue code de chaque carte ou importez isPress() dans un autre module pour voir les flèches de dépendance. $$\text{LED} = \text{toggle} \lor \text{hold}$$`, 0, 1000, 1120, 240),
+  ])
+}
+
 // Catalogue local, ouvrable sans réseau ni fichier externe, classé par difficulté puis par thème.
 export const examples = [
   { id: 'fibonacci', labelKey: 'examples.fibonacci', category: 'medium', subcategory: 'basics', build: fibonacci },
@@ -3926,6 +3975,7 @@ export const examples = [
       return workspace(project, [note(`${example.id}Note`, title, description, 0, notesY, 1120, 240)])
     },
   })),
+  { id: 'buttonLed', labelKey: 'examples.buttonLed', category: 'simple', subcategory: 'input', build: buttonLed },
 ]
 
 // Sous-catégories facultatives à l'intérieur d'une catégorie du volet Examples.
@@ -3942,4 +3992,5 @@ export const exampleSubcategories = [
   { id: 'animation', labelKey: 'examples.sub.animation' },
   { id: 'automata', labelKey: 'examples.sub.automata' },
   { id: 'simulation', labelKey: 'examples.sub.simulation' },
+  { id: 'input', labelKey: 'examples.sub.input' },
 ]

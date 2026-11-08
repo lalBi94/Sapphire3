@@ -3,7 +3,8 @@ import assert from 'node:assert/strict'
 import { createProject, createModule, createNode } from '../../src/utils/logic/model.js'
 import { analyzeProgram, simulateProgram } from '../../src/utils/logic/index.js'
 import { createInputButtonModule, inputButtonGlobalName } from '../../src/utils/inputButtonNode.js'
-import { collectInputButtonValues } from '../../src/utils/logic/inputButtonState.js'
+import { collectInputButtonValues, inputButtonNodeId } from '../../src/utils/logic/inputButtonState.js'
+import { examples } from '../../src/utils/examples.js'
 import { dashboardWidgets } from '../../src/utils/dashboardWidgets.js'
 import { deserializeWorkspace, workspaceFileVersion } from '../../src/utils/workspaceFile.js'
 import { transpileProgram } from '../../src/utils/transpilation/index.js'
@@ -78,4 +79,24 @@ test('boutons d’entrée : collecte, dashboard et relecture du workspace', () =
   const card = workspace.presentation.cards.find((entry) => entry.id === button.module.id)
   assert.equal(card.type, 'holdButton')
   assert.equal(card.pressed, true)
+})
+
+test('exemple Simple → Input : deux boutons pilotent la LED', () => {
+  const workspace = deserializeWorkspace(JSON.stringify(examples.find((entry) => entry.id === 'buttonLed').build()))
+  assert.deepEqual(analyzeProgram(workspace.project).diagnostics, [])
+  const toggleCard = workspace.presentation.cards.find((card) => card.type === 'toggleButton')
+  const holdCard = workspace.presentation.cards.find((card) => card.type === 'holdButton')
+  assert.ok(toggleCard)
+  assert.ok(holdCard)
+  const toggleId = inputButtonNodeId(workspace.project, toggleCard.id)
+  const holdId = inputButtonNodeId(workspace.project, holdCard.id)
+  const off = simulateProgram(workspace.project)
+  assert.deepEqual(off.output, ['false'])
+  assert.equal(off.leds.inputLed.value, false)
+  const toggleOn = simulateProgram(workspace.project, { inputs: { [toggleId]: true, [holdId]: false } })
+  assert.deepEqual(toggleOn.output, ['true'])
+  assert.equal(toggleOn.leds.inputLed.value, true)
+  const holdOn = simulateProgram(workspace.project, { inputs: { [toggleId]: false, [holdId]: true } })
+  assert.deepEqual(holdOn.output, ['true'])
+  assert.equal(holdOn.leds.inputLed.value, true)
 })
