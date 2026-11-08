@@ -46,16 +46,20 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId =
 
   // Filtre les cartes par libellé, identifiant ou catégorie, sans casse ni accents.
   const normalizedTerm = normalizeSearchText(term)
-  const categories = commentId ? [] : cardCategories.map((category) => ({
-    ...category,
-    types: category.types.filter((type) => {
-      if (!normalizedTerm) return true
-      const haystack = [t(moduleTypes[type].actionKey), type, t(category.labelKey)].map(normalizeSearchText).join(' ')
-      return haystack.includes(normalizedTerm)
-    }),
-  })).filter((category) => category.types.length > 0)
+  const categories = commentId ? [] : cardCategories.map((category) => {
+    const grouped = Array.isArray(category.groups)
+    const groups = (grouped ? category.groups : [{ id: category.id, labelKey: category.labelKey, types: category.types }]).map((group) => ({
+      ...group,
+      types: group.types.filter((type) => {
+        if (!normalizedTerm) return true
+        const haystack = [t(moduleTypes[type].actionKey), type, t(category.labelKey), t(group.labelKey)].map(normalizeSearchText).join(' ')
+        return haystack.includes(normalizedTerm)
+      }),
+    })).filter((group) => group.types.length > 0)
+    return { ...category, grouped, groups }
+  }).filter((category) => category.groups.length > 0)
 
-  // Déplie ou replie une catégorie de cartes ; la recherche force l'affichage des résultats.
+  // Déplie ou replie une catégorie ou une sous-catégorie ; la recherche force l'affichage des résultats.
   function toggleGroup(id) {
     setCollapsedGroups((current) => {
       const next = new Set(current)
@@ -63,6 +67,15 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId =
       else next.add(id)
       return next
     })
+  }
+
+  // Affiche une carte créable avec son icône et son libellé traduit.
+  function renderAction(type) {
+    const Icon = menuIcons[type]
+    return <button key={type} type="button" role="menuitem" onClick={() => onCreate(type)}>
+      <Icon className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />
+      {t(moduleTypes[type].actionKey)}
+    </button>
   }
 
   // Permet de parcourir les actions sans déplacer le canvas.
@@ -80,7 +93,7 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId =
 
     if (event.key === 'Enter' && inSearch) {
       event.preventDefault()
-      const action = buttons.find((button) => !button.classList.contains('canvas-context-menu__group-title'))
+      const action = buttons.find((button) => !button.hasAttribute('data-group-toggle'))
       action?.click()
       return
     }
@@ -130,6 +143,7 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId =
                   type="button"
                   role="menuitem"
                   className="canvas-context-menu__group-title"
+                  data-group-toggle
                   aria-expanded={!collapsed}
                   title={t(collapsed ? 'menu.groupExpand' : 'menu.groupCollapse')}
                   onClick={() => toggleGroup(category.id)}
@@ -137,12 +151,25 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId =
                   {collapsed ? <ChevronRight size={12} strokeWidth={2} aria-hidden="true" /> : <ChevronDown size={12} strokeWidth={2} aria-hidden="true" />}
                   {t(category.labelKey)}
                 </button>
-                {!collapsed && category.types.map((type) => {
-                  const Icon = menuIcons[type]
-                  return <button key={type} type="button" role="menuitem" onClick={() => onCreate(type)}>
-                    <Icon className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />
-                    {t(moduleTypes[type].actionKey)}
-                  </button>
+                {!collapsed && category.groups.map((group) => {
+                  if (!category.grouped) return group.types.map(renderAction)
+                  const groupKey = `${category.id}.${group.id}`
+                  const groupCollapsed = !normalizedTerm && collapsedGroups.has(groupKey)
+                  return <div className="canvas-context-menu__subgroup" role="group" aria-label={t(group.labelKey)} key={group.id}>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="canvas-context-menu__subgroup-title"
+                      data-group-toggle
+                      aria-expanded={!groupCollapsed}
+                      title={t(groupCollapsed ? 'menu.groupExpand' : 'menu.groupCollapse')}
+                      onClick={() => toggleGroup(groupKey)}
+                    >
+                      {groupCollapsed ? <ChevronRight size={12} strokeWidth={2} aria-hidden="true" /> : <ChevronDown size={12} strokeWidth={2} aria-hidden="true" />}
+                      {t(group.labelKey)}
+                    </button>
+                    {!groupCollapsed && group.types.map(renderAction)}
+                  </div>
                 })}
               </div>
             })}
