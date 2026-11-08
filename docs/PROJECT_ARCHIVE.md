@@ -2,6 +2,19 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Publication 0.1.0-beta.7 — 8 novembre 2026
+
+- Les 16 commits en attente ont été poussés sur `master`, puis version et notes de bêta commitées dans `0aadf23`. Release publiée en préversion : https://github.com/lalBi94/Sapphire3/releases/tag/v0.1.0-beta.7 ; tag distant vérifié sur ce commit.
+- `pnpm test` : 585 réussis après relance sans compilation parallèle (deux démarrages Python avaient dépassé leur délai au premier passage). `pnpm dist:all` réussi avec CMake/Ninja/Zig locaux explicitement configurés ; tests C++, faux IPC et scénario sans Discord réussis.
+- Installateur Inno Setup construit après un premier échec transitoire de mise à jour de ressource. Pas d'exclusion antivirus ni de changement système. Installation/désinstallation non rejouées. Exécutable et installateur `NotSigned` ; macOS non notarié.
+- Audit des archives : notices/licences, version, permissions exécutables Unix, architectures ELF Linux ; `resources.neu` contient 95 fichiers autorisés, sans sources, source maps ni fixtures. Configuration production sans inspecteur ni journalisation. ZIP Windows extrait dans un dossier temporaire dédié, lancement réel et chaîne application → sidecar → faux IPC validés. Pas de nouvelle campagne de dialogues fichiers ni d'accessibilité. Linux/macOS compilés, non exécutés sur cible.
+- Les cinq assets distants ont été retéléchargés et comparés aux tailles et SHA-256 locaux et GitHub :
+  - Windows ZIP : 6 496 384 octets, `949851f9048626ea3e4e0405f06d7cbb5a9181baed1f2886107b57b77146c5a0`.
+  - Windows setup : 8 212 979 octets, `8140442d4e8e40a8ec56770dddaafac8aa729a5578dd5334417d3b126caa31bc`.
+  - Linux x64 : 9 952 586 octets, `9b2ae885492e4395b72853f23d1a5bb20281ec5021a229562ec8782f33b55eac`.
+  - Linux ARM64 : 9 988 878 octets, `c4481936f782af0b20038624c400c48c22cf19f519e44c08465633e272cd8e4f`.
+  - macOS universel : 9 872 150 octets, `2c43365682bd10331501cddcd5975973678e45b2035af95283ad6837e24c69ad`.
+
 ## Alignement documentaire — 8 novembre 2026
 
 - Comparaison ciblée avec `src/dashboard/client.js`, `styles.js`, `src/utils/dashboardExport.js`, `examples.js` et les tests associés : catalogue courant de 52 exemples (6 simples, 26 moyens, 20 difficiles), Spirograph en 12 images 64×40 et Pendulum wave en 9 images 56×24 avec huit pendules. Les images sont précalculées à la construction des exemples, puis présentées par le moteur ; aucune modification du simulateur.

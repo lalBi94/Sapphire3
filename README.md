@@ -2,7 +2,7 @@
 
 ![Espace de travail Sapphire 3 : deux modules reliés par une flèche, avec leurs blocs dépliés](docs/assets/sapphire3-workspace.png)
 
-Application **desktop Windows, Linux et macOS** de programmation visuelle, en bêta (`0.1.0-beta.6`). Chaque carte posée sur le canvas est une construction d'un langage typé, analysée par un moteur JavaScript pur et indépendant des langages cibles. Le texte reste possible, mais il n'est plus le point de départ.
+Application **desktop Windows, Linux et macOS** de programmation visuelle, en bêta (`0.1.0-beta.7`). Chaque carte posée sur le canvas est une construction d'un langage typé, analysée par un moteur JavaScript pur et indépendant des langages cibles. Le texte reste possible, mais il n'est plus le point de départ.
 
 ## Installation et démarrage
 
