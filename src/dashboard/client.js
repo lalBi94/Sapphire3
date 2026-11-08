@@ -64,8 +64,8 @@ function start(config, runtimeSource) {
   const stopButton = document.querySelector('[data-action="stop"]')
   const feedback = document.querySelector('[data-feedback]')
   const modeButtons = [...document.querySelectorAll('button[data-mode]')]
-  const speedButtons = [...document.querySelectorAll('button[data-speed]')]
-  const speedInput = document.querySelector('[data-speed-input]')
+  const speedSlider = document.querySelector('[data-speed-slider]')
+  const speedValue = document.querySelector('[data-speed-value]')
   const panelsButton = document.querySelector('[data-action="panels"]')
   const panelsMenu = document.querySelector('[data-panels-menu]')
   const nodes = dashboardNodeMap(config.project)
@@ -412,12 +412,22 @@ function start(config, runtimeSource) {
     }
   }
 
-  // Met à jour les préréglages et le champ personnalisé de vitesse.
+  // Peint la valeur et la portion remplie du curseur de vitesse.
+  function renderSpeed(speed) {
+    if (!speedSlider) return
+    const maximum = Math.max(1, Number(speedSlider.max) || 100)
+    const range = maximum - 1
+    const progress = range > 0 ? ((speed - 1) / range) * 100 : 0
+    speedSlider.style.setProperty('--db-speed-progress', `${progress}%`)
+    speedSlider.setAttribute('aria-valuetext', `×${speed}`)
+    if (speedValue) speedValue.textContent = `×${speed}`
+  }
+
+  // Met le curseur de vitesse à jour.
   function applySpeed() {
-    for (const button of speedButtons) {
-      button.setAttribute('aria-pressed', String(Number(button.dataset.speed) === state.speed))
-    }
-    if (speedInput) speedInput.value = String(state.speed)
+    const speed = clampSimulationSpeed(state.speed)
+    if (speedSlider) speedSlider.value = String(speed)
+    renderSpeed(speed)
   }
 
   // Construit le menu de visibilité de tous les panneaux.
@@ -941,25 +951,15 @@ function start(config, runtimeSource) {
         : (labels.feedbackDark ?? 'Dark theme enabled.'))
     })
   }
-  for (const button of speedButtons) {
-    button.addEventListener('click', () => {
-      state.speed = clampSimulationSpeed(button.dataset.speed)
+  if (speedSlider) {
+    speedSlider.addEventListener('input', () => {
+      renderSpeed(clampSimulationSpeed(speedSlider.value))
+    })
+    speedSlider.addEventListener('change', () => {
+      state.speed = clampSimulationSpeed(speedSlider.value)
       applySpeed()
       announce(formatTemplate(labels.feedbackSpeed ?? 'Speed ×{speed}.', { speed: state.speed }))
       if (state.status === 'running') startAnimation()
-    })
-  }
-  if (speedInput) {
-    speedInput.addEventListener('change', () => {
-      state.speed = clampSimulationSpeed(speedInput.value)
-      applySpeed()
-      announce(formatTemplate(labels.feedbackSpeed ?? 'Speed ×{speed}.', { speed: state.speed }))
-      if (state.status === 'running') startAnimation()
-    })
-    speedInput.addEventListener('keydown', (event) => {
-      if (event.key !== 'Enter') return
-      event.preventDefault()
-      speedInput.blur()
     })
   }
   panelsButton.addEventListener('click', () => toggleMenu())

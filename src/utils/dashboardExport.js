@@ -3,6 +3,7 @@
 import { buildLightColors } from './theme.js'
 import { dashboardExecutionPanelId, dashboardOutputPanelId, dashboardSimulationBudget } from './dashboardConfig.js'
 import { packDashboardLayout } from './dashboardLayout.js'
+import { simulationSpeedMax } from './simulationSpeed.js'
 import { repositoryUrl } from './appInfo.js'
 import { dashboardStyles } from '../dashboard/styles.js'
 
@@ -171,10 +172,8 @@ export function buildDashboardDocument({
   </div>
   <div class="db-speed" role="group" aria-label="${escapeDashboardHtml(labels.speed ?? 'Speed')}">
     <span class="db-speed__label">${escapeDashboardHtml(labels.speed ?? 'Speed')}</span>
-    <button type="button" class="db-speed__button" data-speed="1" aria-pressed="true">×1</button>
-    <button type="button" class="db-speed__button" data-speed="2" aria-pressed="false">×2</button>
-    <button type="button" class="db-speed__button" data-speed="3" aria-pressed="false">×3</button>
-    <label class="db-speed__custom">×<input type="number" min="1" max="100" step="1" value="1" inputmode="numeric" data-speed-input aria-label="${escapeDashboardHtml(labels.speed ?? 'Speed')}"></label>
+    <input type="range" class="db-speed__slider" data-speed-slider min="1" max="${simulationSpeedMax}" step="1" value="1" aria-label="${escapeDashboardHtml(labels.speed ?? 'Speed')}" aria-valuetext="×1">
+    <span class="db-speed__value" data-speed-value aria-hidden="true">×1</span>
   </div>
 </div>
 <main id="dashboard-stage" class="db-stage" data-stage aria-label="${escapeDashboardHtml(labels.widgetsAria ?? 'Dashboard widgets')}"></main>
