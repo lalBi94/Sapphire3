@@ -152,7 +152,10 @@ export function buildDashboardDocument({
 </header>
 <div class="db-toolbar">
   <p class="db-status" data-status data-kind="idle" role="status" aria-live="polite"><span class="db-status__dot" aria-hidden="true"></span><span data-status-label>${escapeDashboardHtml(labels.idle ?? 'Idle')}</span></p>
-  <div class="db-progress" aria-hidden="true"><div class="db-progress__fill" data-progress></div></div>
+  <div class="db-progress" title="${escapeDashboardHtml(labels.seekHint ?? 'Click or use the arrow keys to jump to a step; the run pauses immediately.')}">
+    <div class="db-progress__fill" data-progress></div>
+    <input type="range" class="db-progress__input" data-progress-track min="0" max="0" step="1" value="0" disabled aria-label="${escapeDashboardHtml(labels.timeline ?? 'Execution progress')}" aria-valuetext="${escapeDashboardHtml(labels.idle ?? 'Idle')}">
+  </div>
   <div class="db-speed" role="group" aria-label="${escapeDashboardHtml(labels.speed ?? 'Speed')}">
     <span class="db-speed__label">${escapeDashboardHtml(labels.speed ?? 'Speed')}</span>
     <button type="button" class="db-speed__button" data-speed="1" aria-pressed="true">×1</button>

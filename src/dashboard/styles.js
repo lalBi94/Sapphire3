@@ -230,19 +230,49 @@ p, h1, h2, h3 { margin: 0; }
 .db-status[data-kind="completed"] .db-status__dot { background: var(--db-success); }
 .db-status[data-kind="error"] .db-status__dot { background: var(--db-diagnostic); }
 .db-progress {
+  position: relative;
   flex: 1 1 120px;
-  height: 2px;
+  height: 14px;
   min-width: 80px;
   border-radius: 0;
-  background: var(--db-border);
-  overflow: hidden;
+  background: transparent;
+  direction: ltr;
 }
+.db-progress::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  right: 0;
+  left: 0;
+  height: 2px;
+  background: var(--db-border);
+}
+.db-progress:hover::before { background: var(--db-border-hover); }
+.db-progress:focus-within { outline: 2px solid var(--db-focus); outline-offset: 2px; }
 .db-progress__fill {
+  position: absolute;
+  top: 6px;
+  left: 0;
   width: 0;
-  height: 100%;
+  height: 2px;
   background: linear-gradient(90deg, var(--db-primary), var(--db-condition) 55%, var(--db-secondary));
   transition: width 0.15s linear;
+  pointer-events: none;
 }
+.db-progress__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.db-progress__input:disabled { cursor: default; }
 .db-speed {
   display: flex;
   align-items: center;

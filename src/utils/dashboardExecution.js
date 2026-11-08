@@ -54,6 +54,16 @@ export function dashboardExecutionReducer(state, action) {
     const index = Math.min(last, state.index + Math.max(1, action.advance ?? 1))
     return { ...state, index, status: index >= last ? 'completed' : 'running' }
   }
+  if (action.type === 'seek') {
+    if (!state.result) return state
+    const total = Array.isArray(state.result.trace) ? state.result.trace.length : 0
+    if (total === 0) return state
+    const requested = Number(action.index)
+    const index = Number.isFinite(requested)
+      ? Math.max(0, Math.min(total - 1, Math.trunc(requested)))
+      : state.index
+    return { ...state, status: 'paused', index }
+  }
   if (action.type === 'fail') {
     return { ...state, status: 'error', index: 0, result: action.result ?? null, error: action.errorCode ?? 'SIMULATION_FAILED' }
   }

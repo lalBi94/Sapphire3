@@ -171,6 +171,8 @@ const messages = {
   'dashboard.offline': ['Offline dashboard', 'Dashboard hors ligne', '离线仪表板', 'Panel sin conexión', 'لوحة دون اتصال', 'オフライン ダッシュボード', 'ऑफ़लाइन डैशबोर्ड', 'Автономная панель'],
   'dashboard.footerTagline': ['Visual programming environment', 'Environnement de programmation visuelle', '可视化编程环境', 'Entorno de programación visual', 'بيئة برمجة مرئية', 'ビジュアルプログラミング環境', 'विज़ुअल प्रोग्रामिंग वातावरण', 'Среда визуального программирования'],
   'dashboard.footerCredit': ['Designed and developed by', 'Conçu et développé par', '设计与开发：', 'Diseñado y desarrollado por', 'تصميم وتطوير', '設計・開発', 'डिज़ाइन और विकास', 'Разработано'],
+  'dashboard.timeline': ['Execution progress', 'Progression de l’exécution', '执行进度', 'Progreso de la ejecución', 'تقدم التنفيذ', '実行の進行', 'निष्पादन प्रगति', 'Ход выполнения'],
+  'dashboard.seekHint': ['Click or use the arrow keys to jump to a step; the run pauses immediately.', 'Cliquez ou utilisez les flèches pour revenir à un pas ; l’exécution se met immédiatement en pause.', '点击或使用方向键跳到某一步；运行会立即暂停。', 'Haz clic o usa las flechas para saltar a un paso; la ejecución se pausa de inmediato.', 'انقر أو استخدم الأسهم للانتقال إلى خطوة؛ يتوقف التنفيذ فورًا.', 'クリックまたは矢印キーでステップに移動します。実行はすぐに一時停止します。', 'किसी चरण पर जाने के लिए क्लिक करें या तीर कुंजियों का उपयोग करें; रन तुरंत रुक जाता है।', 'Щёлкните или используйте стрелки, чтобы перейти к шагу; выполнение сразу приостанавливается.'],
   'dashboard.type': ['Type', 'Type', '类型', 'Tipo', 'النوع', '種類', 'प्रकार', 'Тип'],
   'dashboard.module': ['Module', 'Module', '模块', 'Módulo', 'الوحدة', 'モジュール', 'मॉड्यूल', 'Модуль'],
   'dashboard.notRunning': ['Not running', 'Aucune exécution', '未运行', 'Sin ejecución', 'لا يوجد تنفيذ', '実行していません', 'नहीं चल रहा', 'Не выполняется'],

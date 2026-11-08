@@ -57,6 +57,7 @@ function start(config, runtimeSource) {
   const status = document.querySelector('[data-status]')
   const statusLabel = document.querySelector('[data-status-label]')
   const progressFill = document.querySelector('[data-progress]')
+  const progressTrack = document.querySelector('[data-progress-track]')
   const runButton = document.querySelector('[data-action="run"]')
   const pauseButton = document.querySelector('[data-action="pause"]')
   const stopButton = document.querySelector('[data-action="stop"]')
@@ -477,6 +478,14 @@ function start(config, runtimeSource) {
     stopButton.disabled = state.status === 'idle'
     const total = Array.isArray(state.result?.trace) ? state.result.trace.length : 0
     progressFill.style.width = total > 0 ? `${Math.min(100, ((state.index + 1) / total) * 100)}%` : '0%'
+    progressTrack.disabled = total === 0
+    progressTrack.max = String(Math.max(0, total - 1))
+    progressTrack.value = String(state.index)
+    if (total > 0) {
+      progressTrack.setAttribute('aria-valuetext', formatTemplate(labels.step ?? 'Step {current} / {total}', { current: state.index + 1, total }))
+    } else {
+      progressTrack.removeAttribute('aria-valuetext')
+    }
   }
 
   // Met à jour les widgets, la sortie et le nœud courant au pas affiché.
@@ -656,6 +665,14 @@ function start(config, runtimeSource) {
     const kind = config.kindLabels?.[node.kind] ?? node.kind
     ref.name.textContent = node.name || kind || (labels.notRunning ?? 'Not running')
     ref.meta.textContent = [kind, node.module ? `${labels.module ?? 'Module'}: ${node.module}` : ''].filter(Boolean).join(' · ')
+  }
+
+  // Met la simulation en pause et revient au pas choisi sur la barre.
+  function handleSeek(index) {
+    state = dashboardExecutionReducer(state, { type: 'seek', index })
+    cancelAnimation()
+    renderControls()
+    renderStates()
   }
 
   // Lance une nouvelle session, ou reprend une session en pause.
@@ -871,6 +888,7 @@ function start(config, runtimeSource) {
     return Number.isInteger(number) ? String(number) : number.toFixed(2).replace(/\.?0+$/, '')
   }
 
+  progressTrack.addEventListener('input', () => handleSeek(progressTrack.value))
   runButton.addEventListener('click', handleRun)
   pauseButton.addEventListener('click', handlePause)
   stopButton.addEventListener('click', handleStop)

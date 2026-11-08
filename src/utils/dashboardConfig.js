@@ -118,6 +118,8 @@ export function dashboardLabels(t) {
     idle: t('dashboard.idle'),
     preparing: t('dashboard.preparing'),
     speed: t('simulation.speed'),
+    timeline: t('dashboard.timeline'),
+    seekHint: t('dashboard.seekHint'),
     running: t('simulation.running'),
     paused: t('simulation.paused'),
     completed: t('simulation.completed'),

@@ -114,6 +114,20 @@ test('dashboard : les commandes Run, Pause, Stop et l’avancement restent cohé
   assert.equal(stopped.mode, 'light')
 })
 
+test('dashboard : cliquer la progression met en pause et revient au pas choisi', () => {
+  const result = { ok: true, trace: ['a', 'b', 'c', 'd'], output: [], outputSteps: [] }
+  let state = dashboardExecutionReducer(dashboardExecutionInitial, { type: 'prepared', result })
+  state = dashboardExecutionReducer(state, { type: 'tick', advance: 2 })
+  assert.equal(state.index, 2)
+  state = dashboardExecutionReducer(state, { type: 'seek', index: 1 })
+  assert.equal(state.status, 'paused')
+  assert.equal(state.index, 1)
+  assert.equal(state.result, result)
+  assert.equal(dashboardExecutionReducer(state, { type: 'seek', index: 999 }).index, 3)
+  assert.equal(dashboardExecutionReducer(state, { type: 'seek', index: -5 }).index, 0)
+  assert.equal(dashboardExecutionReducer(dashboardExecutionInitial, { type: 'seek', index: 2 }), dashboardExecutionInitial)
+})
+
 test('dashboard : la vitesse multiplie la cadence d’animation et reste bornée', () => {
   assert.equal(dashboardPlaybackRate(0, 1), 60)
   assert.equal(dashboardPlaybackRate(800, 1), 100)
@@ -283,6 +297,8 @@ test('dashboard : l’export produit un HTML unique, échappé, hors ligne et th
   assert.match(html, /db-footer__logo/)
   assert.match(html, /data-speed="1"/)
   assert.match(html, /data-speed-input/)
+  assert.match(html, /data-progress-track/)
+  assert.match(html, /type="range"/)
   assert.match(html, /"layoutKey":"layout-demo"/)
   assert.match(html, /"widgets":/)
   assert.match(html, /"initialStates":/)
