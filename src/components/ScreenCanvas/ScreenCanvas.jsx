@@ -88,13 +88,11 @@ export default function ScreenCanvas({ card, state = null, frames = null, screen
       const cycle = cycleRef.current > 1 ? cycleRef.current : frames.length
       if (cycle <= 1) return
       const sequenceEnd = cycleRef.current <= 1 && playbackRef.current >= frames.length - 1
-      if (sequenceEnd && endCallbackRef.current) {
-        if (!endNotifiedRef.current) {
-          endNotifiedRef.current = true
-          endCallbackRef.current()
-        }
-        return
+      if (sequenceEnd && endCallbackRef.current && !endNotifiedRef.current) {
+        endNotifiedRef.current = true
+        endCallbackRef.current()
       }
+      // La séquence continue de tourner pendant la relance : l'écran ne se fige pas.
       playbackRef.current = (playbackRef.current + 1) % cycle
       draw()
     }, screenPlaybackFrameDelay)
