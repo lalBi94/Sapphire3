@@ -52,7 +52,7 @@ import { exportWorkspaceFile } from '../../services/workspaceFiles.js'
 import { openExternal } from '../../services/externalLinks.js'
 import { quitApplication, toggleFullScreen } from '../../services/appControl.js'
 import { rasterizeSvg } from '../../services/nodeImage.js'
-import { repositoryUrl } from '../../utils/appInfo.js'
+import { appVersion, repositoryUrl } from '../../utils/appInfo.js'
 import { loadBookmarks, saveBookmarks } from '../../services/bookmarks.js'
 import SimulationPanel from '../SimulationPanel/SimulationPanel.jsx'
 import FunctionPanel from '../FunctionPanel/FunctionPanel.jsx'
@@ -877,6 +877,8 @@ export default function Canvas() {
         language,
         fonts,
         branding,
+        version: appVersion,
+        repository: repositoryUrl,
       })
       document.setDashboard(nextConfig)
       await files.exportText('html', html, 'dashboard.html')

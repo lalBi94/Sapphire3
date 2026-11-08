@@ -281,6 +281,8 @@ test('dashboard : l’export produit un HTML unique, échappé, hors ligne et th
     language: 'en',
     fonts: { interLatin: 'data:font/woff2;base64,AAAA' },
     branding: { logo: 'data:image/webp;base64,AAAA' },
+    version: '0.1.0-test',
+    repository: 'https://github.com/lalBi94/Sapphire3',
   })
   assert.match(html, /<title>&lt;Demo&gt; &amp; &quot;Test&quot;<\/title>/)
   assert.match(html, /A &amp; B &lt; C/)
@@ -295,6 +297,11 @@ test('dashboard : l’export produit un HTML unique, échappé, hors ligne et th
   assert.match(html, /Threadlock Systems/)
   assert.match(html, /Sapphire 3/)
   assert.match(html, /db-footer__logo/)
+  assert.match(html, /db-footer__version/)
+  assert.match(html, /v0\.1\.0-test/)
+  assert.match(html, /db-github/)
+  assert.match(html, /https:\/\/github\.com\/lalBi94\/Sapphire3/)
+  assert.match(html, /rel="noopener noreferrer"/)
   assert.match(html, /data-speed="1"/)
   assert.match(html, /data-speed-input/)
   assert.match(html, /data-progress-track/)
@@ -308,7 +315,8 @@ test('dashboard : l’export produit un HTML unique, échappé, hors ligne et th
   assert.match(html, /"layoutKey":"layout-demo"/)
   assert.match(html, /"widgets":/)
   assert.match(html, /"initialStates":/)
-  assert.doesNotMatch(html, /https?:\/\//)
+  assert.doesNotMatch(html, /<(?:script|link|img|source|iframe)[^>]+(?:src|href)="https?:/i)
+  assert.doesNotMatch(html, /url\(\s*['"]?https?:/i)
   assert.doesNotMatch(html, /<link\b/i)
   assert.doesNotMatch(html, /src="(?:https?:)?\/\//i)
   assert.doesNotMatch(html, /workspace\.sp3/)

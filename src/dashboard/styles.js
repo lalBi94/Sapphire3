@@ -771,6 +771,13 @@ p, h1, h2, h3 { margin: 0; }
   letter-spacing: 0.04em;
   text-transform: none;
 }
+.db-footer__version {
+  color: var(--db-primary);
+  font-family: var(--db-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
 .db-footer__tagline {
   margin: 2px 0 0;
   color: var(--db-muted);
@@ -791,6 +798,33 @@ p, h1, h2, h3 { margin: 0; }
   text-transform: none;
 }
 .db-footer__meta { margin: 0; color: var(--db-muted); }
+.db-github {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 6px;
+  padding: 6px 9px;
+  border: 1px solid #30363d;
+  border-radius: var(--db-radius-control);
+  background: #0d1117;
+  color: #e6edf3;
+  font-family: var(--db-mono);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.db-github:hover {
+  border-color: #8b949e;
+  background: #161b22;
+  color: #ffffff;
+}
+.db-github:focus-visible {
+  outline: 2px solid var(--db-focus);
+  outline-offset: 2px;
+}
+.db-github__icon { width: 14px; height: 14px; flex: none; }
+.db-github__repo { color: inherit; }
 
 .visually-hidden {
   position: absolute !important;
