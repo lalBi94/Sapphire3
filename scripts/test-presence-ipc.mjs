@@ -131,6 +131,13 @@ try {
   await waitForActivity(first, beforeClear, (frame) => frame.args?.activity === null)
   console.log('ipc: clear reçu')
 
+  // Un second Clear ne doit pas être renvoyé.
+  const beforeRepeatedClear = first.activities.length
+  child.stdin.write('C\n')
+  await new Promise((resolve) => setTimeout(resolve, 500))
+  if (first.activities.length !== beforeRepeatedClear) throw new Error('clear répété envoyé')
+  console.log('ipc: clear non répété')
+
   // Discord redémarre : fermeture du serveur, puis nouvelle écoute et reconnexion.
   first.socket.destroy()
   await stopServer()

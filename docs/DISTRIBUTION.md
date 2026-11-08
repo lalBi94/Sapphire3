@@ -160,12 +160,13 @@ Inno Setup 6 ou 7 est requis sur la machine de construction (`ISCC.exe`), pas su
 
 ### 4.4 Sidecar Discord Rich Presence
 
-- Source : `native/discord-presence/` (Go standard library uniquement). Build : `pnpm presence:build`, qui produit `build/presence/windows-x64/discord-presence.exe`, `linux-x64`, `linux-arm64`, `macos-x64` et `macos-arm64`.
-- Go 1.27+ est requis **uniquement sur la machine de construction**. Les utilisateurs reçoivent un binaire statique ; aucun runtime Go, Node ou Python n'est nécessaire.
-- Windows : compilation `-H windowsgui` (aucune console), copie à côté de `Sapphire3.exe`, signature avec le même certificat que l'exécutable si configuré.
+- Source : `native/discord-presence/` (C++20, bibliothèque standard et API système uniquement). Build : `pnpm presence:build` via CMake 3.25+ et Zig 0.17+ pour la compilation croisée ; produit `build/presence/windows-x64/discord-presence.exe`, `linux-x64`, `linux-arm64`, `macos-x64` et `macos-arm64`.
+- CMake et Zig sont requis **uniquement sur la machine de construction**. Les utilisateurs reçoivent un binaire natif ; aucun runtime Go, Node ou Python n'est nécessaire, seules les bibliothèques système standard sont utilisées.
+- Windows : cible CMake `WIN32` et option de lien `-Wl,--subsystem,windows` (aucune console), copie à côté de `Sapphire3.exe`, signature avec le même certificat que l'exécutable si configuré.
 - Linux : `discord-presence` est copié dans chaque archive et marqué exécutable avec `Sapphire3`.
 - macOS : les deux architectures sont copiées dans `Contents/MacOS/` et marquées exécutables ; le service choisit selon `NL_ARCH`.
-- `pnpm presence:test` exécute les tests Go. La CI installe Go via `actions/setup-go` avant `pnpm presence:build` et `pnpm presence:test`.
+- `pnpm presence:test` compile et exécute les tests C++ via CMake. La CI installe Zig via `mlugg/setup-zig` et CMake/Ninja via `apt`, puis exécute `pnpm presence:build`, `pnpm presence:test`, les tests IPC et le scénario sans Discord.
+- Le SDK officiel Discord a été évalué ; l'IPC direct reste retenu pour éviter une dépendance native lourde et préserver le protocole `A/C/Q` existant.
 - Détails fonctionnels, assets Discord et limites : `docs/DISCORD_PRESENCE.md`.
 
 ## 5. Vérifications avant publication

@@ -33,7 +33,7 @@ S'y ajoutent, sur action explicite, la \textbf{simulation locale} déterministe,
 le \textbf{débogage pas à pas} avec points d'arrêt et mémoire pédagogique, les
 \textbf{contrats}, l'\textbf{analyse de graphes}, la \textbf{simulation
 graphique simplifiée} et la \textbf{transpilation} JavaScript/Python. Une
-\textbf{Discord Rich Presence} optionnelle est fournie par un sidecar Go local
+\textbf{Discord Rich Presence} optionnelle est fournie par un sidecar C++20 local
 relié à l'IPC Discord ; elle ne fait pas partie du moteur pur et ne publie que
 des libellés génériques et des compteurs. Les
 opérations natives (\code{Print}, \code{MathCall}, \code{ForEach}) restent
@@ -312,14 +312,14 @@ refusée avant tout remplacement. La sérialisation refuse les données non JSON
 lieu de les supprimer silencieusement. Les profondeurs d'analyse et de
 sérialisation sont bornées pour éviter les dépassements de pile.
 
-La \textbf{Discord Rich Presence} reste hors du moteur logique : un sidecar Go
+La \textbf{Discord Rich Presence} reste hors du moteur logique : un sidecar C++20
 statique est lancé par Neutralinojs, se connecte à l'IPC local de Discord et
 reçoit des activités déjà construites par l'interface. Aucun OAuth, token,
 compte ou backend n'est utilisé ; seuls des libellés fixes et des compteurs de
 modules/nœuds sont transmis. Le sidecar est compilé pour Windows, Linux et macOS
-lors de la distribution ; Go n'est requis qu'à la construction. Le réglage
-\code{sapphire-discord-presence} est activé par défaut et arrête immédiatement
-la présence lorsqu'il est désactivé.
+lors de la distribution ; CMake et Zig ne sont requis qu'à la construction. Le
+réglage \code{sapphire-discord-presence} est activé par défaut et arrête
+immédiatement la présence lorsqu'il est désactivé.
 
 Le workspace est un dossier choisi : \code{workspace.sp3}, images liées dans
 \code{images/}, trois sauvegardes directes au plus dans \code{backups/}, export ZIP.

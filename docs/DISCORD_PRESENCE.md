@@ -14,15 +14,17 @@ La présence ne dépend pas de Discord pour démarrer : si Discord est absent, l
 Canvas React
   └─ useDiscordPresence / src/services/discordPresence.js
        └─ Neutralinojs os.spawnProcess + stdIn
-            └─ sidecar Go natif (native/discord-presence)
+            └─ sidecar C++20 natif (native/discord-presence)
                  └─ IPC local Discord (named pipe / Unix socket)
 ```
 
-- **Pas de Node.js, Python ou runtime supplémentaire** chez l'utilisateur : le sidecar est un binaire statique Go.
+- **Pas de Node.js, Python ou runtime supplémentaire** chez l'utilisateur : le sidecar est un binaire natif C++20.
 - **Pas de WebSocket RPC déprécié** : le sidecar utilise l'IPC local officiel de Discord (`discord-ipc-0` à `9`).
-- **Pas de dépendance Go externe** : uniquement la bibliothèque standard.
+- **Pas de dépendance externe** : uniquement la bibliothèque standard C++ et les API système. Le SDK officiel Discord a été évalué, mais l'IPC direct reste plus léger et préserve le protocole `A/C/Q` existant.
 - **Un seul sidecar par instance applicative** : le service React est un singleton, même avec StrictMode ou plusieurs montages. Plusieurs instances Sapphire simultanées gardent chacune leur sidecar ; Discord affiche l'activité la plus récente.
 - **Aucun second moteur** : l'activité est dérivée des états React existants (`execution`, `debugSession`, `engineWork`, `transpilationResult`, `document.exercise`, compteurs du projet).
+- **Recherche Unix corrigée** : chaque base (`XDG_RUNTIME_DIR`, `TMPDIR`, `TMP`, `TEMP`, `/tmp`) est essayée pour chaque index `discord-ipc-0` à `9`, sans sauter de base après le premier index.
+- **Clear dédupliqué** : un `SET_ACTIVITY` identique n'est pas renvoyé ; `C` puis `Q` ne produisent pas deux effacements.
 
 ### Cycle de vie
 
@@ -39,7 +41,7 @@ Canvas React
 
 ## 3. Application Discord et configuration développeur
 
-L'Application ID commun est intégré dans `native/discord-presence/main.go` :
+L'Application ID commun est intégré dans `native/discord-presence/src/presence_core.h` :
 
 ```text
 1568755585250492416
@@ -96,11 +98,11 @@ Seuls des **compteurs généraux** (modules, nœuds) et des libellés fixes sont
 
 ## 7. Construction et distribution
 
-Prérequis de build uniquement : **Go 1.27+**. Les utilisateurs n'ont pas besoin de Go.
+Prérequis de build uniquement : **CMake 3.25+**, **Ninja** et **Zig 0.17+**. Les utilisateurs n'ont besoin d'aucun runtime.
 
 ```sh
-pnpm presence:build   # construit les cinq sidecars dans build/presence/
-pnpm presence:test    # go test ./native/discord-presence
+pnpm presence:build   # CMake + Zig : cinq sidecars dans build/presence/
+pnpm presence:test    # tests C++ via CMake/CTest
 pnpm presence:ipc-test # faux serveur IPC : handshake, READY, SET_ACTIVITY, clear, reconnexion
 pnpm presence:nodiscord-test # sidecar sans Discord : stable, silencieux, arrêt propre
 pnpm dist:win         # copie discord-presence.exe à côté de Sapphire3.exe
@@ -110,15 +112,17 @@ pnpm dist:mac         # copie discord-presence-x64 et -arm64 dans le bundle
 
 La variable d'environnement `SAPPHIRE_DISCORD_IPC_PATH`, réservée aux tests, force un chemin IPC unique pour ne jamais toucher au Discord réel de la machine. Elle n'est pas définie en production.
 
-- Windows : `discord-presence.exe` est compilé avec `-H windowsgui` (aucune console visible) et signé avec l'exécutable si un certificat est configuré.
+Variables de build facultatives : `CMAKE_BIN`, `NINJA_BIN` et `ZIG_BIN` permettent de pointer vers des installations hors PATH.
+
+- Windows : cible CMake `WIN32` et option `-Wl,--subsystem,windows` (aucune console visible) ; le binaire est signé avec l'exécutable si un certificat est configuré.
 - Linux : `discord-presence` est marqué exécutable dans le `.tar.gz` avec `Sapphire3`.
 - macOS : les deux architectures sont livrées dans `Contents/MacOS/` et marquées exécutables.
-- CI : `actions/setup-go` installe Go, puis `pnpm presence:build` et `pnpm presence:test` s'exécutent avant les tests et le build.
+- CI : `mlugg/setup-zig` installe Zig, CMake/Ninja sont installés via `apt`, puis `pnpm presence:build`, `pnpm presence:test`, les tests IPC et le scénario sans Discord s'exécutent avant les tests et le build.
 
 ### Plateformes validées
 
-- **Windows x64** : sidecar compilé et testé localement avec un faux serveur IPC (handshake, READY, SET_ACTIVITY, clear, reconnexion), puis application réelle → sidecar → IPC avec activité complète, un seul sidecar et aucun terminal visible. L'intégration avec un Discord réel et un compte testeur reste à confirmer manuellement.
-- **Linux x64/ARM64** et **macOS x64/ARM64** : binaires **compilés** par cross-compilation, mais **non exécutés** sur leur système cible. Le rendu Discord réel, les permissions et l'IPC Unix restent à valider sur ces plateformes.
+- **Windows x64** : sidecar C++20 compilé et testé localement avec un faux serveur IPC (handshake, READY, SET_ACTIVITY, clear, reconnexion), puis application réelle → sidecar → IPC avec activité complète, un seul sidecar et aucun terminal visible. L'intégration avec un Discord réel et un compte testeur reste à confirmer manuellement.
+- **Linux x64/ARM64** et **macOS x64/ARM64** : binaires **compilés** par CMake/Zig, mais **non exécutés** sur leur système cible. Le rendu Discord réel, les permissions et l'IPC Unix restent à valider sur ces plateformes.
 
 ## 8. Limites connues
 

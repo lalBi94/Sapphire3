@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import net from 'node:net'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -14,6 +14,12 @@ const appDirectory = path.join(root, 'build', 'release', 'Sapphire3-0.1.0-beta.6
 const executable = path.join(appDirectory, 'Sapphire3.exe')
 const pipePath = `\\\\.\\pipe\\sapphire3-app-test-${process.pid}`
 const activities = []
+
+// Liste les sidecars déjà présents pour ne tuer que ceux créés par ce test.
+function sidecarPids() {
+  const result = spawnSync('powershell.exe', ['-NoProfile', '-Command', "Get-Process discord-presence -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Id"], { encoding: 'utf8' })
+  return new Set(String(result.stdout ?? '').split(/\s+/).filter(Boolean).map(Number).filter(Number.isInteger))
+}
 
 function writeFrame(socket, opcode, payload = '') {
   const body = Buffer.from(payload)
@@ -57,6 +63,7 @@ function waitFor(predicate, timeout = 25000) {
   })
 }
 
+const existingSidecars = sidecarPids()
 let app = null
 try {
   await new Promise((resolve, reject) => {
@@ -76,6 +83,7 @@ try {
   app?.kill()
   await new Promise((resolve) => server.close(resolve))
   await new Promise((resolve) => setTimeout(resolve, 1000))
-  const { spawnSync } = await import('node:child_process')
-  spawnSync('taskkill.exe', ['/IM', 'discord-presence.exe', '/F'], { stdio: 'ignore' })
+  for (const pid of sidecarPids()) {
+    if (!existingSidecars.has(pid)) spawnSync('taskkill.exe', ['/PID', String(pid), '/F'], { stdio: 'ignore' })
+  }
 }
