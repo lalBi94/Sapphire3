@@ -25,6 +25,12 @@ const dashboardFontFiles = {
   jetBrainsCyrillic: 'src/assets/fonts/jetbrains-mono-cyrillic.woff2',
 }
 
+// Logo officiel embarqué dans le pied de page, chargé uniquement à l'export.
+const dashboardBrandingSpec = 'virtual:dashboard-branding'
+const dashboardBrandingFiles = {
+  logo: 'src/assets/branding/01_WEB/WEBP_lossless/sapphire3_logo_128x128_lossless.webp',
+}
+
 // Compile un point d'entrée en IIFE et renvoie son code, sans écrire de fichier intermédiaire.
 async function bundleDashboardEntry(spec) {
   const result = await build({
@@ -60,7 +66,7 @@ function dashboardBundles() {
   return {
     name: 'sapphire-dashboard-bundles',
     resolveId(id) {
-      return id === dashboardFontSpec || dashboardSpecs.has(id) ? `\0${id}` : null
+      return id === dashboardFontSpec || id === dashboardBrandingSpec || dashboardSpecs.has(id) ? `\0${id}` : null
     },
     async load(id) {
       if (id === `\0${dashboardFontSpec}`) {
@@ -71,6 +77,14 @@ function dashboardBundles() {
         }
         return `export default ${JSON.stringify(fonts)}`
       }
+      if (id === `\0${dashboardBrandingSpec}`) {
+        const branding = {}
+        for (const [key, file] of Object.entries(dashboardBrandingFiles)) {
+          const data = await readFile(path.resolve(root, file))
+          branding[key] = `data:image/webp;base64,${data.toString('base64')}`
+        }
+        return `export default ${JSON.stringify(branding)}`
+      }
       if (!id.startsWith('\0virtual:dashboard-')) return null
       const spec = dashboardSpecs.get(id.slice(1))
       if (!spec) return null
@@ -78,11 +92,11 @@ function dashboardBundles() {
     },
     handleHotUpdate(context) {
       const file = String(context.file ?? '').replace(/\\/g, '/')
-      const watched = file.includes('/src/dashboard/') || file.includes('/src/utils/dashboard') || file.includes('/src/utils/logic/') || file.includes('/src/assets/fonts/')
+      const watched = file.includes('/src/dashboard/') || file.includes('/src/utils/dashboard') || file.includes('/src/utils/logic/') || file.includes('/src/assets/fonts/') || file.includes('/src/assets/branding/')
       if (!watched) return
       cache.clear()
       const graph = context.server?.moduleGraph
-      for (const id of [dashboardFontSpec, ...dashboardSpecs.keys()]) {
+      for (const id of [dashboardFontSpec, dashboardBrandingSpec, ...dashboardSpecs.keys()]) {
         const module = graph?.getModuleById?.(`\0${id}`)
         if (module) graph.invalidateModule(module)
       }

@@ -97,11 +97,13 @@ export function buildDashboardDocument({
   project = null,
   language = 'en',
   fonts = {},
+  branding = {},
 }) {
   const title = escapeDashboardHtml(String(name ?? '').trim() || 'Sapphire Dashboard')
   const summary = escapeDashboardHtml(description)
   const direction = language === 'ar' ? 'rtl' : 'ltr'
   const defaultLayout = layout ?? dashboardDefaultLayout(widgets)
+  const logo = typeof branding?.logo === 'string' && branding.logo.startsWith('data:image/') ? branding.logo : null
   const data = {
     widgets,
     initialStates,
@@ -154,8 +156,18 @@ export function buildDashboardDocument({
 </div>
 <main id="dashboard-stage" class="db-stage" data-stage aria-label="${escapeDashboardHtml(labels.widgetsAria ?? 'Dashboard widgets')}"></main>
 <footer class="db-footer">
-  <span>${escapeDashboardHtml(labels.offline ?? 'Offline dashboard')}</span>
-  <span>${escapeDashboardHtml(labels.builtWith ?? 'Built with Sapphire 3')}</span>
+  <div class="db-footer__brand">
+    ${logo ? `<img class="db-footer__logo" src="${escapeDashboardHtml(logo)}" alt="" width="40" height="40">` : '<span class="db-footer__logo db-footer__logo--fallback" aria-hidden="true">S3</span>'}
+    <div>
+      <p class="db-footer__name">Sapphire 3</p>
+      <p class="db-footer__tagline">${escapeDashboardHtml(labels.footerTagline ?? 'Visual programming environment')}</p>
+    </div>
+  </div>
+  <div class="db-footer__credits">
+    <p class="db-footer__credit">${escapeDashboardHtml(labels.footerCredit ?? 'Designed and developed by')}</p>
+    <p class="db-footer__threadlock">Threadlock Systems</p>
+    <p class="db-footer__meta">${escapeDashboardHtml(labels.offline ?? 'Offline dashboard')} · ${escapeDashboardHtml(labels.builtWith ?? 'Built with Sapphire 3')}</p>
+  </div>
 </footer>
 <noscript><p style="padding:0 24px 24px">${escapeDashboardHtml(labels.noscript ?? 'This dashboard needs JavaScript to run.')}</p></noscript>
 <script id="sapphire-dashboard-runtime">${safeInlineScript(runtimeSource)}</script>

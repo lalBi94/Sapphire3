@@ -255,6 +255,7 @@ test('dashboard : l’export produit un HTML unique, échappé, hors ligne et th
     project: workspace.project,
     language: 'en',
     fonts: { interLatin: 'data:font/woff2;base64,AAAA' },
+    branding: { logo: 'data:image/webp;base64,AAAA' },
   })
   assert.match(html, /<title>&lt;Demo&gt; &amp; &quot;Test&quot;<\/title>/)
   assert.match(html, /A &amp; B &lt; C/)
@@ -265,6 +266,10 @@ test('dashboard : l’export produit un HTML unique, échappé, hors ligne et th
   assert.match(html, /sapphire-dashboard-client/)
   assert.match(html, /@font-face/)
   assert.match(html, /data:font\/woff2;base64,AAAA/)
+  assert.match(html, /data:image\/webp;base64,AAAA/)
+  assert.match(html, /Threadlock Systems/)
+  assert.match(html, /Sapphire 3/)
+  assert.match(html, /db-footer__logo/)
   assert.match(html, /"layoutKey":"layout-demo"/)
   assert.match(html, /"widgets":/)
   assert.match(html, /"initialStates":/)

@@ -134,6 +134,8 @@ export function dashboardLabels(t) {
     layoutReset: t('dashboard.layoutReset'),
     builtWith: t('dashboard.builtWith'),
     offline: t('dashboard.offline'),
+    footerTagline: t('dashboard.footerTagline'),
+    footerCredit: t('dashboard.footerCredit'),
     type: t('dashboard.type'),
     module: t('dashboard.module'),
     notRunning: t('dashboard.notRunning'),

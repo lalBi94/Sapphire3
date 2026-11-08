@@ -169,6 +169,8 @@ const messages = {
   'dashboard.layoutReset': ['Layout reset.', 'Disposition réinitialisée.', '布局已重置。', 'Diseño restablecido.', 'تمت إعادة تعيين التخطيط.', 'レイアウトをリセットしました。', 'लेआउट रीसेट हो गया।', 'Макет сброшен.'],
   'dashboard.builtWith': ['Built with Sapphire 3', 'Créé avec Sapphire 3', '使用 Sapphire 3 构建', 'Creado con Sapphire 3', 'أُنشئ بواسطة Sapphire 3', 'Sapphire 3 で作成', 'Sapphire 3 से बनाया गया', 'Создано в Sapphire 3'],
   'dashboard.offline': ['Offline dashboard', 'Dashboard hors ligne', '离线仪表板', 'Panel sin conexión', 'لوحة دون اتصال', 'オフライン ダッシュボード', 'ऑफ़लाइन डैशबोर्ड', 'Автономная панель'],
+  'dashboard.footerTagline': ['Visual programming environment', 'Environnement de programmation visuelle', '可视化编程环境', 'Entorno de programación visual', 'بيئة برمجة مرئية', 'ビジュアルプログラミング環境', 'विज़ुअल प्रोग्रामिंग वातावरण', 'Среда визуального программирования'],
+  'dashboard.footerCredit': ['Designed and developed by', 'Conçu et développé par', '设计与开发：', 'Diseñado y desarrollado por', 'تصميم وتطوير', '設計・開発', 'डिज़ाइन और विकास', 'Разработано'],
   'dashboard.type': ['Type', 'Type', '类型', 'Tipo', 'النوع', '種類', 'प्रकार', 'Тип'],
   'dashboard.module': ['Module', 'Module', '模块', 'Módulo', 'الوحدة', 'モジュール', 'मॉड्यूल', 'Модуль'],
   'dashboard.notRunning': ['Not running', 'Aucune exécution', '未运行', 'Sin ejecución', 'لا يوجد تنفيذ', '実行していません', 'नहीं चल रहा', 'Не выполняется'],

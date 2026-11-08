@@ -589,16 +589,66 @@ p, h1, h2, h3 { margin: 0; }
 .db-footer {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 12px clamp(16px, 4vw, 40px) 24px;
+  gap: 16px;
+  padding: 18px clamp(16px, 4vw, 40px) 24px;
   border-top: 1px solid var(--db-border);
   color: var(--db-muted);
   font-family: var(--db-mono);
   font-size: 10px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+.db-footer__brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.db-footer__logo {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  padding: 4px;
+  border: 1px solid var(--db-border);
+  border-radius: var(--db-radius-control);
+  background: color-mix(in srgb, var(--db-raised) 72%, transparent);
+  object-fit: contain;
+}
+.db-footer__logo--fallback {
+  display: grid;
+  place-items: center;
+  color: var(--db-primary);
+  font-family: var(--db-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+.db-footer__name {
+  margin: 0;
+  color: var(--db-text);
+  font-family: var(--db-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+.db-footer__tagline {
+  margin: 2px 0 0;
+  color: var(--db-muted);
+  font-family: var(--db-font);
+  font-size: 10px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.db-footer__credits { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+.db-footer__credit { margin: 0; color: var(--db-muted); }
+.db-footer__threadlock {
+  margin: 0;
+  color: var(--db-text);
+  font-family: var(--db-display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: none;
+}
+.db-footer__meta { margin: 0; color: var(--db-muted); }
 
 .visually-hidden {
   position: absolute !important;
@@ -615,6 +665,7 @@ p, h1, h2, h3 { margin: 0; }
 [dir="rtl"] .db-menu__popover { right: auto; left: 0; }
 [dir="rtl"] .db-panel__resize { right: auto; left: 3px; }
 [dir="rtl"] .db-menu__reset { text-align: right; }
+[dir="rtl"] .db-footer__credits { align-items: flex-start; text-align: left; }
 
 @keyframes db-pulse {
   0%, 100% { opacity: 1; }
@@ -629,6 +680,7 @@ p, h1, h2, h3 { margin: 0; }
   .db-stage { gap: 8px; padding-left: 12px; padding-right: 12px; }
   .db-toolbar { padding-left: 12px; padding-right: 12px; }
   .db-footer { padding-left: 12px; padding-right: 12px; }
+  .db-footer__credits { align-items: flex-start; text-align: left; }
 }
 
 @media (max-width: 460px) {
