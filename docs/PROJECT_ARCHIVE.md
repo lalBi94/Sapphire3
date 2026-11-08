@@ -2,6 +2,13 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Vitesse du Run live — 9 novembre 2026
+
+- Le panneau Simulation affiche en live un curseur de vitesse de 1 à 100. La valeur est appliquée immédiatement au worker sans redémarrer la session.
+- `src/utils/simulationSpeed.js` ajoute `liveSpeedDefault` (25) et `liveTickDelay` : la cadence passe de 800 ms entre tranches à vitesse 1 à 8 ms à vitesse 100, avec 32 ms par défaut. L'ancien tick fixe de 16 ms correspond au réglage 50.
+- `src/services/liveRunner.js` conserve la vitesse courante et reprogramme le tick quand elle change ; `useLiveSession` et `Canvas` transmettent la valeur au démarrage et pendant l'exécution. Le dashboard exporté n'est pas concerné.
+- Vérifications : **617 tests Node/Python réussis**, dont la conversion de cadence ; build Vite ; contrôle navigateur du curseur, de la valeur affichée et de la progression des pas à 100 puis à 1. Limite : le réglage n'est pas persisté et reste propre à la session.
+
 ## Boutons d'entrée onClick(bool) — 9 novembre 2026
 
 - Les boutons `toggleButton` et `holdButton` ne reposent plus sur la globale `isPress()` : leur module caché déclare `INPUT_SP3_GLOBAL_ONCLICK_<n>` de type `(boolean) -> void`, initialisée à une fonction vide `INPUT_SP3_GLOBAL_NOOP_<n>`. La carte affiche un sélecteur des fonctions du projet de signature `(boolean) -> void` ; le binding met à jour la source, crée l'import et l'export nécessaires, et reste visible dans la vue code.

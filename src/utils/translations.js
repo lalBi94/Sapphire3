@@ -1030,6 +1030,7 @@ const messages = {
   'simulation.free': ['Free run', 'Libérer', '自由运行', 'Liberar', 'تحرير', '自由実行', 'मुक्त चलाएँ', 'Освободить'],
   'simulation.freeHint': ['Release the run from the step cadence: the output appears immediately.', 'Libérer la simulation de la cadence des pas : la sortie apparaît immédiatement.', '让运行脱离步进节奏：输出立即显示。', 'Liberar la ejecución de la cadencia de pasos: la salida aparece de inmediato.', 'تحرير التشغيل من إيقاع الخطوات: تظهر المخرجات فورًا.', 'ステップのリズムから実行を解放し、出力をすぐに表示します。', 'चरण की गति से रन मुक्त करें: आउटपुट तुरंत दिखेगा।', 'Освободить запуск от ритма шагов: вывод появится сразу.'],
   'simulation.speed': ['Speed', 'Vitesse', '速度', 'Velocidad', 'السرعة', '速度', 'गति', 'Скорость'],
+  'simulation.liveSpeed': ['Live speed', 'Vitesse du live', '实时速度', 'Velocidad en vivo', 'سرعة التشغيل المباشر', 'ライブ速度', 'लाइव गति', 'Скорость live'],
   'simulation.running': ['Running', 'En cours', '运行中', 'En curso', 'قيد التشغيل', '実行中', 'चल रहा है', 'Выполняется'],
   'simulation.steps': ['steps', 'étapes', '步骤', 'pasos', 'خطوات', 'ステップ', 'चरण', 'шагов'],
   'simulation.step': ['step', 'étape', '步骤', 'paso', 'خطوة', 'ステップ', 'चरण', 'шаг'],

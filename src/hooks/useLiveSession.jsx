@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { startLive, sendLiveInputs, sendLiveEvents, pauseLive, resumeLive, stopLive } from '../services/liveRunner.js'
+import { startLive, sendLiveInputs, sendLiveEvents, setLiveSpeed, pauseLive, resumeLive, stopLive } from '../services/liveRunner.js'
 
 const initialLive = Object.freeze({ status: 'idle', steps: 0, output: [], currentNodeId: null, states: {}, errorCode: null, error: '' })
 
@@ -11,11 +11,12 @@ export default function useLiveSession() {
   useEffect(() => () => stopLive(), [])
 
   // Démarre un programme en continu avec ses entrées initiales.
-  function start(project, inputs = {}) {
+  function start(project, inputs = {}, options = {}) {
     statusRef.current = 'running'
     setLive({ ...initialLive, status: 'running' })
     startLive(project, {
       inputs,
+      speed: options.speed,
       onFrame: (state) => {
         if (statusRef.current === 'stopped') return
         setLive((current) => ({
@@ -54,6 +55,11 @@ export default function useLiveSession() {
     sendLiveEvents(events)
   }
 
+  // Modifie la cadence du live courant.
+  function setSpeed(value) {
+    setLiveSpeed(value)
+  }
+
   // Suspend la session live.
   function pause() {
     pauseLive()
@@ -78,5 +84,5 @@ export default function useLiveSession() {
     setLive(initialLive)
   }
 
-  return { live, start, sendInputs, sendEvents, pause, resume, stop, reset }
+  return { live, start, sendInputs, sendEvents, setSpeed, pause, resume, stop, reset }
 }

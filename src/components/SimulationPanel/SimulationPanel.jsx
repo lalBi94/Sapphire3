@@ -106,6 +106,11 @@ export default function SimulationPanel({ result, live = false, running = false,
           {[1, 2, 3].map((value) => <button type="button" key={value} aria-pressed={speed === value} onClick={() => chooseSpeed(value)}>×{value}</button>)}
           <label className="simulation-panel__speed-custom">×<input type="number" min={simulationSpeedMin} max={simulationSpeedMax} step="1" value={speedDraft} aria-label={t('simulation.speed')} onChange={(event) => setSpeedDraft(event.target.value)} onBlur={commitSpeed} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur() }} /></label>
         </div>}
+        {live && <div className="simulation-panel__speed simulation-panel__speed--live">
+          <span>{t('simulation.liveSpeed')}</span>
+          <input type="range" min={simulationSpeedMin} max={simulationSpeedMax} step="1" value={speed} aria-label={t('simulation.liveSpeed')} onChange={(event) => onSpeedChange?.(Number(event.target.value))} />
+          <span className="simulation-panel__speed-value" aria-hidden="true">{speed}</span>
+        </div>}
         <pre>{visibleOutput.join('\n') || t('simulation.noOutput')}</pre>
         {result.contracts?.total > 0 && <section className="simulation-panel__contracts" aria-label={t('contracts.title')}>
           <h3>{t('contracts.title')}</h3>

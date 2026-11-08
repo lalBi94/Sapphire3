@@ -16,6 +16,9 @@
 .simulation-panel__speed-custom { display: inline-flex; align-items: center; gap: 3px; min-height: 24px; padding: 2px 5px; border: 1px solid var(--color-border); border-radius: var(--radius-small); color: var(--color-text-muted); }
 .simulation-panel__speed-custom input { width: 42px; min-height: 24px; padding: 1px 3px; border: 0; border-radius: 2px; color: var(--color-text); background: var(--color-surface-raised); font: inherit; }
 .simulation-panel__speed-custom input:focus { outline: none; }
+.simulation-panel__speed--live { gap: 8px; }
+.simulation-panel__speed--live input[type="range"] { flex: 1 1 120px; min-width: 90px; accent-color: var(--color-primary); }
+.simulation-panel__speed-value { min-width: 2ch; color: var(--color-text); font-family: var(--font-mono); text-align: right; }
 /* Boutons d'action (pause, reprise, arrêt) : libellés, à droite du titre. */
 .simulation-panel header button.simulation-panel__control { display: inline-flex; width: auto; height: 26px; min-height: 26px; padding: 0 8px; gap: 5px; flex: 0 0 auto; white-space: nowrap; }
 .simulation-panel header button.simulation-panel__control:hover { background: var(--color-hover); color: var(--color-text); }

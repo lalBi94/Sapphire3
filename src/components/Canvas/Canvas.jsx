@@ -14,7 +14,7 @@ import CanvasStatus from '../CanvasStatus/CanvasStatus.jsx'
 import ModuleFunctions from '../ModuleFunctions/ModuleFunctions.jsx'
 import { semanticZoomLevel, semanticSearchZoomLevel } from '../../utils/semanticZoom.js'
 import { moduleSnapPixels, snapModuleRect } from '../../utils/moduleSnap.js'
-import { clampSimulationSpeed, simulationTargetStep } from '../../utils/simulationSpeed.js'
+import { clampSimulationSpeed, liveSpeedDefault, simulationTargetStep } from '../../utils/simulationSpeed.js'
 import Minimap from '../Minimap/Minimap.jsx'
 import MascotNotification from '../MascotNotification/MascotNotification.jsx'
 import CanvasContextMenu from '../CanvasContextMenu/CanvasContextMenu.jsx'
@@ -89,6 +89,7 @@ export default function Canvas() {
   const [execution, setExecution] = useState(null)
   const [executionFree, setExecutionFree] = useState(false)
   const [simulationSpeed, setSimulationSpeed] = useState(1)
+  const [liveSpeed, setLiveSpeed] = useState(liveSpeedDefault)
   const [debugSession, setDebugSession] = useState(null)
   const [memoryOpen, setMemoryOpen] = useState(false)
   const [pointerGraphOpen, setPointerGraphOpen] = useState(false)
@@ -653,7 +654,7 @@ export default function Canvas() {
     setFlowRun(null)
     setDebugSession(null)
     setFunctionResult(null)
-    liveSession.start(document.project, collectInputButtonValues(document.project, document.cards))
+    liveSession.start(document.project, collectInputButtonValues(document.project, document.cards), { speed: liveSpeed })
   }
 
   // Lance une simulation locale uniquement sur un programme statiquement valide.
@@ -815,6 +816,13 @@ export default function Canvas() {
   // Applique une vitesse d'animation bornée, y compris pendant une exécution en cours.
   function handleSimulationSpeedChange(value) {
     setSimulationSpeed(clampSimulationSpeed(value))
+  }
+
+  // Applique la cadence du live sans redémarrer la session.
+  function handleLiveSpeedChange(value) {
+    const next = clampSimulationSpeed(value)
+    setLiveSpeed(next)
+    liveSession.setSpeed(next)
   }
 
   // Interrompt une simulation en cours d'animation sans effacer sa sortie déjà produite.
@@ -1484,7 +1492,7 @@ export default function Canvas() {
         <span>{transfers.notice.error ? diagnosticLabel(transfers.notice.error, t) : t(transfers.notice.message)}{transfers.notice.detail && ` · ${diagnosticLabel(transfers.notice.detail, t)}`}</span>
         <button type="button" aria-label={t('nav.dismiss')} onClick={transfers.dismiss}><X size={14} aria-hidden="true" /></button>
       </div>}
-      <SimulationPanel result={liveVisible ? livePanelResult : simulationResult} live={liveVisible} running={liveVisible ? live.status === 'running' : Boolean(execution?.running)} paused={liveVisible ? live.status === 'paused' : Boolean(execution?.paused)} stopped={liveVisible ? live.status === 'stopped' : Boolean(execution?.stopped)} currentStep={liveVisible ? live.steps : execution ? execution.index + 1 : 0} free={executionFree} speed={simulationSpeed} onSpeedChange={handleSimulationSpeedChange} onToggleFree={handleToggleExecutionFree} onPause={handlePauseExecution} onResume={handleResumeExecution} onStop={handleStopExecution} onClose={() => { if (liveVisible) liveSession.reset(); else { setSimulationResult(null); setExecution(null); setExecutionFree(false) } }} />
+      <SimulationPanel result={liveVisible ? livePanelResult : simulationResult} live={liveVisible} running={liveVisible ? live.status === 'running' : Boolean(execution?.running)} paused={liveVisible ? live.status === 'paused' : Boolean(execution?.paused)} stopped={liveVisible ? live.status === 'stopped' : Boolean(execution?.stopped)} currentStep={liveVisible ? live.steps : execution ? execution.index + 1 : 0} free={executionFree} speed={liveVisible ? liveSpeed : simulationSpeed} onSpeedChange={liveVisible ? handleLiveSpeedChange : handleSimulationSpeedChange} onToggleFree={handleToggleExecutionFree} onPause={handlePauseExecution} onResume={handleResumeExecution} onStop={handleStopExecution} onClose={() => { if (liveVisible) liveSession.reset(); else { setSimulationResult(null); setExecution(null); setExecutionFree(false) } }} />
       {exerciseOpen && document.exercise && <ExercisePanel exercise={document.exercise} onChange={document.setExercise} index={document.index} state={exerciseState} onReset={document.exercise.starter ? handleResetExercise : undefined} onSaveSolution={handleSaveSolution} onRemove={handleRemoveExercise} readOnly={presentationMode} onClose={() => setExerciseOpen(false)} />}
       {functionNode && <FunctionPanel key={`${functionTarget}:${functionSignature}`} index={document.index} functionNode={functionNode} result={functionResult?.functionId === functionTarget ? functionResult.result : null} onRun={handleRunFunction} onDebug={handleDebugFunction} onClose={handleCloseFunction} />}
       {debugSession?.project === document.project && <DebugPanel session={debugSession} index={document.index} onAction={handleDebugAction} onClose={() => setDebugSession(null)} memoryOpen={memoryOpen} onToggleMemory={() => { setMemoryOpen((current) => !current); setPointerGraphOpen(false) }} pointerGraphOpen={pointerGraphOpen} onTogglePointerGraph={() => { setPointerGraphOpen((current) => !current); setMemoryOpen(false) }} />}

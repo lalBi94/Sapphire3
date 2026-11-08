@@ -1,3 +1,5 @@
+import { clampSimulationSpeed, liveSpeedDefault, liveTickDelay } from '../utils/simulationSpeed.js'
+
 // Pilote un worker live : chaque frame rend la main, puis le worker reprend au tick suivant.
 let worker = null
 let running = false
@@ -7,6 +9,7 @@ let pendingEvents = []
 let frameCallback = null
 let statusCallback = null
 let timer = 0
+let speed = liveSpeedDefault
 
 // Annule le tick programmé sans changer l'état du worker.
 function cancelTick() {
@@ -24,7 +27,7 @@ function scheduleTick() {
     if (!running || !worker || !waiting) return
     waiting = false
     worker.postMessage({ type: 'tick' })
-  }, 16)
+  }, liveTickDelay(speed))
 }
 
 // Envoie les entrées et événements en attente au worker.
@@ -50,12 +53,13 @@ function handleFrame(state) {
 }
 
 // Démarre un programme live ; une session précédente est arrêtée.
-export function startLive(project, { inputs = {}, sliceSteps = 400, onFrame = null, onStatus = null } = {}) {
+export function startLive(project, { inputs = {}, sliceSteps = 400, speed: initialSpeed = liveSpeedDefault, onFrame = null, onStatus = null } = {}) {
   stopLive()
   if (typeof Worker === 'undefined') {
     onStatus?.({ status: 'error', errorCode: 'LIVE_WORKER_UNAVAILABLE' })
     return false
   }
+  speed = clampSimulationSpeed(initialSpeed)
   frameCallback = onFrame
   statusCallback = onStatus
   pendingInputs = null
@@ -109,6 +113,12 @@ export function sendLiveEvents(events) {
   if (!worker || !Array.isArray(events) || events.length === 0) return
   pendingEvents.push(...events)
   if (waiting) flushResponse()
+}
+
+// Modifie la cadence du live sans redémarrer le worker.
+export function setLiveSpeed(value) {
+  speed = clampSimulationSpeed(value)
+  if (running && waiting) scheduleTick()
 }
 
 // Suspend la reprise automatique sans terminer le worker.

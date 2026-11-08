@@ -335,7 +335,8 @@ Le \textbf{Run live} est le mode par défaut de l'application : un interpréteur
 coopératif exécute le programme par tranches, sans budget total, et rend la main
 au pilote à chaque tranche ou à \code{screenPresent}. Le pilote applique les entrées
 et les événements \code{onClick} entre deux frames, met à jour les écrans et widgets,
-et permet Pause/Stop. Les boutons d'entrée lient une fonction \code{(boolean) -> void} :
+et permet Pause/Stop. Un curseur règle la cadence du live de 1 à 100 sans redémarrer
+le worker. Les boutons d'entrée lient une fonction \code{(boolean) -> void} :
 le hold l'appelle une fois à l'appui, le toggle l'appelle immédiatement puis toutes
 les 500~ms tant qu'il est actif, et le dashboard exécute la même fonction. Le
 \textbf{Run borné} reste disponible pour précalculer une trace finie avec un budget
