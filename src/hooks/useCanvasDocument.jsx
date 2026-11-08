@@ -4,6 +4,7 @@ import { createScreenModule, screenDefaults } from '../utils/screenNode.js'
 import { createGaugeModule, gaugeDefaults } from '../utils/gaugeNode.js'
 import { createProgressModule, progressDefaults } from '../utils/progressNode.js'
 import { createBarChartModule, barChartDefaults } from '../utils/barChartNode.js'
+import { createXyPlotModule, xyPlotDefaultSamples } from '../utils/xyPlotNode.js'
 import { createHeatmapModule } from '../utils/heatmapNode.js'
 import { createLedModule, ledDefaults } from '../utils/ledNode.js'
 import { createRgbLedModule, rgbLedDefaults } from '../utils/rgbLedNode.js'
@@ -66,6 +67,14 @@ export default function useCanvasDocument() {
       const barChartName = `${name} ${index}`
       const barChart = createBarChartModule(id, barChartName, index, barChartDefaults)
       dispatch({ type: 'createBarChart', card: { id, type, name: barChartName, ...position, width: definition.width, height: definition.height, expandedNodeIds: [] }, barChart })
+      return
+    }
+    if (type === 'xyPlot') {
+      const id = crypto.randomUUID()
+      const index = Math.max(0, ...document.project.modules.map((module) => Number(module.xyPlot?.index) || 0)) + 1
+      const xyPlotName = `${name} ${index}`
+      const xyPlot = createXyPlotModule(id, xyPlotName, index, { samples: xyPlotDefaultSamples })
+      dispatch({ type: 'createXyPlot', card: { id, type, name: xyPlotName, ...position, width: definition.width, height: definition.height, expandedNodeIds: [] }, xyPlot })
       return
     }
     if (type === 'led') {

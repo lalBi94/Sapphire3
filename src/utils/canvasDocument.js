@@ -105,6 +105,11 @@ export function reduceDocument(state, action) {
     if (state.cards.some((entry) => entry.id === card.id)) return state
     return withSource({ ...state, cards: [...state.cards, card] }, { ...state.project, modules: [...state.project.modules, action.barChart.module], nodes: [...state.project.nodes, ...action.barChart.nodes] })
   }
+  if (action.type === 'createXyPlot') {
+    const card = action.card
+    if (state.cards.some((entry) => entry.id === card.id)) return state
+    return withSource({ ...state, cards: [...state.cards, card] }, { ...state.project, modules: [...state.project.modules, action.xyPlot.module], nodes: [...state.project.nodes, ...action.xyPlot.nodes] })
+  }
   if (action.type === 'insertBookmark') {
     const result = state.project === action.previousProject
       ? action.prepared

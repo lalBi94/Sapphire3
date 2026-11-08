@@ -2,6 +2,13 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## XY plot et Mafs — 8 novembre 2026
+
+- Nouvelle carte **XY plot** (`xyPlot`) adossée à un module caché ordinaire : `SET_FUNCTION(fn: (double) -> double)`, `SET_RANGE(xMin, xMax, yMin, yMax)` et `CLEAR()`. L'échantillonnage produit 64 points, met à jour `COUNT` progressivement puis `AUTO`, et incrémente `REVISION`. Le lecteur `xyPlotState.js` expose points, bornes, révision, plafond 512 points ; Run/Debug et les images d'écran reçoivent `xyPlots`, `xyPlotFrames` et `screenFrameXyPlots`.
+- La carte utilise **Mafs 0.21.0** pour le déplacement et le zoom, avec `ResizeObserver` pour suivre le redimensionnement. Elle propose la bascule aperçu/code, le renommage et les flèches de dépendance comme les autres widgets. L'exemple **Function plot** (Medium → Widgets) trace `sin(x)` et porte le catalogue à **53 exemples** (Simple 6, Medium 27, Hard 20).
+- Le traceur est refusé par la transpilation JavaScript/Python (`TRANSPILE_XY_PLOT_UNSUPPORTED`), comme les autres widgets d'interface. Son icône figure dans le menu de création.
+- Vérifications : **592 tests Node/Python réussis** (dont 3 cas de carte XY et 3 tests dédiés), `pnpm build` réussi, exemple chargé dans le navigateur avec flèche de dépendance, axes Mafs, exécution à ×100 (2 792 pas), **64 points** tracés, bascule code/aperçu et aucune erreur console. Le dashboard exporté ignore encore ce widget ; Mafs reste une dépendance de l'interface React.
+
 ## Publication 0.1.0-beta.7 — 8 novembre 2026
 
 - Les 16 commits en attente ont été poussés sur `master`, puis version et notes de bêta commitées dans `0aadf23`. Release publiée en préversion : https://github.com/lalBi94/Sapphire3/releases/tag/v0.1.0-beta.7 ; tag distant vérifié sur ce commit.
@@ -24,7 +31,7 @@
 
 ## Alignement documentaire — 8 novembre 2026
 
-- Comparaison ciblée avec `src/dashboard/client.js`, `styles.js`, `src/utils/dashboardExport.js`, `examples.js` et les tests associés : catalogue courant de 52 exemples (6 simples, 26 moyens, 20 difficiles), Spirograph en 12 images 64×40 et Pendulum wave en 9 images 56×24 avec huit pendules. Les images sont précalculées à la construction des exemples, puis présentées par le moteur ; aucune modification du simulateur.
+- Comparaison ciblée avec `src/dashboard/client.js`, `styles.js`, `src/utils/dashboardExport.js`, `examples.js` et les tests associés : catalogue courant de 53 exemples (6 simples, 27 moyens, 20 difficiles), Spirograph en 12 images 64×40 et Pendulum wave en 9 images 56×24 avec huit pendules. Les images sont précalculées à la construction des exemples, puis présentées par le moteur ; aucune modification du simulateur.
 - Clarifications : cartes du dashboard sans halo, vitesse par curseur 1–100, zoom `cover` avec recadrage, lien GitHub uniquement sur clic. Les noms et sorties ne sont pas traduits ; le genre du nœud courant reste dans la langue d'export dans le code observé.
 - Doublon Threadlock Systems supprimé du rapport LaTeX ; aucune capture renouvelée, aucun code source modifié. Les rapports de tests et de release antérieurs restent historiques, sans nouvelle certification applicative.
 

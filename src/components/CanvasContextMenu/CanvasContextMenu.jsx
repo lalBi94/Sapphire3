@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Activity, Box, Braces, ChartColumn, EyeOff, Gauge, Image, Lightbulb, Lock, LockOpen, MessageSquare, Monitor, Palette, Search } from 'lucide-react'
+import { Activity, Box, Braces, ChartColumn, ChartLine, EyeOff, Gauge, Image, Lightbulb, Lock, LockOpen, MessageSquare, Monitor, Palette, Search } from 'lucide-react'
 import { cardCategories, moduleTypes } from '../../utils/moduleTypes.js'
 import { normalizeSearchText } from '../../utils/searchText.js'
 import DeleteAction from '../DeleteAction/DeleteAction.jsx'
@@ -13,6 +13,7 @@ const menuIcons = {
   gauge: Gauge,
   progress: Activity,
   barChart: ChartColumn,
+  xyPlot: ChartLine,
   heatmap: Monitor,
   led: Lightbulb,
   rgbLed: Palette,

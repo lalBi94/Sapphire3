@@ -7,6 +7,7 @@ import ScreenCanvas from '../ScreenCanvas/ScreenCanvas.jsx'
 import GaugeCard from '../GaugeCard/GaugeCard.jsx'
 import ProgressCard from '../ProgressCard/ProgressCard.jsx'
 import BarChartCard from '../BarChartCard/BarChartCard.jsx'
+import XyPlotCard from '../XyPlotCard/XyPlotCard.jsx'
 import HeatmapCard from '../HeatmapCard/HeatmapCard.jsx'
 import LedCard from '../LedCard/LedCard.jsx'
 import RgbLedCard from '../RgbLedCard/RgbLedCard.jsx'
@@ -130,7 +131,7 @@ function ModuleEmoji({ emoji, onChange }) {
 }
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onImageFile, onEmojiChange, imageSource = null, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, progressState = null, progressFrames = null, progressPlaying = false, onProgressViewChange, barChartState = null, barChartFrames = null, barChartPlaying = false, onBarChartViewChange, heatmapState = null, heatmapDimensions, onHeatmapViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, rgbLedState = null, rgbLedFrames = null, rgbLedPlaying = false, onRgbLedViewChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onImageFile, onEmojiChange, imageSource = null, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, progressState = null, progressFrames = null, progressPlaying = false, onProgressViewChange, barChartState = null, barChartFrames = null, barChartPlaying = false, onBarChartViewChange, xyPlotState = null, xyPlotFrames = null, xyPlotPlaying = false, onXyPlotViewChange, heatmapState = null, heatmapDimensions, onHeatmapViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, rgbLedState = null, rgbLedFrames = null, rgbLedPlaying = false, onRgbLedViewChange, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -182,6 +183,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
   const progressView = module.progressView === 'code' ? 'code' : 'progress'
   // Un graphique à barres montre son aperçu par défaut, ou le code de son module caché.
   const barChartView = module.barChartView === 'code' ? 'code' : 'barChart'
+  const xyPlotView = module.xyPlotView === 'code' ? 'code' : 'xyPlot'
   const heatmapView = module.heatmapView === 'code' ? 'code' : 'heatmap'
   // Une carte LED montre son voyant par défaut, ou le code de son module caché.
   const ledView = module.ledView === 'code' ? 'code' : 'led'
@@ -484,6 +486,17 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         >
           {barChartView === 'code' ? <ChartColumn size={13} strokeWidth={2} aria-hidden="true" /> : <Code2 size={13} strokeWidth={2} aria-hidden="true" />}
         </button>}
+        {definition.hasXyPlot && semanticLevel !== 'modules' && !readOnly && <button
+          type="button"
+          className="canvas-module__view"
+          aria-label={t(xyPlotView === 'code' ? 'xyPlot.viewXyPlot' : 'xyPlot.viewCode')}
+          aria-pressed={xyPlotView === 'code'}
+          title={t(xyPlotView === 'code' ? 'xyPlot.viewXyPlot' : 'xyPlot.viewCode')}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => { event.stopPropagation(); onXyPlotViewChange?.(module.id, xyPlotView === 'code' ? 'xyPlot' : 'code') }}
+        >
+          {xyPlotView === 'code' ? <ChartLine size={13} strokeWidth={2} aria-hidden="true" /> : <Code2 size={13} strokeWidth={2} aria-hidden="true" />}
+        </button>}
         {definition.hasLed && semanticLevel !== 'modules' && !readOnly && <button
           type="button"
           className="canvas-module__view"
@@ -558,6 +571,14 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
             : progressView === 'code'
               ? (deferContent ? null : structuredContent)
               : <ProgressCard card={module} state={progressState} frames={progressFrames} playing={progressPlaying} />}
+        </div>
+      ) : definition.hasXyPlot ? (
+        <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>
+          {!contentVisible
+            ? null
+            : xyPlotView === 'code'
+              ? (deferContent ? null : structuredContent)
+              : <XyPlotCard card={module} state={xyPlotState} frames={xyPlotFrames} playing={xyPlotPlaying} />}
         </div>
       ) : definition.hasHeatmap ? (
         <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>

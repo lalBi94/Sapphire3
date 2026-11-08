@@ -47,6 +47,22 @@ function hasBarChart(source) {
   return Array.isArray(source?.modules) && source.modules.some((module) => module?.barChart)
 }
 
+// Un traceur XY SP3 dépend de Mafs : même refus explicite qu'une jauge.
+function hasXyPlot(source) {
+  return Array.isArray(source?.modules) && source.modules.some((module) => module?.xyPlot)
+}
+
+// Produit le refus stable opposé à toute transpilation contenant un traceur XY.
+function xyPlotFailure(source, target, analysis = null) {
+  return {
+    ok: false,
+    target,
+    code: 'TRANSPILE_XY_PLOT_UNSUPPORTED',
+    diagnostics: [{ code: 'TRANSPILE_XY_PLOT_UNSUPPORTED', severity: 'error', message: 'Un traceur XY SP3 rend le programme non transpilable.', location: { projectId: source?.id ?? null, moduleId: null, nodeId: null, field: null } }],
+    ...(analysis ? { analysis } : {}),
+  }
+}
+
 // Produit le refus stable opposé à toute transpilation contenant un graphique à barres.
 function barChartFailure(source, target, analysis = null) {
   return {
@@ -132,6 +148,7 @@ export function transpileSelection(source, selection, { target = 'javascript', a
   if (hasGauge(source)) return gaugeFailure(source, target, analysis)
   if (hasProgress(source)) return progressFailure(source, target, analysis)
   if (hasBarChart(source)) return barChartFailure(source, target, analysis)
+  if (hasXyPlot(source)) return xyPlotFailure(source, target, analysis)
   if (Array.isArray(source?.modules) && source.modules.some((module) => module?.heatmap)) return heatmapFailure(source, target, analysis)
   if (hasLed(source)) return ledFailure(source, target, analysis)
   if (hasRgbLed(source)) return rgbLedFailure(source, target, analysis)
@@ -151,6 +168,7 @@ export function transpileProgram(source, options = {}) {
   if (hasGauge(source)) return gaugeFailure(source, target, analysis)
   if (hasProgress(source)) return progressFailure(source, target, analysis)
   if (hasBarChart(source)) return barChartFailure(source, target, analysis)
+  if (hasXyPlot(source)) return xyPlotFailure(source, target, analysis)
   if (Array.isArray(source?.modules) && source.modules.some((module) => module?.heatmap)) return heatmapFailure(source, target, analysis)
   if (hasLed(source)) return ledFailure(source, target, analysis)
   if (hasRgbLed(source)) return rgbLedFailure(source, target, analysis)

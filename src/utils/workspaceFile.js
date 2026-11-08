@@ -2,7 +2,7 @@ import { isId, isRecord, sourceFormatVersion, moduleKinds, createProject } from 
 import { isContract } from './logic/contracts.js'
 import { serializeSource } from './logic/serialization.js'
 import { screenLimits } from './logic/mathNatives.js'
-import { barChartViews, heatmapViews, logicalCardTypes, moduleCardTypes, gaugeViews, ledViews, rgbLedViews, moduleTypes, minimumModuleSize, progressViews, screenViews } from './moduleTypes.js'
+import { barChartViews, heatmapViews, logicalCardTypes, moduleCardTypes, gaugeViews, ledViews, rgbLedViews, moduleTypes, minimumModuleSize, progressViews, screenViews, xyPlotViews } from './moduleTypes.js'
 import { heatmapMaximumDimension } from './logic/heatmapState.js'
 import { isEmbeddedImage, isImageReference } from './embeddedImage.js'
 import { validateExercise } from './exercise.js'
@@ -78,6 +78,7 @@ function validateProject(project) {
   const gaugeIndices = new Set()
   const progressIndices = new Set()
   const barChartIndices = new Set()
+  const xyPlotIndices = new Set()
   const heatmapIndices = new Set()
   const ledIndices = new Set()
   const rgbLedIndices = new Set()
@@ -95,6 +96,8 @@ function validateProject(project) {
     if (module.progress) progressIndices.add(module.progress.index)
     if (module.barChart !== undefined && (!isRecord(module.barChart) || !Number.isInteger(module.barChart.index) || module.barChart.index < 1 || barChartIndices.has(module.barChart.index))) throw workspaceError('Invalid bar chart module data.')
     if (module.barChart) barChartIndices.add(module.barChart.index)
+    if (module.xyPlot !== undefined && (!isRecord(module.xyPlot) || !Number.isInteger(module.xyPlot.index) || module.xyPlot.index < 1 || !Number.isInteger(module.xyPlot.samples) || module.xyPlot.samples < 1 || module.xyPlot.samples > 512 || xyPlotIndices.has(module.xyPlot.index))) throw workspaceError('Invalid XY plot module data.')
+    if (module.xyPlot) xyPlotIndices.add(module.xyPlot.index)
     if (module.heatmap !== undefined && (!isRecord(module.heatmap) || !Number.isInteger(module.heatmap.index) || module.heatmap.index < 1 || heatmapIndices.has(module.heatmap.index) || !['width', 'height'].every((key) => Number.isInteger(module.heatmap[key]) && module.heatmap[key] > 0 && module.heatmap[key] <= heatmapMaximumDimension))) throw workspaceError('Invalid heatmap module data.')
     if (module.heatmap) heatmapIndices.add(module.heatmap.index)
     if (module.led !== undefined && (!isRecord(module.led) || !Number.isInteger(module.led.index) || module.led.index < 1 || ledIndices.has(module.led.index))) throw workspaceError('Invalid LED module data.')
@@ -152,6 +155,8 @@ function validatePresentation(project, presentation) {
             ? !modules.has(card.id) || !modules.get(card.id).progress
             : card.type === 'barChart'
               ? !modules.has(card.id) || !modules.get(card.id).barChart
+              : card.type === 'xyPlot'
+                ? !modules.has(card.id) || !modules.get(card.id).xyPlot
               : card.type === 'heatmap'
                 ? !modules.has(card.id) || !modules.get(card.id).heatmap
                 : card.type === 'led'
@@ -171,6 +176,7 @@ function validatePresentation(project, presentation) {
     if (card.gaugeView !== undefined && !gaugeViews.includes(card.gaugeView)) throw workspaceError('Invalid gauge view.')
     if (card.progressView !== undefined && !progressViews.includes(card.progressView)) throw workspaceError('Invalid progress view.')
     if (card.barChartView !== undefined && !barChartViews.includes(card.barChartView)) throw workspaceError('Invalid bar chart view.')
+    if (card.xyPlotView !== undefined && !xyPlotViews.includes(card.xyPlotView)) throw workspaceError('Invalid XY plot view.')
     if (card.heatmapView !== undefined && !heatmapViews.includes(card.heatmapView)) throw workspaceError('Invalid heatmap view.')
     if (card.ledView !== undefined && !ledViews.includes(card.ledView)) throw workspaceError('Invalid LED view.')
     if (card.rgbLedView !== undefined && !rgbLedViews.includes(card.rgbLedView)) throw workspaceError('Invalid RGB LED view.')
@@ -186,8 +192,8 @@ function validatePresentation(project, presentation) {
 // N'écrit l'emoji ou les drapeaux de carte que lorsqu'ils sont définis, pour garder les fichiers habituels inchangés.
 function exportableCard(card, nodes) {
   // `screenScale` n'est plus produit : l'écran se dimensionne avec la carte, mais reste toléré à la relecture.
-  const { hidden, locked, emoji, screenView, gaugeView, progressView, barChartView, heatmapView, ledView, rgbLedView, screenScale, imageRef, ...rest } = card
-  return { ...rest, ...(typeof imageRef === 'string' && imageRef.length > 0 ? { imageRef } : {}), ...(hidden ? { hidden: true } : {}), ...(locked ? { locked: true } : {}), ...(emoji ? { emoji } : {}), ...(screenView && screenView !== 'screen' ? { screenView } : {}), ...(gaugeView && gaugeView !== 'gauge' ? { gaugeView } : {}), ...(progressView && progressView !== 'progress' ? { progressView } : {}), ...(barChartView && barChartView !== 'barChart' ? { barChartView } : {}), ...(heatmapView && heatmapView !== 'heatmap' ? { heatmapView } : {}), ...(ledView && ledView !== 'led' ? { ledView } : {}), ...(rgbLedView && rgbLedView !== 'rgbLed' ? { rgbLedView } : {}), expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) }
+  const { hidden, locked, emoji, screenView, gaugeView, progressView, barChartView, xyPlotView, heatmapView, ledView, rgbLedView, screenScale, imageRef, ...rest } = card
+  return { ...rest, ...(typeof imageRef === 'string' && imageRef.length > 0 ? { imageRef } : {}), ...(hidden ? { hidden: true } : {}), ...(locked ? { locked: true } : {}), ...(emoji ? { emoji } : {}), ...(screenView && screenView !== 'screen' ? { screenView } : {}), ...(gaugeView && gaugeView !== 'gauge' ? { gaugeView } : {}), ...(progressView && progressView !== 'progress' ? { progressView } : {}), ...(barChartView && barChartView !== 'barChart' ? { barChartView } : {}), ...(xyPlotView && xyPlotView !== 'xyPlot' ? { xyPlotView } : {}), ...(heatmapView && heatmapView !== 'heatmap' ? { heatmapView } : {}), ...(ledView && ledView !== 'led' ? { ledView } : {}), ...(rgbLedView && rgbLedView !== 'rgbLed' ? { rgbLedView } : {}), expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) }
 }
 
 // Contrôle aussi le snapshot de départ d'un exercice, avec les mêmes règles que le document courant.
@@ -252,7 +258,9 @@ export function deserializeWorkspace(text) {
           ? { id: module.id, type: 'heatmap', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes.heatmap.width, height: moduleTypes.heatmap.height, expandedNodeIds: [] }
         : module.barChart
           ? { id: module.id, type: 'barChart', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes.barChart.width, height: moduleTypes.barChart.height, expandedNodeIds: [] }
-          : module.led
+          : module.xyPlot
+            ? { id: module.id, type: 'xyPlot', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes.xyPlot.width, height: moduleTypes.xyPlot.height, expandedNodeIds: [] }
+            : module.led
             ? { id: module.id, type: 'led', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes.led.width, height: moduleTypes.led.height, expandedNodeIds: [] }
             : module.rgbLed
               ? { id: module.id, type: 'rgbLed', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes.rgbLed.width, height: moduleTypes.rgbLed.height, expandedNodeIds: [] }

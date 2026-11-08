@@ -29,8 +29,10 @@
     "@neutralinojs/lib": "6.10.0",
     "katex": "^0.19.1",
     "lucide-react": "^1.64.0",
+    "mafs": "^0.21.0",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "uplot": "^1.6.32"
   },
   "devDependencies": {
     "@neutralinojs/neu": "11.8.0",

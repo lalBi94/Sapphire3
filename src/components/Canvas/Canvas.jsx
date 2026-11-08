@@ -243,6 +243,11 @@ export default function Canvas() {
     ?? (execution ? simulationResult?.barChartFrames?.[Math.min(execution.index, (simulationResult?.barChartFrames?.length ?? 1) - 1)] : null)
     ?? simulationResult?.barCharts
     ?? {}
+  // Traceurs XY : même suivi par pas que les autres widgets.
+  const xyPlotStates = debugFrame?.xyPlots
+    ?? (execution ? simulationResult?.xyPlotFrames?.[Math.min(execution.index, (simulationResult?.xyPlotFrames?.length ?? 1) - 1)] : null)
+    ?? simulationResult?.xyPlots
+    ?? {}
   const selectedScreen = selected?.kind === 'module' && document.cards.some((card) => card.id === selected.id && card.type === 'screen')
   // Valeurs des variables et paramètres visibles, limitées à l'arrêt de debug courant.
   const debugValues = useMemo(() => debugFrame ? buildDebugValues(document.index, debugFrame) : null, [document.index, debugFrame])
@@ -653,6 +658,7 @@ export default function Canvas() {
           screenFrameRgbLeds: result.screenFrameRgbLeds ?? [],
           screenFrameProgresses: result.screenFrameProgresses ?? [],
           screenFrameBarCharts: result.screenFrameBarCharts ?? [],
+          screenFrameXyPlots: result.screenFrameXyPlots ?? [],
         } : current)
       })
     } catch {
@@ -1322,6 +1328,7 @@ export default function Canvas() {
         onGaugeViewChange={(id, gaugeView) => document.updateGeometry(id, { gaugeView })}
         onProgressViewChange={(id, progressView) => document.updateGeometry(id, { progressView })}
         onBarChartViewChange={(id, barChartView) => document.updateGeometry(id, { barChartView })}
+        onXyPlotViewChange={(id, xyPlotView) => document.updateGeometry(id, { xyPlotView })}
         onHeatmapViewChange={(id, heatmapView) => document.updateGeometry(id, { heatmapView })}
         heatmapDimensions={document.index.modules.get(card.id)?.heatmap}
         heatmapState={debugFrame?.heatmaps?.[card.id] ?? (execution ? simulationResult?.heatmapFrames?.[Math.min(execution.index, (simulationResult?.heatmapFrames?.length ?? 1) - 1)]?.[card.id] : null) ?? simulationResult?.heatmaps?.[card.id] ?? null}
@@ -1339,6 +1346,9 @@ export default function Canvas() {
         barChartState={barChartStates[card.id] ?? null}
         barChartFrames={screenPlayback ? simulationResult.screenFrameBarCharts ?? null : null}
         barChartPlaying={screenPlayback && Boolean(execution?.running)}
+        xyPlotState={xyPlotStates[card.id] ?? null}
+        xyPlotFrames={screenPlayback ? simulationResult.screenFrameXyPlots ?? null : null}
+        xyPlotPlaying={screenPlayback && Boolean(execution?.running)}
         ledState={ledStates[card.id] ?? null}
         ledFrames={screenPlayback ? simulationResult.screenFrameLeds ?? null : null}
         ledPlaying={screenPlayback && Boolean(execution?.running)}

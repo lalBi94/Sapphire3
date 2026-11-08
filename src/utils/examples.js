@@ -5,6 +5,7 @@ import { createLedModule, ledDefaults } from './ledNode.js'
 import { createRgbLedModule, rgbLedDefaults } from './rgbLedNode.js'
 import { createProgressModule, progressDefaults } from './progressNode.js'
 import { createBarChartModule, barChartDefaults } from './barChartNode.js'
+import { createXyPlotModule } from './xyPlotNode.js'
 import { createHeatmapModule } from './heatmapNode.js'
 import { moduleTypes } from './moduleTypes.js'
 import { workspaceFileVersion } from './workspaceFile.js'
@@ -77,7 +78,9 @@ function workspace(project, notes = []) {
           ? { id: module.id, type: 'heatmap', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.heatmap.width, height: moduleTypes.heatmap.height, expandedNodeIds: [] }
         : module.barChart
           ? { id: module.id, type: 'barChart', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.barChart.width, height: moduleTypes.barChart.height, expandedNodeIds: [] }
-          : module.led
+          : module.xyPlot
+            ? { id: module.id, type: 'xyPlot', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.xyPlot.width, height: moduleTypes.xyPlot.height, expandedNodeIds: [] }
+            : module.led
             ? { id: module.id, type: 'led', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.led.width, height: moduleTypes.led.height, expandedNodeIds: [] }
             : module.rgbLed
               ? { id: module.id, type: 'rgbLed', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.rgbLed.width, height: moduleTypes.rgbLed.height, expandedNodeIds: [] }
@@ -3579,6 +3582,35 @@ function rotatingTriangle() {
   ])
 }
 
+// Traceur XY : une fonction (double) -> double est échantillonnée par le module caché.
+function functionPlot() {
+  const b = builder()
+  const plot = createXyPlotModule('functionPlotPlot', 'Function plot', 1)
+  b.project.modules.push(plot.module)
+  b.project.nodes.push(...plot.nodes)
+  b.useModule('functionPlotApp', 'Function plot')
+  const app = b.project.modules.find((module) => module.id === 'functionPlotApp')
+  const exported = plot.module.exports.find((entry) => entry.name === plot.functions.setFunction)
+  app.imports.push({ id: 'functionPlotSetImport', moduleId: plot.module.id, nodeId: exported.nodeId, localName: 'setFunction' })
+  b.root('wave', 'FunctionDeclaration', { name: 'wave', type: doubleType }, { parameters: ['waveX'], body: 'waveBody' })
+  b.make('waveX', 'Parameter', { name: 'x', type: doubleType })
+  b.block('waveBody', ['waveReturn'])
+  b.returnValue('waveReturn', 'waveSin')
+  b.make('waveSin', 'MathCall', { name: 'sin' }, { arguments: ['waveXRef'] })
+  b.ref('waveXRef', 'x')
+  b.root('functionPlotMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'functionPlotBody' })
+  b.block('functionPlotBody', ['functionPlotSet', 'functionPlotPrint'])
+  b.make('functionPlotSet', 'ExpressionStatement', {}, { expression: 'functionPlotSetCall' })
+  b.call('functionPlotSetCall', 'functionPlotSetCallee', ['waveRef'])
+  b.make('functionPlotSetCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'functionPlotSetImport' } })
+  b.ref('waveRef', 'wave')
+  b.stringValue('functionPlotMessage', 'Function plotted')
+  b.print('functionPlotPrint', 'functionPlotMessage')
+  return workspace(b.project, [
+    note('functionPlotNote', 'Function plot', 'Traceur XY interactif : `SET_FUNCTION(wave)` échantillonne `wave(x) = sin(x)` sur `[-10, 10]`, puis Mafs permet de déplacer et zoomer le graphique. Le module caché exporte `SET_FUNCTION`, `SET_RANGE` et `CLEAR`.', 0, 620, 900, 260),
+  ])
+}
+
 // Spirographe : hypotrochoïde tracée progressivement.
 function spirograph() {
   const b = builder()
@@ -3698,6 +3730,7 @@ export const examples = [
   { id: 'starfield', labelKey: 'examples.starfield', category: 'hard', subcategory: 'animation', build: starfield },
   { id: 'colorFlow', labelKey: 'examples.colorFlow', category: 'medium', subcategory: 'animation', build: colorFlow },
   { id: 'rgbMixer', labelKey: 'examples.rgbMixer', category: 'medium', subcategory: 'widgets', build: rgbMixer },
+  { id: 'functionPlot', labelKey: 'examples.functionPlot', category: 'medium', subcategory: 'widgets', build: functionPlot },
   { id: 'rotatingCube', labelKey: 'examples.rotatingCube', category: 'hard', subcategory: 'animation', build: rotatingCube },
   { id: 'rotatingTriangle', labelKey: 'examples.rotatingTriangle', category: 'medium', subcategory: 'animation', build: rotatingTriangle },
   { id: 'spirograph', labelKey: 'examples.spirograph', category: 'medium', subcategory: 'animation', build: spirograph },

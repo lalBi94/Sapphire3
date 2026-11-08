@@ -8,6 +8,7 @@ export const moduleTypes = {
   gauge: { label: 'Gauge', labelKey: 'card.gauge', targetLabelKey: 'canvas.gauge', actionKey: 'nav.createGauge', width: 380, height: 260, renamable: true, hasGauge: true },
   progress: { label: 'Progress', labelKey: 'card.progress', targetLabelKey: 'canvas.progress', actionKey: 'nav.createProgress', width: 420, height: 150, renamable: true, hasProgress: true },
   barChart: { label: 'Bar chart', labelKey: 'card.barChart', targetLabelKey: 'canvas.barChart', actionKey: 'nav.createBarChart', width: 420, height: 220, renamable: true, hasBarChart: true },
+  xyPlot: { label: 'XY plot', labelKey: 'card.xyPlot', targetLabelKey: 'canvas.xyPlot', actionKey: 'nav.createXyPlot', width: 440, height: 320, renamable: true, hasXyPlot: true },
   heatmap: { label: 'Heatmap', labelKey: 'card.heatmap', targetLabelKey: 'canvas.heatmap', actionKey: 'nav.createHeatmap', width: 380, height: 280, renamable: true, hasHeatmap: true },
   led: { label: 'LED', labelKey: 'card.led', targetLabelKey: 'canvas.led', actionKey: 'nav.createLed', width: 220, height: 170, renamable: true, hasLed: true },
   rgbLed: { label: 'RGB LED', labelKey: 'card.rgbLed', targetLabelKey: 'canvas.rgbLed', actionKey: 'nav.createRgbLed', width: 240, height: 190, renamable: true, hasRgbLed: true },
@@ -20,7 +21,7 @@ export const minimumModuleSize = { width: 180, height: 120 }
 // Catégories stables du menu de création, dans l'ordre d'affichage.
 export const cardCategories = [
   { id: 'programming', labelKey: 'canvas.createCategory.programming', types: [moduleKinds.module, moduleKinds.class] },
-  { id: 'widgets', labelKey: 'canvas.createCategory.widgets', types: ['screen', 'gauge', 'progress', 'barChart', 'heatmap', 'led', 'rgbLed'] },
+  { id: 'widgets', labelKey: 'canvas.createCategory.widgets', types: ['screen', 'gauge', 'progress', 'barChart', 'xyPlot', 'heatmap', 'led', 'rgbLed'] },
   { id: 'annotations', labelKey: 'canvas.createCategory.annotations', types: ['comment', 'image'] },
 ]
 
@@ -41,6 +42,9 @@ export const progressViews = ['progress', 'code']
 
 // Vues possibles d'un graphique à barres : l'aperçu, ou le code de son module caché.
 export const barChartViews = ['barChart', 'code']
+
+// Vues possibles d'un traceur XY : le graphique, ou le code de son module caché.
+export const xyPlotViews = ['xyPlot', 'code']
 
 // Vues de la grille fixe et de son module ordinaire.
 export const heatmapViews = ['heatmap', 'code']
