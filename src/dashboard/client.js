@@ -1213,7 +1213,7 @@ function start(config, runtimeSource) {
     readout.textContent = labels.xyPlotHint ?? 'Move the cursor over the curve.'
     wrapper.append(chart, empty, readout)
     ref.body.append(wrapper)
-    ref.xyPlot = { chart, empty, readout, plot: null, resizeObserver: null, revision: null }
+    ref.xyPlot = { chart, empty, readout, plot: null, resizeObserver: null, revision: null, pointsCount: 0 }
   }
 
   // Trace le traceur XY avec uPlot, sans recréer le graphique à chaque pas.
@@ -1226,6 +1226,8 @@ function start(config, runtimeSource) {
       if (scope.resizeObserver) scope.resizeObserver.disconnect()
       scope.plot = null
       scope.resizeObserver = null
+      scope.revision = null
+      scope.pointsCount = 0
       scope.chart.replaceChildren()
       scope.empty.hidden = false
       scope.readout.textContent = labels.xyPlotHint ?? 'Move the cursor over the curve.'
@@ -1269,6 +1271,7 @@ function start(config, runtimeSource) {
       }, data, scope.chart)
       scope.plot = plot
       scope.revision = revision
+      scope.pointsCount = points.length
       scope.readout.textContent = labels.xyPlotHint ?? 'Move the cursor over the curve.'
       const observer = new ResizeObserver(() => {
         if (!scope.plot) return
@@ -1278,8 +1281,11 @@ function start(config, runtimeSource) {
       scope.resizeObserver = observer
     } else {
       scope.plot.setData(data, false)
-      if (revision !== scope.revision) {
+      // Pendant l'échantillonnage, la révision reste identique mais le nombre de points augmente :
+      // on recadre Y pour que la courbe se dessine progressivement, comme les canaux de l'oscilloscope.
+      if (revision !== scope.revision || points.length !== scope.pointsCount) {
         scope.revision = revision
+        scope.pointsCount = points.length
         scope.plot.setScale('x', { min: xMin, max: xMax })
         scope.plot.setScale('y', { min: yMin, max: yMax })
       }
