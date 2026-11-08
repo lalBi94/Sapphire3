@@ -24,6 +24,7 @@ import {
 } from '../utils/dashboardLayout.js'
 import {
   dashboardExecutionPanelId,
+  dashboardLanguageStorageKey,
   dashboardLayoutStorageKey,
   dashboardModeStorageKey,
   dashboardOutputPanelId,
@@ -52,7 +53,14 @@ if (dataElement) {
 
 // Point d'entrée : construit l'interface puis attend une action explicite de l'utilisateur.
 function start(config, runtimeSource) {
-  const labels = config.labels ?? {}
+  const catalogs = config.translations ?? {}
+  const languages = Array.isArray(config.languages) && config.languages.length > 0
+    ? config.languages
+    : [{ id: config.language ?? 'en', label: 'English' }]
+  const fallbackLanguage = catalogs[config.language] ? config.language : (languages[0]?.id ?? 'en')
+  const initialLanguage = readLanguage(fallbackLanguage, catalogs)
+  let labels = catalogs[initialLanguage] ?? config.labels ?? {}
+  let kindLabels = config.kindTranslations?.[initialLanguage] ?? config.kindLabels ?? {}
   const stage = document.querySelector('[data-stage]')
   const status = document.querySelector('[data-status]')
   const statusLabel = document.querySelector('[data-status-label]')
@@ -61,12 +69,18 @@ function start(config, runtimeSource) {
   const runButton = document.querySelector('[data-action="run"]')
   const runButtonLabel = document.querySelector('[data-run-label]')
   const pauseButton = document.querySelector('[data-action="pause"]')
+  const pauseButtonLabel = pauseButton.querySelector('span')
   const stopButton = document.querySelector('[data-action="stop"]')
+  const stopButtonLabel = stopButton.querySelector('span')
   const feedback = document.querySelector('[data-feedback]')
   const modeButtons = [...document.querySelectorAll('button[data-mode]')]
   const speedSlider = document.querySelector('[data-speed-slider]')
   const speedValue = document.querySelector('[data-speed-value]')
+  const speedLabel = document.querySelector('[data-speed-label]')
+  const languageSelect = document.querySelector('[data-language-select]')
+  const languageLabel = document.querySelector('[data-language-label]')
   const panelsButton = document.querySelector('[data-action="panels"]')
+  const panelsButtonLabel = panelsButton.querySelector('span')
   const panelsMenu = document.querySelector('[data-panels-menu]')
   const nodes = dashboardNodeMap(config.project)
 
@@ -88,6 +102,7 @@ function start(config, runtimeSource) {
     layout: readDashboardLayout(window.localStorage, storageKey, defaults, panels),
     mode: readMode(),
     speed: 1,
+    language: initialLanguage,
   }
   let worker = null
   let workerUrl = null
@@ -142,7 +157,7 @@ function start(config, runtimeSource) {
 
       section.append(header, body, resize)
       stage.append(section)
-      const ref = { panel, section, body }
+      const ref = { panel, section, body, handle, hide, resize, title, kind }
       createContent(ref)
       refs.set(panel.id, ref)
 
@@ -401,6 +416,93 @@ function start(config, runtimeSource) {
     } catch {
       return 'dark'
     }
+  }
+
+  // Relit la langue choisie, si elle existe encore dans les catalogues embarqués.
+  function readLanguage(fallback, catalogs) {
+    try {
+      const stored = window.localStorage.getItem(dashboardLanguageStorageKey)
+      if (stored && catalogs[stored]) return stored
+    } catch {
+      // Le choix reste actif pour la session si le stockage local est indisponible.
+    }
+    return fallback
+  }
+
+  // Applique la langue choisie à tout le document sans recharger la page.
+  function applyLanguage() {
+    labels = catalogs[state.language] ?? config.labels ?? {}
+    kindLabels = config.kindTranslations?.[state.language] ?? config.kindLabels ?? {}
+    document.documentElement.lang = state.language
+    document.documentElement.dir = state.language === 'ar' ? 'rtl' : 'ltr'
+    if (languageSelect) languageSelect.value = state.language
+    if (languageLabel) languageLabel.textContent = labels.language ?? 'Language'
+    if (speedLabel) speedLabel.textContent = labels.speed ?? 'Speed'
+    if (speedSlider) speedSlider.setAttribute('aria-label', labels.speed ?? 'Speed')
+    if (pauseButtonLabel) pauseButtonLabel.textContent = labels.pause ?? 'Pause'
+    if (stopButtonLabel) stopButtonLabel.textContent = labels.stop ?? 'Stop'
+    if (panelsButtonLabel) panelsButtonLabel.textContent = labels.panels ?? 'Panels'
+    for (const button of modeButtons) {
+      const span = button.querySelector('span')
+      if (span) span.textContent = button.dataset.mode === 'light' ? (labels.light ?? 'Light') : (labels.dark ?? 'Dark')
+    }
+    if (progressTrack) {
+      progressTrack.setAttribute('aria-label', labels.timeline ?? 'Execution progress')
+      const progress = progressTrack.closest('.db-progress')
+      if (progress) progress.title = labels.seekHint ?? ''
+    }
+    if (stage) stage.setAttribute('aria-label', labels.widgetsAria ?? 'Dashboard widgets')
+    const skip = document.querySelector('[data-skip]')
+    if (skip) skip.textContent = labels.skip ?? 'Skip to widgets'
+    const controlsGroup = document.querySelector('[data-controls-group]')
+    if (controlsGroup) controlsGroup.setAttribute('aria-label', labels.controls ?? 'Execution controls')
+    const modeGroup = document.querySelector('[data-mode-group]')
+    if (modeGroup) modeGroup.setAttribute('aria-label', labels.appearance ?? 'Appearance')
+    const speedGroup = document.querySelector('[data-speed-group]')
+    if (speedGroup) speedGroup.setAttribute('aria-label', labels.speed ?? 'Speed')
+    for (const panel of panels) {
+      if (panel.type === 'output') {
+        panel.name = labels.output ?? 'Output'
+        panel.kind = panel.name
+      } else if (panel.type === 'execution') {
+        panel.name = labels.currentExecution ?? 'Current execution'
+        panel.kind = panel.name
+      } else {
+        panel.kind = labels[panel.type] ?? panel.type
+      }
+      const ref = refs.get(panel.id)
+      if (!ref) continue
+      ref.section.setAttribute('aria-label', panel.name)
+      if (ref.title) ref.title.textContent = panel.name
+      if (ref.kind) ref.kind.textContent = panel.kind
+      if (ref.handle) {
+        ref.handle.title = formatTemplate(labels.movePanel ?? 'Move {name}', { name: panel.name })
+        ref.handle.setAttribute('aria-label', ref.handle.title)
+      }
+      if (ref.hide) {
+        ref.hide.title = formatTemplate(labels.hidePanel ?? 'Hide {name}', { name: panel.name })
+        ref.hide.setAttribute('aria-label', ref.hide.title)
+      }
+      if (ref.resize) {
+        ref.resize.title = formatTemplate(labels.resizePanel ?? 'Resize {name}', { name: panel.name })
+        ref.resize.setAttribute('aria-label', ref.resize.title)
+      }
+    }
+    const tagline = document.querySelector('[data-footer-tagline]')
+    if (tagline) tagline.textContent = labels.footerTagline ?? 'Visual programming environment'
+    const credit = document.querySelector('[data-footer-credit]')
+    if (credit) credit.textContent = labels.footerCredit ?? 'Designed and developed by'
+    const meta = document.querySelector('[data-footer-meta]')
+    if (meta) meta.textContent = `${labels.offline ?? 'Offline dashboard'} · ${labels.builtWith ?? 'Built with Sapphire 3'}`
+    const github = document.querySelector('[data-footer-github]')
+    if (github) {
+      const label = labels.repository ?? 'Open the Sapphire 3 repository on GitHub'
+      github.setAttribute('aria-label', label)
+      github.title = label
+    }
+    renderMenu()
+    renderControls()
+    renderStates()
   }
 
   // Applique le mode et met le sélecteur à jour.
@@ -937,6 +1039,20 @@ function start(config, runtimeSource) {
   runButton.addEventListener('click', handleRun)
   pauseButton.addEventListener('click', handlePause)
   stopButton.addEventListener('click', handleStop)
+  if (languageSelect) {
+    languageSelect.addEventListener('change', () => {
+      const next = languageSelect.value
+      state.language = catalogs[next] ? next : (languages[0]?.id ?? 'en')
+      try {
+        window.localStorage.setItem(dashboardLanguageStorageKey, state.language)
+      } catch {
+        // Le choix reste actif pour la session si le stockage local est indisponible.
+      }
+      applyLanguage()
+      const name = languages.find((entry) => entry.id === state.language)?.label ?? state.language
+      announce(`${labels.language ?? 'Language'} — ${name}`)
+    })
+  }
   for (const button of modeButtons) {
     button.addEventListener('click', () => {
       state.mode = button.dataset.mode === 'light' ? 'light' : 'dark'
@@ -987,9 +1103,7 @@ function start(config, runtimeSource) {
 
   buildPanels()
   applyLayout()
-  renderMenu()
   applyMode()
   applySpeed()
-  renderControls()
-  renderStates()
+  applyLanguage()
 }

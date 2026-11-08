@@ -3,6 +3,7 @@
 export const dashboardSimulationBudget = 20000
 export const dashboardLayoutStoragePrefix = 'sapphire3-dashboard-layout'
 export const dashboardModeStorageKey = 'sapphire3-dashboard-mode'
+export const dashboardLanguageStorageKey = 'sapphire3-dashboard-language'
 export const dashboardOutputPanelId = 'sapphire:dashboard:output'
 export const dashboardExecutionPanelId = 'sapphire:dashboard:execution'
 
@@ -147,6 +148,7 @@ export function dashboardLabels(t) {
     footerTagline: t('dashboard.footerTagline'),
     footerCredit: t('dashboard.footerCredit'),
     repository: t('dashboard.repository'),
+    language: t('dashboard.language'),
     type: t('dashboard.type'),
     module: t('dashboard.module'),
     notRunning: t('dashboard.notRunning'),

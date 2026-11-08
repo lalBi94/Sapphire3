@@ -197,6 +197,46 @@ p, h1, h2, h3 { margin: 0; }
   color: var(--db-primary);
 }
 .db-mode__button[aria-pressed="false"] { color: var(--db-muted); }
+.db-lang { position: relative; display: inline-flex; align-items: center; }
+.db-lang::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 0;
+  height: 0;
+  border-top: 4px solid var(--db-muted);
+  border-right: 3px solid transparent;
+  border-left: 3px solid transparent;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+.db-lang__select {
+  min-height: 30px;
+  padding: 0 24px 0 9px;
+  border: 1px solid var(--db-border);
+  border-radius: var(--db-radius-small);
+  background: transparent;
+  color: var(--db-muted);
+  font-family: var(--db-font);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.db-lang__select:hover {
+  border-color: var(--db-border);
+  background: var(--db-hover);
+  color: var(--db-text);
+}
+.db-lang__select:focus-visible {
+  outline: 2px solid var(--db-focus);
+  outline-offset: -2px;
+}
+[dir="rtl"] .db-lang::after { right: auto; left: 8px; }
+[dir="rtl"] .db-lang__select { padding: 0 9px 0 24px; }
 .db-button:focus-visible,
 .db-panel__handle:focus-visible,
 .db-panel__hide:focus-visible,

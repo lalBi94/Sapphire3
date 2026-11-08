@@ -1,11 +1,24 @@
 // Construction pure du fichier dashboard.html : données, thèmes, disposition et scripts embarqués.
 
 import { buildLightColors } from './theme.js'
-import { dashboardExecutionPanelId, dashboardOutputPanelId, dashboardSimulationBudget } from './dashboardConfig.js'
+import { dashboardExecutionPanelId, dashboardLabels, dashboardOutputPanelId, dashboardSimulationBudget } from './dashboardConfig.js'
 import { packDashboardLayout } from './dashboardLayout.js'
 import { simulationSpeedMax } from './simulationSpeed.js'
 import { repositoryUrl } from './appInfo.js'
+import { supportedLanguages, translate, translations } from './translations.js'
 import { dashboardStyles } from '../dashboard/styles.js'
+
+// Catalogues embarqués dans l'export : une entrée par langue de l'application.
+const dashboardLanguageLabels = Object.fromEntries(supportedLanguages.map(({ id }) => [
+  id,
+  dashboardLabels((key, values) => translate(id, key, values)),
+]))
+const dashboardKindTranslations = Object.fromEntries(supportedLanguages.map(({ id }) => [
+  id,
+  Object.fromEntries(Object.keys(translations.en)
+    .filter((key) => key.startsWith('kind.'))
+    .map((key) => [key.slice(5), translate(id, key)])),
+]))
 
 const panelDefaults = Object.freeze({
   screen: { w: 6, h: 9 },
@@ -104,8 +117,8 @@ export function buildDashboardDocument({
   layoutKey = '',
   runtimeSource = '',
   clientSource = '',
-  labels = {},
-  kindLabels = {},
+  labels: providedLabels = {},
+  kindLabels: providedKindLabels = {},
   project = null,
   language = 'en',
   fonts = {},
@@ -116,6 +129,8 @@ export function buildDashboardDocument({
   const title = escapeDashboardHtml(String(name ?? '').trim() || 'Sapphire Dashboard')
   const summary = escapeDashboardHtml(description)
   const direction = language === 'ar' ? 'rtl' : 'ltr'
+  const labels = dashboardLanguageLabels[language] ?? providedLabels
+  const kindLabels = dashboardKindTranslations[language] ?? providedKindLabels
   const defaultLayout = layout ?? dashboardDefaultLayout(widgets)
   const logo = typeof branding?.logo === 'string' && branding.logo.startsWith('data:image/') ? branding.logo : null
   const data = {
@@ -124,7 +139,10 @@ export function buildDashboardDocument({
     layout: defaultLayout,
     layoutKey,
     labels,
+    translations: dashboardLanguageLabels,
+    languages: supportedLanguages,
     kindLabels,
+    kindTranslations: dashboardKindTranslations,
     project,
     simulationBudget: dashboardSimulationBudget,
     language,
@@ -141,7 +159,7 @@ export function buildDashboardDocument({
 <style>${dashboardFontCss(fonts)}${dashboardStyles}${dashboardThemeCss(palette)}</style>
 </head>
 <body>
-<a class="db-skip-link" href="#dashboard-stage">${escapeDashboardHtml(labels.skip ?? 'Skip to widgets')}</a>
+<a class="db-skip-link" data-skip href="#dashboard-stage">${escapeDashboardHtml(labels.skip ?? 'Skip to widgets')}</a>
 <header class="db-header">
   <div class="db-identity">
     <p class="db-eyebrow">Sapphire 3</p>
@@ -149,15 +167,21 @@ export function buildDashboardDocument({
     ${summary ? `<p class="db-description">${summary}</p>` : ''}
   </div>
   <div class="db-actions">
-    <div class="db-controls" role="group" aria-label="${escapeDashboardHtml(labels.controls ?? 'Execution controls')}">
+    <div class="db-controls" data-controls-group role="group" aria-label="${escapeDashboardHtml(labels.controls ?? 'Execution controls')}">
       <button type="button" class="db-button db-button--primary" data-action="run">${dashboardIcons.run}<span data-run-label>${escapeDashboardHtml(labels.run ?? 'Run')}</span></button>
       <button type="button" class="db-button" data-action="pause" disabled>${dashboardIcons.pause}<span>${escapeDashboardHtml(labels.pause ?? 'Pause')}</span></button>
       <button type="button" class="db-button" data-action="stop" disabled>${dashboardIcons.stop}<span>${escapeDashboardHtml(labels.stop ?? 'Stop')}</span></button>
     </div>
-    <div class="db-mode" role="group" aria-label="${escapeDashboardHtml(labels.appearance ?? 'Appearance')}">
+    <div class="db-mode" data-mode-group role="group" aria-label="${escapeDashboardHtml(labels.appearance ?? 'Appearance')}">
       <button type="button" class="db-button db-mode__button" data-mode="dark" aria-pressed="true">${dashboardIcons.dark}<span>${escapeDashboardHtml(labels.dark ?? 'Dark')}</span></button>
       <button type="button" class="db-button db-mode__button" data-mode="light" aria-pressed="false">${dashboardIcons.light}<span>${escapeDashboardHtml(labels.light ?? 'Light')}</span></button>
     </div>
+    <label class="db-lang">
+      <span class="visually-hidden" data-language-label>${escapeDashboardHtml(labels.language ?? 'Language')}</span>
+      <select class="db-lang__select" data-language-select>
+        ${supportedLanguages.map(({ id, label }) => `<option value="${escapeDashboardHtml(id)}"${id === language ? ' selected' : ''}>${escapeDashboardHtml(label)}</option>`).join('')}
+      </select>
+    </label>
     <div class="db-menu">
       <button type="button" class="db-button" data-action="panels" aria-expanded="false">${dashboardIcons.panels}<span>${escapeDashboardHtml(labels.panels ?? 'Panels')}</span></button>
       <div class="db-menu__popover" data-panels-menu hidden></div>
@@ -170,8 +194,8 @@ export function buildDashboardDocument({
     <div class="db-progress__fill" data-progress></div>
     <input type="range" class="db-progress__input" data-progress-track min="0" max="0" step="1" value="0" disabled aria-label="${escapeDashboardHtml(labels.timeline ?? 'Execution progress')}" aria-valuetext="${escapeDashboardHtml(labels.idle ?? 'Idle')}">
   </div>
-  <div class="db-speed" role="group" aria-label="${escapeDashboardHtml(labels.speed ?? 'Speed')}">
-    <span class="db-speed__label">${escapeDashboardHtml(labels.speed ?? 'Speed')}</span>
+  <div class="db-speed" data-speed-group role="group" aria-label="${escapeDashboardHtml(labels.speed ?? 'Speed')}">
+    <span class="db-speed__label" data-speed-label>${escapeDashboardHtml(labels.speed ?? 'Speed')}</span>
     <input type="range" class="db-speed__slider" data-speed-slider min="1" max="${simulationSpeedMax}" step="1" value="1" aria-label="${escapeDashboardHtml(labels.speed ?? 'Speed')}" aria-valuetext="×1">
     <span class="db-speed__value" data-speed-value aria-hidden="true">×1</span>
   </div>
@@ -183,14 +207,14 @@ export function buildDashboardDocument({
     ${logo ? `<img class="db-footer__logo" src="${escapeDashboardHtml(logo)}" alt="" width="40" height="40">` : '<span class="db-footer__logo db-footer__logo--fallback" aria-hidden="true">S3</span>'}
     <div>
       <p class="db-footer__name">Sapphire 3${version ? ` <span class="db-footer__version" dir="ltr">v${escapeDashboardHtml(version)}</span>` : ''}</p>
-      <p class="db-footer__tagline">${escapeDashboardHtml(labels.footerTagline ?? 'Visual programming environment')}</p>
+      <p class="db-footer__tagline" data-footer-tagline>${escapeDashboardHtml(labels.footerTagline ?? 'Visual programming environment')}</p>
     </div>
   </div>
   <div class="db-footer__credits">
-    <p class="db-footer__credit">${escapeDashboardHtml(labels.footerCredit ?? 'Designed and developed by')}</p>
+    <p class="db-footer__credit" data-footer-credit>${escapeDashboardHtml(labels.footerCredit ?? 'Designed and developed by')}</p>
     <p class="db-footer__threadlock">Threadlock Systems</p>
-    <p class="db-footer__meta">${escapeDashboardHtml(labels.offline ?? 'Offline dashboard')} · ${escapeDashboardHtml(labels.builtWith ?? 'Built with Sapphire 3')}</p>
-    ${repository ? `<a class="db-github" href="${escapeDashboardHtml(repository)}" target="_blank" rel="noopener noreferrer" dir="ltr" aria-label="${escapeDashboardHtml(labels.repository ?? 'Open the Sapphire 3 repository on GitHub')}" title="${escapeDashboardHtml(labels.repository ?? 'Open the Sapphire 3 repository on GitHub')}"><svg class="db-github__icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z" fill="currentColor"/></svg><span class="db-github__repo">lalBi94/Sapphire3</span></a>` : ''}
+    <p class="db-footer__meta" data-footer-meta>${escapeDashboardHtml(labels.offline ?? 'Offline dashboard')} · ${escapeDashboardHtml(labels.builtWith ?? 'Built with Sapphire 3')}</p>
+    ${repository ? `<a class="db-github" data-footer-github href="${escapeDashboardHtml(repository)}" target="_blank" rel="noopener noreferrer" dir="ltr" aria-label="${escapeDashboardHtml(labels.repository ?? 'Open the Sapphire 3 repository on GitHub')}" title="${escapeDashboardHtml(labels.repository ?? 'Open the Sapphire 3 repository on GitHub')}"><svg class="db-github__icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z" fill="currentColor"/></svg><span class="db-github__repo">lalBi94/Sapphire3</span></a>` : ''}
   </div>
 </footer>
 <noscript><p style="padding:0 24px 24px">${escapeDashboardHtml(labels.noscript ?? 'This dashboard needs JavaScript to run.')}</p></noscript>
