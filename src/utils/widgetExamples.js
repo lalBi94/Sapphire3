@@ -120,6 +120,20 @@ function demo(id, title, widgets, extraModules = []) {
   function loop(name, start, limit, statements) {
     return make('ForStatement', {}, { initializer: declare(name, integer(start)), test: op('<', read(name), limit), update: assign(name, op('+', read(name), integer(1))), body: block(statements) })
   }
+  // Déclare le drapeau interne qui prolonge une simulation en live.
+  function liveFlag() {
+    const initial = boolean(false)
+    app.rootNodeIds.push(make('VariableDeclaration', { name: 'SP3_LIVE', type: booleanType }, { initializer: initial }))
+  }
+  // Boucle de simulation : finie en Run borné, infinie en Run live.
+  function liveLoop(name, start, limit, statements) {
+    return make('ForStatement', {}, {
+      initializer: declare(name, integer(start)),
+      test: op('or', read('SP3_LIVE'), op('<', read(name), limit)),
+      update: assign(name, op('+', read(name), integer(1))),
+      body: block(statements),
+    })
+  }
   // Importe une API de widget une seule fois et crée un appel source ordinaire à chaque utilisation.
   function widgetCall(widget, name, args) {
     const key = `${widget.module.id}:${name}`
@@ -141,7 +155,7 @@ function demo(id, title, widgets, extraModules = []) {
     app.rootNodeIds.push(make('FunctionDeclaration', { name: 'main', type: { kind: 'primitive', name: 'void' }, entryPoint: true }, { parameters: [], body: block(statements) }))
     return { project, description, title }
   }
-  return { make, integer, real, boolean, read, member, methodCall, newObject, statement, classType, op, math, asDouble, array, at, declare, assign, store, branch, whileLoop, loop, widgetCall, print, finish }
+  return { make, integer, real, boolean, read, member, methodCall, newObject, statement, classType, op, math, asDouble, array, at, declare, assign, store, branch, whileLoop, loop, liveFlag, liveLoop, widgetCall, print, finish }
 }
 
 // Les restes successifs de l'algorithme d'Euclide deviennent les deux barres du graphique.
@@ -275,14 +289,15 @@ function thermostat() {
   room.member('FunctionDeclaration', { name: 'isHeating', type: booleanType, visibility: 'public' }, { parameters: [], body: room.block([room.returnValue(room.memberAccess(room.thisNode(), 'heating'))]) })
 
   const b = demo('thermostat', 'Thermostat control', [bars, gauge, led], [room])
+  b.liveFlag()
   return b.finish([
     b.declare('thermostatStart', b.math('randomInt', [b.integer(16), b.integer(20)]), intType),
     b.declare('thermostat', b.newObject('thermostatClass', [b.read('thermostatStart')]), b.classType('thermostatClass')),
-    b.loop('step', 0, b.integer(24), [
+    b.liveLoop('step', 0, b.integer(24), [
       b.statement(b.methodCall(b.read('thermostat'), 'step', [])),
       b.widgetCall(gauge, gauge.functions.setValue, [b.asDouble(b.methodCall(b.read('thermostat'), 'current', []))]),
       b.widgetCall(led, led.functions.setValue, [b.methodCall(b.read('thermostat'), 'isHeating', [])]),
-      b.widgetCall(bars, bars.functions.setValue, [b.read('step'), b.methodCall(b.read('thermostat'), 'current', [])]),
+      b.widgetCall(bars, bars.functions.setValue, [b.op('%', b.read('step'), b.integer(24)), b.methodCall(b.read('thermostat'), 'current', [])]),
     ]),
     b.print(b.methodCall(b.read('thermostat'), 'current', [])),
   ], 'Modèle thermique volontairement simplifié : chauffage actif à 20 °C ou moins, coupé à 24 °C ou plus. La classe Thermostat garde la température et le chauffage privés ; step() applique l’hystérésis et un pas chauffe de 2 °C ou refroidit de 1 °C. La LED montre le chauffage, la jauge la température et les barres les 24 pas. Température finale : 21 °C ; ce n’est pas un modèle physique de bâtiment.')
@@ -309,13 +324,14 @@ function dampedSpring() {
   spring.member('FunctionDeclaration', { name: 'current', type: doubleType, visibility: 'public' }, { parameters: [], body: spring.block([spring.returnValue(spring.memberAccess(spring.thisNode(), 'position'))]) })
 
   const b = demo('dampedSpring', 'Damped spring', [bars, gauge], [spring])
+  b.liveFlag()
   return b.finish([
     b.declare('springStart', b.op('+', b.real(8), b.op('*', b.math('randomDouble', []), b.real(4))), doubleType),
     b.declare('spring', b.newObject('springClass', [b.read('springStart')]), b.classType('springClass')),
-    b.loop('step', 0, b.integer(24), [
+    b.liveLoop('step', 0, b.integer(24), [
       b.statement(b.methodCall(b.read('spring'), 'step', [])),
       b.widgetCall(gauge, gauge.functions.setValue, [b.methodCall(b.read('spring'), 'current', [])]),
-      b.widgetCall(bars, bars.functions.setValue, [b.read('step'), b.make('CastExpression', { type: intType }, { argument: b.op('*', b.methodCall(b.read('spring'), 'current', []), b.real(100)) })]),
+      b.widgetCall(bars, bars.functions.setValue, [b.op('%', b.read('step'), b.integer(24)), b.make('CastExpression', { type: intType }, { argument: b.op('*', b.methodCall(b.read('spring'), 'current', []), b.real(100)) })]),
     ]),
     b.print(b.make('Literal', { type: { kind: 'primitive', name: 'string' }, value: 'Damped spring' })),
   ], 'Oscillateur discret amorti encapsulé dans une classe Spring : step() applique v ← (v − 0,18 × x) × 0,88, puis x ← x + v pendant 24 pas. La jauge suit x et les barres signées conservent l’historique en centièmes (conversion double → int explicite). Changez la raideur et l’amortissement avec prudence : certaines valeurs rendent le schéma instable. Modèle pédagogique, sans unités physiques calibrées.')
@@ -411,7 +427,7 @@ function reactorControl() {
 
   const publishBody = reactor.block([
     reactor.statement(reactor.call(reactor.importRef(gaugeImport), [reactor.call(reactor.memberAccess(reactor.thisNode(), 'level'), [])])),
-    reactor.statement(reactor.call(reactor.importRef(barsImport), [reactor.read('step'), reactor.castInt(reactor.call(reactor.memberAccess(reactor.thisNode(), 'level'), []))])),
+    reactor.statement(reactor.call(reactor.importRef(barsImport), [reactor.op('%', reactor.read('step'), reactor.integer(12)), reactor.castInt(reactor.call(reactor.memberAccess(reactor.thisNode(), 'level'), []))])),
     reactor.statement(reactor.call(reactor.importRef(ledImport), [reactor.op('<', reactor.call(reactor.memberAccess(reactor.thisNode(), 'heat'), []), reactor.real(30))])),
   ])
   reactor.member('FunctionDeclaration', { name: 'publish', type: voidType, visibility: 'public' }, { parameters: [reactor.parameter('step', intType)], body: publishBody })
@@ -441,11 +457,12 @@ function reactorControl() {
   controller.member('FunctionDeclaration', { name: 'count', type: intType, visibility: 'public' }, { parameters: [], body: controller.block([controller.returnValue(controller.memberAccess(controller.thisNode(), 'cycles'))]) })
 
   const b = demo('reactorControl', 'Reactor control', [gauge, bars, led], [reactor, controller])
+  b.liveFlag()
   return b.finish([
     b.declare('reactor', b.newObject('reactorControlClass', [b.real(40)]), b.classType('reactorControlClass')),
     b.declare('controllerTarget', b.op('+', b.real(60), b.op('*', b.math('randomDouble', []), b.real(20))), doubleType),
     b.declare('controller', b.newObject('controllerControlClass', [b.read('controllerTarget')]), b.classType('controllerControlClass')),
-    b.loop('step', 0, b.integer(12), [
+    b.liveLoop('step', 0, b.integer(12), [
       b.statement(b.methodCall(b.read('controller'), 'regulate', [b.read('reactor')])),
       b.statement(b.methodCall(b.read('reactor'), 'tick', [])),
       b.statement(b.methodCall(b.read('reactor'), 'publish', [b.read('step')])),

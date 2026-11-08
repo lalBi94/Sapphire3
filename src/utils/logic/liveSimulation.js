@@ -527,6 +527,10 @@ export async function runLiveProgram(project, { inputs = {}, sliceSteps = 400, o
       }
     }
     applyInputs(inputs)
+    // Convention des exemples : `SP3_LIVE` prolonge leur boucle principale en live.
+    for (const node of project.nodes ?? []) {
+      if (node?.kind === 'VariableDeclaration' && node.properties?.name === 'SP3_LIVE') global.values.set(node.id, true)
+    }
     await maybeYield(true)
     const returned = await executeFunction(entry, [])
     if (onFrame) await onFrame(collectState({ done: true, returnValue: returned === undefined ? null : formatValue(returned) }))

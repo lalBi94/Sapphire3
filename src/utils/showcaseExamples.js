@@ -5,6 +5,7 @@ import { createOscilloscopeModule } from './oscilloscopeNode.js'
 
 const intType = { kind: 'primitive', name: 'int' }
 const doubleType = { kind: 'primitive', name: 'double' }
+const booleanType = { kind: 'primitive', name: 'boolean' }
 const voidType = { kind: 'primitive', name: 'void' }
 const intArrayType = { kind: 'array', elementType: intType }
 
@@ -58,8 +59,17 @@ function scene(id, title, widget) {
     app.rootNodeIds.push(node('FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body }))
     return { project, title, description }
   }
+  // Déclare le drapeau interne qui prolonge une animation en live.
+  function liveFlag() {
+    const initial = node('Literal', { type: booleanType, value: false })
+    current.rootNodeIds.push(node('VariableDeclaration', { name: 'SP3_LIVE', type: booleanType }, { initializer: initial }))
+  }
+  // Condition de boucle : finie en Run borné, infinie en Run live.
+  function liveCondition(frame, limit) {
+    return node('BinaryExpression', { operator: 'or' }, { left: ref('SP3_LIVE'), right: op('<', ref(frame), integer(limit)) })
+  }
   return {
-    project, library, app, node, ref, real, integer, op, math, cast, block, declare, assign, statement, call, imported, formula, finish,
+    project, library, app, node, ref, real, integer, op, math, cast, block, declare, assign, statement, call, imported, formula, finish, liveFlag, liveCondition,
     useApp: () => { current = app },
     useModule: (module) => { current = module },
   }
@@ -110,6 +120,7 @@ function neonRose() {
   const b = scene('neonRose', 'Neon rose', widget)
   b.formula('roseRadius', b.op('*', b.real(17), b.math('cos', [b.op('*', b.real(5), b.ref('x'))])))
   b.useApp()
+  b.liveFlag()
   const paletteValues = [10, 10, 18, 255, 245, 213, 71, 255, 196, 177, 255, 255, 70, 210, 235, 255, 240, 100, 170, 255, 120, 255, 160, 255]
   const palette = b.declare('palette', intArrayType, b.node('ArrayLiteral', { elementType: intType }, { elements: paletteValues.map(b.integer) }))
   const grid = b.declare('grid', intArrayType, b.math('arrayFill', [b.integer(64 * 40), b.integer(0)]))
@@ -130,7 +141,7 @@ function neonRose() {
     consequent: b.block([paint, present]), alternate: null,
   })
   const loop = b.node('ForStatement', {}, {
-    initializer: b.declare('i', intType, b.integer(0)), test: b.op('<', b.ref('i'), b.integer(128)),
+    initializer: b.declare('i', intType, b.integer(0)), test: b.liveCondition('i', 128),
     update: b.assign('i', b.op('+', b.ref('i'), b.integer(1))), body: b.block([t, radius, x, y, write, show]),
   })
   return b.finish([palette, grid, phase, loop], String.raw`Une rosace à cinq pétales se trace en 32 images sur un écran 64×40. Une phase aléatoire choisit le point de départ à chaque simulation ; la teinte change à chaque image et recolore le tracé au second passage. La géométrie est calculée au Run dans un module Math. $$r(\theta)=17\cos(5\theta)$$`)
@@ -158,6 +169,7 @@ function orbitalTrails() {
   ]) })
   rotor.rootNodeIds.push(ctor, step)
   b.useApp()
+  b.liveFlag()
   const instance = b.declare('rotor', { kind: 'class', classId: rotor.id }, b.node('NewExpression', { classId: rotor.id }, { arguments: [b.op('*', b.math('randomDouble', []), b.real(2 * Math.PI))] }))
   const palette = b.declare('palette', intArrayType, b.node('ArrayLiteral', { elementType: intType }, { elements: [10, 10, 18, 255, 245, 213, 71, 255, 90, 220, 240, 255].map(b.integer) }))
   const grid = b.declare('grid', intArrayType, b.math('arrayFill', [b.integer(64 * 40), b.integer(0)]))
@@ -173,7 +185,7 @@ function orbitalTrails() {
   const paint = b.statement(b.call(b.imported(widget.module, widget.functions.blit), [b.ref('grid'), b.ref('palette')]))
   const present = b.statement(b.call(b.imported(widget.module, widget.functions.present), []))
   const loop = b.node('ForStatement', {}, {
-    initializer: b.declare('frame', intType, b.integer(0)), test: b.op('<', b.ref('frame'), b.integer(64)),
+    initializer: b.declare('frame', intType, b.integer(0)), test: b.liveCondition('frame', 64),
     update: b.assign('frame', b.op('+', b.ref('frame'), b.integer(1))), body: b.block([angle, ...writes, paint, present]),
   })
   return b.finish([instance, palette, grid, loop], String.raw`Deux satellites jaune/cyan dessinent une trajectoire de Lissajous en 64 images. La classe Rotor encapsule sa phase privée et avance avec step(). Le module Math fournit les coordonnées, App orchestre les appels et l’écran. Modèle géométrique, pas simulation gravitationnelle. $$x=32+26\cos(t),\quad y=20+15\sin(2t)$$`)
@@ -210,6 +222,7 @@ function solarSystem() {
   b.formula('earthX', b.op('-', b.op('+', b.real(centerX), b.op('*', b.real(earthMajor), b.math('cos', [b.ref('x')]))), b.real(earthFocus)))
   b.formula('earthY', b.op('+', b.real(centerY), b.op('*', b.real(earthMinor), b.math('sin', [b.ref('x')]))))
   b.useApp()
+  b.liveFlag()
   const declarations = []
   for (const planet of planets) {
     const aPx = pixelRadius(planet.a)
@@ -292,7 +305,7 @@ function solarSystem() {
   const paint = b.statement(b.call(b.imported(widget.module, widget.functions.blit), [b.ref('frameGrid'), b.ref('palette')]))
   const present = b.statement(b.call(b.imported(widget.module, widget.functions.present), []))
   const loop = b.node('ForStatement', {}, {
-    initializer: b.declare('frame', intType, b.integer(0)), test: b.op('<', b.ref('frame'), b.integer(frames)),
+    initializer: b.declare('frame', intType, b.integer(0)), test: b.liveCondition('frame', frames),
     update: b.assign('frame', b.op('+', b.ref('frame'), b.integer(1))), body: b.block([...draws, paint, present]),
   })
   return b.finish([...declarations, palette, grid, ...guides, ...sun, loop], String.raw`Écran 128×96. Huit planètes suivent des ellipses képlériennes autour du Soleil, avec les demi-grands axes, excentricités et périodes réelles ; la projection radiale logarithmique garde tout le système visible. La Terre, en bleu, est la seule à laisser une traînée ; les autres planètes restent des points. Le Soleil est le disque jaune central. L'écran rejoue la séquence tant que le Run est actif. Pas d'interactions planète-planète ni de Lune. $$x=a(\cos E-e),\quad y=b\sin E$$`)

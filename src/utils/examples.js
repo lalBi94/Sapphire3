@@ -58,10 +58,57 @@ function builder() {
     forLoop(`${prefix}Loop`, `${prefix}Decl`, `${prefix}Test`, `${prefix}Update`, `${prefix}Body`)
     return `${prefix}Loop`
   }
+  // Déclare le drapeau interne qui prolonge une boucle d'animation en live.
+  const liveFlag = () => {
+    make('sp3LiveFalse', 'Literal', { type: booleanType, value: false })
+    root('sp3Live', 'VariableDeclaration', { name: 'SP3_LIVE', type: booleanType }, { initializer: 'sp3LiveFalse' })
+  }
+  // Condition de boucle pour un `for` manuel : SP3_LIVE ou borne.
+  const liveTest = (prefix, frameRef, limitRef) => {
+    ref(`${prefix}Live`, 'SP3_LIVE')
+    binary(`${prefix}Below`, '<', frameRef, limitRef)
+    binary(`${prefix}Test`, 'or', `${prefix}Live`, `${prefix}Below`)
+    return `${prefix}Test`
+  }
+  // Répète une séquence d'images précalculées en live, une seule fois en borné.
+  const liveRepeat = (prefix, body) => {
+    variable(`${prefix}Pass`, 'pass', intType, `${prefix}PassStart`)
+    intValue(`${prefix}PassStart`, 0)
+    ref(`${prefix}Live`, 'SP3_LIVE')
+    binary(`${prefix}Below`, '<', `${prefix}PassRead`, `${prefix}PassEnd`)
+    ref(`${prefix}PassRead`, 'pass')
+    intValue(`${prefix}PassEnd`, 1)
+    binary(`${prefix}Test`, 'or', `${prefix}Live`, `${prefix}Below`)
+    assign(`${prefix}Update`, `${prefix}PassTarget`, `${prefix}PassNext`)
+    ref(`${prefix}PassTarget`, 'pass')
+    binary(`${prefix}PassNext`, '+', `${prefix}PassNextRead`, `${prefix}PassOne`)
+    ref(`${prefix}PassNextRead`, 'pass')
+    intValue(`${prefix}PassOne`, 1)
+    block(`${prefix}LoopBody`, body)
+    forLoop(`${prefix}Loop`, `${prefix}Pass`, `${prefix}Test`, `${prefix}Update`, `${prefix}LoopBody`)
+    return `${prefix}Loop`
+  }
+  // Boucle d'animation : finie en Run borné, infinie en Run live.
+  const liveLoop = (prefix, name, limitId, body, start = 0) => {
+    variable(`${prefix}Decl`, name, intType, `${prefix}Start`)
+    intValue(`${prefix}Start`, start)
+    ref(`${prefix}Live`, 'SP3_LIVE')
+    binary(`${prefix}Below`, '<', `${prefix}Read`, limitId)
+    ref(`${prefix}Read`, name)
+    binary(`${prefix}Test`, 'or', `${prefix}Live`, `${prefix}Below`)
+    assign(`${prefix}Update`, `${prefix}Target`, `${prefix}Next`)
+    ref(`${prefix}Target`, name)
+    binary(`${prefix}Next`, '+', `${prefix}NextRead`, `${prefix}One`)
+    ref(`${prefix}NextRead`, name)
+    intValue(`${prefix}One`, 1)
+    block(`${prefix}Body`, body)
+    forLoop(`${prefix}Loop`, `${prefix}Decl`, `${prefix}Test`, `${prefix}Update`, `${prefix}Body`)
+    return `${prefix}Loop`
+  }
   // D?r?f?rencement `*p` (lecture ou cible d'?criture) et prise d'adresse `&x`.
   const deref = (id, operand) => make(id, 'UnaryExpression', { operator: '*' }, { operand })
   const address = (id, operand) => make(id, 'UnaryExpression', { operator: '&' }, { operand })
-  return { project, useModule, make, root, ref, intValue, binary, access, print, returnValue, call, block, assign, variable, math, ifThen, forLoop, countedLoop, doubleValue, stringValue, deref, address }
+  return { project, useModule, make, root, ref, intValue, binary, access, print, returnValue, call, block, assign, variable, math, ifThen, forLoop, countedLoop, liveFlag, liveTest, liveRepeat, liveLoop, doubleValue, stringValue, deref, address }
 }
 
 // Décrit une annotation Comment de présentation, hors du modèle logique.
@@ -703,6 +750,7 @@ function pixelScreens() {
   )
 
   b.useModule('screenApp', 'Screen app')
+  b.liveFlag()
   b.root('screenMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'screenMainBody' })
   b.block('screenMainBody', ['screenStartOne', 'screenLoop', 'screenPrint'])
   // Dessine un premier logo avant la boucle : l'écran n'est jamais vide.
@@ -711,7 +759,7 @@ function pixelScreens() {
   b.make('screenStartOneCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'bounceOneImport' } })
   b.make('screenFrame', 'VariableDeclaration', { name: 'frame', type: intType }, { initializer: 'screenFrameStart' })
   b.intValue('screenFrameStart', 0)
-  b.make('screenTest', 'BinaryExpression', { operator: '<' }, { left: 'screenFrameIndex', right: 'screenFrameEnd' })
+  b.liveTest('screen', 'screenFrameIndex', 'screenFrameEnd')
   b.ref('screenFrameIndex', 'frame')
   b.intValue('screenFrameEnd', 19)
   b.make('screenUpdate', 'AssignmentStatement', {}, { target: 'screenFrameTarget', value: 'screenFrameNext' })
@@ -750,6 +798,7 @@ function gameOfLife() {
   b.project.modules.push(screen.module)
   b.project.nodes.push(...screen.nodes)
   b.useModule('lifePatterns', 'Life patterns')
+  b.liveFlag()
 
   // Déclare un tableau constant global.
   function constantArray(id, values) {
@@ -878,7 +927,7 @@ function gameOfLife() {
   b.make('lifePresentCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'lifePresentImport' } })
   b.make('lifeGeneration', 'VariableDeclaration', { name: 'generation', type: intType }, { initializer: 'lifeGenerationStart' })
   b.intValue('lifeGenerationStart', 0)
-  b.binary('lifeGenerationTest', '<', 'lifeGenerationIndex', 'lifeGenerationEnd')
+  b.liveTest('lifeGeneration', 'lifeGenerationIndex', 'lifeGenerationEnd')
   b.ref('lifeGenerationIndex', 'generation')
   b.intValue('lifeGenerationEnd', 60)
   b.make('lifeGenerationUpdate', 'AssignmentStatement', {}, { target: 'lifeGenerationTarget', value: 'lifeGenerationNext' })
@@ -929,6 +978,7 @@ function rain() {
   b.project.modules.push(screen.module)
   b.project.nodes.push(...screen.nodes)
   b.useModule('rainApp', 'Rain app')
+  b.liveFlag()
 
   const setPixel = screen.module.exports.find((entry) => entry.name === 'SCREEN_SP3_SET_PIXEL_1')
   const present = screen.module.exports.find((entry) => entry.name === 'SCREEN_SP3_PRESENT_1')
@@ -982,7 +1032,7 @@ function rain() {
 
   b.make('rainGeneration', 'VariableDeclaration', { name: 'generation', type: intType }, { initializer: 'rainGenerationStart' })
   b.intValue('rainGenerationStart', 0)
-  b.binary('rainGenerationTest', '<', 'rainGenerationIndex', 'rainGenerationEnd')
+  b.liveTest('rainGeneration', 'rainGenerationIndex', 'rainGenerationEnd')
   b.ref('rainGenerationIndex', 'generation')
   b.intValue('rainGenerationEnd', generations)
   b.make('rainGenerationUpdate', 'AssignmentStatement', {}, { target: 'rainGenerationTarget', value: 'rainGenerationValue' })
@@ -1119,6 +1169,7 @@ function trafficControl() {
   b.project.modules.push(heat.module, bars.module, flow.module)
   b.project.nodes.push(...heat.nodes, ...bars.nodes, ...flow.nodes)
   b.useModule('trafficApp', 'Traffic control')
+  b.liveFlag()
   const app = b.project.modules.find((module) => module.id === 'trafficApp')
   const exported = (widget, name) => widget.module.exports.find((entry) => entry.name === name).nodeId
   importFunction(app, 'heatCell', heat.module.id, exported(heat, 'HEATMAP_SP3_SET_CELL_1'), 'heatCell')
@@ -1167,7 +1218,7 @@ function trafficControl() {
   b.binary('trafficFlowInt', '-', 'trafficHundred', 'trafficFlowDrop')
   b.make('trafficFlowDouble', 'CastExpression', { type: doubleType }, { argument: 'trafficFlowInt' })
   callStatement(b, 'trafficFlowSet', 'flowValue', ['trafficFlowDouble'])
-  const phaseLoop = b.countedLoop('trafficPhase', 'phase', 'trafficPhases', [xLoop, laneLoop, 'trafficFlowSetStatement'])
+  const phaseLoop = b.liveLoop('trafficPhase', 'phase', 'trafficPhases', [xLoop, laneLoop, 'trafficFlowSetStatement'])
 
   b.root('trafficMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'trafficBody' })
   b.stringValue('trafficMessage', 'Traffic control')
@@ -2616,6 +2667,7 @@ function carDashboard() {
   b.project.modules.push(screen.module, gauge.module)
   b.project.nodes.push(...screen.nodes, ...gauge.nodes)
   b.useModule('carApp', 'Car dashboard')
+  b.liveFlag()
 
   const app = b.project.modules.find((module) => module.id === 'carApp')
   const setPixel = screen.module.exports.find((entry) => entry.name === 'SCREEN_SP3_SET_PIXEL_1')
@@ -2671,7 +2723,7 @@ function carDashboard() {
   b.root('carMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'carMainBody' })
   b.make('carFrame', 'VariableDeclaration', { name: 'frame', type: intType }, { initializer: 'carFrameStart' })
   b.intValue('carFrameStart', 0)
-  b.binary('carFrameTest', '<', 'carFrameRead', 'carFrameEnd')
+  b.liveTest('carFrame', 'carFrameRead', 'carFrameEnd')
   b.ref('carFrameRead', 'frame')
   b.intValue('carFrameEnd', frames)
   b.make('carFrameUpdate', 'AssignmentStatement', {}, { target: 'carFrameTarget', value: 'carFrameNext' })
@@ -2819,12 +2871,13 @@ function intArrayConstant(b, name, values) {
 
 // Simulation d'écran à automate cellulaire : convolution des voisins, table de
 // transition de 18 entrées, blit puis présentation, une image par génération.
-function automatonScreen({ id, title, width, height, frames, rule, kernel, seeds, palette, noteText }) {
+function automatonScreen({ id, title, width, height, frames, rule, kernel, seeds, palette, noteText, live = false }) {
   const b = builder()
   const screen = createScreenModule(`${id}Screen`, `${title} screen`, 1, { width, height })
   b.project.modules.push(screen.module)
   b.project.nodes.push(...screen.nodes)
   b.useModule(`${id}App`, title)
+  if (live) b.liveFlag()
   const app = b.project.modules.find((module) => module.id === `${id}App`)
   const exported = (name) => screen.module.exports.find((entry) => entry.name === name).nodeId
   importFunction(app, `${id}BlitImport`, screen.module.id, exported('SCREEN_SP3_BLIT_1'), 'blit')
@@ -2880,7 +2933,7 @@ function automatonScreen({ id, title, width, height, frames, rule, kernel, seeds
   b.call(`${id}PresentCall`, `${id}PresentCallee`, [])
   b.make(`${id}PresentCallee`, 'Reference', {}, {}, { target: { kind: 'import', importId: `${id}PresentImport` } })
 
-  const loop = b.countedLoop(`${id}Frame`, 'frame', `${id}FrameCount`, [
+  const loop = (live ? b.liveLoop : b.countedLoop)(`${id}Frame`, 'frame', `${id}FrameCount`, [
     `${id}CountsAssign`, `${id}NextAssign`, `${id}GridAssign`, `${id}BlitStatement`, `${id}PresentStatement`,
   ])
   b.intValue(`${id}FrameCount`, frames)
@@ -2903,6 +2956,7 @@ function starfield() {
   b.project.modules.push(screen.module)
   b.project.nodes.push(...screen.nodes)
   b.useModule('starApp', 'Starfield')
+  b.liveFlag()
   const app = b.project.modules.find((module) => module.id === 'starApp')
   const exported = (name) => screen.module.exports.find((entry) => entry.name === name).nodeId
   importFunction(app, 'starBlitImport', screen.module.id, exported('SCREEN_SP3_BLIT_1'), 'blit')
@@ -2952,7 +3006,7 @@ function starfield() {
   b.call('starPresentCall', 'starPresentCallee', [])
   b.make('starPresentCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'starPresentImport' } })
 
-  const loop = b.countedLoop('starFrame', 'frame', 'starFrameCount', ['starShift', ...drops, 'starBlitStatement', 'starPresentStatement'])
+  const loop = b.liveLoop('starFrame', 'frame', 'starFrameCount', ['starShift', ...drops, 'starBlitStatement', 'starPresentStatement'])
   b.intValue('starFrameCount', frames)
   b.root('starMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'starBody' })
   b.stringValue('starMessage', 'Starfield')
@@ -2977,6 +3031,7 @@ function colorFlow() {
   b.project.modules.push(screen.module)
   b.project.nodes.push(...screen.nodes)
   b.useModule('flowApp', 'Color flow')
+  b.liveFlag()
   const app = b.project.modules.find((module) => module.id === 'flowApp')
   const exported = (name) => screen.module.exports.find((entry) => entry.name === name).nodeId
   importFunction(app, 'flowBlitImport', screen.module.id, exported('SCREEN_SP3_BLIT_1'), 'blit')
@@ -3036,7 +3091,7 @@ function colorFlow() {
   b.call('flowPresentCall', 'flowPresentCallee', [])
   b.make('flowPresentCallee', 'Reference', {}, {}, { target: { kind: 'import', importId: 'flowPresentImport' } })
 
-  const loop = b.countedLoop('flowFrame', 'frame', 'flowFrameCount', ['flowShift', 'flowBlitStatement', 'flowPresentStatement'])
+  const loop = b.liveLoop('flowFrame', 'frame', 'flowFrameCount', ['flowShift', 'flowBlitStatement', 'flowPresentStatement'])
   b.intValue('flowFrameCount', frames)
   b.root('flowMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'flowBody' })
   b.stringValue('flowMessage', 'Color flow')
@@ -3097,6 +3152,7 @@ function rgbMixer() {
   b.project.modules.push(screen.module, red.module, green.module, blue.module, gauge.module, led.module)
   b.project.nodes.push(...screen.nodes, ...red.nodes, ...green.nodes, ...blue.nodes, ...gauge.nodes, ...led.nodes)
   b.useModule('mixApp', 'RGB mixer')
+  b.liveFlag()
   const app = b.project.modules.find((module) => module.id === 'mixApp')
   const exported = (widget, name) => widget.module.exports.find((entry) => entry.name === name).nodeId
   importFunction(app, 'mixBlitImport', screen.module.id, exported(screen, 'SCREEN_SP3_BLIT_1'), 'blit')
@@ -3211,7 +3267,7 @@ function rgbMixer() {
     redCall, greenCall, blueCall, brightnessCall, ledCall,
     'mixBlitStatement', 'mixPresentStatement',
   ]
-  const loop = b.countedLoop('mixFrame', 'frame', 'mixFrameCount', body)
+  const loop = b.liveLoop('mixFrame', 'frame', 'mixFrameCount', body)
   b.intValue('mixFrameCount', frames)
   b.root('mixMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'mixBody' })
   b.stringValue('mixMessage', 'RGB mixer')
@@ -3251,6 +3307,7 @@ function coralGrowth() {
     width: 72,
     height: 40,
     frames: 62,
+    live: true,
     kernel: [1, 1, 1, 1, 0, 1, 1, 1, 1],
     rule: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0],
     seeds,
@@ -3282,6 +3339,7 @@ function labyrinth() {
     width: 72,
     height: 40,
     frames: 109,
+    live: true,
     kernel: [1, 1, 1, 1, 0, 1, 1, 1, 1],
     rule: [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
     seeds,
@@ -3547,6 +3605,7 @@ function rotatingCube() {
   const screenA = screenModule(b, 'cubeA', 'Cube front', width, height, 1)
   const screenB = screenModule(b, 'cubeB', 'Cube top', width, height, 2)
   b.useModule('cubeApp', 'Rotating cube')
+  b.liveFlag()
   const app = b.project.modules.find((module) => module.id === 'cubeApp')
   const apiA = screenBlitImports(app, screenA, 'cubeA')
   const apiB = screenBlitImports(app, screenB, 'cubeB')
@@ -3573,7 +3632,7 @@ function rotatingCube() {
   b.root('cubeMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'cubeBody' })
   b.stringValue('cubeMessage', 'Rotating cube')
   b.print('cubePrint', 'cubeMessage')
-  b.block('cubeBody', [...body, 'cubePrint'])
+  b.block('cubeBody', [b.liveRepeat('cube', body), 'cubePrint'])
 
   return workspace(b.project, [
     note('cubeNote', 'Rotating cube', `Deux écrans ${width}×${height}. Huit sommets, douze arêtes, rotation autour de l'axe vertical, projection perspective à gauche et orthographique inclinée à droite. Les images sont précalculées en JavaScript puis envoyées par blit/present. $$x' = x\\cos\\theta - z\\sin\\theta,\\quad z' = x\\sin\\theta + z\\cos\\theta$$`, 0, 1000, 1120, 240),
@@ -3588,6 +3647,7 @@ function rotatingTriangle() {
   const frames = 20
   const screen = screenModule(b, 'triangle', 'Rotating triangle', width, height, 1)
   b.useModule('triangleApp', 'Rotating triangle')
+  b.liveFlag()
   const app = b.project.modules.find((module) => module.id === 'triangleApp')
   const api = screenBlitImports(app, screen, 'triangle')
   const grid = gridVariable(b, 'triangleGrid', width, height)
@@ -3599,7 +3659,7 @@ function rotatingTriangle() {
   b.root('triangleMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'triangleBody' })
   b.stringValue('triangleMessage', 'Rotating triangle')
   b.print('trianglePrint', 'triangleMessage')
-  b.block('triangleBody', [...body, 'trianglePrint'])
+  b.block('triangleBody', [b.liveRepeat('triangle', body), 'trianglePrint'])
 
   return workspace(b.project, [
     note('triangleNote', 'Rotating triangle', `Écran ${width}×${height}. Trois sommets tournent autour du centre ; le rayon pulse avec \`11 + 2,5·sin(3θ)\`. Les images sont précalculées puis affichées par blit/present. La séquence revient exactement à son état initial après ${frames} images. $$r(\\theta)=11+2{,}5\\sin(3\\theta)$$`, 0, 620, 760, 240),
@@ -3804,6 +3864,7 @@ function spirograph() {
   const frames = 12
   const screen = screenModule(b, 'spiro', 'Spirograph', width, height, 1)
   b.useModule('spiroApp', 'Spirograph')
+  b.liveFlag()
   const app = b.project.modules.find((module) => module.id === 'spiroApp')
   const api = screenBlitImports(app, screen, 'spiro')
   const grid = gridVariable(b, 'spiroGrid', width, height)
@@ -3815,7 +3876,7 @@ function spirograph() {
   b.root('spiroMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'spiroBody' })
   b.stringValue('spiroMessage', 'Spirograph')
   b.print('spiroPrint', 'spiroMessage')
-  b.block('spiroBody', [...body, 'spiroPrint'])
+  b.block('spiroBody', [b.liveRepeat('spiro', body), 'spiroPrint'])
 
   return workspace(b.project, [
     note('spiroNote', 'Spirograph', `Écran ${width}×${height}. Hypotrochoïde \`R=5\`, \`r=2\`, \`d=3.5\`, tracée progressivement en ${frames} images avec 700 échantillons. $$x=(R-r)\\cos\\theta+d\\cos\\!\\left(\\frac{R-r}{r}\\theta\\right),\\quad y=(R-r)\\sin\\theta-d\\sin\\!\\left(\\frac{R-r}{r}\\theta\\right)$$`, 0, 620, 900, 260),
@@ -3852,6 +3913,7 @@ function pendulumWave() {
   const frames = 9
   const screen = screenModule(b, 'pendulum', 'Pendulum wave', width, height, 1)
   b.useModule('pendulumApp', 'Pendulum wave')
+  b.liveFlag()
   const app = b.project.modules.find((module) => module.id === 'pendulumApp')
   const api = screenBlitImports(app, screen, 'pendulum')
   const grid = gridVariable(b, 'pendulumGrid', width, height)
@@ -3863,7 +3925,7 @@ function pendulumWave() {
   b.root('pendulumMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'pendulumBody' })
   b.stringValue('pendulumMessage', 'Pendulum wave')
   b.print('pendulumPrint', 'pendulumMessage')
-  b.block('pendulumBody', [...body, 'pendulumPrint'])
+  b.block('pendulumBody', [b.liveRepeat('pendulum', body), 'pendulumPrint'])
 
   return workspace(b.project, [
     note('pendulumNote', 'Pendulum wave', `Écran ${width}×${height}. Huit pendules de même longueur ont des fréquences entières de 1 à 8. Les positions sont calculées pour ${frames} images sur une période complète. $$\\theta_i(t)=A\\sin(2\\pi f_i t),\\quad f_i=1,\\dots,8$$`, 0, 620, 900, 240),

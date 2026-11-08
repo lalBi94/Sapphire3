@@ -2,6 +2,15 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Boucles live des exemples — 8 novembre 2026
+
+- Convention `SP3_LIVE` : chaque exemple continu déclare une globale booléenne `SP3_LIVE = false` dans le module de sa boucle. `runLiveProgram` la force à `true` après l'initialisation des modules ; `simulateProgram` la laisse à `false`. Les boucles s'écrivent `SP3_LIVE or frame < limite`, ce qui garde une exécution finie en Run borné et une animation ou simulation continue en live.
+- Helpers ajoutés : `liveFlag`, `liveTest`, `liveRepeat` et `liveLoop` dans `src/utils/examples.js`, `liveFlag` et `liveLoop` dans `src/utils/widgetExamples.js`, `liveFlag` et `liveCondition` dans `src/utils/showcaseExamples.js`.
+- Exemples passés en boucle live : `pixelScreens`, `rain`, `starfield`, `colorFlow`, `rgbMixer`, `carDashboard`, `trafficControl`, `gameOfLife`, `coral`, `labyrinth`, `rotatingCube`, `rotatingTriangle`, `spirograph`, `pendulumWave`, `thermostat`, `dampedSpring`, `reactorControl`, `neonRose`, `orbitalTrails` et `solarSystem`. Les animations précalculées (cube, triangle, spirographe, pendules) sont rejouées par `liveRepeat` ; les autres utilisent une condition de boucle `SP3_LIVE`.
+- Les index d'historique des graphiques à barres du thermostat, du ressort amorti et du réacteur sont ramenés modulo la taille du graphique, afin que les boucles live ne dépassent pas les bornes du tableau.
+- Restent finis : les algorithmes, les scans de données (météo, réseau, ADN, signal), les missions bornées (rover), les vues statiques et le fractale de Sierpinski ; le dashboard exporté n'active jamais `SP3_LIVE`.
+- Vérifications : **614 tests Node/Python réussis**, dont un test live dédié à trois exemples continus ; build Vite réussi. Contrôle moteur direct : 40 frames sans erreur pour les vingt exemples bouclés, avec le drapeau `SP3_LIVE` détecté dans chaque projet. Limites : pas de nouvelle vérification navigateur ou Neutralinojs, pas de contrats, de debug ni de retour arrière en live ; le dashboard reste borné/autonome.
+
 ## Run live par défaut — 8 novembre 2026
 
 - Nouvel interpréteur coopératif `src/utils/logic/liveSimulation.js` : il reprend le sous-ensemble du simulateur (expressions, boucles, fonctions, classes, lambdas, pointeurs, widgets), mais rend la main au pilote tous les 400 pas ou à chaque `screenPresent`, sans budget total. Les entrées sont appliquées aux globales entre deux frames ; une demande d'arrêt lève un signal interne et termine proprement la session.

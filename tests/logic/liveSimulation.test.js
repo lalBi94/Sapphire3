@@ -81,3 +81,21 @@ test('run live : classes et widgets exécutés par tranches', async () => {
   assert.ok(frames.length >= 5)
   assert.ok(frames.some((frame) => frame.leds.reactorLed))
 })
+
+test('run live : les animations et simulations continues bouclent, sans casser le borné', async () => {
+  for (const id of ['rotatingTriangle', 'pendulumWave', 'thermostat']) {
+    const workspace = deserializeWorkspace(JSON.stringify(examples.find((entry) => entry.id === id).build()))
+    const flag = workspace.project.nodes.find((node) => node.kind === 'VariableDeclaration' && node.properties?.name === 'SP3_LIVE')
+    assert.ok(flag, `${id}: drapeau SP3_LIVE déclaré`)
+    const frames = []
+    const result = await runLiveProgram(workspace.project, {
+      sliceSteps: 50,
+      onFrame: () => {
+        frames.push(1)
+        return frames.length >= 3 ? { stop: true } : {}
+      },
+    })
+    assert.equal(result.ok, true, `${id}: ${result.errorCode ?? ''}`)
+    assert.equal(result.stopped, true, `${id}: la boucle ne se termine pas`)
+  }
+})
