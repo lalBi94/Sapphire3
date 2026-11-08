@@ -30,6 +30,20 @@ import {
 const dataElement = document.getElementById('sapphire-dashboard-data')
 const runtimeElement = document.getElementById('sapphire-dashboard-runtime')
 
+// Convertit un ratio 0..1 en point sur l'arc de jauge, comme la carte Gauge de l'application.
+function gaugePoint(ratio) {
+  const angle = (135 + 270 * ratio) * (Math.PI / 180)
+  return { x: 100 + 74 * Math.cos(angle), y: 100 + 74 * Math.sin(angle) }
+}
+
+// Trace l'arc entre deux ratios, avec le grand arc quand c'est nécessaire.
+function gaugeArc(from, to) {
+  const start = gaugePoint(from)
+  const end = gaugePoint(to)
+  const large = (to - from) * 270 > 180 ? 1 : 0
+  return `M${start.x.toFixed(2)} ${start.y.toFixed(2)} A74 74 0 ${large} 1 ${end.x.toFixed(2)} ${end.y.toFixed(2)}`
+}
+
 if (dataElement) {
   start(JSON.parse(dataElement.textContent || '{}'), runtimeElement?.textContent ?? '')
 }
@@ -44,7 +58,7 @@ function start(config, runtimeSource) {
   const runButton = document.querySelector('[data-action="run"]')
   const pauseButton = document.querySelector('[data-action="pause"]')
   const stopButton = document.querySelector('[data-action="stop"]')
-  const themeButton = document.querySelector('[data-action="theme"]')
+  const modeButtons = [...document.querySelectorAll('button[data-mode]')]
   const panelsButton = document.querySelector('[data-action="panels"]')
   const panelsMenu = document.querySelector('[data-panels-menu]')
   const nodes = dashboardNodeMap(config.project)
@@ -141,13 +155,21 @@ function start(config, runtimeSource) {
     if (panel.type === 'screen') {
       const wrapper = document.createElement('div')
       wrapper.className = 'db-screen'
+      const viewport = document.createElement('div')
+      viewport.className = 'db-screen__viewport'
       const canvas = document.createElement('canvas')
       canvas.setAttribute('role', 'img')
       canvas.setAttribute('aria-label', panel.name)
-      wrapper.append(canvas)
+      viewport.append(canvas)
+      const meta = document.createElement('div')
+      meta.className = 'db-screen__meta'
+      const dimensions = document.createElement('span')
+      meta.append(dimensions)
+      wrapper.append(viewport, meta)
       body.append(wrapper)
       ref.canvas = canvas
       ref.context = canvas.getContext('2d')
+      ref.screenMeta = dimensions
       return
     }
     if (panel.type === 'led' || panel.type === 'rgbLed') {
@@ -155,6 +177,7 @@ function start(config, runtimeSource) {
       wrapper.className = 'db-led'
       const dot = document.createElement('span')
       dot.className = 'db-led__dot'
+      if (panel.type === 'rgbLed') dot.classList.add('db-led__dot--rgb')
       const label = document.createElement('span')
       label.className = 'db-led__label'
       wrapper.append(dot, label)
@@ -167,31 +190,80 @@ function start(config, runtimeSource) {
       const wrapper = document.createElement('div')
       wrapper.className = 'db-gauge'
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-      svg.setAttribute('viewBox', '0 0 120 72')
+      svg.setAttribute('viewBox', '0 0 200 200')
       svg.setAttribute('role', 'img')
       svg.setAttribute('aria-label', panel.name)
+      const gradientId = `db-gauge-${String(panel.id).replace(/[^A-Za-z0-9_-]/g, '')}`
+      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs')
+      const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient')
+      gradient.setAttribute('id', gradientId)
+      gradient.setAttribute('x1', '0')
+      gradient.setAttribute('y1', '1')
+      gradient.setAttribute('x2', '1')
+      gradient.setAttribute('y2', '0')
+      for (const [offset, token] of [['0%', '--db-primary'], ['55%', '--db-condition'], ['100%', '--db-secondary']]) {
+        const stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop')
+        stop.setAttribute('offset', offset)
+        stop.setAttribute('style', `stop-color:var(${token})`)
+        gradient.append(stop)
+      }
+      defs.append(gradient)
       const track = document.createElementNS('http://www.w3.org/2000/svg', 'path')
       track.setAttribute('class', 'db-gauge__track')
-      track.setAttribute('d', 'M10 62 A50 50 0 0 1 110 62')
+      track.setAttribute('d', gaugeArc(0, 1))
       track.setAttribute('pathLength', '100')
+      const ticks = []
+      for (let index = 0; index <= 10; index += 1) {
+        const outer = gaugePoint(index / 10)
+        const inner = { x: 100 + (outer.x - 100) * 0.84, y: 100 + (outer.y - 100) * 0.84 }
+        const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+        tick.setAttribute('class', 'db-gauge__tick')
+        tick.setAttribute('x1', inner.x.toFixed(2))
+        tick.setAttribute('y1', inner.y.toFixed(2))
+        tick.setAttribute('x2', outer.x.toFixed(2))
+        tick.setAttribute('y2', outer.y.toFixed(2))
+        ticks.push(tick)
+      }
+      const glow = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+      glow.setAttribute('class', 'db-gauge__glow')
+      glow.setAttribute('d', gaugeArc(0, 1))
+      glow.setAttribute('pathLength', '100')
+      glow.setAttribute('stroke', `url(#${gradientId})`)
+      glow.setAttribute('stroke-dasharray', '0 100')
       const value = document.createElementNS('http://www.w3.org/2000/svg', 'path')
       value.setAttribute('class', 'db-gauge__value')
-      value.setAttribute('d', 'M10 62 A50 50 0 0 1 110 62')
+      value.setAttribute('d', gaugeArc(0, 1))
       value.setAttribute('pathLength', '100')
+      value.setAttribute('stroke', `url(#${gradientId})`)
       value.setAttribute('stroke-dasharray', '0 100')
-      svg.append(track, value)
-      const number = document.createElement('p')
-      number.className = 'db-gauge__number'
-      const range = document.createElement('div')
-      range.className = 'db-gauge__range'
-      const minimum = document.createElement('span')
-      const maximum = document.createElement('span')
-      range.append(minimum, maximum)
-      wrapper.append(svg, number, range)
+      const readout = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+      readout.setAttribute('class', 'db-gauge__readout')
+      readout.setAttribute('x', '100')
+      readout.setAttribute('y', '94')
+      readout.setAttribute('text-anchor', 'middle')
+      const percent = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+      percent.setAttribute('class', 'db-gauge__percent')
+      percent.setAttribute('x', '100')
+      percent.setAttribute('y', '116')
+      percent.setAttribute('text-anchor', 'middle')
+      const minimum = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+      minimum.setAttribute('class', 'db-gauge__range')
+      minimum.setAttribute('x', '34')
+      minimum.setAttribute('y', '168')
+      minimum.setAttribute('text-anchor', 'middle')
+      const maximum = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+      maximum.setAttribute('class', 'db-gauge__range')
+      maximum.setAttribute('x', '166')
+      maximum.setAttribute('y', '168')
+      maximum.setAttribute('text-anchor', 'middle')
+      svg.append(defs, track, ...ticks, glow, value, readout, percent, minimum, maximum)
+      wrapper.append(svg)
       body.append(wrapper)
       ref.valuePath = value
+      ref.glowPath = glow
       ref.svg = svg
-      ref.number = number
+      ref.readout = readout
+      ref.percent = percent
       ref.minimum = minimum
       ref.maximum = maximum
       return
@@ -221,11 +293,25 @@ function start(config, runtimeSource) {
     }
     if (panel.type === 'barChart') {
       const wrapper = document.createElement('div')
-      wrapper.className = 'db-bars'
-      wrapper.setAttribute('role', 'img')
-      wrapper.setAttribute('aria-label', panel.name)
+      wrapper.className = 'db-bars-widget'
+      const plot = document.createElement('div')
+      plot.className = 'db-bars'
+      plot.setAttribute('role', 'img')
+      plot.setAttribute('aria-label', panel.name)
+      const bars = document.createElement('div')
+      bars.className = 'db-bars__plot'
+      plot.append(bars)
+      const meta = document.createElement('div')
+      meta.className = 'db-bars__meta'
+      const minimum = document.createElement('span')
+      const maximum = document.createElement('span')
+      meta.append(minimum, maximum)
+      wrapper.append(plot, meta)
       body.append(wrapper)
-      ref.bars = wrapper
+      ref.bars = bars
+      ref.barPlot = plot
+      ref.barMinimum = minimum
+      ref.barMaximum = maximum
       return
     }
     if (panel.type === 'heatmap') {
@@ -308,12 +394,13 @@ function start(config, runtimeSource) {
     }
   }
 
-  // Applique le mode et met le bouton à jour.
+  // Applique le mode et met le sélecteur à jour.
   function applyMode() {
     document.documentElement.dataset.mode = state.mode
-    themeButton.textContent = state.mode === 'dark' ? (labels.light ?? 'Light') : (labels.dark ?? 'Dark')
-    themeButton.setAttribute('aria-pressed', String(state.mode === 'light'))
-    themeButton.setAttribute('aria-label', state.mode === 'dark' ? (labels.switchToLight ?? 'Switch to light theme') : (labels.switchToDark ?? 'Switch to dark theme'))
+    for (const button of modeButtons) {
+      const active = button.dataset.mode === state.mode
+      button.setAttribute('aria-pressed', String(active))
+    }
   }
 
   // Construit le menu de visibilité de tous les panneaux.
@@ -408,15 +495,19 @@ function start(config, runtimeSource) {
       ref.label.textContent = value ? (labels.on ?? 'On') : (labels.off ?? 'Off')
     } else if (widget.type === 'rgbLed') {
       const led = states.rgbLeds?.[widget.id] ?? { red: 0, green: 0, blue: 0 }
-      ref.dot.style.background = `rgb(${led.red} ${led.green} ${led.blue})`
-      ref.dot.style.boxShadow = `0 0 28px rgb(${led.red} ${led.green} ${led.blue} / 55%)`
+      const brightest = Math.max(led.red, led.green, led.blue)
+      ref.dot.style.setProperty('--rgb-led-color', `rgb(${led.red} ${led.green} ${led.blue})`)
+      ref.dot.style.setProperty('--rgb-led-spread', `${8 + brightest * 0.08}px`)
       ref.label.textContent = `${led.red}, ${led.green}, ${led.blue}`
     } else if (widget.type === 'gauge') {
       const gauge = states.gauges?.[widget.id] ?? { value: widget.min, min: widget.min, max: widget.max }
       const range = gauge.max - gauge.min
       const ratio = range > 0 ? Math.max(0, Math.min(1, (gauge.value - gauge.min) / range)) : 0
-      ref.valuePath.setAttribute('stroke-dasharray', `${(ratio * 100).toFixed(2)} 100`)
-      ref.number.textContent = formatNumber(gauge.value)
+      const dash = `${(ratio * 100).toFixed(2)} 100`
+      ref.valuePath.setAttribute('stroke-dasharray', dash)
+      ref.glowPath.setAttribute('stroke-dasharray', dash)
+      ref.readout.textContent = formatNumber(gauge.value)
+      ref.percent.textContent = `${Math.round(ratio * 100)}%`
       ref.minimum.textContent = formatNumber(gauge.min)
       ref.maximum.textContent = formatNumber(gauge.max)
       ref.svg.setAttribute('aria-label', `${widget.name}: ${formatNumber(gauge.value)} / ${formatNumber(gauge.max)}`)
@@ -441,6 +532,7 @@ function start(config, runtimeSource) {
     const width = Math.max(1, Number(screen?.width ?? widget.width) || 1)
     const height = Math.max(1, Number(screen?.height ?? widget.height) || 1)
     ref.canvas.setAttribute('aria-label', `${widget.name}: ${width} × ${height}`)
+    if (ref.screenMeta) ref.screenMeta.textContent = `${width} × ${height}`
     if (ref.canvas.width !== width || ref.canvas.height !== height) {
       ref.canvas.width = width
       ref.canvas.height = height
@@ -469,8 +561,10 @@ function start(config, runtimeSource) {
     const minimum = values.length > 0 ? Math.min(0, ...values) : 0
     const span = maximum - minimum || 1
     const baseline = values.some((value) => value < 0) ? (maximum / span) * 100 : 100
-    ref.bars.style.setProperty('--db-baseline', `${baseline}%`)
-    ref.bars.setAttribute('aria-label', `${ref.panel.name}: ${values.slice(0, 16).map(formatNumber).join(', ')}`)
+    ref.barPlot.style.setProperty('--db-baseline', `${baseline}%`)
+    ref.barPlot.setAttribute('aria-label', `${ref.panel.name}: ${values.slice(0, 16).map(formatNumber).join(', ')}`)
+    if (ref.barMinimum) ref.barMinimum.textContent = formatNumber(minimum)
+    if (ref.barMaximum) ref.barMaximum.textContent = formatNumber(maximum)
     for (const [index, bar] of [...ref.bars.children].entries()) {
       const value = Number(values[index]) || 0
       const fill = bar.firstElementChild
@@ -502,7 +596,8 @@ function start(config, runtimeSource) {
     const maximum = Math.max(1, ...values.map((value) => Math.abs(Number(value) || 0)))
     for (const [index, cell] of [...ref.heatmap.children].entries()) {
       const value = Number(values[index]) || 0
-      cell.style.opacity = String(Math.max(0, Math.min(1, Math.abs(value) / maximum)))
+      const heat = Math.max(0, Math.min(100, (Math.abs(value) / maximum) * 100))
+      cell.style.setProperty('--db-heat', `${heat}%`)
       cell.title = formatNumber(value)
     }
   }
@@ -766,15 +861,17 @@ function start(config, runtimeSource) {
   runButton.addEventListener('click', handleRun)
   pauseButton.addEventListener('click', handlePause)
   stopButton.addEventListener('click', handleStop)
-  themeButton.addEventListener('click', () => {
-    state.mode = state.mode === 'dark' ? 'light' : 'dark'
-    try {
-      window.localStorage.setItem(dashboardModeStorageKey, state.mode)
-    } catch {
-      // Le mode reste actif pour la session si le stockage local est indisponible.
-    }
-    applyMode()
-  })
+  for (const button of modeButtons) {
+    button.addEventListener('click', () => {
+      state.mode = button.dataset.mode === 'light' ? 'light' : 'dark'
+      try {
+        window.localStorage.setItem(dashboardModeStorageKey, state.mode)
+      } catch {
+        // Le mode reste actif pour la session si le stockage local est indisponible.
+      }
+      applyMode()
+    })
+  }
   panelsButton.addEventListener('click', () => toggleMenu())
   document.addEventListener('click', (event) => {
     if (!panelsMenu.hidden && !panelsMenu.contains(event.target) && !panelsButton.contains(event.target)) toggleMenu(false)

@@ -16,6 +16,9 @@ export const dashboardPaletteTokens = Object.freeze([
   '--color-text-muted',
   '--color-border',
   '--color-border-hover',
+  '--color-hover',
+  '--color-grid',
+  '--color-canvas-edge',
   '--color-yellow',
   '--color-yellow-hover',
   '--color-yellow-active',
@@ -28,6 +31,7 @@ export const dashboardPaletteTokens = Object.freeze([
   '--color-warning',
   '--color-pure',
   '--color-diagnostic',
+  '--color-node-condition',
 ])
 
 const hexColor = /^#([0-9a-f]{6}|[0-9a-f]{8})$/i
@@ -108,6 +112,7 @@ export function dashboardLabels(t) {
     panels: t('dashboard.panels'),
     light: t('dashboard.light'),
     dark: t('dashboard.dark'),
+    appearance: t('theme.appearance'),
     switchToLight: t('dashboard.switchToLight'),
     switchToDark: t('dashboard.switchToDark'),
     idle: t('dashboard.idle'),

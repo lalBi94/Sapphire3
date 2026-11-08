@@ -41,6 +41,24 @@ export function safeInlineScript(source) {
   return String(source ?? '').replace(/<\/script/gi, '<\\/script')
 }
 
+// Polices embarquées, avec les mêmes sous-ensembles que l'application.
+const dashboardFontFaces = [
+  { key: 'interLatin', family: 'Inter', weight: '400 700', range: 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD' },
+  { key: 'interCyrillic', family: 'Inter', weight: '400 700', range: 'U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116' },
+  { key: 'spaceGrotesk', family: 'Space Grotesk', weight: '500 700', range: 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD' },
+  { key: 'jetBrainsLatin', family: 'JetBrains Mono', weight: '400 600', range: 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD' },
+  { key: 'jetBrainsCyrillic', family: 'JetBrains Mono', weight: '400 600', range: 'U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116' },
+]
+
+// Embarque les polices locales en data URL pour conserver la typographie de l'application hors ligne.
+export function dashboardFontCss(fonts = {}) {
+  return dashboardFontFaces.map((face) => {
+    const source = fonts?.[face.key]
+    if (typeof source !== 'string' || !source.startsWith('data:')) return ''
+    return `@font-face{font-family:'${face.family}';font-style:normal;font-weight:${face.weight};font-display:swap;src:url("${source}") format('woff2');unicode-range:${face.range};}`
+  }).join('')
+}
+
 // Produit les variables CSS des deux variantes à partir de la palette sombre imposée.
 export function dashboardThemeCss(palette = {}) {
   const dark = { ...palette }
@@ -78,6 +96,7 @@ export function buildDashboardDocument({
   kindLabels = {},
   project = null,
   language = 'en',
+  fonts = {},
 }) {
   const title = escapeDashboardHtml(String(name ?? '').trim() || 'Sapphire Dashboard')
   const summary = escapeDashboardHtml(description)
@@ -101,9 +120,9 @@ export function buildDashboardDocument({
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="Sapphire 3">
 <meta name="description" content="${summary}">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' blob:; style-src 'unsafe-inline'; img-src data: blob:; worker-src blob:; child-src blob:; connect-src 'none'; font-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' blob:; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; worker-src blob:; child-src blob:; connect-src 'none'">
 <title>${title}</title>
-<style>${dashboardStyles}${dashboardThemeCss(palette)}</style>
+<style>${dashboardFontCss(fonts)}${dashboardStyles}${dashboardThemeCss(palette)}</style>
 </head>
 <body>
 <a class="db-skip-link" href="#dashboard-stage">${escapeDashboardHtml(labels.skip ?? 'Skip to widgets')}</a>
@@ -119,7 +138,10 @@ export function buildDashboardDocument({
       <button type="button" class="db-button" data-action="pause" disabled>${escapeDashboardHtml(labels.pause ?? 'Pause')}</button>
       <button type="button" class="db-button" data-action="stop" disabled>${escapeDashboardHtml(labels.stop ?? 'Stop')}</button>
     </div>
-    <button type="button" class="db-button" data-action="theme" aria-pressed="false">${escapeDashboardHtml(labels.light ?? 'Light')}</button>
+    <div class="db-mode" role="group" aria-label="${escapeDashboardHtml(labels.appearance ?? 'Appearance')}">
+      <button type="button" class="db-button db-mode__button" data-mode="dark" aria-pressed="true">${escapeDashboardHtml(labels.dark ?? 'Dark')}</button>
+      <button type="button" class="db-button db-mode__button" data-mode="light" aria-pressed="false">${escapeDashboardHtml(labels.light ?? 'Light')}</button>
+    </div>
     <div class="db-menu">
       <button type="button" class="db-button" data-action="panels" aria-expanded="false">${escapeDashboardHtml(labels.panels ?? 'Panels')}</button>
       <div class="db-menu__popover" data-panels-menu hidden></div>

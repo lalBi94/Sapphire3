@@ -27,6 +27,7 @@ import { initialDocument, reduceDocument } from '../../src/utils/canvasDocument.
 import {
   buildDashboardDocument,
   dashboardDefaultLayout,
+  dashboardFontCss,
   dashboardThemeCss,
   escapeDashboardHtml,
   safeInlineScript,
@@ -183,6 +184,12 @@ test('dashboard : la palette est extraite, validée et dérivée en variante cla
   assert.match(css, /:root\[data-mode="light"\]/)
   assert.match(css, /--color-black:#f2f4f7/)
   assert.match(css, /--color-yellow:/)
+
+  const fontCss = dashboardFontCss({ interLatin: 'data:font/woff2;base64,AAAA' })
+  assert.match(fontCss, /@font-face/)
+  assert.match(fontCss, /font-family:'Inter'/)
+  assert.match(fontCss, /data:font\/woff2;base64,AAAA/)
+  assert.equal(dashboardFontCss({ interLatin: 'https://example.test/font.woff2' }), '')
 })
 
 test('dashboard : déplacement, redimensionnement, masquage et disposition responsive sont bornés', () => {
@@ -247,6 +254,7 @@ test('dashboard : l’export produit un HTML unique, échappé, hors ligne et th
     kindLabels: { PrintStatement: 'Print' },
     project: workspace.project,
     language: 'en',
+    fonts: { interLatin: 'data:font/woff2;base64,AAAA' },
   })
   assert.match(html, /<title>&lt;Demo&gt; &amp; &quot;Test&quot;<\/title>/)
   assert.match(html, /A &amp; B &lt; C/)
@@ -255,6 +263,8 @@ test('dashboard : l’export produit un HTML unique, échappé, hors ligne et th
   assert.match(html, /#f2f4f7/)
   assert.match(html, /sapphire-dashboard-runtime/)
   assert.match(html, /sapphire-dashboard-client/)
+  assert.match(html, /@font-face/)
+  assert.match(html, /data:font\/woff2;base64,AAAA/)
   assert.match(html, /"layoutKey":"layout-demo"/)
   assert.match(html, /"widgets":/)
   assert.match(html, /"initialStates":/)

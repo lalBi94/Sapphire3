@@ -857,6 +857,9 @@ export default function Canvas() {
       const kindLabels = Object.fromEntries(Object.keys(translations.en)
         .filter((key) => key.startsWith('kind.'))
         .map((key) => [key.slice(5), t(key)]))
+      const fonts = await import('virtual:dashboard-fonts')
+        .then((module) => module.default ?? {})
+        .catch(() => ({}))
       const html = buildDashboardDocument({
         name: config.name,
         description: config.description,
@@ -871,6 +874,7 @@ export default function Canvas() {
         kindLabels,
         project,
         language,
+        fonts,
       })
       document.setDashboard(nextConfig)
       await files.exportText('html', html, 'dashboard.html')

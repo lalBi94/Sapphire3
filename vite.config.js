@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { build, defineConfig } from 'vite'
@@ -13,6 +14,16 @@ const dashboardSpecs = new Map([
   ['virtual:dashboard-runtime', { entry: 'src/dashboard/runtimeEntry.js', name: 'SapphireDashboardRuntime' }],
   ['virtual:dashboard-client', { entry: 'src/dashboard/client.js', name: 'SapphireDashboardClient' }],
 ])
+
+// Polices embarquées dans l'export, chargées uniquement au moment de générer le dashboard.
+const dashboardFontSpec = 'virtual:dashboard-fonts'
+const dashboardFontFiles = {
+  interLatin: 'src/assets/fonts/inter-latin.woff2',
+  interCyrillic: 'src/assets/fonts/inter-cyrillic.woff2',
+  spaceGrotesk: 'src/assets/fonts/space-grotesk-latin.woff2',
+  jetBrainsLatin: 'src/assets/fonts/jetbrains-mono-latin.woff2',
+  jetBrainsCyrillic: 'src/assets/fonts/jetbrains-mono-cyrillic.woff2',
+}
 
 // Compile un point d'entrée en IIFE et renvoie son code, sans écrire de fichier intermédiaire.
 async function bundleDashboardEntry(spec) {
@@ -49,9 +60,17 @@ function dashboardBundles() {
   return {
     name: 'sapphire-dashboard-bundles',
     resolveId(id) {
-      return dashboardSpecs.has(id) ? `\0${id}` : null
+      return id === dashboardFontSpec || dashboardSpecs.has(id) ? `\0${id}` : null
     },
     async load(id) {
+      if (id === `\0${dashboardFontSpec}`) {
+        const fonts = {}
+        for (const [key, file] of Object.entries(dashboardFontFiles)) {
+          const data = await readFile(path.resolve(root, file))
+          fonts[key] = `data:font/woff2;base64,${data.toString('base64')}`
+        }
+        return `export default ${JSON.stringify(fonts)}`
+      }
       if (!id.startsWith('\0virtual:dashboard-')) return null
       const spec = dashboardSpecs.get(id.slice(1))
       if (!spec) return null
@@ -59,11 +78,11 @@ function dashboardBundles() {
     },
     handleHotUpdate(context) {
       const file = String(context.file ?? '').replace(/\\/g, '/')
-      const watched = file.includes('/src/dashboard/') || file.includes('/src/utils/dashboard') || file.includes('/src/utils/logic/')
+      const watched = file.includes('/src/dashboard/') || file.includes('/src/utils/dashboard') || file.includes('/src/utils/logic/') || file.includes('/src/assets/fonts/')
       if (!watched) return
       cache.clear()
       const graph = context.server?.moduleGraph
-      for (const id of dashboardSpecs.keys()) {
+      for (const id of [dashboardFontSpec, ...dashboardSpecs.keys()]) {
         const module = graph?.getModuleById?.(`\0${id}`)
         if (module) graph.invalidateModule(module)
       }
