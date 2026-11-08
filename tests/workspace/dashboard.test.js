@@ -313,6 +313,7 @@ test('dashboard : l’export produit un HTML unique, échappé, hors ligne et th
   assert.match(html, /type="range"/)
   assert.match(html, /db-button__icon/)
   assert.match(html, /data-run-label/)
+  assert.match(html, /data-action="continuous"/)
   assert.match(html, /data-feedback/)
   assert.match(html, /aria-live="polite"/)
   assert.match(html, /object-fit: cover/)

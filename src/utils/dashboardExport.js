@@ -169,6 +169,7 @@ export function buildDashboardDocument({
   <div class="db-actions">
     <div class="db-controls" data-controls-group role="group" aria-label="${escapeDashboardHtml(labels.controls ?? 'Execution controls')}">
       <button type="button" class="db-button db-button--primary" data-action="run">${dashboardIcons.run}<span data-run-label>${escapeDashboardHtml(labels.run ?? 'Run')}</span></button>
+      <button type="button" class="db-button" data-action="continuous" title="${escapeDashboardHtml(labels.continuousHint)}">${dashboardIcons.run}<span>${escapeDashboardHtml(labels.continuous)}</span></button>
       <button type="button" class="db-button" data-action="pause" disabled>${dashboardIcons.pause}<span>${escapeDashboardHtml(labels.pause ?? 'Pause')}</span></button>
       <button type="button" class="db-button" data-action="stop" disabled>${dashboardIcons.stop}<span>${escapeDashboardHtml(labels.stop ?? 'Stop')}</span></button>
     </div>

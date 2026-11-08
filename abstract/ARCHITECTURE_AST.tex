@@ -330,7 +330,8 @@ le moteur de simulation réel y est embarqué et exécuté dans un Web Worker, a
 repli synchrone borné. Le dashboard reprend les sept widgets graphiques, dont l'écran
 se zoome automatiquement pour remplir sa carte en conservant les proportions
 et en rognant les bords si nécessaire, Run/Pause/Stop,
-un curseur de vitesse de 1 à 100, la sortie,
+un curseur de vitesse de 1 à 100, un mode Run continuous sans historique et
+arrêtable, la sortie,
 le nœud courant et une bascule clair/sombre. Il reprend la direction
 Void/Acid de l'application : tokens, panneaux biseautés sans halo décoratif et polices Inter, Space Grotesk
 et JetBrains Mono embarquées en data URL. La barre de progression permet de revenir à
@@ -349,6 +350,9 @@ Les noms saisis et les sorties du programme ne sont pas traduits. Le choix de la
 est mémorisé dans le navigateur ; l'arabe active la direction droite à gauche.
 Limite actuelle : le genre du nœud affiché dans Current execution reste dans la
 langue d'export, même après un changement de langue du visiteur.
+Le mode Run continuous exécute réellement le programme dans le Web Worker, sans
+budget de pas ni retour arrière ; Stop termine le worker. La sortie est limitée aux
+200 dernières lignes et le préflight d'export accepte une limite de pas atteinte.
 
 La bibliothèque locale compte 52 exemples (6 simples, 26 moyens et 20 difficiles).
 Spirograph trace progressivement sa courbe en 12 images (64×40) ; Pendulum wave
