@@ -25,6 +25,7 @@ import {
   dashboardVisibleOutput,
 } from '../../src/utils/dashboardExecution.js'
 import { dashboardInitialStates, dashboardWidgets } from '../../src/utils/dashboardWidgets.js'
+import { parseMathText, renderMath } from '../../src/utils/mathText.js'
 import { initialDocument, reduceDocument } from '../../src/utils/canvasDocument.js'
 import {
   buildDashboardDocument,
@@ -316,6 +317,16 @@ test('dashboard : les annotations Comment sont incluses avec leur texte', () => 
   assert.ok(layout.some((entry) => entry.id === comment.id))
 })
 
+test('dashboard : les commentaires conservent leurs formules KaTeX', () => {
+  const workspace = exampleWorkspace('rotatingTriangle')
+  const widgets = dashboardWidgets(workspace.project, workspace.presentation.cards)
+  const comment = widgets.find((widget) => widget.type === 'comment')
+  assert.ok(comment)
+  const math = parseMathText(comment.text).filter((segment) => segment.kind === 'math')
+  assert.ok(math.length > 0)
+  assert.match(renderMath(math[0].value), /class="katex"/)
+})
+
 test('dashboard : l’export produit un HTML unique, échappé, hors ligne et thémé', () => {
   const workspace = exampleWorkspace('gaugeDemo')
   const widgets = dashboardWidgets(workspace.project, workspace.presentation.cards)
@@ -388,6 +399,7 @@ test('dashboard : l’export produit un HTML unique, échappé, hors ligne et th
   assert.doesNotMatch(html, /Neutralino/)
   assert.equal(escapeDashboardHtml('<a href="x">&\'</a>'), '&lt;a href=&quot;x&quot;&gt;&amp;&#39;&lt;/a&gt;')
   assert.equal(safeInlineScript('const value = "</script>"'), 'const value = "<\\/script>"')
+  assert.equal(safeInlineScript(`const value = "${String.fromCharCode(0xFFFF)}"`), 'const value = "\\uFFFF"')
   assert.equal(serializeDashboardJson({ value: '</script>' }), '{"value":"\\u003c/script\\u003e"}')
 })
 

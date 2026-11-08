@@ -12,6 +12,28 @@ import {
 } from '../utils/dashboardExecution.js'
 import uPlot from 'uplot'
 import uplotCss from 'uplot/dist/uPlot.min.css?raw'
+import katexCss from 'katex/dist/katex.min.css?raw'
+import katexAMS from '../../node_modules/katex/dist/fonts/KaTeX_AMS-Regular.woff2?inline'
+import katexCaligraphicBold from '../../node_modules/katex/dist/fonts/KaTeX_Caligraphic-Bold.woff2?inline'
+import katexCaligraphicRegular from '../../node_modules/katex/dist/fonts/KaTeX_Caligraphic-Regular.woff2?inline'
+import katexFrakturBold from '../../node_modules/katex/dist/fonts/KaTeX_Fraktur-Bold.woff2?inline'
+import katexFrakturRegular from '../../node_modules/katex/dist/fonts/KaTeX_Fraktur-Regular.woff2?inline'
+import katexMainBold from '../../node_modules/katex/dist/fonts/KaTeX_Main-Bold.woff2?inline'
+import katexMainBoldItalic from '../../node_modules/katex/dist/fonts/KaTeX_Main-BoldItalic.woff2?inline'
+import katexMainItalic from '../../node_modules/katex/dist/fonts/KaTeX_Main-Italic.woff2?inline'
+import katexMainRegular from '../../node_modules/katex/dist/fonts/KaTeX_Main-Regular.woff2?inline'
+import katexMathBoldItalic from '../../node_modules/katex/dist/fonts/KaTeX_Math-BoldItalic.woff2?inline'
+import katexMathItalic from '../../node_modules/katex/dist/fonts/KaTeX_Math-Italic.woff2?inline'
+import katexSansSerifBold from '../../node_modules/katex/dist/fonts/KaTeX_SansSerif-Bold.woff2?inline'
+import katexSansSerifItalic from '../../node_modules/katex/dist/fonts/KaTeX_SansSerif-Italic.woff2?inline'
+import katexSansSerifRegular from '../../node_modules/katex/dist/fonts/KaTeX_SansSerif-Regular.woff2?inline'
+import katexScriptRegular from '../../node_modules/katex/dist/fonts/KaTeX_Script-Regular.woff2?inline'
+import katexSize1Regular from '../../node_modules/katex/dist/fonts/KaTeX_Size1-Regular.woff2?inline'
+import katexSize2Regular from '../../node_modules/katex/dist/fonts/KaTeX_Size2-Regular.woff2?inline'
+import katexSize3Regular from '../../node_modules/katex/dist/fonts/KaTeX_Size3-Regular.woff2?inline'
+import katexSize4Regular from '../../node_modules/katex/dist/fonts/KaTeX_Size4-Regular.woff2?inline'
+import katexTypewriterRegular from '../../node_modules/katex/dist/fonts/KaTeX_Typewriter-Regular.woff2?inline'
+import { parseMathText, renderMath } from '../utils/mathText.js'
 import { clampSimulationSpeed } from '../utils/simulationSpeed.js'
 import { oscilloscopeColor } from '../utils/oscilloscopeColors.js'
 import {
@@ -34,13 +56,41 @@ import {
   dashboardOutputPanelId,
 } from '../utils/dashboardConfig.js'
 
+// Les polices KaTeX sont intégrées en data URLs : le dashboard reste autonome, sans requête réseau.
+const katexFontMap = {
+  'KaTeX_AMS-Regular.woff2': katexAMS,
+  'KaTeX_Caligraphic-Bold.woff2': katexCaligraphicBold,
+  'KaTeX_Caligraphic-Regular.woff2': katexCaligraphicRegular,
+  'KaTeX_Fraktur-Bold.woff2': katexFrakturBold,
+  'KaTeX_Fraktur-Regular.woff2': katexFrakturRegular,
+  'KaTeX_Main-Bold.woff2': katexMainBold,
+  'KaTeX_Main-BoldItalic.woff2': katexMainBoldItalic,
+  'KaTeX_Main-Italic.woff2': katexMainItalic,
+  'KaTeX_Main-Regular.woff2': katexMainRegular,
+  'KaTeX_Math-BoldItalic.woff2': katexMathBoldItalic,
+  'KaTeX_Math-Italic.woff2': katexMathItalic,
+  'KaTeX_SansSerif-Bold.woff2': katexSansSerifBold,
+  'KaTeX_SansSerif-Italic.woff2': katexSansSerifItalic,
+  'KaTeX_SansSerif-Regular.woff2': katexSansSerifRegular,
+  'KaTeX_Script-Regular.woff2': katexScriptRegular,
+  'KaTeX_Size1-Regular.woff2': katexSize1Regular,
+  'KaTeX_Size2-Regular.woff2': katexSize2Regular,
+  'KaTeX_Size3-Regular.woff2': katexSize3Regular,
+  'KaTeX_Size4-Regular.woff2': katexSize4Regular,
+  'KaTeX_Typewriter-Regular.woff2': katexTypewriterRegular,
+}
+const katexCssInlined = katexCss.replace(/src:url\(fonts\/([^)]+\.woff2)\) format\("woff2"\),url\(fonts\/[^)]+\) format\("woff"\),url\(fonts\/[^)]+\) format\("truetype"\)/g, (match, file) => {
+  const data = katexFontMap[file]
+  return data ? `src:url(${data}) format("woff2")` : match
+})
+
 const dataElement = document.getElementById('sapphire-dashboard-data')
 const runtimeElement = document.getElementById('sapphire-dashboard-runtime')
 
-// uPlot est embarqué avec ses styles, sans requête ni CDN.
-const uplotStyle = document.createElement('style')
-uplotStyle.textContent = uplotCss
-document.head.append(uplotStyle)
+// uPlot et KaTeX sont embarqués avec leurs styles et leurs polices, sans requête ni CDN.
+const vendorStyle = document.createElement('style')
+vendorStyle.textContent = `${uplotCss}\n${katexCssInlined}`
+document.head.append(vendorStyle)
 
 // Construit le domaine X commun d'un oscilloscope.
 function oscilloscopeXValues(xMin, xMax, samples) {
@@ -413,7 +463,19 @@ function start(config, runtimeSource) {
     if (panel.type === 'comment') {
       const text = document.createElement('div')
       text.className = 'db-comment'
-      text.textContent = panel.widget?.text ?? ''
+      for (const segment of parseMathText(panel.widget?.text ?? '')) {
+        if (segment.kind === 'math') {
+          const math = document.createElement('span')
+          math.className = 'db-comment__math'
+          math.innerHTML = renderMath(segment.value)
+          text.append(math)
+        } else {
+          const literal = document.createElement('span')
+          literal.className = 'db-comment__text'
+          literal.textContent = segment.value
+          text.append(literal)
+        }
+      }
       body.append(text)
       ref.comment = text
       return

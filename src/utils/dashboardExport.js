@@ -64,9 +64,11 @@ export function serializeDashboardJson(value) {
     .replaceAll('\u2029', '\\u2029')
 }
 
-// Empêche une séquence </script> présente dans un bundle de fermer la balise hôte.
+// Empêche une séquence </script> ou un caractère non autorisé en HTML de casser le document hôte.
 export function safeInlineScript(source) {
-  return String(source ?? '').replace(/<\/script/gi, '<\\/script')
+  return String(source ?? '')
+    .replace(/<\/script/gi, '<\\/script')
+    .replace(/[\uFDD0-\uFDEF\uFFFE\uFFFF]/g, (char) => `\\u${char.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}`)
 }
 
 // Polices embarquées, avec les mêmes sous-ensembles que l'application.

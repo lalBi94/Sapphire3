@@ -722,7 +722,10 @@ p, h1, h2, h3 { margin: 0; }
 .db-xyplot__readout { margin: 0; overflow: hidden; color: var(--db-muted); font-family: var(--db-mono); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .db-oscilloscope__empty[hidden],
 .db-xyplot__empty[hidden] { display: none; }
-.db-comment { width: 100%; height: 100%; overflow: auto; color: var(--db-text); font-family: var(--db-mono); font-size: 11px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.db-comment { width: 100%; height: 100%; overflow: auto; color: var(--db-text); font-family: var(--db-mono); font-size: 11px; line-height: 1.55; }
+.db-comment__text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.db-comment__math { display: block; margin: 0.35em 0; overflow-x: auto; overflow-y: hidden; font-size: 1.05em; }
+.db-comment__math .katex-display { margin: 0; }
 .db-heatmap { display: grid; gap: 2px; width: 100%; height: 100%; min-height: 40px; }
 .db-heatmap__cell {
   min-width: 0;
