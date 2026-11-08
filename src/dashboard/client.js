@@ -1,0 +1,807 @@
+// Client autonome du dashboard : rendu des widgets, commandes Run/Pause/Stop et disposition locale.
+
+import {
+  dashboardCurrentNode,
+  dashboardExecutionInitial,
+  dashboardExecutionReducer,
+  dashboardNodeMap,
+  dashboardStatesAt,
+  dashboardVisibleOutput,
+} from '../utils/dashboardExecution.js'
+import {
+  dashboardColumns,
+  dashboardRowGap,
+  dashboardRowHeight,
+  moveDashboardPanel,
+  normalizeDashboardLayout,
+  readDashboardLayout,
+  resizeDashboardPanel,
+  scaleDashboardLayout,
+  toggleDashboardPanel,
+  writeDashboardLayout,
+} from '../utils/dashboardLayout.js'
+import {
+  dashboardExecutionPanelId,
+  dashboardLayoutStorageKey,
+  dashboardModeStorageKey,
+  dashboardOutputPanelId,
+} from '../utils/dashboardConfig.js'
+
+const dataElement = document.getElementById('sapphire-dashboard-data')
+const runtimeElement = document.getElementById('sapphire-dashboard-runtime')
+
+if (dataElement) {
+  start(JSON.parse(dataElement.textContent || '{}'), runtimeElement?.textContent ?? '')
+}
+
+// Point d'entrée : construit l'interface puis attend une action explicite de l'utilisateur.
+function start(config, runtimeSource) {
+  const labels = config.labels ?? {}
+  const stage = document.querySelector('[data-stage]')
+  const status = document.querySelector('[data-status]')
+  const statusLabel = document.querySelector('[data-status-label]')
+  const progressFill = document.querySelector('[data-progress]')
+  const runButton = document.querySelector('[data-action="run"]')
+  const pauseButton = document.querySelector('[data-action="pause"]')
+  const stopButton = document.querySelector('[data-action="stop"]')
+  const themeButton = document.querySelector('[data-action="theme"]')
+  const panelsButton = document.querySelector('[data-action="panels"]')
+  const panelsMenu = document.querySelector('[data-panels-menu]')
+  const nodes = dashboardNodeMap(config.project)
+
+  const panels = [
+    ...(config.widgets ?? []).map((widget) => ({ id: widget.id, type: widget.type, name: widget.name, kind: labels[widget.type] ?? widget.type, widget })),
+    { id: dashboardOutputPanelId, type: 'output', name: labels.output ?? 'Output', kind: labels.output ?? 'Output' },
+    { id: dashboardExecutionPanelId, type: 'execution', name: labels.currentExecution ?? 'Current execution', kind: labels.currentExecution ?? 'Current execution' },
+  ]
+  const exportedLayout = new Map((config.layout ?? []).map((entry) => [entry.id, entry]))
+  for (const panel of panels) {
+    panel.w = exportedLayout.get(panel.id)?.w
+    panel.h = exportedLayout.get(panel.id)?.h
+  }
+  const defaults = normalizeDashboardLayout(config.layout, panels)
+  const storageKey = dashboardLayoutStorageKey(config.layoutKey)
+  const refs = new Map()
+  let state = {
+    ...dashboardExecutionInitial,
+    layout: readDashboardLayout(window.localStorage, storageKey, defaults, panels),
+    mode: readMode(),
+  }
+  let worker = null
+  let workerUrl = null
+  let requestId = 0
+  let animationFrame = 0
+  let lastFrame = 0
+  let accumulator = 0
+  let resizeFrame = 0
+
+  // Construit chaque panneau une seule fois ; les mises à jour ne recréent pas les canevas.
+  function buildPanels() {
+    for (const panel of panels) {
+      const section = document.createElement('section')
+      section.className = `db-panel db-panel--${panel.type}`
+      section.dataset.panelId = panel.id
+      section.setAttribute('aria-label', panel.name)
+
+      const header = document.createElement('header')
+      header.className = 'db-panel__header'
+      const handle = document.createElement('button')
+      handle.type = 'button'
+      handle.className = 'db-panel__handle'
+      handle.textContent = '⠿'
+      handle.title = formatTemplate(labels.movePanel ?? 'Move {name}', { name: panel.name })
+      handle.setAttribute('aria-label', handle.title)
+      const titles = document.createElement('div')
+      titles.className = 'db-panel__titles'
+      const title = document.createElement('h2')
+      title.className = 'db-panel__title'
+      title.textContent = panel.name
+      const kind = document.createElement('p')
+      kind.className = 'db-panel__kind'
+      kind.textContent = panel.kind
+      titles.append(title, kind)
+      const hide = document.createElement('button')
+      hide.type = 'button'
+      hide.className = 'db-panel__hide'
+      hide.textContent = '×'
+      hide.title = formatTemplate(labels.hidePanel ?? 'Hide {name}', { name: panel.name })
+      hide.setAttribute('aria-label', hide.title)
+      header.append(handle, titles, hide)
+
+      const body = document.createElement('div')
+      body.className = `db-panel__body${panel.type === 'output' || panel.type === 'execution' ? ' db-panel__body--stretch' : ''}`
+      const resize = document.createElement('button')
+      resize.type = 'button'
+      resize.className = 'db-panel__resize'
+      resize.textContent = '◢'
+      resize.title = formatTemplate(labels.resizePanel ?? 'Resize {name}', { name: panel.name })
+      resize.setAttribute('aria-label', resize.title)
+
+      section.append(header, body, resize)
+      stage.append(section)
+      const ref = { panel, section, body }
+      createContent(ref)
+      refs.set(panel.id, ref)
+
+      hide.addEventListener('click', () => {
+        state.layout = toggleDashboardPanel(state.layout, panel.id, false)
+        applyLayout()
+        renderMenu()
+        saveLayout()
+      })
+      bindPointer(handle, panel.id, 'move')
+      bindPointer(header, panel.id, 'move', true)
+      bindPointer(resize, panel.id, 'resize')
+    }
+  }
+
+  // Prépare le contenu propre à chaque type de panneau.
+  function createContent(ref) {
+    const { panel, body } = ref
+    if (panel.type === 'screen') {
+      const wrapper = document.createElement('div')
+      wrapper.className = 'db-screen'
+      const canvas = document.createElement('canvas')
+      canvas.setAttribute('role', 'img')
+      canvas.setAttribute('aria-label', panel.name)
+      wrapper.append(canvas)
+      body.append(wrapper)
+      ref.canvas = canvas
+      ref.context = canvas.getContext('2d')
+      return
+    }
+    if (panel.type === 'led' || panel.type === 'rgbLed') {
+      const wrapper = document.createElement('div')
+      wrapper.className = 'db-led'
+      const dot = document.createElement('span')
+      dot.className = 'db-led__dot'
+      const label = document.createElement('span')
+      label.className = 'db-led__label'
+      wrapper.append(dot, label)
+      body.append(wrapper)
+      ref.dot = dot
+      ref.label = label
+      return
+    }
+    if (panel.type === 'gauge') {
+      const wrapper = document.createElement('div')
+      wrapper.className = 'db-gauge'
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+      svg.setAttribute('viewBox', '0 0 120 72')
+      svg.setAttribute('role', 'img')
+      svg.setAttribute('aria-label', panel.name)
+      const track = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+      track.setAttribute('class', 'db-gauge__track')
+      track.setAttribute('d', 'M10 62 A50 50 0 0 1 110 62')
+      track.setAttribute('pathLength', '100')
+      const value = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+      value.setAttribute('class', 'db-gauge__value')
+      value.setAttribute('d', 'M10 62 A50 50 0 0 1 110 62')
+      value.setAttribute('pathLength', '100')
+      value.setAttribute('stroke-dasharray', '0 100')
+      svg.append(track, value)
+      const number = document.createElement('p')
+      number.className = 'db-gauge__number'
+      const range = document.createElement('div')
+      range.className = 'db-gauge__range'
+      const minimum = document.createElement('span')
+      const maximum = document.createElement('span')
+      range.append(minimum, maximum)
+      wrapper.append(svg, number, range)
+      body.append(wrapper)
+      ref.valuePath = value
+      ref.svg = svg
+      ref.number = number
+      ref.minimum = minimum
+      ref.maximum = maximum
+      return
+    }
+    if (panel.type === 'progress') {
+      const wrapper = document.createElement('div')
+      wrapper.className = 'db-progress-widget'
+      const track = document.createElement('div')
+      track.className = 'db-progress-widget__track'
+      track.setAttribute('role', 'img')
+      track.setAttribute('aria-label', panel.name)
+      const fill = document.createElement('div')
+      fill.className = 'db-progress-widget__fill'
+      track.append(fill)
+      const meta = document.createElement('div')
+      meta.className = 'db-progress-widget__meta'
+      const current = document.createElement('span')
+      const percent = document.createElement('span')
+      meta.append(current, percent)
+      wrapper.append(track, meta)
+      body.append(wrapper)
+      ref.progressFill = fill
+      ref.progressTrack = track
+      ref.progressCurrent = current
+      ref.progressPercent = percent
+      return
+    }
+    if (panel.type === 'barChart') {
+      const wrapper = document.createElement('div')
+      wrapper.className = 'db-bars'
+      wrapper.setAttribute('role', 'img')
+      wrapper.setAttribute('aria-label', panel.name)
+      body.append(wrapper)
+      ref.bars = wrapper
+      return
+    }
+    if (panel.type === 'heatmap') {
+      const wrapper = document.createElement('div')
+      wrapper.className = 'db-heatmap'
+      wrapper.setAttribute('role', 'img')
+      wrapper.setAttribute('aria-label', panel.name)
+      body.append(wrapper)
+      ref.heatmap = wrapper
+      return
+    }
+    if (panel.type === 'output') {
+      const output = document.createElement('div')
+      output.className = 'db-output'
+      const empty = document.createElement('p')
+      empty.className = 'db-empty'
+      empty.textContent = labels.noOutput ?? 'No output yet.'
+      const lines = document.createElement('div')
+      output.append(empty, lines)
+      body.append(output)
+      ref.output = output
+      ref.outputEmpty = empty
+      ref.outputLines = lines
+      ref.outputCount = 0
+      return
+    }
+    const wrapper = document.createElement('div')
+    wrapper.className = 'db-execution'
+    const step = document.createElement('p')
+    step.className = 'db-execution__step'
+    const name = document.createElement('p')
+    name.className = 'db-execution__name'
+    const meta = document.createElement('p')
+    meta.className = 'db-execution__meta'
+    wrapper.append(step, name, meta)
+    body.append(wrapper)
+    ref.step = step
+    ref.name = name
+    ref.meta = meta
+  }
+
+  // Applique la grille responsive sans modifier la disposition enregistrée.
+  function applyLayout() {
+    const columns = currentColumns()
+    stage.style.setProperty('--db-columns', String(columns))
+    const scaled = scaleDashboardLayout(state.layout, columns)
+    let maximumRow = 6
+    for (const entry of scaled) {
+      const ref = refs.get(entry.id)
+      if (!ref) continue
+      ref.section.hidden = !entry.visible
+      if (!entry.visible) continue
+      ref.section.style.gridColumn = `${entry.x + 1} / span ${entry.w}`
+      ref.section.style.gridRow = `${entry.y + 1} / span ${entry.h}`
+      maximumRow = Math.max(maximumRow, entry.y + entry.h)
+    }
+    stage.style.minHeight = `${maximumRow * (dashboardRowHeight + dashboardRowGap)}px`
+  }
+
+  // Choisit le nombre de colonnes selon la largeur réellement disponible.
+  function currentColumns() {
+    const width = stage.clientWidth || window.innerWidth
+    if (width >= 980) return dashboardColumns
+    if (width >= 680) return 8
+    if (width >= 480) return 6
+    return 4
+  }
+
+  // Enregistre la disposition uniquement dans le navigateur du visiteur.
+  function saveLayout() {
+    writeDashboardLayout(window.localStorage, storageKey, state.layout)
+  }
+
+  // Relit le mode clair ou sombre choisi par le visiteur.
+  function readMode() {
+    try {
+      return window.localStorage.getItem(dashboardModeStorageKey) === 'light' ? 'light' : 'dark'
+    } catch {
+      return 'dark'
+    }
+  }
+
+  // Applique le mode et met le bouton à jour.
+  function applyMode() {
+    document.documentElement.dataset.mode = state.mode
+    themeButton.textContent = state.mode === 'dark' ? (labels.light ?? 'Light') : (labels.dark ?? 'Dark')
+    themeButton.setAttribute('aria-pressed', String(state.mode === 'light'))
+    themeButton.setAttribute('aria-label', state.mode === 'dark' ? (labels.switchToLight ?? 'Switch to light theme') : (labels.switchToDark ?? 'Switch to dark theme'))
+  }
+
+  // Construit le menu de visibilité de tous les panneaux.
+  function renderMenu() {
+    panelsMenu.replaceChildren()
+    for (const entry of state.layout) {
+      const panel = panels.find((item) => item.id === entry.id)
+      if (!panel) continue
+      const label = document.createElement('label')
+      label.className = 'db-menu__item'
+      const checkbox = document.createElement('input')
+      checkbox.type = 'checkbox'
+      checkbox.checked = entry.visible !== false
+      checkbox.addEventListener('change', () => {
+        state.layout = toggleDashboardPanel(state.layout, entry.id, checkbox.checked)
+        applyLayout()
+        saveLayout()
+      })
+      const text = document.createElement('span')
+      text.textContent = panel.name
+      label.append(checkbox, text)
+      panelsMenu.append(label)
+    }
+    const reset = document.createElement('button')
+    reset.type = 'button'
+    reset.className = 'db-menu__reset'
+    reset.textContent = labels.resetLayout ?? 'Reset layout'
+    reset.addEventListener('click', () => {
+      state.layout = defaults.map((entry) => ({ ...entry, visible: true }))
+      applyLayout()
+      renderMenu()
+      saveLayout()
+    })
+    panelsMenu.append(reset)
+  }
+
+  // Ouvre ou ferme le menu des panneaux.
+  function toggleMenu(open = panelsMenu.hidden) {
+    panelsMenu.hidden = !open
+    panelsButton.setAttribute('aria-expanded', String(open))
+    if (open) panelsMenu.querySelector('input')?.focus()
+  }
+
+  // Met à jour les commandes et l'indicateur de progression.
+  function renderControls() {
+    const statusText = {
+      idle: labels.idle ?? 'Idle',
+      preparing: labels.preparing ?? 'Preparing…',
+      running: labels.running ?? 'Running',
+      paused: labels.paused ?? 'Paused',
+      completed: labels.completed ?? 'Completed',
+      error: labels.error ?? 'Error',
+    }[state.status] ?? state.status
+    status.dataset.kind = state.status
+    statusLabel.textContent = statusText
+    runButton.disabled = state.status === 'running' || state.status === 'preparing'
+    runButton.textContent = labels.run ?? 'Run'
+    runButton.title = state.status === 'paused' ? (labels.resume ?? 'Resume') : (labels.run ?? 'Run')
+    runButton.setAttribute('aria-label', runButton.title)
+    pauseButton.disabled = state.status !== 'running' && state.status !== 'preparing'
+    stopButton.disabled = state.status === 'idle'
+    const total = Array.isArray(state.result?.trace) ? state.result.trace.length : 0
+    progressFill.style.width = total > 0 ? `${Math.min(100, ((state.index + 1) / total) * 100)}%` : '0%'
+  }
+
+  // Met à jour les widgets, la sortie et le nœud courant au pas affiché.
+  function renderStates() {
+    const states = dashboardStatesAt(state.result, state.index, config.initialStates ?? {})
+    for (const widget of config.widgets ?? []) {
+      const ref = refs.get(widget.id)
+      if (!ref) continue
+      renderWidget(ref, widget, states)
+    }
+    const outputRef = refs.get(dashboardOutputPanelId)
+    if (outputRef) {
+      const lines = state.status === 'error' && state.result
+        ? (state.result.output ?? [])
+        : dashboardVisibleOutput(state.result, state.index)
+      renderOutput(outputRef, lines)
+    }
+    const executionRef = refs.get(dashboardExecutionPanelId)
+    if (executionRef) renderExecution(executionRef)
+  }
+
+  // Rend le widget correspondant à son état courant.
+  function renderWidget(ref, widget, states) {
+    if (widget.type === 'screen') {
+      renderScreen(ref, widget, states.screens?.[widget.id])
+    } else if (widget.type === 'led') {
+      const value = Boolean(states.leds?.[widget.id]?.value)
+      ref.dot.classList.toggle('db-led__dot--on', value)
+      ref.label.textContent = value ? (labels.on ?? 'On') : (labels.off ?? 'Off')
+    } else if (widget.type === 'rgbLed') {
+      const led = states.rgbLeds?.[widget.id] ?? { red: 0, green: 0, blue: 0 }
+      ref.dot.style.background = `rgb(${led.red} ${led.green} ${led.blue})`
+      ref.dot.style.boxShadow = `0 0 28px rgb(${led.red} ${led.green} ${led.blue} / 55%)`
+      ref.label.textContent = `${led.red}, ${led.green}, ${led.blue}`
+    } else if (widget.type === 'gauge') {
+      const gauge = states.gauges?.[widget.id] ?? { value: widget.min, min: widget.min, max: widget.max }
+      const range = gauge.max - gauge.min
+      const ratio = range > 0 ? Math.max(0, Math.min(1, (gauge.value - gauge.min) / range)) : 0
+      ref.valuePath.setAttribute('stroke-dasharray', `${(ratio * 100).toFixed(2)} 100`)
+      ref.number.textContent = formatNumber(gauge.value)
+      ref.minimum.textContent = formatNumber(gauge.min)
+      ref.maximum.textContent = formatNumber(gauge.max)
+      ref.svg.setAttribute('aria-label', `${widget.name}: ${formatNumber(gauge.value)} / ${formatNumber(gauge.max)}`)
+    } else if (widget.type === 'progress') {
+      const bar = states.progresses?.[widget.id] ?? { value: widget.min, min: widget.min, max: widget.max }
+      const range = bar.max - bar.min
+      const ratio = range > 0 ? Math.max(0, Math.min(1, (bar.value - bar.min) / range)) : 0
+      ref.progressFill.style.width = `${(ratio * 100).toFixed(2)}%`
+      ref.progressCurrent.textContent = `${formatNumber(bar.value)} / ${formatNumber(bar.max)}`
+      ref.progressPercent.textContent = `${Math.round(ratio * 100)}%`
+      ref.progressTrack.setAttribute('aria-label', `${widget.name}: ${formatNumber(bar.value)} / ${formatNumber(bar.max)}`)
+    } else if (widget.type === 'barChart') {
+      renderBars(ref, states.barCharts?.[widget.id]?.values ?? new Array(widget.size ?? 12).fill(0))
+    } else if (widget.type === 'heatmap') {
+      renderHeatmap(ref, widget, states.heatmaps?.[widget.id])
+    }
+  }
+
+  // Dessine le tampon RGBA de l'écran sans interpolation.
+  function renderScreen(ref, widget, screen) {
+    if (!ref.canvas || !ref.context) return
+    const width = Math.max(1, Number(screen?.width ?? widget.width) || 1)
+    const height = Math.max(1, Number(screen?.height ?? widget.height) || 1)
+    ref.canvas.setAttribute('aria-label', `${widget.name}: ${width} × ${height}`)
+    if (ref.canvas.width !== width || ref.canvas.height !== height) {
+      ref.canvas.width = width
+      ref.canvas.height = height
+    }
+    const source = screen?.pixels ?? []
+    const pixels = new Uint8ClampedArray(width * height * 4)
+    for (let index = 0; index < pixels.length; index += 1) pixels[index] = Number(source[index]) || 0
+    try {
+      ref.context.putImageData(new ImageData(pixels, width, height), 0, 0)
+    } catch {
+      ref.context.clearRect(0, 0, width, height)
+    }
+  }
+
+  // Recrée les barres seulement lorsque leur nombre change, avec une ligne zéro pour les valeurs signées.
+  function renderBars(ref, values) {
+    if (ref.bars.childElementCount !== values.length) {
+      ref.bars.replaceChildren(...values.map(() => {
+        const bar = document.createElement('div')
+        bar.className = 'db-bar'
+        bar.append(document.createElement('span'))
+        return bar
+      }))
+    }
+    const maximum = values.length > 0 ? Math.max(0, ...values) : 0
+    const minimum = values.length > 0 ? Math.min(0, ...values) : 0
+    const span = maximum - minimum || 1
+    const baseline = values.some((value) => value < 0) ? (maximum / span) * 100 : 100
+    ref.bars.style.setProperty('--db-baseline', `${baseline}%`)
+    ref.bars.setAttribute('aria-label', `${ref.panel.name}: ${values.slice(0, 16).map(formatNumber).join(', ')}`)
+    for (const [index, bar] of [...ref.bars.children].entries()) {
+      const value = Number(values[index]) || 0
+      const fill = bar.firstElementChild
+      const height = (Math.abs(value) / span) * 100
+      fill.style.display = value === 0 ? 'none' : 'block'
+      fill.style.height = `${height}%`
+      fill.style.bottom = value < 0 ? 'auto' : `${100 - baseline}%`
+      fill.style.top = value < 0 ? `${baseline}%` : 'auto'
+      fill.classList.toggle('db-bar__fill--negative', value < 0)
+      bar.title = formatNumber(value)
+    }
+  }
+
+  // Recrée les cellules seulement lorsque les dimensions changent.
+  function renderHeatmap(ref, widget, heatmap) {
+    const width = Math.max(1, Number(heatmap?.width ?? widget.width) || 1)
+    const height = Math.max(1, Number(heatmap?.height ?? widget.height) || 1)
+    const values = heatmap?.values ?? new Array(width * height).fill(0)
+    ref.heatmap.setAttribute('aria-label', `${widget.name}: ${width} × ${height}`)
+    ref.heatmap.style.gridTemplateColumns = `repeat(${width}, minmax(0, 1fr))`
+    ref.heatmap.style.gridTemplateRows = `repeat(${height}, minmax(0, 1fr))`
+    if (ref.heatmap.childElementCount !== width * height) {
+      ref.heatmap.replaceChildren(...Array.from({ length: width * height }, () => {
+        const cell = document.createElement('span')
+        cell.className = 'db-heatmap__cell'
+        return cell
+      }))
+    }
+    const maximum = Math.max(1, ...values.map((value) => Math.abs(Number(value) || 0)))
+    for (const [index, cell] of [...ref.heatmap.children].entries()) {
+      const value = Number(values[index]) || 0
+      cell.style.opacity = String(Math.max(0, Math.min(1, Math.abs(value) / maximum)))
+      cell.title = formatNumber(value)
+    }
+  }
+
+  // Ajoute uniquement les nouvelles lignes de sortie, sans reconstruire tout le panneau.
+  function renderOutput(ref, lines) {
+    ref.outputEmpty.hidden = lines.length > 0
+    if (lines.length !== ref.outputCount) {
+      const wasNearBottom = ref.output.scrollHeight - ref.output.scrollTop - ref.output.clientHeight < 32
+      ref.outputLines.replaceChildren(...lines.map((line) => {
+        const entry = document.createElement('div')
+        entry.className = 'db-output__line'
+        entry.textContent = line
+        return entry
+      }))
+      ref.outputCount = lines.length
+      if (wasNearBottom) ref.output.scrollTop = ref.output.scrollHeight
+    }
+  }
+
+  // Affiche le type, le nom, le module et le numéro d'étape du nœud courant.
+  function renderExecution(ref) {
+    if (state.status === 'preparing') {
+      ref.step.textContent = labels.preparing ?? 'Preparing…'
+      ref.name.textContent = labels.preparing ?? 'Preparing…'
+      ref.meta.textContent = ''
+      return
+    }
+    if (state.status === 'error' && state.error) {
+      ref.step.textContent = labels.error ?? 'Error'
+      ref.name.textContent = labels.error ?? 'Error'
+      ref.meta.textContent = String(state.error)
+      return
+    }
+    const node = dashboardCurrentNode(state.result, state.index, nodes)
+    if (!node) {
+      ref.step.textContent = labels.idle ?? 'Idle'
+      ref.name.textContent = labels.notRunning ?? 'Not running'
+      ref.meta.textContent = ''
+      return
+    }
+    ref.step.textContent = formatTemplate(labels.step ?? 'Step {current} / {total}', { current: node.step, total: node.total })
+    const kind = config.kindLabels?.[node.kind] ?? node.kind
+    ref.name.textContent = node.name || kind || (labels.notRunning ?? 'Not running')
+    ref.meta.textContent = [kind, node.module ? `${labels.module ?? 'Module'}: ${node.module}` : ''].filter(Boolean).join(' · ')
+  }
+
+  // Lance une nouvelle session, ou reprend une session en pause.
+  function handleRun() {
+    if (state.status === 'paused') {
+      state = dashboardExecutionReducer(state, { type: 'resume' })
+      renderControls()
+      if (state.result) startAnimation()
+      return
+    }
+    if (state.status === 'running' || state.status === 'preparing') return
+    requestId += 1
+    terminateWorker()
+    cancelAnimation()
+    state = dashboardExecutionReducer(state, { type: 'start' })
+    renderControls()
+    renderStates()
+    runProgram(requestId)
+  }
+
+  // Suspend l'animation et conserve l'état visible.
+  function handlePause() {
+    state = dashboardExecutionReducer(state, { type: 'pause' })
+    cancelAnimation()
+    renderControls()
+  }
+
+  // Arrête la session et revient à l'état initial des widgets.
+  function handleStop() {
+    requestId += 1
+    terminateWorker()
+    cancelAnimation()
+    state = dashboardExecutionReducer(state, { type: 'stop' })
+    renderControls()
+    renderStates()
+  }
+
+  // Lance le moteur réel dans un worker, ou sur le fil courant si le navigateur le refuse.
+  function runProgram(id) {
+    const runtime = window.SapphireDashboardRuntime
+    if (typeof Worker !== 'undefined' && typeof Blob !== 'undefined' && runtimeSource) {
+      try {
+        const workerSource = `${runtimeSource}\nself.onmessage = function (event) {
+  var data = event.data || {};
+  try {
+    var result = SapphireDashboardRuntime.simulate(data.project, data.options || {});
+    self.postMessage({ id: data.id, result: result });
+  } catch (error) {
+    self.postMessage({ id: data.id, error: { message: error && error.message ? error.message : String(error), code: error && error.code ? error.code : null } });
+  }
+};`
+        workerUrl = URL.createObjectURL(new Blob([workerSource], { type: 'text/javascript' }))
+        worker = new Worker(workerUrl)
+        worker.onmessage = (event) => {
+          const message = event.data ?? {}
+          if (id !== requestId || message.id !== id) return
+          terminateWorker()
+          if (message.error) handleFailure(message.error)
+          else handlePrepared(message.result)
+        }
+        worker.onerror = (event) => {
+          event.preventDefault?.()
+          if (id !== requestId) return
+          terminateWorker()
+          handleFailure({ message: event.message || 'Worker failed.', code: 'SIMULATION_FAILED' })
+        }
+        worker.postMessage({ id, project: config.project, options: { maxSteps: config.simulationBudget } })
+        return
+      } catch {
+        terminateWorker()
+      }
+    }
+    if (!runtime || typeof runtime.simulate !== 'function') {
+      handleFailure({ message: 'The dashboard runtime is unavailable.', code: 'SIMULATION_FAILED' })
+      return
+    }
+    window.setTimeout(() => {
+      if (id !== requestId) return
+      try {
+        handlePrepared(runtime.simulate(config.project, { maxSteps: config.simulationBudget }))
+      } catch (error) {
+        handleFailure({ message: error?.message ?? String(error), code: error?.code ?? 'SIMULATION_FAILED' })
+      }
+    }, 30)
+  }
+
+  // Installe le résultat validé et démarre l'animation de la trace.
+  function handlePrepared(result) {
+    state = dashboardExecutionReducer(state, { type: 'prepared', result })
+    renderControls()
+    renderStates()
+    if (state.status === 'running') startAnimation()
+  }
+
+  // Signale une erreur du worker sans bloquer le dashboard.
+  function handleFailure(error) {
+    state = dashboardExecutionReducer(state, { type: 'fail', errorCode: error?.code ?? 'SIMULATION_FAILED', result: null })
+    renderControls()
+    renderStates()
+  }
+
+  // Avance la trace selon le temps écoulé, jamais selon une animation préenregistrée.
+  function startAnimation() {
+    cancelAnimation()
+    if (state.status !== 'running' || !state.result) return
+    const total = state.result.trace?.length ?? 0
+    if (total <= 1) {
+      state = dashboardExecutionReducer(state, { type: 'tick', advance: 1 })
+      renderControls()
+      renderStates()
+      return
+    }
+    const stepsPerSecond = Math.max(60, total / 8)
+    const interval = 1000 / stepsPerSecond
+    lastFrame = performance.now()
+    accumulator = 0
+    function tick(now) {
+      if (state.status !== 'running') return
+      accumulator += now - lastFrame
+      lastFrame = now
+      const advance = Math.floor(accumulator / interval)
+      if (advance > 0) {
+        accumulator -= advance * interval
+        state = dashboardExecutionReducer(state, { type: 'tick', advance })
+        renderControls()
+        renderStates()
+        if (state.status !== 'running') return
+      }
+      animationFrame = window.requestAnimationFrame(tick)
+    }
+    animationFrame = window.requestAnimationFrame(tick)
+  }
+
+  // Annule l'animation sans modifier les états visibles.
+  function cancelAnimation() {
+    if (animationFrame) window.cancelAnimationFrame(animationFrame)
+    animationFrame = 0
+  }
+
+  // Termine le worker et libère son URL blob.
+  function terminateWorker() {
+    if (worker) {
+      worker.terminate()
+      worker = null
+    }
+    if (workerUrl) {
+      URL.revokeObjectURL(workerUrl)
+      workerUrl = null
+    }
+  }
+
+  // Capture un déplacement ou un redimensionnement, puis persiste la disposition.
+  function bindPointer(handle, panelId, mode, ignoreButtons = false) {
+    handle.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0) return
+      if (ignoreButtons && event.target.closest('button')) return
+      event.preventDefault()
+      const columns = currentColumns()
+      const bounds = stage.getBoundingClientRect()
+      const columnWidth = (bounds.width - dashboardRowGap * (columns - 1)) / columns
+      const rowUnit = dashboardRowHeight + dashboardRowGap
+      const startX = event.clientX
+      const startY = event.clientY
+      const startLayout = state.layout
+      let moved = false
+      try { handle.setPointerCapture?.(event.pointerId) } catch { /* capture indisponible */ }
+      function move(moveEvent) {
+        const dx = Math.round(((moveEvent.clientX - startX) / columnWidth) * (dashboardColumns / columns))
+        const dy = Math.round((moveEvent.clientY - startY) / rowUnit)
+        if (!moved && dx === 0 && dy === 0) return
+        moved = true
+        state.layout = mode === 'move'
+          ? moveDashboardPanel(startLayout, panelId, dx, dy)
+          : resizeDashboardPanel(startLayout, panelId, dx, dy)
+        applyLayout()
+        refs.get(panelId)?.section.classList.add('db-panel--dragging')
+      }
+      function end() {
+        window.removeEventListener('pointermove', move)
+        window.removeEventListener('pointerup', end)
+        window.removeEventListener('pointercancel', end)
+        refs.get(panelId)?.section.classList.remove('db-panel--dragging')
+        if (moved) {
+          saveLayout()
+          renderMenu()
+        }
+      }
+      window.addEventListener('pointermove', move)
+      window.addEventListener('pointerup', end)
+      window.addEventListener('pointercancel', end)
+    })
+    handle.addEventListener('keydown', (event) => {
+      const direction = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key]
+      if (!direction) return
+      event.preventDefault()
+      state.layout = event.shiftKey
+        ? resizeDashboardPanel(state.layout, panelId, direction[0], direction[1])
+        : moveDashboardPanel(state.layout, panelId, direction[0], direction[1])
+      applyLayout()
+      saveLayout()
+    })
+  }
+
+  // Remplace les jetons {nom} d'un libellé traduit.
+  function formatTemplate(template, values) {
+    return String(template ?? '').replace(/\{(\w+)\}/g, (_, key) => values[key] ?? '')
+  }
+
+  // Affiche un nombre sans décimale inutile.
+  function formatNumber(value) {
+    const number = Number(value)
+    if (!Number.isFinite(number)) return '—'
+    return Number.isInteger(number) ? String(number) : number.toFixed(2).replace(/\.?0+$/, '')
+  }
+
+  runButton.addEventListener('click', handleRun)
+  pauseButton.addEventListener('click', handlePause)
+  stopButton.addEventListener('click', handleStop)
+  themeButton.addEventListener('click', () => {
+    state.mode = state.mode === 'dark' ? 'light' : 'dark'
+    try {
+      window.localStorage.setItem(dashboardModeStorageKey, state.mode)
+    } catch {
+      // Le mode reste actif pour la session si le stockage local est indisponible.
+    }
+    applyMode()
+  })
+  panelsButton.addEventListener('click', () => toggleMenu())
+  document.addEventListener('click', (event) => {
+    if (!panelsMenu.hidden && !panelsMenu.contains(event.target) && !panelsButton.contains(event.target)) toggleMenu(false)
+  })
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !panelsMenu.hidden) {
+      toggleMenu(false)
+      panelsButton.focus()
+    }
+  })
+  window.addEventListener('resize', () => {
+    if (resizeFrame) window.cancelAnimationFrame(resizeFrame)
+    resizeFrame = window.requestAnimationFrame(() => {
+      resizeFrame = 0
+      applyLayout()
+    })
+  })
+  window.addEventListener('pagehide', (event) => {
+    if (event.persisted) return
+    requestId += 1
+    terminateWorker()
+  })
+
+  buildPanels()
+  applyLayout()
+  renderMenu()
+  applyMode()
+  renderControls()
+  renderStates()
+}

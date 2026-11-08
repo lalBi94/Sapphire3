@@ -893,6 +893,9 @@
         copie est affiché comme statut, sans bloquer l'enregistrement.</li>
         <li>Les préférences — langue, thème, cinq chemins récents, dernier fichier et raccourcis clavier personnalisés — sont stockées à part, dans un répertoire
         persistant utilisateur, jamais à côté de l'exécutable.</li>
+        <li>La configuration d'export <b>Web Dashboard</b> — nom, description, thème et palette — est une clef racine
+        optionnelle <code>dashboard</code> du document&nbsp;; elle ne contient aucun chemin ni donnée de visiteur. Aucune
+        migration de version n'est nécessaire.</li>
       </ul>
       <div class="notes-soft">
         <p style="margin:0">
@@ -919,6 +922,15 @@
         aucun stockage interne supplémentaire.</li>
         <li>Les tests restent lisibles dans le JSON&nbsp;: c'est un outil d'entraînement, pas un examen surveillé.</li>
       </ul>
+      <h3>Dashboard web autonome</h3>
+      <p>
+        <b>Settings → Export → Web dashboard</b> produit un unique fichier <code>dashboard.html</code> hors ligne.
+        Il embarque le moteur de simulation réel et les sept widgets graphiques, avec <b>Run</b>, <b>Pause</b>,
+        <b>Stop</b>, la sortie, le nœud courant et une bascule clair/sombre. Rien ne s'exécute au chargement&nbsp;;
+        Pause conserve l'état visible et Stop réinitialise la session. Le visiteur peut déplacer, redimensionner,
+        masquer et restaurer les panneaux&nbsp;; sa disposition reste dans son navigateur, sans modifier le HTML ni le
+        projet. La palette choisie est imposée et sa variante claire est dérivée avec contrôle du contraste.
+      </p>
     </section>
 
     <section id="limites" class="shot-anchor">

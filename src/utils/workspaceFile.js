@@ -6,6 +6,7 @@ import { barChartViews, heatmapViews, logicalCardTypes, moduleCardTypes, gaugeVi
 import { heatmapMaximumDimension } from './logic/heatmapState.js'
 import { isEmbeddedImage, isImageReference } from './embeddedImage.js'
 import { validateExercise } from './exercise.js'
+import { assertDashboardConfig } from './dashboardConfig.js'
 
 export const workspaceFileVersion = 3
 
@@ -197,12 +198,13 @@ function validateExerciseStarter(exercise) {
 }
 
 // Produit le même instantané JSON versionné pour les extensions .sp3 et .json.
-export function serializeWorkspace(project, cards, camera, selected = null, exercise = null) {
+export function serializeWorkspace(project, cards, camera, selected = null, exercise = null, dashboard = null) {
   validateProject(project)
   if (exercise !== null) {
     validateExercise(exercise)
     validateExerciseStarter(exercise)
   }
+  if (dashboard !== null && dashboard !== undefined) assertDashboardConfig(dashboard)
   // Les identifiants de nœuds supprimés ne doivent pas survivre dans l'état de pliage exporté.
   const nodes = new Map(project.nodes.map((node) => [node.id, node]))
   const presentation = {
@@ -210,7 +212,7 @@ export function serializeWorkspace(project, cards, camera, selected = null, exer
     camera, selected,
   }
   validatePresentation(project, presentation)
-  const payload = { application: 'Sapphire 3', workspaceVersion: workspaceFileVersion, project, presentation, ...(exercise === null ? {} : { exercise }) }
+  const payload = { application: 'Sapphire 3', workspaceVersion: workspaceFileVersion, project, presentation, ...(exercise === null ? {} : { exercise }), ...(dashboard === null || dashboard === undefined ? {} : { dashboard }) }
   const result = serializeSource(payload)
   if (result.json === null) throw workspaceError('The workspace contains data that cannot be exported as JSON.', 'WORKSPACE_NOT_SERIALIZABLE')
   return result.json
@@ -234,6 +236,7 @@ export function deserializeWorkspace(text) {
       validateExercise(migrated.exercise)
       validateExerciseStarter(migrated.exercise)
     }
+    if (migrated.dashboard !== undefined) assertDashboardConfig(migrated.dashboard)
     if (serializeSource(migrated).json === null) throw workspaceError('The file contains unsupported JSON values.', 'WORKSPACE_NOT_SERIALIZABLE')
     return migrated
   }

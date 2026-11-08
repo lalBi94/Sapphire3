@@ -325,6 +325,18 @@ Le workspace est un dossier choisi : \code{workspace.sp3}, images liées dans
 \code{images/}, trois sauvegardes directes au plus dans \code{backups/}, export ZIP.
 Un document neuf non vierge utilise le dossier persistant \code{sapphire3-recovery/}.
 
+L'\textbf{Export Web Dashboard} produit un unique \code{dashboard.html} autonome :
+le moteur de simulation réel y est embarqué et exécuté dans un Web Worker, avec un
+repli synchrone borné. Le dashboard reprend les sept widgets graphiques, Run/Pause/Stop,
+la sortie, le nœud courant et une bascule clair/sombre. La palette sombre choisie est
+imposée et sa variante claire est dérivée avec contrôle du contraste. Les panneaux sont
+déplaçables, redimensionnables et masquables ; la disposition reste dans le
+\code{localStorage} du visiteur, sans modifier le fichier ni le workspace. La
+configuration est stockée dans la clef racine optionnelle \code{dashboard} de
+l'enveloppe version 3, sans migration de version. Aucun serveur, CDN, police distante
+ou dépendance externe n'est utilisé ; un préflight exécute le vrai moteur avant
+l'écriture et refuse les programmes incompatibles.
+
 \textbf{Classes :} un module \code{kind:'class'} contient seulement attributs,
 constantes, méthodes et constructeur, avec visibilité \code{public}/\code{private}.
 \code{NewExpression} crée une instance, \code{ThisExpression} la désigne dans les

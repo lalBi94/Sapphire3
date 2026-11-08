@@ -1,0 +1,69 @@
+/* Section Export du dashboard : formulaire compact aligné sur les autres pages de paramètres. */
+
+.dashboard-export { gap: var(--space-control); }
+
+.dashboard-export__intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-raised);
+}
+
+.dashboard-export__intro > svg { flex: none; color: var(--color-primary); }
+
+.dashboard-export__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.dashboard-export__field input,
+.dashboard-export__field textarea,
+.dashboard-export__field select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 9px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-input);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.dashboard-export__field textarea { min-height: 82px; resize: vertical; }
+
+.dashboard-export__field :is(input, textarea, select):focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.dashboard-export__swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.dashboard-export__swatch {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px var(--color-glass-reflection);
+}
+
+.dashboard-export__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 12px;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dashboard-export__status { margin: 0; font-size: 11px; }
+.dashboard-export__status--warning { color: var(--color-warning); }
+.dashboard-export__status--ready { color: var(--color-pure); }

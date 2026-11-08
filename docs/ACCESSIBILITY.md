@@ -1,6 +1,6 @@
 # Accessibilité — Sapphire 3
 
-> Référentiel d'accessibilité de **Sapphire 3**, version `0.1.0-beta.6`. Audit daté des **6 et 7 novembre 2026**. Ce document décrit ce qui a été vérifié, corrigé et ce qui reste partiel ou non vérifié. **Il ne constitue pas une certification WCAG.**
+> Référentiel d'accessibilité de **Sapphire 3**, version `0.1.0-beta.6`. Audit daté des **6, 7 et 8 novembre 2026**. Ce document décrit ce qui a été vérifié, corrigé et ce qui reste partiel ou non vérifié. **Il ne constitue pas une certification WCAG.**
 
 ## A. Périmètre
 
@@ -46,6 +46,8 @@ Les résultats `incomplete` ont aussi été examinés. Après corrections, il ne
 **HUD d’arrière-plan (7 novembre 2026)** : les artefacts texte du canvas sont **décoratifs et ambiants**, marqués `aria-hidden="true"` et sans équivalent interactif ; l’information essentielle (version, compteurs, zoom, thème, grille, aimantation, raccourcis) reste disponible dans la barre, le statut de canvas, les paramètres et le catalogue de raccourcis. Axe-core ne relève **aucune violation** sur le canvas avec HUD en sombre et en clair ; les textes à faible opacité apparaissent en `color-contrast` **incomplet**, ce qui est attendu pour cette couche volontairement discrète. Le HUD est ignoré en mouvement réduit (animation du voyant) et renforcé en contraste élevé.
 
 **Classes, scopes et instances (7 novembre 2026)** : 0 violation axe-core sur une carte **Class**, ses scopes **Public**/**Private**, le menu d’insertion limité aux membres et le formulaire **Constructeur**. Le badge `Class`, l’accent de sélection, les boutons de scope et les formulaires reprennent les tokens du thème et restent lisibles dans les deux apparences. Les boutons d’action du menu utilisent un état visuel `data-selected` plutôt que `aria-pressed`, conforme au rôle `menuitem` ; les boutons de scope conservent `aria-pressed` dans leur groupe. Limite : les tests NVDA/Narrator et WebView2 ne sont toujours pas exécutés.
+
+**Export Web Dashboard (8 novembre 2026)** : audit Lighthouse du dashboard exporté (`gaugeDemo` et `rgbMixer`) : **accessibilité 1.0**, **bonnes pratiques 1.0**. Le document contient un lien d’évitement, les repères `banner`/`main`/`contentinfo`, des titres de panneaux, des boutons nommés, un statut `role="status"`, des focus visibles et des poignées de déplacement/redimensionnement utilisables au clavier. Les widgets exposent un nom accessible ; Screen, Gauge, ProgressBar, BarChart et Heatmap ont un résumé textuel borné, mais les pixels d’un écran n’ont pas d’équivalent textuel complet. Le mode clair/sombre et la disposition locale ont été vérifiés dans Chromium. Limites : aucun lecteur d’écran réel, aucune ouverture `file://` dans WebView2/Neutralinojs, et les tableaux de données détaillés des widgets ne sont pas reproduits dans le dashboard.
 
 ## B. Matrice WCAG 2.2 — niveau A et AA
 

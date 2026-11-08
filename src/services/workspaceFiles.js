@@ -10,7 +10,7 @@ const archiveChunkSize = 4 * 1024 * 1024
 export const workspaceDocumentName = 'workspace.sp3'
 export const workspaceImagesFolder = 'images'
 export const workspaceBackupsFolder = 'backups'
-const exportFormats = Object.freeze({ zip: 'files.zipFilter', json: 'files.jsonFilter', svg: 'files.svgFilter', png: 'files.pngFilter', ...Object.fromEntries(transpilationLanguages.filter((option) => option.available).map((option) => [option.extension, option.filterKey])) })
+const exportFormats = Object.freeze({ zip: 'files.zipFilter', json: 'files.jsonFilter', svg: 'files.svgFilter', html: 'files.htmlFilter', png: 'files.pngFilter', ...Object.fromEntries(transpilationLanguages.filter((option) => option.available).map((option) => [option.extension, option.filterKey])) })
 
 // Transporte un code et ses paramètres sans lier les accès natifs à React ou à une langue globale.
 function fileError(code, values = {}) {

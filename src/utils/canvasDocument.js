@@ -1,5 +1,6 @@
 import { logicalCardTypes, moduleCardTypes, moduleTypes } from './moduleTypes.js'
 import { createProject, createModule, moduleKinds, analyzeProgram, createContextIndex, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol, deleteSourceTargets, duplicateSourceTargets, moveSourceNodes } from './logic/index.js'
+import { defaultDashboardConfig } from './dashboardConfig.js'
 
 // Recalcule les dérivés uniquement quand la source logique change.
 function withSource(state, project, analysis = analyzeProgram(project), index = createContextIndex(project, analysis)) {
@@ -40,16 +41,19 @@ function replaySourceMutation(state, action) {
 
 // Initialise un document local ; aucune donnée utilisateur n'est écrite sur disque.
 export function initialDocument() {
-  return withSource({ cards: [], revision: 0, exercise: null, mutationError: null }, createProject('workspace'))
+  return withSource({ cards: [], revision: 0, exercise: null, dashboard: defaultDashboardConfig(), mutationError: null }, createProject('workspace'))
 }
 
 // Applique les changements atomiques en gardant les coordonnées séparées du modèle source.
 export function reduceDocument(state, action) {
   if (action.type === 'replaceWorkspace') {
-    return withSource({ cards: action.workspace.presentation.cards, revision: state.revision + 1, exercise: action.workspace.exercise ?? null, mutationError: null }, action.workspace.project)
+    return withSource({ cards: action.workspace.presentation.cards, revision: state.revision + 1, exercise: action.workspace.exercise ?? null, dashboard: action.workspace.dashboard ?? defaultDashboardConfig(), mutationError: null }, action.workspace.project)
   }
   if (action.type === 'exercise') {
     return { ...state, exercise: action.exercise }
+  }
+  if (action.type === 'dashboard') {
+    return { ...state, dashboard: action.dashboard }
   }
   if (action.type === 'restoreStarter') {
     return withSource({ ...state, cards: action.starter.presentation.cards, revision: state.revision + 1 }, action.starter.project)
@@ -189,6 +193,6 @@ export function reduceHistory(state, action) {
   const next = reduceDocument(state.present, action)
   if (next === state.present) return state
   if (['pasteNode', 'moveNode', 'moveNodes', 'duplicateNode'].includes(action.type) && next.project === state.present.project) return { ...state, present: next }
-  if (['geometry', 'text', 'presentation', 'layout', 'exercise'].includes(action.type)) return { ...state, present: next, future: [] }
+  if (['geometry', 'text', 'presentation', 'layout', 'exercise', 'dashboard'].includes(action.type)) return { ...state, present: next, future: [] }
   return { past: [...state.past, state.present], present: next, future: [] }
 }

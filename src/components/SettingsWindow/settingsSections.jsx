@@ -1,6 +1,7 @@
 import { BookmarkPlus, Check, Download, ExternalLink, FileInput, FileOutput, FilePlus, FolderOpen, Maximize2, RefreshCw, Save, SaveAll, Trash2, VectorSquare } from 'lucide-react'
 import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
 import KeybindsSection from './KeybindsSection.jsx'
+import WebDashboardSection from './WebDashboardSection.jsx'
 import LanguageFlag, { languageFlagColors } from './LanguageFlag.jsx'
 import { describeBookmark, getNodeSchema } from '../../utils/logic/index.js'
 import { supportedLanguages } from '../../utils/translations.js'
@@ -203,6 +204,9 @@ export const settingsCategories = [
   ] },
   { id: 'bookmarks', labelKey: 'nav.bookmarks', sections: [
     { id: 'library', labelKey: 'settings.section.library', Component: BookmarksSection },
+  ] },
+  { id: 'export', labelKey: 'settings.category.export', sections: [
+    { id: 'webDashboard', labelKey: 'settings.section.webDashboard', Component: WebDashboardSection },
   ] },
   { id: 'about', labelKey: 'settings.category.about', sections: [
     { id: 'application', labelKey: 'settings.section.application', Component: ApplicationSection },

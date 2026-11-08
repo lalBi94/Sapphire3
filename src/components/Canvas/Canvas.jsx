@@ -27,6 +27,11 @@ import { logicalCardTypes, moduleCardTypes, moduleTypes } from '../../utils/modu
 import { expandableNodeIdsByModule, expandAllNodeIds, isFullyExpanded } from '../../utils/nodeTree.js'
 import { scrollNodeIntoCard } from '../../utils/cardScroll.js'
 import { buildWorkspaceSvg } from '../../utils/workspaceSvg.js'
+import { dashboardLabels, dashboardSimulationBudget, defaultDashboardConfig, resolveDashboardPalette } from '../../utils/dashboardConfig.js'
+import { dashboardWidgets, dashboardInitialStates, dashboardWidgetTypes } from '../../utils/dashboardWidgets.js'
+import { buildDashboardDocument, dashboardDefaultLayout } from '../../utils/dashboardExport.js'
+import dashboardRuntimeSource from 'virtual:dashboard-runtime'
+import dashboardClientSource from 'virtual:dashboard-client'
 import { buildDiscordActivity } from '../../utils/discordPresence.js'
 import { layoutModules } from '../../utils/moduleLayout.js'
 import { buildDebugValues } from '../../utils/memorySpace.js'
@@ -37,8 +42,9 @@ import ExercisePanel from '../ExercisePanel/ExercisePanel.jsx'
 import { createExercise } from '../../utils/exercise.js'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { useNotifications } from '../../contexts/NotificationContext.jsx'
+import { useTheme } from '../../contexts/ThemeContext.jsx'
 import { diagnosticLabel, nodeLine } from '../LogicTree/logicLabels.js'
-import { failureLabel } from '../../utils/translations.js'
+import { failureLabel, translations } from '../../utils/translations.js'
 import { moveDebugSession, resolveDebugScreens, getModuleLinks, getUnusedDeclarationIds, getPureIds, captureBookmark, captureSourceNode } from '../../utils/logic/index.js'
 import { runDebugSession, runSimulation, runTranspilation, runTranspilationChecks, cancelEngineWork, isEngineCancelled } from '../../services/engineRunner.js'
 import { transpilationLanguages } from '../../utils/transpilation/languages.js'
@@ -87,6 +93,7 @@ export default function Canvas() {
   const [flowRun, setFlowRun] = useState(null)
   const [transpilationResult, setTranspilationResult] = useState(null)
   const [transpileExportError, setTranspileExportError] = useState(null)
+  const [dashboardExporting, setDashboardExporting] = useState(false)
   const [engineWork, setEngineWork] = useState(null)
   const [nodeGraph, setNodeGraph] = useState(null)
   const [functionTarget, setFunctionTarget] = useState(null)
@@ -107,6 +114,7 @@ export default function Canvas() {
   const workspaceRef = useRef(null)
   const groupMoveRef = useRef(null)
   const { language, t } = useTranslation()
+  const { presetThemes, customThemes } = useTheme()
   const { notify, clear: clearNotifications } = useNotifications()
   const document = useCanvasDocument()
   const search = useNodeSearch()
@@ -146,7 +154,7 @@ export default function Canvas() {
     observer.observe(element)
     return () => observer.disconnect()
   }, [canvasRef])
-  const files = useWorkspaceFiles({ project: document.project, cards: document.cards, camera, selected, exercise: document.exercise, onReplace: handleReplaceWorkspace, onUpdateImage: document.updateImage })
+  const files = useWorkspaceFiles({ project: document.project, cards: document.cards, camera, selected, exercise: document.exercise, dashboard: document.dashboard, onReplace: handleReplaceWorkspace, onUpdateImage: document.updateImage })
   const exerciseState = useExercise({ project: document.project, exercise: document.exercise })
   const exerciseRevisionRef = useRef(null)
   const transfers = useNodeTransfers({ project: document.project, index: document.index, selected, selectedNodeIds, readOnly: presentationMode, workspaceRef, onPaste: document.pasteNode, onMove: document.moveNodes, onDuplicate: document.duplicateNode, onTransferred: handleNodeTransferred })
@@ -250,6 +258,8 @@ export default function Canvas() {
   const selectedScreenCallers = selectedScreenCard ? moduleLinks.filter((link) => link.fromId === selectedScreenCard.id) : []
   // Une carte masquée reste dans le document et le fichier ; elle n'est simplement pas montée.
   const visibleCards = useMemo(() => document.cards.filter((card) => !card.hidden), [document.cards])
+  // Compte les widgets exportables sans relire toute la source à chaque rendu.
+  const dashboardWidgetCount = useMemo(() => document.cards.filter((card) => !card.hidden && dashboardWidgetTypes.includes(card.type) && document.index.modules.has(card.id)).length, [document.cards, document.index])
   // Le zoom sémantique retire d'abord les annotations, puis remplace les instructions par les fonctions.
   const semanticLevel = useMemo(() => semanticZoomLevel(zoom), [zoom])
   const semanticCards = useMemo(() => semanticLevel === 'detail' ? visibleCards : visibleCards.filter((card) => !['comment', 'image'].includes(card.type)), [visibleCards, semanticLevel])
@@ -821,6 +831,57 @@ export default function Canvas() {
     await files.exportText('svg', svg)
   }
 
+  // Vérifie le programme avec le vrai moteur puis produit un dashboard HTML autonome.
+  async function handleExportDashboard() {
+    if (files.busy || files.pendingImport || dashboardExporting) return
+    setDashboardExporting(true)
+    try {
+      const project = document.project
+      const cards = document.cards
+      const widgets = dashboardWidgets(project, cards)
+      const config = {
+        ...(document.dashboard ?? defaultDashboardConfig()),
+        layoutKey: document.dashboard?.layoutKey || crypto.randomUUID(),
+      }
+      const palette = resolveDashboardPalette(config, [...presetThemes, ...customThemes])
+      if (!palette) {
+        notify({ type: 'error', message: t('dashboard.generationFailed'), duration: 0 })
+        return
+      }
+      const nextConfig = { ...config, palette }
+      const result = await runSimulation(project, { maxSteps: dashboardSimulationBudget })
+      if (!result.ok) {
+        notify({ type: 'error', message: t('dashboard.preflightFailed', { code: result.errorCode ?? 'SIMULATION_FAILED' }), duration: 0 })
+        return
+      }
+      const kindLabels = Object.fromEntries(Object.keys(translations.en)
+        .filter((key) => key.startsWith('kind.'))
+        .map((key) => [key.slice(5), t(key)]))
+      const html = buildDashboardDocument({
+        name: config.name,
+        description: config.description,
+        palette,
+        widgets,
+        initialStates: dashboardInitialStates(widgets),
+        layout: dashboardDefaultLayout(widgets),
+        layoutKey: config.layoutKey,
+        runtimeSource: dashboardRuntimeSource,
+        clientSource: dashboardClientSource,
+        labels: dashboardLabels(t),
+        kindLabels,
+        project,
+        language,
+      })
+      document.setDashboard(nextConfig)
+      await files.exportText('html', html, 'dashboard.html')
+    } catch (failure) {
+      if (isEngineCancelled(failure)) return
+      notify({ type: 'error', message: `${t('dashboard.generationFailed')} ${failureLabel(failure, t)}`, duration: 0 })
+    } finally {
+      setDashboardExporting(false)
+    }
+  }
+
   // Exporte le sous-arbre du nœud sélectionné en JSON, sans exigence de pureté.
   async function handleExportNodeJson(nodeId) {
     const captured = captureSourceNode(document.project, nodeId, { index: document.index })
@@ -1319,6 +1380,7 @@ export default function Canvas() {
         onNew={files.handleNew} onOpenWorkspace={files.handleOpenWorkspace} onSave={files.handleSave} onSaveWorkspaceAs={files.saveWorkspaceAs} onExportArchive={files.exportWorkspaceArchive} onImport={files.handleImport} onExportSvg={handleExportSvg}
         recentWorkspaces={files.recentWorkspaces} onOpenRecent={files.handleOpenRecent}
         project={document.project} currentFolder={files.currentFolder} diagnostics={document.analysis?.diagnostics ?? []} referenceCount={document.analysis?.semantic?.references?.length ?? 0} unusedCount={unusedIds.size}
+        dashboard={document.dashboard} onChangeDashboard={document.setDashboard} onExportDashboard={handleExportDashboard} dashboardExporting={dashboardExporting} widgetCount={dashboardWidgetCount}
         distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)} minimapVisible={minimapVisible} onToggleMinimap={() => setMinimapVisible((current) => !current)} magnetEnabled={magnetEnabled} onToggleMagnet={() => setMagnetEnabled((current) => !current)} navVisible={!navCollapsed} onToggleNav={() => setNavCollapsed((current) => !current)} hiddenCards={hiddenCards} onShowAllHidden={handleShowAllHidden} onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={() => handleRecenter(getModulesBounds())}
         bookmarks={bookmarks} canBookmark={bookmarkStatus(selected).can} onSaveBookmark={handleSaveBookmark} onOpenBookmarks={() => setBookmarksOpen(true)} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark}
         onOpenRepository={() => openExternal(repositoryUrl)} update={appUpdate.update} onCheckUpdate={() => appUpdate.check()} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })} onQuit={() => quitApplication()}

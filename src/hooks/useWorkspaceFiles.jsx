@@ -14,6 +14,7 @@ import { readPreference, writePreference, hydratePreferences } from '../services
 import { examples } from '../utils/examples.js'
 import { failureLabel } from '../utils/translations.js'
 import { bytesToDataUrl, dataUrlToBytes, dataUrlMimeType, imageExtension } from '../utils/embeddedImage.js'
+import { defaultDashboardConfig } from '../utils/dashboardConfig.js'
 
 const recentWorkspacesStorageKey = 'sapphire-recent-workspaces'
 const lastWorkspaceStorageKey = 'sapphire-last-workspace'
@@ -65,7 +66,7 @@ function readFileAsDataUrl(file) {
 }
 
 // Prépare les dossiers de workspace sans toucher au document actif avant validation et confirmation de remplacement.
-export default function useWorkspaceFiles({ project, cards, camera, selected, exercise = null, onReplace, onUpdateImage }) {
+export default function useWorkspaceFiles({ project, cards, camera, selected, exercise = null, dashboard = null, onReplace, onUpdateImage }) {
   const { language, t } = useTranslation()
   const { notify } = useNotifications()
   const [busy, setBusy] = useState(false)
@@ -79,7 +80,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, ex
   const lastSavedText = useRef(null)
   const lastRecoveryText = useRef(null)
   const documentNameRef = useRef(workspaceDocumentName)
-  const view = useRef({ camera, selected, exercise })
+  const view = useRef({ camera, selected, exercise, dashboard })
   const booted = useRef(false)
 
   // Choisit l'expression et la durée adaptées à un message de fichier.
@@ -107,8 +108,8 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, ex
 
   // Garde la caméra et la sélection les plus récentes pour la sérialisation différée de l'autosave.
   useEffect(() => {
-    view.current = { camera, selected, exercise }
-  }, [camera, selected, exercise])
+    view.current = { camera, selected, exercise, dashboard }
+  }, [camera, selected, exercise, dashboard])
 
   // Ajoute un dossier en tête de liste et le conserve pour les prochaines sessions.
   function rememberRecentWorkspace(folder) {
@@ -194,10 +195,10 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, ex
   // Prépare le document et son texte pour un enregistrement dans un dossier.
   async function prepareDocument(folder) {
     if (!folder) {
-      return { cards, sources: {}, promoted: [], text: serializeWorkspace(project, cards, camera, selected, exercise) }
+      return { cards, sources: {}, promoted: [], text: serializeWorkspace(project, cards, camera, selected, exercise, dashboard) }
     }
     const prepared = await promoteEmbeddedImages(folder, cards)
-    const text = serializeWorkspace(project, prepared.cards, camera, selected, exercise)
+    const text = serializeWorkspace(project, prepared.cards, camera, selected, exercise, dashboard)
     return { ...prepared, text }
   }
 
@@ -225,7 +226,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, ex
       card.image = ''
       entries.push({ name: reference, data: bytes })
     }
-    const text = serializeWorkspace(project, nextCards, camera, selected, exercise)
+    const text = serializeWorkspace(project, nextCards, camera, selected, exercise, dashboard)
     return [{ name: workspaceDocumentName, data: new TextEncoder().encode(text) }, ...entries]
   }
 
@@ -257,12 +258,12 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, ex
   }
 
   // Exporte un document annexe (SVG, code, JSON de nœud) au chemin choisi, sans changer le workspace courant.
-  async function exportText(extension, text) {
+  async function exportText(extension, text, defaultName = null) {
     if (operation.current || pendingImport) return
     operation.current = true
     setBusy(true)
     try {
-      const path = await exportWorkspaceFile(extension, text, language)
+      const path = await exportWorkspaceFile(extension, text, language, defaultName)
       if (path) publishMessage('files.exported')
     } catch (failure) {
       publishError({ prefix: 'errors.couldNotSave', failure })
@@ -352,10 +353,10 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, ex
   // Écrit le document sans dialogue : dossier associé, ou copie de récupération pour un document sans dossier.
   async function autosaveWorkspace() {
     if (operation.current || pendingImport) return
-    const { camera: activeCamera, selected: activeSelected, exercise: activeExercise } = view.current
+    const { camera: activeCamera, selected: activeSelected, exercise: activeExercise, dashboard: activeDashboard } = view.current
     let text
     try {
-      text = serializeWorkspace(project, cards, activeCamera, activeSelected, activeExercise)
+      text = serializeWorkspace(project, cards, activeCamera, activeSelected, activeExercise, activeDashboard)
     } catch (failure) {
       publishError({ prefix: 'errors.couldNotSave', failure })
       return
@@ -484,7 +485,9 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, ex
 
   // Détecte un document jamais enregistré dont le contenu disparaîtrait en repartant à zéro.
   function hasUnsavedContent() {
-    return !currentFolder && (cards.length > 0 || project.modules.length > 0 || project.nodes.length > 0)
+    const base = defaultDashboardConfig()
+    const dashboardChanged = dashboard && (dashboard.name !== base.name || dashboard.description !== base.description || dashboard.themeId !== base.themeId || dashboard.palette !== null || dashboard.layoutKey !== '')
+    return !currentFolder && (cards.length > 0 || project.modules.length > 0 || project.nodes.length > 0 || dashboardChanged)
   }
 
   // Crée un workspace vierge dans un dossier choisi, ou en mémoire si le mode web ne fournit pas de fichiers.
@@ -631,7 +634,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, ex
     if (!ready) return undefined
     const timer = window.setTimeout(autosaveWorkspace, autosaveDelay)
     return () => window.clearTimeout(timer)
-  }, [project, cards, currentFolder, ready])
+  }, [project, cards, currentFolder, ready, dashboard])
 
   return {
     busy, pendingImport, pendingNew, recentWorkspaces, currentFolder, imageSources, imageSourceFor,

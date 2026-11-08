@@ -15,7 +15,7 @@ Mon_Projet/
 - **Créer un workspace** = choisir un dossier ; l'application y écrit un document vierge et crée `images/` et `backups/`.
 - **Enregistrer / Ctrl+S / autosauvegarde** = réécrire uniquement `workspace.sp3`. Les images ne sont jamais réécrites par l'autosauvegarde.
 - **Exporter** = une archive `.zip` contenant `workspace.sp3` et `images/`. Les exports `.sp3` et JSON du workspace ne sont plus proposés.
-- Les exports **JavaScript, Python, SVG et PNG** restent des exports de code ou d'image, distincts du workspace.
+- Les exports **JavaScript, Python, SVG, PNG et dashboard web HTML** restent des exports de code, d'image ou d'application autonome, distincts du workspace.
 - Les **cinq workspaces récents** et le **dernier workspace** sont mémorisés par chemin de dossier. Une ancienne liste de fichiers `.sp3` est convertie une fois en dossiers parents.
 
 ## Contenu et versions
@@ -48,6 +48,7 @@ Mon_Projet/
 - `contracts`, `generic`, `typeParameters`, les lambdas, les types fonction et les références de fonction suivent les contrats du moteur logique décrits dans `docs/LOGIC_API.md`.
 - Les **raccourcis clavier personnalisés** sont des préférences de l'application (`sapphire-keybinds`) et ne figurent jamais dans le document.
 - `exercise` est une clef racine optionnelle. Un `lock` valide est `{algorithm: "PBKDF2-SHA256", iterations, salt, hash}` ; il ne chiffre pas le document et ne bloque que l'édition dans l'interface. Une solution est exportée en archive `<titre>-solution.zip`.
+- `dashboard` est une clef racine optionnelle qui mémorise la configuration d'export web : `name`, `description`, `themeId`, `palette` (instantané portable des couleurs sombres) et `layoutKey` (identifiant local de disposition). Aucun chemin, aucune image et aucune donnée de visiteur n'y sont écrits. Une palette invalide est refusée avec `DASHBOARD_CONFIG_INVALID`. La clef est absente des anciens documents et reçoit les valeurs par défaut à l'ouverture ; aucune migration de version n'est nécessaire.
 - Géométrie en unités monde ; minimum 180 × 120. `camera` reprend les coordonnées du centre et l'exposant de zoom (maximum 2, soit 400 %). `selected` vaut `null` ou `{kind: "module" | "node", id}`.
 - Menus ouverts, formulaires non validés, gestes en cours et positions de défilement internes ne sont pas sauvegardés. L'export est celui du document validé en mémoire au clic, pas une capture d'image.
 
@@ -80,4 +81,4 @@ Les versions inconnues, doublons d'identifiants, géométries invalides, incohé
 
 ## Vérifications
 
-`tests/workspace/workspaceFile.test.js` contrôle l'écriture atomique, les sauvegardes, la lecture d'un dossier, la compatibilité d'un ancien `.sp3`, les images, l'export ZIP et la récupération. `tests/workspace/workspaceArchive.test.js` couvre l'archive ZIP, les références d'images et les conversions Data URL. `tests/workspace/migration.test.js` couvre la version 3 et le refus des références d'images hors dossier. Le moteur reste pur ; le module de format ne fait aucun accès disque.
+`tests/workspace/workspaceFile.test.js` contrôle l'écriture atomique, les sauvegardes, la lecture d'un dossier, la compatibilité d'un ancien `.sp3`, les images, l'export ZIP et la récupération. `tests/workspace/workspaceArchive.test.js` couvre l'archive ZIP, les références d'images et les conversions Data URL. `tests/workspace/migration.test.js` couvre la version 3 et le refus des références d'images hors dossier. `tests/workspace/dashboard.test.js` couvre la configuration d'export, les palettes, la disposition, les commandes d'exécution, les états initiaux, l'export HTML et sa relecture. Le moteur reste pur ; le module de format ne fait aucun accès disque.
