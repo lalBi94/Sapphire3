@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Activity, Box, Braces, ChartColumn, ChartLine, EyeOff, Gauge, Image, Lightbulb, Lock, LockOpen, MessageSquare, Monitor, Palette, Search } from 'lucide-react'
+import { Activity, Box, Braces, ChartColumn, ChartLine, ChevronDown, ChevronRight, EyeOff, Gauge, Image, Lightbulb, Lock, LockOpen, MessageSquare, Monitor, Palette, Search } from 'lucide-react'
 import { cardCategories, moduleTypes } from '../../utils/moduleTypes.js'
 import { normalizeSearchText } from '../../utils/searchText.js'
 import DeleteAction from '../DeleteAction/DeleteAction.jsx'
@@ -26,6 +26,7 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId =
   const menuRef = useRef(null)
   const searchRef = useRef(null)
   const [term, setTerm] = useState('')
+  const [collapsedGroups, setCollapsedGroups] = useState(() => new Set())
   const { t } = useTranslation()
 
   useEffect(() => {
@@ -54,6 +55,16 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId =
     }),
   })).filter((category) => category.types.length > 0)
 
+  // Déplie ou replie une catégorie de cartes ; la recherche force l'affichage des résultats.
+  function toggleGroup(id) {
+    setCollapsedGroups((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
   // Permet de parcourir les actions sans déplacer le canvas.
   function handleKeyDown(event) {
     event.stopPropagation()
@@ -69,7 +80,8 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId =
 
     if (event.key === 'Enter' && inSearch) {
       event.preventDefault()
-      buttons[0].click()
+      const action = buttons.find((button) => !button.classList.contains('canvas-context-menu__group-title'))
+      action?.click()
       return
     }
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
@@ -111,16 +123,29 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId =
         {categories.length === 0
           ? <p className="canvas-context-menu__empty">{t('canvas.createNone', { term })}</p>
           : <div role="menu" className="canvas-context-menu__columns" aria-label={t('canvas.addMenu')}>
-            {categories.map((category) => <div className="canvas-context-menu__group" role="group" aria-label={t(category.labelKey)} key={category.id}>
-              <p className="canvas-context-menu__group-title" aria-hidden="true">{t(category.labelKey)}</p>
-              {category.types.map((type) => {
-                const Icon = menuIcons[type]
-                return <button key={type} type="button" role="menuitem" onClick={() => onCreate(type)}>
-                  <Icon className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />
-                  {t(moduleTypes[type].actionKey)}
+            {categories.map((category) => {
+              const collapsed = !normalizedTerm && collapsedGroups.has(category.id)
+              return <div className="canvas-context-menu__group" role="group" aria-label={t(category.labelKey)} key={category.id}>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="canvas-context-menu__group-title"
+                  aria-expanded={!collapsed}
+                  title={t(collapsed ? 'menu.groupExpand' : 'menu.groupCollapse')}
+                  onClick={() => toggleGroup(category.id)}
+                >
+                  {collapsed ? <ChevronRight size={12} strokeWidth={2} aria-hidden="true" /> : <ChevronDown size={12} strokeWidth={2} aria-hidden="true" />}
+                  {t(category.labelKey)}
                 </button>
-              })}
-            </div>)}
+                {!collapsed && category.types.map((type) => {
+                  const Icon = menuIcons[type]
+                  return <button key={type} type="button" role="menuitem" onClick={() => onCreate(type)}>
+                    <Icon className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />
+                    {t(moduleTypes[type].actionKey)}
+                  </button>
+                })}
+              </div>
+            })}
           </div>}
       </>}
     </div>

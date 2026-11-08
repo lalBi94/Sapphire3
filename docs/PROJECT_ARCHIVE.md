@@ -2,6 +2,11 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Catégories de cartes pliables — 8 novembre 2026
+
+- Les trois catégories du menu de création (Programmation, Widgets, Annotations) sont désormais pliables individuellement : en-tête bouton avec chevron, `aria-expanded`, `title` traduit et état local au menu. La recherche force l'affichage des catégories correspondantes et l'entrée en recherche choisit toujours la première carte, jamais un en-tête.
+- Vérifications : **592 tests Node/Python réussis**, `pnpm build` réussi, contrôle navigateur du menu (trois en-têtes, repli de Widgets à 4 actions visibles, réouverture à 12 actions, recherche « plot » forçant l'affichage de **Create XY plot**) sans erreur console.
+
 ## XY plot et Mafs — 8 novembre 2026
 
 - Nouvelle carte **XY plot** (`xyPlot`) adossée à un module caché ordinaire : `SET_FUNCTION(fn: (double) -> double)`, `SET_RANGE(xMin, xMax, yMin, yMax)` et `CLEAR()`. L'échantillonnage produit 64 points, met à jour `COUNT` progressivement puis `AUTO`, et incrémente `REVISION`. Le lecteur `xyPlotState.js` expose points, bornes, révision, plafond 512 points ; Run/Debug et les images d'écran reçoivent `xyPlots`, `xyPlotFrames` et `screenFrameXyPlots`.
