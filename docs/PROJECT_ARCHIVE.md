@@ -7,7 +7,8 @@
 - Le panneau Simulation affiche en live un curseur de vitesse de 1 à 100. La valeur est appliquée immédiatement au worker sans redémarrer la session.
 - `src/utils/simulationSpeed.js` ajoute `liveSpeedDefault` (25) et `liveTickDelay` : la cadence passe de 800 ms entre tranches à vitesse 1 à 8 ms à vitesse 100, avec 32 ms par défaut. L'ancien tick fixe de 16 ms correspond au réglage 50.
 - `src/services/liveRunner.js` conserve la vitesse courante et reprogramme le tick quand elle change ; `useLiveSession` et `Canvas` transmettent la valeur au démarrage et pendant l'exécution. Le dashboard exporté n'est pas concerné.
-- Vérifications : **617 tests Node/Python réussis**, dont la conversion de cadence ; build Vite ; contrôle navigateur du curseur, de la valeur affichée et de la progression des pas à 100 puis à 1. Limite : le réglage n'est pas persisté et reste propre à la session.
+- Le curseur de pas du live ne sélectionne plus le nœud courant et n'ouvre plus ses propriétés : dans une boucle vide, il ne fige plus la sélection sur la référence `SP3_LIVE` affichée « Use a value ». Le module actif conserve son impulsion brève.
+- Vérifications : **617 tests Node/Python réussis**, dont la conversion de cadence ; build Vite ; contrôle navigateur du curseur, de la valeur affichée, de la progression des pas à 100 puis à 1 et de l'absence de sélection automatique du nœud de boucle en live. Limite : le réglage n'est pas persisté et reste propre à la session.
 
 ## Boutons d'entrée onClick(bool) — 9 novembre 2026
 

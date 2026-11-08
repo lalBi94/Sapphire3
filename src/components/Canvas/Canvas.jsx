@@ -278,6 +278,8 @@ export default function Canvas() {
   // Types concrets inférés pour les appels génériques, sans modifier la source.
   const genericCalls = useMemo(() => new Map((document.analysis?.genericCalls ?? []).map((entry) => [entry.nodeId, entry.types ?? [{ name: 'T', type: entry.type }]])), [document.analysis])
   const activeExecutionId = liveVisible ? live.currentNodeId : debugSession ? debugFrame?.nodeId ?? null : execution?.trace[execution.index] ?? null
+  // Le live pulse le module, mais ne fige pas un curseur sur un nœud de boucle.
+  const executionFocusId = liveVisible ? null : activeExecutionId
   // Identité de la session d'exécution courante : un nouveau Run ou une nouvelle session de debug réinitialise le repli manuel.
   const executionSession = liveVisible ? null : debugSession?.project === document.project ? debugSession.frames : execution?.trace ?? null
   // Les liens intermodules ne dépendent que de l'analyse, pas du déplacement des cartes.
@@ -349,13 +351,14 @@ export default function Canvas() {
   // Les nœuds qui contiennent autre chose ne dépendent que de la source analysée.
   const expandableIds = useMemo(() => expandableNodeIdsByModule(document.index), [document.index])
 
-  // Suit le bloc exécuté pour ouvrir ses propriétés sans réinitialiser la position du panneau.
+  // Suit le bloc exécuté pour ouvrir ses propriétés, sauf en live où le curseur change trop vite.
   useEffect(() => {
     if (!activeExecutionId) return
-    setSelection((current) => current.length === 1 && current[0]?.kind === 'node' && current[0].id === activeExecutionId ? current : [{ kind: 'node', id: activeExecutionId }])
     const moduleId = document.index.nodes.get(activeExecutionId)?.moduleId
     if (moduleId) setActiveCardId(moduleId)
-  }, [activeExecutionId])
+    if (liveVisible) return
+    setSelection((current) => current.length === 1 && current[0]?.kind === 'node' && current[0].id === activeExecutionId ? current : [{ kind: 'node', id: activeExecutionId }])
+  }, [activeExecutionId, liveVisible])
 
   // Une fois les ancêtres dépliés dans le DOM, amène le bloc recherché au centre de son module.
   useEffect(() => {
@@ -1141,7 +1144,7 @@ export default function Canvas() {
 
   // Calcule le chemin logique temporairement déplié jusqu'au nœud exécuté.
   function getExecutionExpandedNodeIds(moduleId) {
-    const currentId = activeExecutionId
+    const currentId = executionFocusId
     if (!currentId) return []
     const currentNode = document.index.nodes.get(currentId)
     if (!currentNode || currentNode.moduleId !== moduleId) return []
@@ -1471,7 +1474,7 @@ export default function Canvas() {
         pure={moduleCardTypes.includes(card.type) && pureIds.modules.has(card.id)}
         pulse={activeModuleId === card.id && executionStep !== null ? executionStep + 1 : null}
         expansionState={(moduleCardTypes.includes(card.type) || card.type === 'screen') && document.index.modules.has(card.id) ? getExpansionState(card.id) : null} onToggleExpansion={(id) => handleExpansion(id, getExpansionState(id) !== 'collapse')}>
-        {semanticLevel === 'detail' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} selectedIds={selectedIds} readOnly={presentationMode} activeExecutionId={activeExecutionId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} onReorder={(id, offset) => document.reorderNode(id, offset)} unusedIds={unusedIds} pureIds={pureIds.functions} breakpoints={breakpoints} onToggleBreakpoint={handleToggleBreakpoint} debugValues={debugValues} genericCalls={genericCalls} dropTarget={transfers.dropTarget} />}
+        {semanticLevel === 'detail' && document.index.modules.has(card.id) && <LogicTree module={document.index.modules.get(card.id)} index={document.index} selectedId={selected?.kind === 'node' ? selected.id : null} selectedIds={selectedIds} readOnly={presentationMode} activeExecutionId={executionFocusId} executionExpandedNodeIds={getExecutionExpandedNodeIds(card.id)} executionSession={executionSession} onSelect={handleSelect} expandedNodeIds={card.expandedNodeIds} onExpandedChange={(ids) => document.setExpandedNodes(card.id, ids)} onOpenActions={handleOpenActions} onReorder={(id, offset) => document.reorderNode(id, offset)} unusedIds={unusedIds} pureIds={pureIds.functions} breakpoints={breakpoints} onToggleBreakpoint={handleToggleBreakpoint} debugValues={debugValues} genericCalls={genericCalls} dropTarget={transfers.dropTarget} />}
       </CanvasModule>)}
       {alignmentGuides.vertical.map((guide) => <div key={`vertical:${guide}`} className="canvas-alignment-guide canvas-alignment-guide--vertical" style={{ left: `calc(50% + ${(guide - camera.x) * zoom}px)` }} aria-hidden="true" />)}
       {alignmentGuides.horizontal.map((guide) => <div key={`horizontal:${guide}`} className="canvas-alignment-guide canvas-alignment-guide--horizontal" style={{ top: `calc(50% + ${(guide - camera.y) * zoom}px)` }} aria-hidden="true" />)}
