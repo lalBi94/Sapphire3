@@ -16,6 +16,7 @@
       <a href="index.html" aria-current="page">Projet</a>
       <a href="documentation.html">Documentation visuelle</a>
       <a href="ast.html">Le modèle AST</a>
+      <a href="dashboards.html">Dashboards</a>
     </nav>
   </header>
 
@@ -23,7 +24,7 @@
     <section class="hero" id="presentation">
       <div class="hero-layout">
         <div class="hero-copy">
-          <p class="kicker">Application desktop Windows, Linux et macOS · 0.1.0-beta.6</p>
+          <p class="kicker">Application desktop Windows, Linux et macOS · 0.1.0-beta.7</p>
           <p>Windows vérifié ; paquets Linux et macOS construits mais non testés à l'exécution.
           Le texte décrit le code courant, qui peut être plus récent que la release publiée.</p>
           <h1>Des blocs qui sont de vrai code, pas des dessins qui y ressemblent</h1>
@@ -139,6 +140,23 @@
       </div>
     </section>
 
+    <section id="dashboards">
+      <div class="section-title">
+        <h2>Dashboards exportés</h2>
+        <span class="tag">10 exemples réels</span>
+      </div>
+      <p>
+        Dix fichiers HTML autonomes, interactifs, générés depuis les exemples locaux : widgets, Run/Pause/Stop,
+        Run continuous, thèmes clair/sombre et huit langues. Les cadres ci-dessous exécutent le vrai moteur ;
+        rien ne démarre avant un clic.
+      </p>
+      <div class="dashboard-preview-grid">
+        <iframe src="dashboards/rgbMixer.html" title="Dashboard RGB mixer" loading="lazy"></iframe>
+        <iframe src="dashboards/trafficControl.html" title="Dashboard Traffic control" loading="lazy"></iframe>
+      </div>
+      <p><a class="button button--primary" href="dashboards.html">Voir les 10 dashboards</a></p>
+    </section>
+
     <section id="demarche">
       <h2>Comment le projet est conduit</h2>
       <p>
@@ -183,7 +201,7 @@
     </section>
 
     <section id="par-ou-commencer">
-      <h2>Trois lectures possibles</h2>
+      <h2>Quatre lectures possibles</h2>
       <div class="grid">
         <div class="card">
           <h3><a href="documentation.html">Documentation visuelle</a></h3>
@@ -198,6 +216,11 @@
           <p>Ce que le moteur stocke vraiment&nbsp;: la source JSON v1, les trois relations indépendantes, les
           vingt-huit constructions et leurs slots, le typage strict, les portées, les diagnostics, puis la route
           vers l'analyse, la simulation et la transpilation.</p>
+        </div>
+        <div class="card">
+          <h3><a href="dashboards.html">Dashboards exportés</a></h3>
+          <p>Dix fichiers HTML autonomes et interactifs : widgets, Run/Pause/Stop, Run continuous, thèmes et
+          langues. Chaque exemple est régénéré après les changements du dashboard.</p>
         </div>
         <div class="card">
           <h3><a href="../ARCHITECTURE_AST.pdf">Architecture AST (PDF)</a></h3>

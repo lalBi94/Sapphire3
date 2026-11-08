@@ -15,6 +15,13 @@
   - Linux ARM64 : 9 988 878 octets, `c4481936f782af0b20038624c400c48c22cf19f519e44c08465633e272cd8e4f`.
   - macOS universel : 9 872 150 octets, `2c43365682bd10331501cddcd5975973678e45b2035af95283ad6837e24c69ad`.
 
+## Vitrine dashboards — 8 novembre 2026
+
+- `abstract/visual/dashboards.html` ajoute une galerie de dix dashboards autonomes dans des iframes titrés et chargés à la demande : RGB mixer, Gauge demo, Traffic control, Damped spring, Rotating cube, Game of Life, Pendulum wave, Checkout queue, Prime sieve et Reactor control. La sélection couvre les sept familles de widgets et les niveaux Simple, Medium et Hard.
+- `scripts/build-dashboard-showcase.mjs` et `pnpm dashboards:build` reconstruisent les dix fichiers depuis les exemples locaux, avec les polices, le logo, les catalogues de langue et le runtime réels. La page d'accueil ajoute deux aperçus et un lien vers la galerie ; la navigation des quatre pages du site pointe vers `dashboards.html`.
+- La CI régénère la galerie et refuse la pull request si `abstract/visual/dashboards` diffère des fichiers commités. Deux générations successives ont produit les mêmes SHA-256 sur Windows.
+- Vérifications navigateur : dix cartes et dix iframes, premier dashboard chargé en français avec huit panneaux, Run continuous terminé à 3170 pas, aucun lien local cassé ni erreur console. Les fichiers générés totalisent environ 7,1 Mo.
+
 ## Alignement documentaire — 8 novembre 2026
 
 - Comparaison ciblée avec `src/dashboard/client.js`, `styles.js`, `src/utils/dashboardExport.js`, `examples.js` et les tests associés : catalogue courant de 52 exemples (6 simples, 26 moyens, 20 difficiles), Spirograph en 12 images 64×40 et Pendulum wave en 9 images 56×24 avec huit pendules. Les images sont précalculées à la construction des exemples, puis présentées par le moteur ; aucune modification du simulateur.

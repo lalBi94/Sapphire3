@@ -78,3 +78,12 @@ jobs:
 
       - name: Build frontend
         run: pnpm build
+
+      - name: Verify dashboard showcase
+        run: |
+          pnpm dashboards:build
+          if [ -n "$(git status --porcelain -- abstract/visual/dashboards)" ]; then
+            git status --short -- abstract/visual/dashboards
+            echo "::error::Dashboard showcase is stale. Run pnpm dashboards:build and commit the generated files."
+            exit 1
+          fi
