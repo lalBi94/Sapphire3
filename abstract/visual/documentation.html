@@ -617,9 +617,11 @@
         <span class="tag">Exécution locale</span>
       </div>
       <p>
-        Rien ne s'exécute tout seul. Une action explicite lance un interpréteur local, déterministe, coupé de
-        React, du DOM, de Neutralinojs et de tout réseau, avec un budget d'étapes et une profondeur d'appel
-        bornés.
+        Rien ne s'exécute tout seul. Une action explicite lance un interpréteur local, coupé de React, du DOM, de
+        Neutralinojs et de tout réseau. Le mode par défaut est <b>Run live</b> : l'interpréteur coopératif rend la
+        main à chaque tranche ou à <code>screenPresent</code>, sans budget total, applique les entrées des boutons
+        entre deux frames et permet Pause/Stop. Le mode <b>Run borné</b>, disponible dans le menu, précalcule une
+        trace finie avec un budget d'étapes ; le debug et la transpilation restent bornés.
       </p>
       <p>
         La simulation, la préparation du debug et la transpilation sont exécutées dans un <b>Web Worker</b> pour
@@ -658,7 +660,7 @@
             <li data-marker="sortie">Une ligne par instruction <code>Afficher</code> rencontrée, dans l'ordre réel d'exécution&nbsp;: le tableau, le texte de la branche vraie, puis le résultat de l'appel intermodule.</li>
           </ol>
         </div>
-        <figcaption><b>29 — Résultat.</b> Aucune saisie interactive, aucun effet natif, aucun accès réseau pendant une simulation.</figcaption>
+        <figcaption><b>29 — Résultat.</b> En Run borné, la sortie est calculée d'avance. En Run live, les entrées des boutons sont appliquées entre deux frames ; aucun effet natif ni accès réseau.</figcaption>
       </figure>
 
       <figure class="shot" data-shot="30-debug">
@@ -674,7 +676,7 @@
             <li data-marker="noeud">Le nœud ciblé est mis en évidence dans l'arbre&nbsp;: debug et document restent un seul et même état.</li>
           </ol>
         </div>
-        <figcaption><b>30 — Pas à pas.</b> Cinq étapes affichées ici&nbsp;; le budget par défaut est de 10&nbsp;000 étapes, borné et non auto-réglable.</figcaption>
+        <figcaption><b>30 — Pas à pas.</b> Cinq étapes affichées ici. Le Run borné utilise 10&nbsp;000 pas par défaut ; le Run live n'a pas de budget total et se suspend par Pause ou Stop.</figcaption>
       </figure>
     </section>
 

@@ -9,6 +9,7 @@ import useNodeSearch from '../../hooks/useNodeSearch.jsx'
 import useGlobalKeybinds from '../../hooks/useGlobalKeybinds.jsx'
 import useAppUpdate from '../../hooks/useAppUpdate.jsx'
 import useDiscordPresence from '../../hooks/useDiscordPresence.jsx'
+import useLiveSession from '../../hooks/useLiveSession.jsx'
 import CanvasStatus from '../CanvasStatus/CanvasStatus.jsx'
 import ModuleFunctions from '../ModuleFunctions/ModuleFunctions.jsx'
 import { semanticZoomLevel, semanticSearchZoomLevel } from '../../utils/semanticZoom.js'
@@ -118,6 +119,7 @@ export default function Canvas() {
   const { presetThemes, customThemes } = useTheme()
   const { notify, clear: clearNotifications } = useNotifications()
   const document = useCanvasDocument()
+  const liveSession = useLiveSession()
   const search = useNodeSearch()
   const appUpdate = useAppUpdate()
   // Activité Discord dérivée des états existants, sans second moteur ni donnée personnelle.
@@ -214,54 +216,69 @@ export default function Canvas() {
     return () => window.clearTimeout(timer)
   }, [flowRun])
 
+  const live = liveSession.live
+  const liveVisible = live.status !== 'idle'
+  const liveStates = live.states ?? {}
+  const livePanelResult = liveVisible ? {
+    ok: live.status !== 'error',
+    output: live.output ?? [],
+    trace: [],
+    outputSteps: [],
+    errorCode: live.errorCode,
+    contracts: { total: 0, observations: 0, violations: [] },
+  } : null
   const debugFrame = debugSession?.project === document.project ? debugSession.frames[debugSession.cursor] : null
-  const screenPlayback = Boolean(!debugFrame && simulationResult?.screenFrames?.length && execution && (execution.running || execution.paused || execution.stopped))
-  // État visuel courant des écrans : frame de debug prioritaire, sinon état final.
+  const screenPlayback = Boolean(!liveVisible && !debugFrame && simulationResult?.screenFrames?.length && execution && (execution.running || execution.paused || execution.stopped))
+  // État visuel courant des écrans : live prioritaire, puis frame de debug, sinon état final.
   const debugScreens = useMemo(() => debugSession?.project === document.project ? resolveDebugScreens(debugSession.frames, debugSession.cursor) : null, [debugSession, document.project])
-  const screenStates = debugScreens ?? simulationResult?.screens ?? {}
-  // Jauges : un état par pas, aligné sur la trace affichée ; la frame de debug reste prioritaire.
-  const gaugeStates = debugFrame?.gauges
+  const screenStates = liveVisible ? liveStates.screens ?? {} : debugScreens ?? simulationResult?.screens ?? {}
+  // Jauges : un état par pas, aligné sur la trace affichée ; le live reste prioritaire.
+  const gaugeStates = liveVisible ? liveStates.gauges ?? {} : debugFrame?.gauges
     ?? (execution ? simulationResult?.gaugeFrames?.[Math.min(execution.index, (simulationResult?.gaugeFrames?.length ?? 1) - 1)] : null)
     ?? simulationResult?.gauges
     ?? {}
   // LED : même suivi par pas que les jauges, avec l'état final en secours.
-  const ledStates = debugFrame?.leds
+  const ledStates = liveVisible ? liveStates.leds ?? {} : debugFrame?.leds
     ?? (execution ? simulationResult?.ledFrames?.[Math.min(execution.index, (simulationResult?.ledFrames?.length ?? 1) - 1)] : null)
     ?? simulationResult?.leds
     ?? {}
   // LED RVB : mêmes états par pas que les jauges et voyants.
-  const rgbLedStates = debugFrame?.rgbLeds
+  const rgbLedStates = liveVisible ? liveStates.rgbLeds ?? {} : debugFrame?.rgbLeds
     ?? (execution ? simulationResult?.rgbLedFrames?.[Math.min(execution.index, (simulationResult?.rgbLedFrames?.length ?? 1) - 1)] : null)
     ?? simulationResult?.rgbLeds
     ?? {}
   // Barres de progression : même suivi par pas que les jauges et LED.
-  const progressStates = debugFrame?.progresses
+  const progressStates = liveVisible ? liveStates.progresses ?? {} : debugFrame?.progresses
     ?? (execution ? simulationResult?.progressFrames?.[Math.min(execution.index, (simulationResult?.progressFrames?.length ?? 1) - 1)] : null)
     ?? simulationResult?.progresses
     ?? {}
   // Graphiques à barres : même suivi par pas que les jauges et barres.
-  const barChartStates = debugFrame?.barCharts
+  const barChartStates = liveVisible ? liveStates.barCharts ?? {} : debugFrame?.barCharts
     ?? (execution ? simulationResult?.barChartFrames?.[Math.min(execution.index, (simulationResult?.barChartFrames?.length ?? 1) - 1)] : null)
     ?? simulationResult?.barCharts
     ?? {}
   // Traceurs XY : même suivi par pas que les autres widgets.
-  const xyPlotStates = debugFrame?.xyPlots
+  const xyPlotStates = liveVisible ? liveStates.xyPlots ?? {} : debugFrame?.xyPlots
     ?? (execution ? simulationResult?.xyPlotFrames?.[Math.min(execution.index, (simulationResult?.xyPlotFrames?.length ?? 1) - 1)] : null)
     ?? simulationResult?.xyPlots
     ?? {}
   // Oscilloscopes : même suivi par pas que les autres widgets.
-  const oscilloscopeStates = debugFrame?.oscilloscopes
+  const oscilloscopeStates = liveVisible ? liveStates.oscilloscopes ?? {} : debugFrame?.oscilloscopes
     ?? (execution ? simulationResult?.oscilloscopeFrames?.[Math.min(execution.index, (simulationResult?.oscilloscopeFrames?.length ?? 1) - 1)] : null)
     ?? simulationResult?.oscilloscopes
+    ?? {}
+  const heatmapStates = liveVisible ? liveStates.heatmaps ?? {} : debugFrame?.heatmaps
+    ?? (execution ? simulationResult?.heatmapFrames?.[Math.min(execution.index, (simulationResult?.heatmapFrames?.length ?? 1) - 1)] : null)
+    ?? simulationResult?.heatmaps
     ?? {}
   const selectedScreen = selected?.kind === 'module' && document.cards.some((card) => card.id === selected.id && card.type === 'screen')
   // Valeurs des variables et paramètres visibles, limitées à l'arrêt de debug courant.
   const debugValues = useMemo(() => debugFrame ? buildDebugValues(document.index, debugFrame) : null, [document.index, debugFrame])
   // Types concrets inférés pour les appels génériques, sans modifier la source.
   const genericCalls = useMemo(() => new Map((document.analysis?.genericCalls ?? []).map((entry) => [entry.nodeId, entry.types ?? [{ name: 'T', type: entry.type }]])), [document.analysis])
-  const activeExecutionId = debugSession ? debugFrame?.nodeId ?? null : execution?.trace[execution.index] ?? null
+  const activeExecutionId = liveVisible ? live.currentNodeId : debugSession ? debugFrame?.nodeId ?? null : execution?.trace[execution.index] ?? null
   // Identité de la session d'exécution courante : un nouveau Run ou une nouvelle session de debug réinitialise le repli manuel.
-  const executionSession = debugSession?.project === document.project ? debugSession.frames : execution?.trace ?? null
+  const executionSession = liveVisible ? null : debugSession?.project === document.project ? debugSession.frames : execution?.trace ?? null
   // Les liens intermodules ne dépendent que de l'analyse, pas du déplacement des cartes.
   const moduleLinks = useMemo(() => getModuleLinks(document.index), [document.index])
   const selectedScreenCard = selectedScreen ? document.cards.find((card) => card.id === selected.id) ?? null : null
@@ -299,7 +316,7 @@ export default function Canvas() {
   // Fonction sélectionnée : seule cible proposée pour « Run/Debug this function ».
   const selectedFunction = useMemo(() => selected?.kind === 'node' && document.index.nodes.get(selected.id)?.kind === 'FunctionDeclaration' ? { id: selected.id } : null, [selected, document.index])
   // Logic Pulse : la carte du module qui vient d'exécuter un pas pulse brièvement.
-  const executionStep = debugSession ? debugSession.cursor : execution ? execution.index : null
+  const executionStep = liveVisible ? live.steps : debugSession ? debugSession.cursor : execution ? execution.index : null
   const activeModuleId = activeExecutionId ? document.index.nodes.get(activeExecutionId)?.moduleId ?? null : null
   // Déclarations jamais utilisées : indicateur discret dans l'arbre.
   const unusedIds = useMemo(() => new Set(getUnusedDeclarationIds(document.project, document.analysis)), [document.project, document.analysis])
@@ -330,6 +347,7 @@ export default function Canvas() {
 
   // Restaure source, présentation et vue ensemble après confirmation d'import.
   function handleReplaceWorkspace(workspace) {
+    liveSession.reset()
     transfers.reset()
     clearNotifications()
     setNodeGraph(null)
@@ -608,8 +626,20 @@ export default function Canvas() {
     }
   }
 
+  // Lance le mode live par défaut : le programme tourne en continu et rend la main à chaque frame.
+  function handleRunLive() {
+    setSimulationResult(null)
+    setExecution(null)
+    setExecutionFree(false)
+    setFlowRun(null)
+    setDebugSession(null)
+    setFunctionResult(null)
+    liveSession.start(document.project, collectInputButtonValues(document.project, document.cards))
+  }
+
   // Lance une simulation locale uniquement sur un programme statiquement valide.
   async function handleRunSimulation({ inputs = collectInputButtonValues(document.project, document.cards), silent = false } = {}) {
+    liveSession.reset()
     const epoch = ++simulationEpochRef.current
     cancelEngineWork()
     const work = beginEngineWork('simulation')
@@ -679,11 +709,17 @@ export default function Canvas() {
   function handleInputChange(id, pressed) {
     document.updateInputButton(id, pressed)
     const cards = document.cards.map((card) => card.id === id ? { ...card, pressed: Boolean(pressed) } : card)
-    if (simulationResult) handleRunSimulation({ inputs: collectInputButtonValues(document.project, cards), silent: true })
+    const inputs = collectInputButtonValues(document.project, cards)
+    if (live.status === 'running' || live.status === 'paused') {
+      liveSession.sendInputs(inputs)
+      return
+    }
+    if (simulationResult) handleRunSimulation({ inputs, silent: true })
   }
 
   // Ouvre la simulation graphique simplifiée sur la trace du moteur, sans code mort.
   async function handleRunGraphical() {
+    liveSession.reset()
     const epoch = ++simulationEpochRef.current
     cancelEngineWork()
     const work = beginEngineWork('graphical')
@@ -726,11 +762,13 @@ export default function Canvas() {
 
   // Met l'animation en pause sans la terminer : l'index courant est conservé.
   function handlePauseExecution() {
+    if (live.status === 'running') { liveSession.pause(); return }
     setExecution((current) => current?.running ? { ...current, running: false, paused: true } : current)
   }
 
   // Reprend l'animation là où elle s'était arrêtée.
   function handleResumeExecution() {
+    if (live.status === 'paused') { liveSession.resume(); return }
     setExecution((current) => current?.paused ? { ...current, running: true, paused: false } : current)
   }
 
@@ -746,6 +784,7 @@ export default function Canvas() {
 
   // Interrompt une simulation en cours d'animation sans effacer sa sortie déjà produite.
   function handleStopExecution() {
+    if (live.status === 'running' || live.status === 'paused') { liveSession.stop(); return }
     setExecution((current) => current ? { ...current, running: false, paused: false, stopped: true } : current)
   }
 
@@ -756,6 +795,7 @@ export default function Canvas() {
 
   // Prépare les arrêts réversibles après l'analyse d'accessibilité, sans changer le workspace.
   async function handleDebugSp3() {
+    liveSession.reset()
     const epoch = ++simulationEpochRef.current
     cancelEngineWork()
     const work = beginEngineWork('debug')
@@ -949,6 +989,7 @@ export default function Canvas() {
   // Exécute la fonction choisie avec les entrées validées par le moteur.
   async function handleRunFunction(args) {
     if (!functionTarget) return
+    liveSession.reset()
     const token = ++functionRunTokenRef.current
     const epoch = simulationEpochRef.current
     const functionId = functionTarget
@@ -970,6 +1011,7 @@ export default function Canvas() {
   // Ouvre une session de debug sur la fonction choisie, sans modifier la source.
   async function handleDebugFunction(args) {
     if (!functionTarget) return
+    liveSession.reset()
     const token = ++functionRunTokenRef.current
     const epoch = ++simulationEpochRef.current
     const functionId = functionTarget
@@ -1292,7 +1334,7 @@ export default function Canvas() {
     'navigation.center': { available: () => true, run: () => handleRecenter(getModulesBounds()) },
     'navigation.zoom100': { available: () => true, run: resetZoom },
     'navigation.toggleMinimap': { available: () => true, run: () => setMinimapVisible((current) => !current) },
-    'execution.run': { available: () => true, run: handleRunSimulation },
+    'execution.run': { available: () => true, run: handleRunLive },
     'execution.stop': { available: () => true, run: handleStopExecution },
     'execution.debug': { available: () => true, run: handleDebugSp3 },
   })
@@ -1312,7 +1354,7 @@ export default function Canvas() {
       fullScreen={fullScreen} onToggleFullScreen={handleToggleFullScreen} gridVisible={gridVisible} onToggleGrid={() => setGridVisible((current) => !current)} hudVisible={hudVisible} onToggleHud={() => setHudVisible((current) => !current)} onArrangeModules={handleArrangeModules}
       hiddenCards={hiddenCards} onShowCard={handleShowCard} onShowAllHidden={handleShowAllHidden}
       presentation={presentationMode} onTogglePresentation={handleTogglePresentation}
-      hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onOpenSearch={search.show} onRunSimulation={handleRunSimulation} onRunGraphical={handleRunGraphical} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} selectedFunction={selectedFunction} onOpenFunction={handleOpenFunction} simulationRunning={Boolean(execution?.running)} simulationPaused={Boolean(execution?.paused)} onPauseSimulation={handlePauseExecution} onResumeSimulation={handleResumeExecution} onStopSimulation={handleStopExecution} onOpenRepository={() => openExternal(repositoryUrl)} onOpenSettings={() => setSettingsOpen(true)} onQuit={() => quitApplication()} updateAvailable={appUpdate.update.status === 'available'} updateVersion={appUpdate.update.release?.version ?? ''} updateManual={appUpdate.update.release?.installMode === 'manual'} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })} onCheckTranspile={getTranspileChecks}
+      hasSelection={Boolean(selected && selected.kind !== 'comment')} onOpenSelectionMenu={handleOpenSelectionMenu} onOpenSearch={search.show} onRunLive={handleRunLive} onRunSimulation={handleRunSimulation} onRunGraphical={handleRunGraphical} onDebugSp3={handleDebugSp3} onTranspile={handleTranspile} selectedFunction={selectedFunction} onOpenFunction={handleOpenFunction} simulationRunning={live.status === 'running' || Boolean(execution?.running)} simulationPaused={live.status === 'paused' || Boolean(execution?.paused)} onPauseSimulation={handlePauseExecution} onResumeSimulation={handleResumeExecution} onStopSimulation={handleStopExecution} onOpenRepository={() => openExternal(repositoryUrl)} onOpenSettings={() => setSettingsOpen(true)} onQuit={() => quitApplication()} updateAvailable={appUpdate.update.status === 'available'} updateVersion={appUpdate.update.release?.version ?? ''} updateManual={appUpdate.update.release?.installMode === 'manual'} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })} onCheckTranspile={getTranspileChecks}
       bookmarks={bookmarks} modules={moduleChoices} canBookmark={bookmarkStatus(selected).can} onSaveBookmark={handleSaveBookmark} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark} onOpenBookmarks={() => setBookmarksOpen(true)} exercise={document.exercise} onOpenExercise={() => setExerciseOpen(true)} onCreateExercise={handleCreateExercise} onCheckExercise={handleCheckExercise} />
     <button type="button" className="canvas-nav-toggle" aria-expanded={!navCollapsed} aria-label={t(navCollapsed ? 'nav.show' : 'nav.hide')} title={t(navCollapsed ? 'nav.show' : 'nav.hide')} onClick={() => setNavCollapsed((current) => !current)}>{navCollapsed ? <ChevronDown size={15} aria-hidden="true" /> : <ChevronUp size={15} aria-hidden="true" />}</button>
     <main ref={canvasRef} id="canvas-main" className={`canvas${isPanning ? ' canvas--panning' : ''}`} aria-label={t('canvas.aria')} tabIndex={0}
@@ -1346,7 +1388,7 @@ export default function Canvas() {
         onOscilloscopeViewChange={(id, oscilloscopeView) => document.updateGeometry(id, { oscilloscopeView })}
         onHeatmapViewChange={(id, heatmapView) => document.updateGeometry(id, { heatmapView })}
         heatmapDimensions={document.index.modules.get(card.id)?.heatmap}
-        heatmapState={debugFrame?.heatmaps?.[card.id] ?? (execution ? simulationResult?.heatmapFrames?.[Math.min(execution.index, (simulationResult?.heatmapFrames?.length ?? 1) - 1)]?.[card.id] : null) ?? simulationResult?.heatmaps?.[card.id] ?? null}
+        heatmapState={heatmapStates[card.id] ?? null}
         onLedViewChange={(id, ledView) => document.updateGeometry(id, { ledView })}
         onRgbLedViewChange={(id, rgbLedView) => document.updateGeometry(id, { rgbLedView })}
         onInputButtonViewChange={(id, inputButtonView) => document.updateGeometry(id, { inputButtonView })}
@@ -1402,7 +1444,7 @@ export default function Canvas() {
         <span>{transfers.notice.error ? diagnosticLabel(transfers.notice.error, t) : t(transfers.notice.message)}{transfers.notice.detail && ` · ${diagnosticLabel(transfers.notice.detail, t)}`}</span>
         <button type="button" aria-label={t('nav.dismiss')} onClick={transfers.dismiss}><X size={14} aria-hidden="true" /></button>
       </div>}
-      <SimulationPanel result={simulationResult} running={Boolean(execution?.running)} paused={Boolean(execution?.paused)} stopped={Boolean(execution?.stopped)} currentStep={execution ? execution.index + 1 : 0} free={executionFree} speed={simulationSpeed} onSpeedChange={handleSimulationSpeedChange} onToggleFree={handleToggleExecutionFree} onPause={handlePauseExecution} onResume={handleResumeExecution} onStop={handleStopExecution} onClose={() => { setSimulationResult(null); setExecution(null); setExecutionFree(false) }} />
+      <SimulationPanel result={liveVisible ? livePanelResult : simulationResult} live={liveVisible} running={liveVisible ? live.status === 'running' : Boolean(execution?.running)} paused={liveVisible ? live.status === 'paused' : Boolean(execution?.paused)} stopped={liveVisible ? live.status === 'stopped' : Boolean(execution?.stopped)} currentStep={liveVisible ? live.steps : execution ? execution.index + 1 : 0} free={executionFree} speed={simulationSpeed} onSpeedChange={handleSimulationSpeedChange} onToggleFree={handleToggleExecutionFree} onPause={handlePauseExecution} onResume={handleResumeExecution} onStop={handleStopExecution} onClose={() => { if (liveVisible) liveSession.reset(); else { setSimulationResult(null); setExecution(null); setExecutionFree(false) } }} />
       {exerciseOpen && document.exercise && <ExercisePanel exercise={document.exercise} onChange={document.setExercise} index={document.index} state={exerciseState} onReset={document.exercise.starter ? handleResetExercise : undefined} onSaveSolution={handleSaveSolution} onRemove={handleRemoveExercise} readOnly={presentationMode} onClose={() => setExerciseOpen(false)} />}
       {functionNode && <FunctionPanel key={`${functionTarget}:${functionSignature}`} index={document.index} functionNode={functionNode} result={functionResult?.functionId === functionTarget ? functionResult.result : null} onRun={handleRunFunction} onDebug={handleDebugFunction} onClose={handleCloseFunction} />}
       {debugSession?.project === document.project && <DebugPanel session={debugSession} index={document.index} onAction={handleDebugAction} onClose={() => setDebugSession(null)} memoryOpen={memoryOpen} onToggleMemory={() => { setMemoryOpen((current) => !current); setPointerGraphOpen(false) }} pointerGraphOpen={pointerGraphOpen} onTogglePointerGraph={() => { setPointerGraphOpen((current) => !current); setMemoryOpen(false) }} />}

@@ -82,9 +82,10 @@
             écriture, génériques avancés (plusieurs paramètres <code>T</code>, <code>U</code>, tableaux génériques
             et contraintes exactes), lambdas et fermetures avec retours de type fonction, opérations natives SP3
             (maths, texte et tableaux), formules KaTeX dans les notes et références intermodules avec flèches
-            courbes. La simulation, le debug et la transpilation JavaScript/Python s'exécutent hors du fil React,
-            avec progression et annulation ; le debug ajoute points d'arrêt, mémoire abstraite et valeurs au survol.
-            Run propose une simulation graphique simplifiée. L'interface offre aussi les graphes de contrôle et de dépendances, les
+            courbes. La simulation s'exécute hors du fil React : <b>Run live</b> par défaut, avec entrées appliquées
+            entre deux frames et Pause/Stop, ou <b>Run borné</b> pour précalculer une trace finie. Le debug et la
+            transpilation JavaScript/Python restent bornés, avec progression et annulation ; le debug ajoute points
+            d'arrêt, mémoire abstraite et valeurs au survol. Run propose aussi une simulation graphique simplifiée. L'interface offre aussi les graphes de contrôle et de dépendances, les
             cartes Screen/Gauge/ProgressBar/BarChart/LED avec lecture synchronisée à 24 fps,
             XY plot (Mafs), oscilloscope multicanal (uPlot), les grilles Heatmap
             fixes suivies par pas sans horloge de lecture, les contrats vérifiables, le gestionnaire de fenêtres, le constructeur

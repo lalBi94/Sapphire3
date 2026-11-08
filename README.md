@@ -63,6 +63,7 @@ La CI GitHub Actions (`.github/workflows/ci.yml`) exécute l’installation verr
 - Pointeurs exécutés **et transpilés** en JavaScript et Python (`&`, `*p`, écriture à travers un pointeur).
 - Initialisation globale des modules dans un **ordre topologique stable** selon les imports.
 - Simulation locale bornée, débogage pas à pas avec points d’arrêt, mémoire pédagogique, valeurs au survol et exécution d’une fonction choisie.
+- **Run live par défaut** : le bouton principal **Exécuter en direct** lance un interpréteur coopératif qui exécute le programme par tranches, sans budget total, et rend la main à chaque frame ou `screenPresent`. Les entrées des boutons sont appliquées entre deux frames, avec Pause/Reprise/Stop. **Exécution bornée** reste dans le menu pour précalculer une trace finie avec un budget de pas ; le dashboard exporté reste borné/autonome.
 - **Vitesse de simulation** : ×1, ×2, ×3 ou ×N (1 à 100) dans le panneau Simulation, ajustable pendant l’exécution. Le calcul temporel conserve la vitesse choisie même si le rendu ralentit.
 - Transpilation **JavaScript** et **Python** sur action explicite ; C, C++ et Java sont désactivés.
 

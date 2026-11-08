@@ -331,9 +331,17 @@ Le workspace est un dossier choisi : \code{workspace.sp3}, images liées dans
 \code{images/}, trois sauvegardes directes au plus dans \code{backups/}, export ZIP.
 Un document neuf non vierge utilise le dossier persistant \code{sapphire3-recovery/}.
 
+Le \textbf{Run live} est le mode par défaut de l'application : un interpréteur
+coopératif exécute le programme par tranches, sans budget total, et rend la main
+au pilote à chaque tranche ou à \code{screenPresent}. Le pilote applique les entrées
+entre deux frames, met à jour les écrans et widgets, et permet Pause/Stop. Le
+\textbf{Run borné} reste disponible pour précalculer une trace finie avec un budget
+d'étapes ; le debug et la transpilation conservent leur fonctionnement borné.
+Le live ne fournit ni trace complète, ni contrats, ni retour arrière.
+
 L'\textbf{Export Web Dashboard} produit un unique \code{dashboard.html} autonome :
 le moteur de simulation réel y est embarqué et exécuté dans un Web Worker, avec un
-repli synchrone borné. Le dashboard reprend les neuf widgets graphiques et les annotations Comment avec formules KaTeX et polices embarquées, dont l'écran
+repli synchrone borné. Le dashboard reprend les onze widgets graphiques et d'entrée et les annotations Comment avec formules KaTeX et polices embarquées, dont l'écran
 se zoome automatiquement pour remplir sa carte en conservant les proportions
 et en rognant les bords si nécessaire, Run/Pause/Stop,
 un curseur de vitesse de 1 à 100, un mode Run autonomous qui rejoue la trace

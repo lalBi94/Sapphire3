@@ -8,7 +8,7 @@ import { clampSimulationSpeed, simulationSpeedMax, simulationSpeedMin } from '..
 import './SimulationPanel.css'
 
 // Affiche les sorties et l'erreur éventuelle de la dernière simulation locale, avec pause, reprise et arrêt.
-export default function SimulationPanel({ result, running = false, paused = false, stopped = false, currentStep = 0, free = false, speed = 1, onClose, onPause, onResume, onStop, onToggleFree, onSpeedChange }) {
+export default function SimulationPanel({ result, live = false, running = false, paused = false, stopped = false, currentStep = 0, free = false, speed = 1, onClose, onPause, onResume, onStop, onToggleFree, onSpeedChange }) {
   const { t } = useTranslation()
   const [speedDraft, setSpeedDraft] = useState(String(speed))
   const [position, setPosition] = useState(null)
@@ -87,25 +87,25 @@ export default function SimulationPanel({ result, running = false, paused = fals
 
   const status = running ? t('simulation.running') : paused ? t('simulation.paused') : stopped ? t('simulation.stopped') : t('simulation.completed')
   // La sortie suit le pas courant, sauf en mode libre, après un arrêt ou quand aucune animation n'est active.
-  const paced = !free && !stopped && currentStep > 0 && Array.isArray(result.outputSteps)
+  const paced = !live && !free && !stopped && currentStep > 0 && Array.isArray(result.outputSteps)
   const visibleOutput = paced ? result.output.slice(0, result.outputSteps.filter((step) => step <= currentStep).length) : result.output
   return (
     <aside ref={panelRef} className="simulation-panel" data-canvas-ui data-canvas-scroll aria-label={t('simulation.title')} style={{ ...(position ? { left: position.x, top: position.y, right: 'auto', bottom: 'auto' } : {}), ...(front.zIndex ? { zIndex: front.zIndex } : {}) }} onPointerDown={(event) => { front.bringToFront(); event.stopPropagation() }} onFocusCapture={front.bringToFront} onKeyDown={(event) => event.stopPropagation()}>
       <header role="group" tabIndex={0} aria-label={t('details.move')} title={t('details.moveHint')} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onLostPointerCapture={end} onKeyDown={keyDown}>
         <h2>{t('simulation.title')}</h2>
-        {(running || paused) && <button type="button" className="simulation-panel__control" aria-label={t('simulation.free')} aria-pressed={free} title={t('simulation.freeHint')} onClick={onToggleFree}><FastForward size={14} fill="currentColor" aria-hidden="true" />{t('simulation.free')}</button>}
+        {!live && (running || paused) && <button type="button" className="simulation-panel__control" aria-label={t('simulation.free')} aria-pressed={free} title={t('simulation.freeHint')} onClick={onToggleFree}><FastForward size={14} fill="currentColor" aria-hidden="true" />{t('simulation.free')}</button>}
         {running && <button type="button" className="simulation-panel__control" aria-label={t('simulation.pause')} title={t('simulation.pause')} onClick={onPause}><Pause size={14} fill="currentColor" aria-hidden="true" />{t('simulation.pause')}</button>}
         {paused && <button type="button" className="simulation-panel__control" aria-label={t('simulation.resume')} title={t('simulation.resume')} onClick={onResume}><Play size={14} fill="currentColor" aria-hidden="true" />{t('simulation.resume')}</button>}
         {(running || paused) && <button type="button" className="simulation-panel__control simulation-panel__control--danger" aria-label={t('simulation.stop')} title={t('simulation.stop')} onClick={onStop}><Square size={14} fill="currentColor" aria-hidden="true" />{t('simulation.stop')}</button>}
         <button type="button" aria-label={t('simulation.close')} onClick={onClose}><X size={16} aria-hidden="true" /></button>
       </header>
-      {result.ok ? <><p className="simulation-panel__status">{status} · {currentStep}/{result.trace.length} {t(result.trace.length === 1 ? 'simulation.step' : 'simulation.steps')}</p>
+      {result.ok ? <><p className="simulation-panel__status">{status} · {live ? `${currentStep} ${t(currentStep === 1 ? 'simulation.step' : 'simulation.steps')}` : `${currentStep}/${result.trace.length} ${t(result.trace.length === 1 ? 'simulation.step' : 'simulation.steps')}`}</p>
         <p className="visually-hidden" role="status">{status}</p>
-        <div className="simulation-panel__speed">
+        {!live && <div className="simulation-panel__speed">
           <span>{t('simulation.speed')}</span>
           {[1, 2, 3].map((value) => <button type="button" key={value} aria-pressed={speed === value} onClick={() => chooseSpeed(value)}>×{value}</button>)}
           <label className="simulation-panel__speed-custom">×<input type="number" min={simulationSpeedMin} max={simulationSpeedMax} step="1" value={speedDraft} aria-label={t('simulation.speed')} onChange={(event) => setSpeedDraft(event.target.value)} onBlur={commitSpeed} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur() }} /></label>
-        </div>
+        </div>}
         <pre>{visibleOutput.join('\n') || t('simulation.noOutput')}</pre>
         {result.contracts?.total > 0 && <section className="simulation-panel__contracts" aria-label={t('contracts.title')}>
           <h3>{t('contracts.title')}</h3>

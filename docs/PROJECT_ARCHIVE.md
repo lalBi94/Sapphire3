@@ -2,6 +2,13 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Run live par défaut — 8 novembre 2026
+
+- Nouvel interpréteur coopératif `src/utils/logic/liveSimulation.js` : il reprend le sous-ensemble du simulateur (expressions, boucles, fonctions, classes, lambdas, pointeurs, widgets), mais rend la main au pilote tous les 400 pas ou à chaque `screenPresent`, sans budget total. Les entrées sont appliquées aux globales entre deux frames ; une demande d'arrêt lève un signal interne et termine proprement la session.
+- `src/services/live.worker.js` exécute l'interpréteur, `src/services/liveRunner.js` pilote les ticks (16 ms), les entrées, Pause/Reprise/Stop, et `src/hooks/useLiveSession.jsx` alimente les cartes et `SimulationPanel`. Le bouton principal **Exécuter en direct** démarre ce mode ; le menu conserve **Exécution bornée** (`simulateProgram`) et le raccourci Run lance le live.
+- Les écrans, jauges, LED, LED RVB, progressions, barres, XY plots, oscilloscopes et heatmaps suivent l'état live ; le nœud courant est focalisé. `SimulationPanel` affiche les étapes et la sortie live, sans curseur de vitesse ni mode libre. Les entrées des boutons sont envoyées au worker sans relancer le programme.
+- Vérifications : `tests/logic/liveSimulation.test.js` exécute une boucle infinie, applique une entrée entre deux frames et demande l'arrêt ; **613 tests Node/Python réussis**, build Vite et PDF LaTeX. Contrôles navigateur : **Exécuter en direct** termine l'exemple Two buttons and an LED (`Terminée · 28 étapes`, sortie `false`), **Exécution bornée** lance bien la trace bornée (`5/28`). Limites : pas de contrats, de debug, de retour arrière ni de trace complète en live ; le dashboard exporté reste borné/autonome.
+
 ## Vitrine GH Pages : système solaire et boutons d'entrée — 8 novembre 2026
 
 - `scripts/build-dashboard-showcase.mjs` passe à **douze dashboards** : **Solar system** en premier, **Two buttons and an LED** ensuite, puis les dix exemples précédents. Les deux nouveaux fichiers sont générés avec le vrai moteur et les widgets d'entrée.

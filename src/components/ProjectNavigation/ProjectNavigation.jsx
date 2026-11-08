@@ -36,7 +36,7 @@ function ReplaceConfirmation({ titleKey, bodyKey, detail, confirmKey, onConfirm,
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, pendingImport, pendingNew, recentWorkspaces, onSave, onSaveWorkspaceAs, onExportArchive, onExportSvg, onOpenWorkspace, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, onArrangeModules, distorted, onToggleDistortion, minimapVisible = true, onToggleMinimap, magnetEnabled = true, onToggleMagnet, fullScreen = false, onToggleFullScreen, gridVisible = true, onToggleGrid, hudVisible = true, onToggleHud, hiddenCards = [], onShowCard, onShowAllHidden, presentation = false, onTogglePresentation, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunSimulation, onRunGraphical, onDebugSp3, onTranspile, onCheckTranspile, selectedFunction = null, onOpenFunction, simulationRunning = false, simulationPaused = false, onPauseSimulation, onResumeSimulation, onStopSimulation, onOpenRepository, onOpenSettings, onQuit, updateAvailable = false, updateVersion = '', updateManual = false, onInstallUpdate, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark, onOpenBookmarks, exercise = null, onOpenExercise, onCreateExercise, onCheckExercise }) {
+export default function ProjectNavigation({ busy, pendingImport, pendingNew, recentWorkspaces, onSave, onSaveWorkspaceAs, onExportArchive, onExportSvg, onOpenWorkspace, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, onArrangeModules, distorted, onToggleDistortion, minimapVisible = true, onToggleMinimap, magnetEnabled = true, onToggleMagnet, fullScreen = false, onToggleFullScreen, gridVisible = true, onToggleGrid, hudVisible = true, onToggleHud, hiddenCards = [], onShowCard, onShowAllHidden, presentation = false, onTogglePresentation, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunLive, onRunSimulation, onRunGraphical, onDebugSp3, onTranspile, onCheckTranspile, selectedFunction = null, onOpenFunction, simulationRunning = false, simulationPaused = false, onPauseSimulation, onResumeSimulation, onStopSimulation, onOpenRepository, onOpenSettings, onQuit, updateAvailable = false, updateVersion = '', updateManual = false, onInstallUpdate, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark, onOpenBookmarks, exercise = null, onOpenExercise, onCreateExercise, onCheckExercise }) {
   const navigationRef = useRef(null)
   const [insertingId, setInsertingId] = useState(null)
   const [exampleQuery, setExampleQuery] = useState('')
@@ -147,6 +147,12 @@ export default function ProjectNavigation({ busy, pendingImport, pendingNew, rec
   function handleImport() {
     closeMenus()
     onImport()
+  }
+
+  // Referme les volets avant de lancer le run live par défaut.
+  function handleRunLive() {
+    closeMenus()
+    onRunLive()
   }
 
   // Referme les volets avant de lancer le mode demandé, sans activer les modes graphiques futurs.
@@ -370,7 +376,7 @@ export default function ProjectNavigation({ busy, pendingImport, pendingNew, rec
             })}
           </div>
         </details>}
-        <button type="button" className={`project-navigation__run${simulationRunning ? ' project-navigation__run--running' : ''}`} title={t('run.simulateSp3')} onClick={() => handleRun()}><Play size={13} fill="currentColor" aria-hidden="true" />{t('nav.run')}</button>
+        <button type="button" className={`project-navigation__run${simulationRunning ? ' project-navigation__run--running' : ''}`} title={t('run.liveHint')} onClick={handleRunLive}><Play size={13} fill="currentColor" aria-hidden="true" />{t('run.live')}</button>
         {simulationRunning && <button type="button" className="project-navigation__run-action" title={t('simulation.pause')} aria-label={t('simulation.pause')} onClick={onPauseSimulation}><Pause size={12} fill="currentColor" aria-hidden="true" />{t('simulation.pause')}</button>}
         {simulationPaused && <button type="button" className="project-navigation__run-action" title={t('simulation.resume')} aria-label={t('simulation.resume')} onClick={onResumeSimulation}><Play size={12} fill="currentColor" aria-hidden="true" />{t('simulation.resume')}</button>}
         {(simulationRunning || simulationPaused) && <button type="button" className="project-navigation__stop" title={t('simulation.stop')} aria-label={t('simulation.stop')} onClick={onStopSimulation}><Square size={12} fill="currentColor" aria-hidden="true" />{t('simulation.stop')}</button>}
@@ -378,7 +384,8 @@ export default function ProjectNavigation({ busy, pendingImport, pendingNew, rec
           <summary className="project-navigation__run-toggle" aria-label={t('run.actions')} title={t('run.actions')}><ChevronDown size={14} aria-hidden="true" /></summary>
           <div className="project-navigation__menu project-navigation__run-menu">
             <p className="project-navigation__section">{t('run.workspace')}</p>
-            <button type="button" onClick={() => handleRun()}><Play size={14} aria-hidden="true" />{t('run.simulateSp3')}</button>
+            <button type="button" onClick={handleRunLive}><Play size={14} aria-hidden="true" />{t('run.live')}</button>
+            <button type="button" onClick={() => handleRun()}><Play size={14} aria-hidden="true" />{t('run.bounded')}</button>
             <button type="button" onClick={() => handleRun(true)}><Bug size={14} aria-hidden="true" />{t('run.debugSp3')}</button>
             {selectedFunction && <>
               <p className="project-navigation__section">{t('run.selectedFunction')}</p>
