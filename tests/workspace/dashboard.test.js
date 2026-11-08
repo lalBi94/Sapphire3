@@ -7,6 +7,7 @@ import {
   dashboardColumns,
   moveDashboardPanel,
   normalizeDashboardLayout,
+  packDashboardBento,
   packDashboardLayout,
   readDashboardLayout,
   resizeDashboardPanel,
@@ -294,6 +295,24 @@ test('dashboard : déplacement, redimensionnement, masquage et disposition respo
   assert.deepEqual(readDashboardLayout(storage, 'broken', ['fallback'], panels), ['fallback'])
   storage.setItem('stale', JSON.stringify([...layout, { id: 'unknown', x: 0, y: 0, w: 1, h: 1, visible: true }]))
   assert.equal(readDashboardLayout(storage, 'stale', [], panels).some((entry) => entry.id === 'unknown'), false)
+})
+
+test('dashboard : la disposition bento place les panneaux pleine et demi-largeur sur deux colonnes', () => {
+  const panels = [
+    { id: 'screen', h: 9, span: 'full' },
+    { id: 'xy', h: 8, span: 'full' },
+    { id: 'led1', h: 5, span: 'half' },
+    { id: 'led2', h: 5, span: 'half' },
+    { id: 'output', h: 8, span: 'full' },
+  ]
+  const layout = packDashboardBento(panels)
+  assert.deepEqual(layout.map((entry) => [entry.id, entry.x, entry.y, entry.w]), [
+    ['screen', 0, 0, 6],
+    ['xy', 6, 0, 6],
+    ['led1', 6, 8, 3],
+    ['led2', 9, 8, 3],
+    ['output', 0, 9, 6],
+  ])
 })
 
 test('dashboard : la disposition initiale inclut les widgets, la sortie et l’exécution', () => {

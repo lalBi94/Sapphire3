@@ -61,6 +61,54 @@ export function packDashboardLayout(panels, columns = dashboardColumns) {
   return panels.map((panel) => placePanel(occupied, panel, columns))
 }
 
+// Répartit les panneaux en deux colonnes bento : les panneaux pleine largeur occupent
+// une colonne entière, les panneaux demi-largeur se placent par deux côte à côte.
+export function packDashboardBento(panels, columns = dashboardColumns) {
+  const columnCount = 2
+  const columnWidth = Math.max(1, Math.floor(columns / columnCount))
+  const halfWidth = Math.max(1, Math.floor(columnWidth / 2))
+  const columnHeights = Array(columnCount).fill(0)
+  const openHalfRows = Array(columnCount).fill(null)
+  const placements = []
+
+  // Choisit la colonne la plus courte pour équilibrer les deux colonnes.
+  function chooseColumn() {
+    return columnHeights
+      .map((height, index) => ({ height, index }))
+      .sort((left, right) => left.height - right.height || left.index - right.index)[0].index
+  }
+
+  for (const panel of panels) {
+    const height = Math.max(1, Math.trunc(panel.h) || 1)
+    if (panel.span === 'half') {
+      const open = openHalfRows.map((row, index) => row ? { index, row } : null)
+        .filter(Boolean)
+        .sort((left, right) => columnHeights[left.index] - columnHeights[right.index] || left.index - right.index)
+      if (open.length > 0) {
+        const { index, row } = open[0]
+        placements.push({ id: panel.id, x: index * columnWidth + halfWidth, y: row.y, w: halfWidth, h: height, visible: true })
+        const extra = Math.max(0, height - row.height)
+        columnHeights[index] += extra
+        row.height = Math.max(row.height, height)
+        openHalfRows[index] = null
+      } else {
+        const index = chooseColumn()
+        const y = columnHeights[index]
+        placements.push({ id: panel.id, x: index * columnWidth, y, w: halfWidth, h: height, visible: true })
+        columnHeights[index] += height
+        openHalfRows[index] = { y, height }
+      }
+    } else {
+      const index = chooseColumn()
+      const y = columnHeights[index]
+      placements.push({ id: panel.id, x: index * columnWidth, y, w: columnWidth, h: height, visible: true })
+      columnHeights[index] += height
+      openHalfRows[index] = null
+    }
+  }
+  return placements
+}
+
 // Garantit une entrée pour chaque panneau et retire les identifiants inconnus.
 export function normalizeDashboardLayout(layout, panels, columns = dashboardColumns) {
   const entries = Array.isArray(layout) ? layout : []

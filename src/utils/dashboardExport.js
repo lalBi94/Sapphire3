@@ -2,7 +2,7 @@
 
 import { buildLightColors } from './theme.js'
 import { dashboardExecutionPanelId, dashboardLabels, dashboardOutputPanelId, dashboardSimulationBudget } from './dashboardConfig.js'
-import { packDashboardLayout } from './dashboardLayout.js'
+import { packDashboardBento } from './dashboardLayout.js'
 import { simulationSpeedMax } from './simulationSpeed.js'
 import { repositoryUrl } from './appInfo.js'
 import { supportedLanguages, translate, translations } from './translations.js'
@@ -20,20 +20,25 @@ const dashboardKindTranslations = Object.fromEntries(supportedLanguages.map(({ i
     .map((key) => [key.slice(5), translate(id, key)])),
 ]))
 
+// Chaque panneau indique sa largeur bento (`full` ou `half`) et son groupe d'affichage.
 const panelDefaults = Object.freeze({
-  screen: { w: 6, h: 9 },
-  gauge: { w: 3, h: 8 },
-  progress: { w: 6, h: 4 },
-  led: { w: 2, h: 5 },
-  rgbLed: { w: 3, h: 5 },
-  barChart: { w: 6, h: 7 },
-  xyPlot: { w: 6, h: 8 },
-  oscilloscope: { w: 8, h: 8 },
-  heatmap: { w: 6, h: 8 },
-  comment: { w: 4, h: 4 },
-  output: { w: 6, h: 8 },
-  execution: { w: 6, h: 5 },
+  screen: { w: 6, h: 9, span: 'full', group: 'display' },
+  heatmap: { w: 6, h: 8, span: 'full', group: 'display' },
+  xyPlot: { w: 6, h: 8, span: 'full', group: 'plot' },
+  oscilloscope: { w: 6, h: 8, span: 'full', group: 'plot' },
+  barChart: { w: 6, h: 7, span: 'full', group: 'plot' },
+  progress: { w: 6, h: 4, span: 'full', group: 'indicator' },
+  gauge: { w: 3, h: 8, span: 'half', group: 'indicator' },
+  led: { w: 3, h: 5, span: 'half', group: 'indicator' },
+  rgbLed: { w: 3, h: 5, span: 'half', group: 'indicator' },
+  output: { w: 6, h: 8, span: 'full', group: 'output' },
+  execution: { w: 6, h: 5, span: 'full', group: 'execution' },
+  comment: { w: 6, h: 4, span: 'full', group: 'comment' },
 })
+
+// Ordre initial des groupes : affichages, tracés, indicateurs, sortie, exécution, commentaires.
+const panelGroupOrder = Object.freeze({ display: 0, plot: 1, indicator: 2, output: 3, execution: 4, comment: 5 })
+const defaultPanel = Object.freeze({ w: 6, h: 6, span: 'full', group: 'plot' })
 
 // Icônes SVG inline, sans dépendance ni requête, alignées sur les traits de l'interface.
 const dashboardIcons = Object.freeze({
@@ -103,12 +108,13 @@ export function dashboardThemeCss(palette = {}) {
   return `${declarations(dark, 'dark')}${declarations(light, 'light')}`
 }
 
-// Construit la disposition initiale : widgets dans l'ordre du canvas, puis sortie et exécution.
+// Construit la disposition initiale en deux colonnes bento, groupées par nature de panneau.
 export function dashboardDefaultLayout(widgets) {
-  const panels = widgets.map((widget) => ({ id: widget.id, ...(panelDefaults[widget.type] ?? panelDefaults.screen) }))
+  const panels = widgets.map((widget) => ({ id: widget.id, ...(panelDefaults[widget.type] ?? defaultPanel) }))
   panels.push({ id: dashboardOutputPanelId, ...panelDefaults.output })
   panels.push({ id: dashboardExecutionPanelId, ...panelDefaults.execution })
-  return packDashboardLayout(panels)
+  panels.sort((left, right) => (panelGroupOrder[left.group] ?? 1) - (panelGroupOrder[right.group] ?? 1))
+  return packDashboardBento(panels)
 }
 
 // Assemble un document HTML unique, sans serveur, CDN, police ni dépendance externe.
