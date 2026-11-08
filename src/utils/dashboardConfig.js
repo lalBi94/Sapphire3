@@ -117,6 +117,7 @@ export function dashboardLabels(t) {
     switchToDark: t('dashboard.switchToDark'),
     idle: t('dashboard.idle'),
     preparing: t('dashboard.preparing'),
+    speed: t('simulation.speed'),
     running: t('simulation.running'),
     paused: t('simulation.paused'),
     completed: t('simulation.completed'),

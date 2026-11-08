@@ -1,11 +1,19 @@
 // État d'exécution du dashboard exporté et sélecteurs purs, partagés avec le client autonome.
 
+import { clampSimulationSpeed } from './simulationSpeed.js'
+
 export const dashboardExecutionInitial = Object.freeze({
   status: 'idle',
   index: 0,
   result: null,
   error: null,
 })
+
+// Cadence d'animation du dashboard : base bornée à environ 8 s, multipliée par la vitesse choisie.
+export function dashboardPlaybackRate(totalSteps, speed = 1) {
+  const total = Number.isSafeInteger(totalSteps) && totalSteps > 0 ? totalSteps : 0
+  return Math.max(60, total / 8) * clampSimulationSpeed(speed)
+}
 
 // Réduit les commandes Run/Pause/Stop et l'avancement de la trace.
 export function dashboardExecutionReducer(state, action) {

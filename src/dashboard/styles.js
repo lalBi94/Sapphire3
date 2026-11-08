@@ -243,6 +243,72 @@ p, h1, h2, h3 { margin: 0; }
   background: linear-gradient(90deg, var(--db-primary), var(--db-condition) 55%, var(--db-secondary));
   transition: width 0.15s linear;
 }
+.db-speed {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  padding: 2px;
+  border: 1px solid var(--db-border);
+  border-radius: var(--db-radius-control);
+  background: color-mix(in srgb, var(--db-bg) 72%, transparent);
+}
+.db-speed__label {
+  padding: 0 5px;
+  color: var(--db-muted);
+  font-family: var(--db-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.db-speed__button {
+  min-height: 24px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: var(--db-radius-small);
+  background: transparent;
+  color: var(--db-muted);
+  font-family: var(--db-mono);
+  font-size: 10px;
+  cursor: pointer;
+}
+.db-speed__button:hover:not(:disabled) {
+  border-color: var(--db-border);
+  background: var(--db-hover);
+  color: var(--db-text);
+}
+.db-speed__button[aria-pressed="true"] {
+  border-color: var(--db-primary);
+  background: var(--db-primary-soft);
+  color: var(--db-primary);
+}
+.db-speed__custom {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 24px;
+  padding: 0 5px;
+  border: 1px solid var(--db-border);
+  border-radius: var(--db-radius-small);
+  color: var(--db-muted);
+  font-family: var(--db-mono);
+  font-size: 10px;
+}
+.db-speed__custom input {
+  width: 38px;
+  min-height: 20px;
+  padding: 0 3px;
+  border: 0;
+  border-radius: 1px;
+  background: var(--db-raised);
+  color: var(--db-text);
+  font: inherit;
+}
+.db-speed__button:focus-visible,
+.db-speed__custom input:focus-visible {
+  outline: 2px solid var(--db-focus);
+  outline-offset: -2px;
+}
 
 .db-stage {
   display: grid;

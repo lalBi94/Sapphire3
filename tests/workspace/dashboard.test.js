@@ -19,6 +19,7 @@ import {
   dashboardExecutionInitial,
   dashboardExecutionReducer,
   dashboardNodeMap,
+  dashboardPlaybackRate,
   dashboardStatesAt,
   dashboardVisibleOutput,
 } from '../../src/utils/dashboardExecution.js'
@@ -111,6 +112,16 @@ test('dashboard : les commandes Run, Pause, Stop et l’avancement restent cohé
   const stopped = dashboardExecutionReducer({ ...started, result, status: 'running' }, { type: 'stop' })
   assert.equal(stopped.layout[0].id, 'panel')
   assert.equal(stopped.mode, 'light')
+})
+
+test('dashboard : la vitesse multiplie la cadence d’animation et reste bornée', () => {
+  assert.equal(dashboardPlaybackRate(0, 1), 60)
+  assert.equal(dashboardPlaybackRate(800, 1), 100)
+  assert.equal(dashboardPlaybackRate(800, 2), 200)
+  assert.equal(dashboardPlaybackRate(800, 3), 300)
+  assert.equal(dashboardPlaybackRate(800, 0), 100)
+  assert.equal(dashboardPlaybackRate(800, 999), 10000)
+  assert.equal(dashboardPlaybackRate(3170, 1), 396.25)
 })
 
 test('dashboard : la sortie suit les pas réels et les images de widgets sont sélectionnées au bon index', () => {
@@ -270,6 +281,8 @@ test('dashboard : l’export produit un HTML unique, échappé, hors ligne et th
   assert.match(html, /Threadlock Systems/)
   assert.match(html, /Sapphire 3/)
   assert.match(html, /db-footer__logo/)
+  assert.match(html, /data-speed="1"/)
+  assert.match(html, /data-speed-input/)
   assert.match(html, /"layoutKey":"layout-demo"/)
   assert.match(html, /"widgets":/)
   assert.match(html, /"initialStates":/)

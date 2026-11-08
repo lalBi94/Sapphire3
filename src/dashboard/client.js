@@ -5,9 +5,11 @@ import {
   dashboardExecutionInitial,
   dashboardExecutionReducer,
   dashboardNodeMap,
+  dashboardPlaybackRate,
   dashboardStatesAt,
   dashboardVisibleOutput,
 } from '../utils/dashboardExecution.js'
+import { clampSimulationSpeed } from '../utils/simulationSpeed.js'
 import {
   dashboardColumns,
   dashboardRowGap,
@@ -59,6 +61,8 @@ function start(config, runtimeSource) {
   const pauseButton = document.querySelector('[data-action="pause"]')
   const stopButton = document.querySelector('[data-action="stop"]')
   const modeButtons = [...document.querySelectorAll('button[data-mode]')]
+  const speedButtons = [...document.querySelectorAll('button[data-speed]')]
+  const speedInput = document.querySelector('[data-speed-input]')
   const panelsButton = document.querySelector('[data-action="panels"]')
   const panelsMenu = document.querySelector('[data-panels-menu]')
   const nodes = dashboardNodeMap(config.project)
@@ -80,6 +84,7 @@ function start(config, runtimeSource) {
     ...dashboardExecutionInitial,
     layout: readDashboardLayout(window.localStorage, storageKey, defaults, panels),
     mode: readMode(),
+    speed: 1,
   }
   let worker = null
   let workerUrl = null
@@ -401,6 +406,14 @@ function start(config, runtimeSource) {
       const active = button.dataset.mode === state.mode
       button.setAttribute('aria-pressed', String(active))
     }
+  }
+
+  // Met à jour les préréglages et le champ personnalisé de vitesse.
+  function applySpeed() {
+    for (const button of speedButtons) {
+      button.setAttribute('aria-pressed', String(Number(button.dataset.speed) === state.speed))
+    }
+    if (speedInput) speedInput.value = String(state.speed)
   }
 
   // Construit le menu de visibilité de tous les panneaux.
@@ -755,7 +768,7 @@ function start(config, runtimeSource) {
       renderStates()
       return
     }
-    const stepsPerSecond = Math.max(60, total / 8)
+    const stepsPerSecond = dashboardPlaybackRate(total, state.speed)
     const interval = 1000 / stepsPerSecond
     lastFrame = performance.now()
     accumulator = 0
@@ -872,6 +885,25 @@ function start(config, runtimeSource) {
       applyMode()
     })
   }
+  for (const button of speedButtons) {
+    button.addEventListener('click', () => {
+      state.speed = clampSimulationSpeed(button.dataset.speed)
+      applySpeed()
+      if (state.status === 'running') startAnimation()
+    })
+  }
+  if (speedInput) {
+    speedInput.addEventListener('change', () => {
+      state.speed = clampSimulationSpeed(speedInput.value)
+      applySpeed()
+      if (state.status === 'running') startAnimation()
+    })
+    speedInput.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return
+      event.preventDefault()
+      speedInput.blur()
+    })
+  }
   panelsButton.addEventListener('click', () => toggleMenu())
   document.addEventListener('click', (event) => {
     if (!panelsMenu.hidden && !panelsMenu.contains(event.target) && !panelsButton.contains(event.target)) toggleMenu(false)
@@ -899,6 +931,7 @@ function start(config, runtimeSource) {
   applyLayout()
   renderMenu()
   applyMode()
+  applySpeed()
   renderControls()
   renderStates()
 }

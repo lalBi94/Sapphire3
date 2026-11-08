@@ -153,6 +153,13 @@ export function buildDashboardDocument({
 <div class="db-toolbar">
   <p class="db-status" data-status data-kind="idle" role="status" aria-live="polite"><span class="db-status__dot" aria-hidden="true"></span><span data-status-label>${escapeDashboardHtml(labels.idle ?? 'Idle')}</span></p>
   <div class="db-progress" aria-hidden="true"><div class="db-progress__fill" data-progress></div></div>
+  <div class="db-speed" role="group" aria-label="${escapeDashboardHtml(labels.speed ?? 'Speed')}">
+    <span class="db-speed__label">${escapeDashboardHtml(labels.speed ?? 'Speed')}</span>
+    <button type="button" class="db-speed__button" data-speed="1" aria-pressed="true">×1</button>
+    <button type="button" class="db-speed__button" data-speed="2" aria-pressed="false">×2</button>
+    <button type="button" class="db-speed__button" data-speed="3" aria-pressed="false">×3</button>
+    <label class="db-speed__custom">×<input type="number" min="1" max="100" step="1" value="1" inputmode="numeric" data-speed-input aria-label="${escapeDashboardHtml(labels.speed ?? 'Speed')}"></label>
+  </div>
 </div>
 <main id="dashboard-stage" class="db-stage" data-stage aria-label="${escapeDashboardHtml(labels.widgetsAria ?? 'Dashboard widgets')}"></main>
 <footer class="db-footer">
