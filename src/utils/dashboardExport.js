@@ -17,6 +17,16 @@ const panelDefaults = Object.freeze({
   execution: { w: 6, h: 5 },
 })
 
+// Icônes SVG inline, sans dépendance ni requête, alignées sur les traits de l'interface.
+const dashboardIcons = Object.freeze({
+  run: '<svg class="db-button__icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M5 3.4 12 8l-7 4.6Z" fill="currentColor"/></svg>',
+  pause: '<svg class="db-button__icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="4.4" y="3.4" width="2.6" height="9.2" rx=".5" fill="currentColor"/><rect x="9" y="3.4" width="2.6" height="9.2" rx=".5" fill="currentColor"/></svg>',
+  stop: '<svg class="db-button__icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="4.2" y="4.2" width="7.6" height="7.6" rx=".6" fill="currentColor"/></svg>',
+  panels: '<svg class="db-button__icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="2.8" y="2.8" width="4.4" height="4.4" rx=".5" stroke="currentColor" stroke-width="1.3"/><rect x="8.8" y="2.8" width="4.4" height="4.4" rx=".5" stroke="currentColor" stroke-width="1.3"/><rect x="2.8" y="8.8" width="4.4" height="4.4" rx=".5" stroke="currentColor" stroke-width="1.3"/><rect x="8.8" y="8.8" width="4.4" height="4.4" rx=".5" stroke="currentColor" stroke-width="1.3"/></svg>',
+  dark: '<svg class="db-button__icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M12.2 9.7A5.1 5.1 0 0 1 6.3 3.8 5.1 5.1 0 1 0 12.2 9.7Z" fill="currentColor"/></svg>',
+  light: '<svg class="db-button__icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="3" fill="currentColor"/><path d="M8 1.4v2M8 12.6v2M1.4 8h2M12.6 8h2M3.3 3.3l1.4 1.4M11.3 11.3l1.4 1.4M12.7 3.3l-1.4 1.4M4.7 11.3l-1.4 1.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+})
+
 // Échappe un texte destiné au HTML, y compris les noms saisis par l'utilisateur.
 export function escapeDashboardHtml(value) {
   return String(value ?? '')
@@ -136,16 +146,16 @@ export function buildDashboardDocument({
   </div>
   <div class="db-actions">
     <div class="db-controls" role="group" aria-label="${escapeDashboardHtml(labels.controls ?? 'Execution controls')}">
-      <button type="button" class="db-button db-button--primary" data-action="run">${escapeDashboardHtml(labels.run ?? 'Run')}</button>
-      <button type="button" class="db-button" data-action="pause" disabled>${escapeDashboardHtml(labels.pause ?? 'Pause')}</button>
-      <button type="button" class="db-button" data-action="stop" disabled>${escapeDashboardHtml(labels.stop ?? 'Stop')}</button>
+      <button type="button" class="db-button db-button--primary" data-action="run">${dashboardIcons.run}<span data-run-label>${escapeDashboardHtml(labels.run ?? 'Run')}</span></button>
+      <button type="button" class="db-button" data-action="pause" disabled>${dashboardIcons.pause}<span>${escapeDashboardHtml(labels.pause ?? 'Pause')}</span></button>
+      <button type="button" class="db-button" data-action="stop" disabled>${dashboardIcons.stop}<span>${escapeDashboardHtml(labels.stop ?? 'Stop')}</span></button>
     </div>
     <div class="db-mode" role="group" aria-label="${escapeDashboardHtml(labels.appearance ?? 'Appearance')}">
-      <button type="button" class="db-button db-mode__button" data-mode="dark" aria-pressed="true">${escapeDashboardHtml(labels.dark ?? 'Dark')}</button>
-      <button type="button" class="db-button db-mode__button" data-mode="light" aria-pressed="false">${escapeDashboardHtml(labels.light ?? 'Light')}</button>
+      <button type="button" class="db-button db-mode__button" data-mode="dark" aria-pressed="true">${dashboardIcons.dark}<span>${escapeDashboardHtml(labels.dark ?? 'Dark')}</span></button>
+      <button type="button" class="db-button db-mode__button" data-mode="light" aria-pressed="false">${dashboardIcons.light}<span>${escapeDashboardHtml(labels.light ?? 'Light')}</span></button>
     </div>
     <div class="db-menu">
-      <button type="button" class="db-button" data-action="panels" aria-expanded="false">${escapeDashboardHtml(labels.panels ?? 'Panels')}</button>
+      <button type="button" class="db-button" data-action="panels" aria-expanded="false">${dashboardIcons.panels}<span>${escapeDashboardHtml(labels.panels ?? 'Panels')}</span></button>
       <div class="db-menu__popover" data-panels-menu hidden></div>
     </div>
   </div>
@@ -165,6 +175,7 @@ export function buildDashboardDocument({
   </div>
 </div>
 <main id="dashboard-stage" class="db-stage" data-stage aria-label="${escapeDashboardHtml(labels.widgetsAria ?? 'Dashboard widgets')}"></main>
+<div class="db-feedback" data-feedback role="status" aria-live="polite" aria-atomic="true"></div>
 <footer class="db-footer">
   <div class="db-footer__brand">
     ${logo ? `<img class="db-footer__logo" src="${escapeDashboardHtml(logo)}" alt="" width="40" height="40">` : '<span class="db-footer__logo db-footer__logo--fallback" aria-hidden="true">S3</span>'}

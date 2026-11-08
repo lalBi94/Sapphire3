@@ -163,13 +163,22 @@ p, h1, h2, h3 { margin: 0; }
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
 }
 .db-button:hover:not(:disabled) {
   border-color: var(--db-border);
   background: var(--db-hover);
   color: var(--db-text);
 }
+.db-button:active:not(:disabled) { transform: translateY(1px); }
 .db-button:disabled { opacity: 0.45; cursor: not-allowed; }
+.db-button__icon {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  transition: transform 0.15s ease;
+}
+.db-button:hover:not(:disabled) .db-button__icon { transform: scale(1.08); }
 .db-button--primary {
   border-color: transparent;
   background: var(--db-primary);
@@ -338,6 +347,36 @@ p, h1, h2, h3 { margin: 0; }
 .db-speed__custom input:focus-visible {
   outline: 2px solid var(--db-focus);
   outline-offset: -2px;
+}
+
+.db-feedback {
+  position: fixed;
+  right: clamp(14px, 4vw, 40px);
+  bottom: 24px;
+  z-index: 60;
+  max-width: min(360px, calc(100vw - 28px));
+  padding: 10px 14px 10px 16px;
+  border: 1px solid var(--db-border);
+  border-left: 2px solid var(--db-primary);
+  border-radius: var(--db-radius-control);
+  background: color-mix(in srgb, var(--db-raised) 94%, transparent);
+  box-shadow: 0 12px 32px color-mix(in srgb, black 42%, transparent);
+  color: var(--db-text);
+  font-family: var(--db-mono);
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  line-height: 1.5;
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.db-feedback[data-visible="true"] { opacity: 1; transform: translateY(0); }
+[dir="rtl"] .db-feedback {
+  right: auto;
+  left: clamp(14px, 4vw, 40px);
+  border-left: 1px solid var(--db-border);
+  border-right: 2px solid var(--db-primary);
 }
 
 .db-stage {
@@ -777,6 +816,7 @@ p, h1, h2, h3 { margin: 0; }
   .db-toolbar { padding-left: 12px; padding-right: 12px; }
   .db-footer { padding-left: 12px; padding-right: 12px; }
   .db-footer__credits { align-items: flex-start; text-align: left; }
+  .db-feedback { right: 12px; bottom: 16px; left: 12px; max-width: none; }
 }
 
 @media (max-width: 460px) {

@@ -59,8 +59,10 @@ function start(config, runtimeSource) {
   const progressFill = document.querySelector('[data-progress]')
   const progressTrack = document.querySelector('[data-progress-track]')
   const runButton = document.querySelector('[data-action="run"]')
+  const runButtonLabel = document.querySelector('[data-run-label]')
   const pauseButton = document.querySelector('[data-action="pause"]')
   const stopButton = document.querySelector('[data-action="stop"]')
+  const feedback = document.querySelector('[data-feedback]')
   const modeButtons = [...document.querySelectorAll('button[data-mode]')]
   const speedButtons = [...document.querySelectorAll('button[data-speed]')]
   const speedInput = document.querySelector('[data-speed-input]')
@@ -94,6 +96,7 @@ function start(config, runtimeSource) {
   let lastFrame = 0
   let accumulator = 0
   let resizeFrame = 0
+  let feedbackTimer = 0
 
   // Construit chaque panneau une seule fois ; les mises à jour ne recréent pas les canevas.
   function buildPanels() {
@@ -447,6 +450,7 @@ function start(config, runtimeSource) {
       applyLayout()
       renderMenu()
       saveLayout()
+      announce(labels.layoutReset ?? 'Layout reset.')
     })
     panelsMenu.append(reset)
   }
@@ -471,9 +475,10 @@ function start(config, runtimeSource) {
     status.dataset.kind = state.status
     statusLabel.textContent = statusText
     runButton.disabled = state.status === 'running' || state.status === 'preparing'
-    runButton.textContent = labels.run ?? 'Run'
-    runButton.title = state.status === 'paused' ? (labels.resume ?? 'Resume') : (labels.run ?? 'Run')
-    runButton.setAttribute('aria-label', runButton.title)
+    const runLabel = state.status === 'paused' ? (labels.resume ?? 'Resume') : (labels.run ?? 'Run')
+    if (runButtonLabel) runButtonLabel.textContent = runLabel
+    runButton.title = runLabel
+    runButton.setAttribute('aria-label', runLabel)
     pauseButton.disabled = state.status !== 'running' && state.status !== 'preparing'
     stopButton.disabled = state.status === 'idle'
     const total = Array.isArray(state.result?.trace) ? state.result.trace.length : 0
@@ -667,12 +672,33 @@ function start(config, runtimeSource) {
     ref.meta.textContent = [kind, node.module ? `${labels.module ?? 'Module'}: ${node.module}` : ''].filter(Boolean).join(' · ')
   }
 
+  // Affiche un retour bref et l'annonce aux technologies d'assistance.
+  function announce(message) {
+    if (!feedback || !message) return
+    feedback.textContent = message
+    feedback.dataset.visible = 'true'
+    window.clearTimeout(feedbackTimer)
+    feedbackTimer = window.setTimeout(() => {
+      feedback.dataset.visible = 'false'
+      feedback.textContent = ''
+    }, 2800)
+  }
+
+  // Annonce le pas courant après une mise en pause ou un retour arrière.
+  function announcePaused() {
+    const total = Array.isArray(state.result?.trace) ? state.result.trace.length : 0
+    announce(total > 0
+      ? formatTemplate(labels.feedbackPausedAt ?? 'Paused at step {current} / {total}.', { current: state.index + 1, total })
+      : (labels.paused ?? 'Paused'))
+  }
+
   // Met la simulation en pause et revient au pas choisi sur la barre.
   function handleSeek(index) {
     state = dashboardExecutionReducer(state, { type: 'seek', index })
     cancelAnimation()
     renderControls()
     renderStates()
+    announcePaused()
   }
 
   // Lance une nouvelle session, ou reprend une session en pause.
@@ -680,6 +706,7 @@ function start(config, runtimeSource) {
     if (state.status === 'paused') {
       state = dashboardExecutionReducer(state, { type: 'resume' })
       renderControls()
+      announce(labels.feedbackResumed ?? 'Execution resumed.')
       if (state.result) startAnimation()
       return
     }
@@ -690,6 +717,7 @@ function start(config, runtimeSource) {
     state = dashboardExecutionReducer(state, { type: 'start' })
     renderControls()
     renderStates()
+    announce(labels.feedbackStarted ?? 'Execution started.')
     runProgram(requestId)
   }
 
@@ -698,6 +726,7 @@ function start(config, runtimeSource) {
     state = dashboardExecutionReducer(state, { type: 'pause' })
     cancelAnimation()
     renderControls()
+    announcePaused()
   }
 
   // Arrête la session et revient à l'état initial des widgets.
@@ -708,6 +737,7 @@ function start(config, runtimeSource) {
     state = dashboardExecutionReducer(state, { type: 'stop' })
     renderControls()
     renderStates()
+    announce(labels.feedbackStopped ?? 'Stopped — session reset.')
   }
 
   // Lance le moteur réel dans un worker, ou sur le fil courant si le navigateur le refuse.
@@ -772,6 +802,7 @@ function start(config, runtimeSource) {
     state = dashboardExecutionReducer(state, { type: 'fail', errorCode: error?.code ?? 'SIMULATION_FAILED', result: null })
     renderControls()
     renderStates()
+    announce(labels.error ?? 'Error')
   }
 
   // Avance la trace selon le temps écoulé, jamais selon une animation préenregistrée.
@@ -783,6 +814,7 @@ function start(config, runtimeSource) {
       state = dashboardExecutionReducer(state, { type: 'tick', advance: 1 })
       renderControls()
       renderStates()
+      announce(labels.completed ?? 'Completed')
       return
     }
     const stepsPerSecond = dashboardPlaybackRate(total, state.speed)
@@ -799,7 +831,10 @@ function start(config, runtimeSource) {
         state = dashboardExecutionReducer(state, { type: 'tick', advance })
         renderControls()
         renderStates()
-        if (state.status !== 'running') return
+        if (state.status !== 'running') {
+          if (state.status === 'completed') announce(labels.completed ?? 'Completed')
+          return
+        }
       }
       animationFrame = window.requestAnimationFrame(tick)
     }
@@ -901,12 +936,16 @@ function start(config, runtimeSource) {
         // Le mode reste actif pour la session si le stockage local est indisponible.
       }
       applyMode()
+      announce(state.mode === 'light'
+        ? (labels.feedbackLight ?? 'Light theme enabled.')
+        : (labels.feedbackDark ?? 'Dark theme enabled.'))
     })
   }
   for (const button of speedButtons) {
     button.addEventListener('click', () => {
       state.speed = clampSimulationSpeed(button.dataset.speed)
       applySpeed()
+      announce(formatTemplate(labels.feedbackSpeed ?? 'Speed ×{speed}.', { speed: state.speed }))
       if (state.status === 'running') startAnimation()
     })
   }
@@ -914,6 +953,7 @@ function start(config, runtimeSource) {
     speedInput.addEventListener('change', () => {
       state.speed = clampSimulationSpeed(speedInput.value)
       applySpeed()
+      announce(formatTemplate(labels.feedbackSpeed ?? 'Speed ×{speed}.', { speed: state.speed }))
       if (state.status === 'running') startAnimation()
     })
     speedInput.addEventListener('keydown', (event) => {
