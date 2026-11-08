@@ -15,6 +15,14 @@ export function dashboardPlaybackRate(totalSteps, speed = 1) {
   return Math.max(60, total / 8) * clampSimulationSpeed(speed)
 }
 
+// Calcule le pas suivant, avec un retour au début quand la lecture est autonome.
+export function dashboardNextIndex(totalSteps, index, advance, autonomous = false) {
+  const total = Number.isSafeInteger(totalSteps) && totalSteps > 0 ? totalSteps : 0
+  if (total === 0) return 0
+  const next = Math.max(0, Number(index) || 0) + Math.max(1, Number(advance) || 1)
+  return autonomous ? next % total : Math.min(total - 1, next)
+}
+
 // Réduit les commandes Run/Pause/Stop et l'avancement de la trace.
 export function dashboardExecutionReducer(state, action) {
   if (action.type === 'start') {

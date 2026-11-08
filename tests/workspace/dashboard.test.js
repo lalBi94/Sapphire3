@@ -18,6 +18,7 @@ import {
   dashboardCurrentNode,
   dashboardExecutionInitial,
   dashboardExecutionReducer,
+  dashboardNextIndex,
   dashboardNodeMap,
   dashboardPlaybackRate,
   dashboardStatesAt,
@@ -126,6 +127,13 @@ test('dashboard : cliquer la progression met en pause et revient au pas choisi',
   assert.equal(dashboardExecutionReducer(state, { type: 'seek', index: 999 }).index, 3)
   assert.equal(dashboardExecutionReducer(state, { type: 'seek', index: -5 }).index, 0)
   assert.equal(dashboardExecutionReducer(dashboardExecutionInitial, { type: 'seek', index: 2 }), dashboardExecutionInitial)
+})
+
+test('dashboard : la lecture autonome boucle sans terminer', () => {
+  assert.equal(dashboardNextIndex(4, 3, 1, true), 0)
+  assert.equal(dashboardNextIndex(4, 2, 3, true), 1)
+  assert.equal(dashboardNextIndex(4, 2, 3, false), 3)
+  assert.equal(dashboardNextIndex(0, 2, 3, true), 0)
 })
 
 test('dashboard : la vitesse multiplie la cadence d’animation et reste bornée', () => {
@@ -313,7 +321,7 @@ test('dashboard : l’export produit un HTML unique, échappé, hors ligne et th
   assert.match(html, /type="range"/)
   assert.match(html, /db-button__icon/)
   assert.match(html, /data-run-label/)
-  assert.match(html, /data-action="continuous"/)
+  assert.match(html, /data-action="autonomous"/)
   assert.match(html, /data-feedback/)
   assert.match(html, /aria-live="polite"/)
   assert.match(html, /object-fit: cover/)

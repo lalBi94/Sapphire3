@@ -18,8 +18,7 @@ function simulationError(code, message) {
 }
 
 // Exécute le sous-ensemble déterministe du langage sans accéder au DOM ni au système.
-export function simulateProgram(project, { maxSteps = 10000, captureDebug = false, functionId = null, args = [], onProgress = null, continuous = false, onContinuous = null } = {}) {
-  if (continuous && (captureDebug || typeof onContinuous !== 'function')) return { ok: false, output: [], trace: [], errorCode: 'SIMULATION_BUDGET_INVALID', error: 'Continuous execution requires a snapshot consumer and cannot record debug history.' }
+export function simulateProgram(project, { maxSteps = 10000, captureDebug = false, functionId = null, args = [], onProgress = null } = {}) {
   if (!Number.isSafeInteger(maxSteps) || maxSteps < 1 || maxSteps > 100000) return { ok: false, output: [], trace: [], errorCode: 'SIMULATION_BUDGET_INVALID', error: 'The step budget must be an integer between 1 and 100000.' }
   const analysis = analyzeProgram(project)
   if (!analysis.canGenerate) return { ok: false, output: [], trace: [], errorCode: 'SIMULATION_DIAGNOSTICS', error: 'The program has blocking diagnostics.', diagnostics: analysis.diagnostics }
@@ -121,12 +120,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   // Compte aussi les itérations sans condition ni instruction pour garantir l'arrêt.
   function step(node) {
     steps += 1
-    if (!continuous && steps > maxSteps) throw simulationError('SIMULATION_STEP_LIMIT', 'Simulation step limit reached.')
-    if (continuous) {
-      trace[0] = node.id
-      if (steps % 500 === 0) onContinuous(continuousSnapshot)
-      return node
-    }
+    if (steps > maxSteps) throw simulationError('SIMULATION_STEP_LIMIT', 'Simulation step limit reached.')
     if (onProgress && steps % 500 === 0) onProgress({ phase: 'simulation', current: steps, total: maxSteps })
     trace.push(node.id)
     if (gaugeReader && gaugeFrames.length < maximumGaugeFrames) gaugeFrames.push(gaugeReader(global.values))
@@ -138,28 +132,10 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     return node
   }
 
-  // Fournit uniquement l'état courant et la fin de sortie, jamais l'historique d'un Run continu.
-  function continuousSnapshot() {
-    return {
-      ok: true, steps, trace: [...trace], output: [...output],
-      screens: lastScreens ?? (screenReader ? screenReader(global.values) : {}),
-      gauges: gaugeReader ? gaugeReader(global.values) : {},
-      leds: ledReader ? ledReader(global.values) : {},
-      rgbLeds: rgbLedReader ? rgbLedReader(global.values) : {},
-      progresses: progressReader ? progressReader(global.values) : {},
-      barCharts: barChartReader ? barChartReader(global.values) : {},
-      heatmaps: heatmapReader ? heatmapReader(global.values) : {},
-    }
-  }
-
   // Conserve une image d'écran : soit à chaque écriture, soit uniquement sur `screenPresent`
   // quand le programme marque lui-même ses images. Une séquence n'est jamais ouverte par une
   // image entièrement vide.
   function captureScreens(force = false) {
-    if (continuous) {
-      if (screenReader) lastScreens = screenReader(global.values)
-      return
-    }
     if (!screenReader || screenFrames.length >= maximumScreenFrames) return
     const current = screenReader(global.values)
     if (!force && sameScreenStates(lastScreens, current)) return
@@ -467,12 +443,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       return
     }
     if (node.kind === 'PrintStatement') {
-      const text = formatValue(valueOf(nodes.get(node.children.value), environment))
-      output.push(continuous ? text.slice(0, 4096) : text)
-      if (continuous) {
-        if (output.length > 200) output.shift()
-        return
-      }
+      output.push(formatValue(valueOf(nodes.get(node.children.value), environment)))
       // Position dans la trace au moment de l'affichage : l'UI révèle la sortie au rythme des pas.
       outputSteps.push(trace.length)
       return

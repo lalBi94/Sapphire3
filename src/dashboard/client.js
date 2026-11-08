@@ -4,6 +4,7 @@ import {
   dashboardCurrentNode,
   dashboardExecutionInitial,
   dashboardExecutionReducer,
+  dashboardNextIndex,
   dashboardNodeMap,
   dashboardPlaybackRate,
   dashboardStatesAt,
@@ -67,7 +68,7 @@ function start(config, runtimeSource) {
   const progressFill = document.querySelector('[data-progress]')
   const progressTrack = document.querySelector('[data-progress-track]')
   const runButton = document.querySelector('[data-action="run"]')
-  const continuousButton = document.querySelector('[data-action="continuous"]')
+  const autonomousButton = document.querySelector('[data-action="autonomous"]')
   const runButtonLabel = document.querySelector('[data-run-label]')
   const pauseButton = document.querySelector('[data-action="pause"]')
   const pauseButtonLabel = pauseButton.querySelector('span')
@@ -104,7 +105,7 @@ function start(config, runtimeSource) {
     mode: readMode(),
     speed: 1,
     language: initialLanguage,
-    continuous: false,
+    autonomous: false,
   }
   let worker = null
   let workerUrl = null
@@ -443,8 +444,8 @@ function start(config, runtimeSource) {
     if (speedSlider) speedSlider.setAttribute('aria-label', labels.speed ?? 'Speed')
     if (pauseButtonLabel) pauseButtonLabel.textContent = labels.pause ?? 'Pause'
     if (stopButtonLabel) stopButtonLabel.textContent = labels.stop ?? 'Stop'
-    continuousButton.querySelector('span').textContent = labels.continuous
-    continuousButton.title = labels.continuousHint
+    autonomousButton.querySelector('span').textContent = labels.autonomous
+    autonomousButton.title = labels.autonomousHint
     if (panelsButtonLabel) panelsButtonLabel.textContent = labels.panels ?? 'Panels'
     for (const button of modeButtons) {
       const span = button.querySelector('span')
@@ -591,18 +592,16 @@ function start(config, runtimeSource) {
     status.dataset.kind = state.status
     statusLabel.textContent = statusText
     runButton.disabled = state.status === 'running' || state.status === 'preparing'
-    continuousButton.disabled = runButton.disabled
-    continuousButton.setAttribute('aria-pressed', String(state.continuous))
-    speedSlider.disabled = state.continuous
+    autonomousButton.disabled = state.status === 'running' || state.status === 'preparing' || state.status === 'paused'
     const runLabel = state.status === 'paused' ? (labels.resume ?? 'Resume') : (labels.run ?? 'Run')
     if (runButtonLabel) runButtonLabel.textContent = runLabel
     runButton.title = runLabel
     runButton.setAttribute('aria-label', runLabel)
-    pauseButton.disabled = state.continuous || (state.status !== 'running' && state.status !== 'preparing')
+    pauseButton.disabled = state.status !== 'running' && state.status !== 'preparing'
     stopButton.disabled = state.status === 'idle'
     const total = Array.isArray(state.result?.trace) ? state.result.trace.length : 0
-    progressFill.style.width = !state.continuous && total > 0 ? `${Math.min(100, ((state.index + 1) / total) * 100)}%` : '0%'
-    progressTrack.disabled = state.continuous || total === 0
+    progressFill.style.width = total > 0 ? `${Math.min(100, ((state.index + 1) / total) * 100)}%` : '0%'
+    progressTrack.disabled = total === 0
     progressTrack.max = String(Math.max(0, total - 1))
     progressTrack.value = String(state.index)
     if (total > 0) {
@@ -751,7 +750,7 @@ function start(config, runtimeSource) {
   // Ajoute uniquement les nouvelles lignes de sortie, sans reconstruire tout le panneau.
   function renderOutput(ref, lines) {
     ref.outputEmpty.hidden = lines.length > 0
-    if (state.continuous || lines.length !== ref.outputCount) {
+    if (lines.length !== ref.outputCount) {
       const wasNearBottom = ref.output.scrollHeight - ref.output.scrollTop - ref.output.clientHeight < 32
       ref.outputLines.replaceChildren(...lines.map((line) => {
         const entry = document.createElement('div')
@@ -785,9 +784,7 @@ function start(config, runtimeSource) {
       ref.meta.textContent = ''
       return
     }
-    ref.step.textContent = state.continuous
-      ? `${labels.continuous} · ${state.result.steps}`
-      : formatTemplate(labels.step ?? 'Step {current} / {total}', { current: node.step, total: node.total })
+    ref.step.textContent = formatTemplate(labels.step ?? 'Step {current} / {total}', { current: node.step, total: node.total })
     const kind = config.kindLabels?.[node.kind] ?? node.kind
     ref.name.textContent = node.name || kind || (labels.notRunning ?? 'Not running')
     ref.meta.textContent = [kind, node.module ? `${labels.module ?? 'Module'}: ${node.module}` : ''].filter(Boolean).join(' · ')
@@ -815,7 +812,6 @@ function start(config, runtimeSource) {
 
   // Met la simulation en pause et revient au pas choisi sur la barre.
   function handleSeek(index) {
-    if (state.continuous) return
     state = dashboardExecutionReducer(state, { type: 'seek', index })
     cancelAnimation()
     renderControls()
@@ -833,7 +829,7 @@ function start(config, runtimeSource) {
       return
     }
     if (state.status === 'running' || state.status === 'preparing') return
-    state.continuous = false
+    state.autonomous = false
     requestId += 1
     terminateWorker()
     cancelAnimation()
@@ -852,21 +848,17 @@ function start(config, runtimeSource) {
     announcePaused()
   }
 
-  // Démarre un Run réel sans historique, exclusivement dans un Worker annulable.
-  function handleContinuous() {
-    if (state.status === 'running' || state.status === 'preparing') return
-    if (typeof Worker === 'undefined' || !runtimeSource) {
-      announce(labels.workerRequired)
-      return
-    }
+  // Démarre le même Run borné, mais la lecture boucle jusqu'à Pause ou Stop.
+  function handleAutonomous() {
+    if (state.status === 'running' || state.status === 'preparing' || state.status === 'paused') return
     requestId += 1
     terminateWorker()
     cancelAnimation()
     state = dashboardExecutionReducer(state, { type: 'start' })
-    state.continuous = true
+    state.autonomous = true
     renderControls()
     renderStates()
-    announce(labels.continuousHint)
+    announce(labels.autonomousHint)
     runProgram(requestId)
   }
 
@@ -876,7 +868,7 @@ function start(config, runtimeSource) {
     terminateWorker()
     cancelAnimation()
     state = dashboardExecutionReducer(state, { type: 'stop' })
-    state.continuous = false
+    state.autonomous = false
     renderControls()
     renderStates()
     announce(labels.feedbackStopped ?? 'Stopped — session reset.')
@@ -890,17 +882,7 @@ function start(config, runtimeSource) {
         const workerSource = `${runtimeSource}\nself.onmessage = function (event) {
   var data = event.data || {};
   try {
-    var options = data.options || {};
-    if (options.continuous) {
-      var lastUpdate = -Infinity;
-      options.onContinuous = function (snapshot) {
-        var now = performance.now();
-        if (now - lastUpdate < 50) return;
-        lastUpdate = now;
-        self.postMessage({ id: data.id, live: snapshot() });
-      };
-    }
-    var result = SapphireDashboardRuntime.simulate(data.project, options);
+    var result = SapphireDashboardRuntime.simulate(data.project, data.options || {});
     self.postMessage({ id: data.id, result: result });
   } catch (error) {
     self.postMessage({ id: data.id, error: { message: error && error.message ? error.message : String(error), code: error && error.code ? error.code : null } });
@@ -911,20 +893,8 @@ function start(config, runtimeSource) {
         worker.onmessage = (event) => {
           const message = event.data ?? {}
           if (id !== requestId || message.id !== id) return
-          if (message.live && state.continuous) {
-            state = { ...state, status: 'running', result: message.live, index: 0 }
-            renderControls()
-            renderStates()
-            return
-          }
           terminateWorker()
           if (message.error) handleFailure(message.error)
-          else if (state.continuous) {
-            state = { ...state, status: message.result.ok ? 'completed' : 'error', result: message.result, index: 0, error: message.result.errorCode ?? null }
-            renderControls()
-            renderStates()
-            announce(message.result.ok ? labels.completed : labels.error)
-          }
           else handlePrepared(message.result)
         }
         worker.onerror = (event) => {
@@ -933,16 +903,11 @@ function start(config, runtimeSource) {
           terminateWorker()
           handleFailure({ message: event.message || 'Worker failed.', code: 'SIMULATION_FAILED' })
         }
-        worker.postMessage({ id, project: config.project, options: { maxSteps: config.simulationBudget, continuous: state.continuous } })
+        worker.postMessage({ id, project: config.project, options: { maxSteps: config.simulationBudget } })
         return
       } catch {
         terminateWorker()
       }
-    }
-    if (state.continuous) {
-      handleFailure({ code: 'SIMULATION_FAILED' })
-      announce(labels.workerRequired)
-      return
     }
     if (!runtime || typeof runtime.simulate !== 'function') {
       handleFailure({ message: 'The dashboard runtime is unavailable.', code: 'SIMULATION_FAILED' })
@@ -980,6 +945,12 @@ function start(config, runtimeSource) {
     if (state.status !== 'running' || !state.result) return
     const total = state.result.trace?.length ?? 0
     if (total <= 1) {
+      if (state.autonomous) {
+        state = { ...state, status: 'running', index: 0 }
+        renderControls()
+        renderStates()
+        return
+      }
       state = dashboardExecutionReducer(state, { type: 'tick', advance: 1 })
       renderControls()
       renderStates()
@@ -997,7 +968,11 @@ function start(config, runtimeSource) {
       const advance = Math.floor(accumulator / interval)
       if (advance > 0) {
         accumulator -= advance * interval
-        state = dashboardExecutionReducer(state, { type: 'tick', advance })
+        if (state.autonomous) {
+          state = { ...state, status: 'running', index: dashboardNextIndex(total, state.index, advance, true) }
+        } else {
+          state = dashboardExecutionReducer(state, { type: 'tick', advance })
+        }
         renderControls()
         renderStates()
         if (state.status !== 'running') {
@@ -1094,7 +1069,7 @@ function start(config, runtimeSource) {
 
   progressTrack.addEventListener('input', () => handleSeek(progressTrack.value))
   runButton.addEventListener('click', handleRun)
-  continuousButton.addEventListener('click', handleContinuous)
+  autonomousButton.addEventListener('click', handleAutonomous)
   pauseButton.addEventListener('click', handlePause)
   stopButton.addEventListener('click', handleStop)
   if (languageSelect) {

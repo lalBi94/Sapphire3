@@ -850,7 +850,7 @@ export default function Canvas() {
       }
       const nextConfig = { ...config, palette }
       const result = await runSimulation(project, { maxSteps: dashboardSimulationBudget })
-      if (!result.ok && result.errorCode !== 'SIMULATION_STEP_LIMIT') {
+      if (!result.ok) {
         notify({ type: 'error', message: t('dashboard.preflightFailed', { code: result.errorCode ?? 'SIMULATION_FAILED' }), duration: 0 })
         return
       }
