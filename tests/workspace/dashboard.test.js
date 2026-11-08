@@ -303,6 +303,8 @@ test('dashboard : l’export produit un HTML unique, échappé, hors ligne et th
   assert.match(html, /data-run-label/)
   assert.match(html, /data-feedback/)
   assert.match(html, /aria-live="polite"/)
+  assert.match(html, /object-fit: cover/)
+  assert.match(html, /\.db-panel--screen \.db-panel__body/)
   assert.match(html, /"layoutKey":"layout-demo"/)
   assert.match(html, /"widgets":/)
   assert.match(html, /"initialStates":/)

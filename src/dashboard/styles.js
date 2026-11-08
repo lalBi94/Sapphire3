@@ -494,30 +494,37 @@ p, h1, h2, h3 { margin: 0; }
 }
 .db-panel__resize:hover { opacity: 1; background: var(--db-hover); color: var(--db-text); }
 
-.db-screen { display: flex; flex-direction: column; gap: 6px; width: 100%; height: 100%; min-height: 0; }
+.db-panel--screen .db-panel__body { padding: 0; align-items: stretch; }
+.db-screen { display: flex; flex-direction: column; gap: 0; width: 100%; height: 100%; min-height: 0; }
 .db-screen__viewport {
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
-  display: grid;
-  place-items: center;
-  padding: 6px;
-  border: 1px solid var(--db-border);
-  border-radius: var(--db-radius-small);
-  background: var(--db-bg);
-  box-shadow: inset 0 1px 4px #00000066;
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #000;
+  box-shadow: none;
 }
 .db-screen canvas {
+  position: absolute;
+  inset: 0;
   display: block;
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   image-rendering: pixelated;
-  box-shadow: 0 0 0 1px var(--db-border);
+  box-shadow: none;
 }
 .db-screen__meta {
   display: flex;
   justify-content: space-between;
   gap: 8px;
+  padding: 4px 8px;
+  border-top: 1px solid var(--db-border);
+  background: var(--db-raised);
   color: var(--db-muted);
   font-family: var(--db-mono);
   font-size: 10px;
