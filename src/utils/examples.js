@@ -3582,6 +3582,30 @@ function rotatingTriangle() {
   ])
 }
 
+// Prépare un exemple XY plot : module caché, module appelant et import de SET_FUNCTION.
+function xyPlotSetup(b, prefix, plotName) {
+  const plot = createXyPlotModule(`${prefix}Plot`, plotName, 1)
+  b.project.modules.push(plot.module)
+  b.project.nodes.push(...plot.nodes)
+  b.useModule(`${prefix}App`, plotName)
+  const app = b.project.modules.find((module) => module.id === `${prefix}App`)
+  const exported = plot.module.exports.find((entry) => entry.name === plot.functions.setFunction)
+  app.imports.push({ id: `${prefix}SetImport`, moduleId: plot.module.id, nodeId: exported.nodeId, localName: 'setFunction' })
+  return plot
+}
+
+// Ajoute un main qui trace la fonction donnée puis affiche un message.
+function xyPlotMain(b, prefix, functionName, message) {
+  b.root(`${prefix}Main`, 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: `${prefix}Body` })
+  b.block(`${prefix}Body`, [`${prefix}Set`, `${prefix}Print`])
+  b.make(`${prefix}Set`, 'ExpressionStatement', {}, { expression: `${prefix}SetCall` })
+  b.call(`${prefix}SetCall`, `${prefix}SetCallee`, [`${prefix}FunctionRef`])
+  b.make(`${prefix}SetCallee`, 'Reference', {}, {}, { target: { kind: 'import', importId: `${prefix}SetImport` } })
+  b.ref(`${prefix}FunctionRef`, functionName)
+  b.stringValue(`${prefix}Message`, message)
+  b.print(`${prefix}Print`, `${prefix}Message`)
+}
+
 // Traceur XY : une fonction (double) -> double est échantillonnée par le module caché.
 function functionPlot() {
   const b = builder()
@@ -3608,6 +3632,87 @@ function functionPlot() {
   b.print('functionPlotPrint', 'functionPlotMessage')
   return workspace(b.project, [
     note('functionPlotNote', 'Function plot', 'Traceur XY interactif : `SET_FUNCTION(wave)` échantillonne `wave(x) = sin(x)` sur `[-10, 10]`, puis Mafs permet de déplacer et zoomer le graphique. Le module caché exporte `SET_FUNCTION`, `SET_RANGE` et `CLEAR`.', 0, 620, 900, 260),
+  ])
+}
+
+// Traceur simple : une droite affine.
+function linearPlot() {
+  const b = builder()
+  xyPlotSetup(b, 'linearPlot', 'Linear plot')
+  b.root('linearLine', 'FunctionDeclaration', { name: 'line', type: doubleType }, { parameters: ['linearX'], body: 'linearBody' })
+  b.make('linearX', 'Parameter', { name: 'x', type: doubleType })
+  b.block('linearBody', ['linearReturn'])
+  b.returnValue('linearReturn', 'linearSum')
+  b.binary('linearSum', '+', 'linearProduct', 'linearOne')
+  b.doubleValue('linearOne', 1)
+  b.binary('linearProduct', '*', 'linearTwo', 'linearXRef')
+  b.doubleValue('linearTwo', 2)
+  b.ref('linearXRef', 'x')
+  xyPlotMain(b, 'linearPlot', 'line', 'Linear function plotted')
+  return workspace(b.project, [
+    note('linearPlotNote', 'Linear plot', 'Traceur XY : `SET_FUNCTION(line)` échantillonne la droite `line(x) = 2x + 1` sur `[-10, 10]`. Déplacez et zoomez le graphique avec Mafs.', 0, 620, 900, 220),
+  ])
+}
+
+// Traceur moyen : interférence de deux ondes sinusoïdales.
+function waveInterference() {
+  const b = builder()
+  xyPlotSetup(b, 'waveInterference', 'Wave interference')
+  b.root('waveFunction', 'FunctionDeclaration', { name: 'wave', type: doubleType }, { parameters: ['waveX'], body: 'waveBody' })
+  b.make('waveX', 'Parameter', { name: 'x', type: doubleType })
+  b.block('waveBody', ['waveReturn'])
+  b.returnValue('waveReturn', 'waveSum')
+  b.binary('waveSum', '+', 'waveFirst', 'waveSecond')
+  b.math('waveFirst', 'sin', ['waveXRefA'])
+  b.ref('waveXRefA', 'x')
+  b.binary('waveSecond', '*', 'waveHalf', 'waveFast')
+  b.doubleValue('waveHalf', 0.5)
+  b.math('waveFast', 'sin', ['waveAngle'])
+  b.binary('waveAngle', '*', 'waveFrequency', 'waveXRefB')
+  b.doubleValue('waveFrequency', 2.5)
+  b.ref('waveXRefB', 'x')
+  xyPlotMain(b, 'waveInterference', 'wave', 'Wave interference plotted')
+  return workspace(b.project, [
+    note('waveInterferenceNote', 'Wave interference', 'Deux ondes se superposent : `wave(x) = sin(x) + 0,5·sin(2,5x)`. Le tracé fait apparaître les battements et les nœuds ; Mafs permet de les inspecter en zoomant.', 0, 620, 900, 220),
+  ])
+}
+
+// Traceur difficile : série de Fourier approchant une onde carrée.
+function fourierSquare() {
+  const b = builder()
+  xyPlotSetup(b, 'fourierSquare', 'Fourier square')
+  b.root('fourierFunction', 'FunctionDeclaration', { name: 'squareWave', type: doubleType }, { parameters: ['fourierX'], body: 'fourierBody' })
+  b.make('fourierX', 'Parameter', { name: 'x', type: doubleType })
+  b.block('fourierBody', ['fourierTotal', 'fourierOdd', 'fourierIndexLoop', 'fourierReturn'])
+  b.variable('fourierTotal', 'total', doubleType, 'fourierTotalStart')
+  b.doubleValue('fourierTotalStart', 0)
+  b.variable('fourierOdd', 'odd', doubleType, 'fourierOddStart')
+  b.doubleValue('fourierOddStart', 0)
+  b.intValue('fourierLimit', 4)
+  b.assign('fourierOddAssign', 'fourierOddTarget', 'fourierOddValue')
+  b.ref('fourierOddTarget', 'odd')
+  b.make('fourierOddValue', 'CastExpression', { type: doubleType }, { argument: 'fourierOddInt' })
+  b.binary('fourierOddInt', '-', 'fourierDoubleK', 'fourierOne')
+  b.intValue('fourierOne', 1)
+  b.binary('fourierDoubleK', '*', 'fourierTwo', 'fourierKRead')
+  b.intValue('fourierTwo', 2)
+  b.ref('fourierKRead', 'k')
+  b.assign('fourierAccumulate', 'fourierTotalTarget', 'fourierTotalValue')
+  b.ref('fourierTotalTarget', 'total')
+  b.binary('fourierTotalValue', '+', 'fourierTotalRead', 'fourierTerm')
+  b.ref('fourierTotalRead', 'total')
+  b.binary('fourierTerm', '/', 'fourierSin', 'fourierOddRef')
+  b.ref('fourierOddRef', 'odd')
+  b.math('fourierSin', 'sin', ['fourierAngle'])
+  b.binary('fourierAngle', '*', 'fourierOddAngle', 'fourierXRef')
+  b.ref('fourierOddAngle', 'odd')
+  b.ref('fourierXRef', 'x')
+  b.countedLoop('fourierIndex', 'k', 'fourierLimit', ['fourierOddAssign', 'fourierAccumulate'], 1)
+  b.returnValue('fourierReturn', 'fourierTotalRef')
+  b.ref('fourierTotalRef', 'total')
+  xyPlotMain(b, 'fourierSquare', 'squareWave', 'Square wave plotted')
+  return workspace(b.project, [
+    note('fourierSquareNote', 'Fourier square', 'Série de Fourier tronquée : `squareWave(x) = Σ sin((2k−1)x)/(2k−1)` pour `k = 1…3`. La boucle interne recalcule chaque harmonique à chaque point ; les ondulations de Gibbs restent visibles près des discontinuités.', 0, 620, 900, 240),
   ])
 }
 
@@ -3731,6 +3836,9 @@ export const examples = [
   { id: 'colorFlow', labelKey: 'examples.colorFlow', category: 'medium', subcategory: 'animation', build: colorFlow },
   { id: 'rgbMixer', labelKey: 'examples.rgbMixer', category: 'medium', subcategory: 'widgets', build: rgbMixer },
   { id: 'functionPlot', labelKey: 'examples.functionPlot', category: 'medium', subcategory: 'widgets', build: functionPlot },
+  { id: 'linearPlot', labelKey: 'examples.linearPlot', category: 'simple', subcategory: 'widgets', build: linearPlot },
+  { id: 'waveInterference', labelKey: 'examples.waveInterference', category: 'medium', subcategory: 'widgets', build: waveInterference },
+  { id: 'fourierSquare', labelKey: 'examples.fourierSquare', category: 'hard', subcategory: 'widgets', build: fourierSquare },
   { id: 'rotatingCube', labelKey: 'examples.rotatingCube', category: 'hard', subcategory: 'animation', build: rotatingCube },
   { id: 'rotatingTriangle', labelKey: 'examples.rotatingTriangle', category: 'medium', subcategory: 'animation', build: rotatingTriangle },
   { id: 'spirograph', labelKey: 'examples.spirograph', category: 'medium', subcategory: 'animation', build: spirograph },
