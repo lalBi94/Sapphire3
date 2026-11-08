@@ -85,7 +85,8 @@
             courbes. La simulation, le debug et la transpilation JavaScript/Python s'exécutent hors du fil React,
             avec progression et annulation ; le debug ajoute points d'arrêt, mémoire abstraite et valeurs au survol.
             Run propose une simulation graphique simplifiée. L'interface offre aussi les graphes de contrôle et de dépendances, les
-            cartes Screen/Gauge/ProgressBar/BarChart/LED avec lecture synchronisée à 24 fps, les grilles Heatmap
+            cartes Screen/Gauge/ProgressBar/BarChart/LED avec lecture synchronisée à 24 fps,
+            XY plot (Mafs), oscilloscope multicanal (uPlot), les grilles Heatmap
             fixes suivies par pas sans horloge de lecture, les contrats vérifiables, le gestionnaire de fenêtres, le constructeur
             de signatures de fonction, les thèmes prédéfinis et personnalisés, huit langues, l'import/export
             <code>.sp3</code>/JSON, l'autosauvegarde, la récupération des documents neufs, trois sauvegardes de
@@ -103,7 +104,7 @@
           <p>
             Aucun lancement de simulation sans action explicite&nbsp;; seule la lecture d'une séquence d'écran sans
             cycle peut relancer la simulation pour renouveler ses images. Les cibles C/C++/Java sont présentes mais
-            désactivées. Le modèle objet n'est pas décidé. Les lambdas ont un corps expression unique et ne sont pas
+            désactivées. Les classes fonctionnent sans héritage ni polymorphisme. Les lambdas ont un corps expression unique et ne sont pas
             génériques&nbsp;; leurs paramètres ne sont pas adressés par <code>&amp;</code>. Les sauvegardes de secours
             ne tournent que lors d'un enregistrement direct. Les mutations structurelles du document gardent une
             analyse synchrone, même si les calculs lourds explicites passent par un Web Worker. Le rendu de monnaie
@@ -146,9 +147,9 @@
         <span class="tag">10 exemples réels</span>
       </div>
       <p>
-        Dix fichiers HTML autonomes, interactifs, générés depuis les exemples locaux, avec des entrées aléatoires
-        pour varier en Run autonomous : widgets, classes, modules, thèmes clair/sombre et huit langues. Les cadres
-        ci-dessous exécutent le vrai moteur ; rien ne démarre avant un clic.
+        Dix fichiers HTML autonomes : entrées aléatoires à chaque nouvelle simulation, widgets, classes, modules,
+        thèmes et huit langues. Run autonomous rejoue la même trace en boucle ; Stop puis Run renouvelle les
+        tirages. Rien ne démarre avant un clic.
       </p>
       <div class="dashboard-preview-grid">
         <iframe src="dashboards/rgbMixer.html" title="Dashboard RGB mixer" loading="lazy"></iframe>

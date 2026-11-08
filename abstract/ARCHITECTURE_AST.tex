@@ -356,10 +356,11 @@ seule l'ouverture volontaire du lien GitHub quitte le fonctionnement hors ligne.
 préflight exécute le vrai moteur avant l'écriture et refuse les programmes incompatibles.
 Les noms saisis et les sorties du programme ne sont pas traduits. Le choix de langue
 est mémorisé dans le navigateur ; l'arabe active la direction droite à gauche.
-Limite actuelle : le genre du nœud affiché dans Current execution reste dans la
-langue d'export, même après un changement de langue du visiteur.
-Le mode Run autonomous rejoue la même trace en boucle jusqu'à Pause ou Stop ;
-pause, reprise, vitesse et retour arrière restent disponibles. Aucun historique
+Le genre du nœud affiché dans Current execution suit la langue du visiteur ;
+les noms saisis et les sorties du programme ne sont pas traduits.
+Le mode Run autonomous rejoue la même trace en boucle jusqu'à Pause ou Stop,
+sans renouveler les tirages aléatoires ; Stop puis Run lance une nouvelle simulation.
+Pause, reprise, vitesse et retour arrière restent disponibles. Aucun historique
 supplémentaire n'est calculé et le préflight d'export reste inchangé.
 Le site de présentation expose dix dashboards générés dans \code{abstract/visual/dashboards.html} ;
 \code{pnpm dashboards:build} et la CI les maintiennent alignés après tout changement du dashboard.

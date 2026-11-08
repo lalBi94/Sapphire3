@@ -2,6 +2,13 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Alignement documentaire sur les sources — 8 novembre 2026
+
+- Relecture ciblée du client dashboard, des registres de cartes/disposition et des exemples : correction de la promesse erronée de nouveaux tirages à chaque boucle autonome. Le client rejoue la trace, sans réexécution ; les entrées changent à la prochaine simulation.
+- Mise à jour des sorties variables des exemples à classes et du catalogue de langue de Current execution. Les anciennes valeurs fixes dans les annotations intégrées aux exemples restent une limite connue : aucune source applicative ni aucun dashboard généré n'est modifié lors de cette intervention documentaire.
+- Suppression de la mention obsolète « modèle objet non décidé » : le contrat de classes sans héritage ni polymorphisme est déjà livré et validé. Correction de la description de Matrix rain (hauteurs initiales aléatoires, couleur verte) et des difficultés de la sélection publiée (Medium/Hard).
+- Captures conservées. Contrôle des liens locaux des pages publiques et recompilation du PDF ; pas de nouvelle campagne de tests applicatifs, le code source étant inchangé.
+
 ## Oscilloscope uPlot — 8 novembre 2026
 
 - Nouvelle carte **Oscilloscope** (`oscilloscope`) adossée à un module caché ordinaire : `ADD_CHANNEL(fn)`, `SET_CHANNEL(id, fn)`, `REMOVE_CHANNEL(id)`, `SET_RANGE(xMin, xMax)` et `CLEAR()`. Six emplacements de canaux au maximum, 64 échantillons par défaut et 256 au maximum ; chaque canal stocke sa fonction typée et ses valeurs, sans nouveau type logique. Le lecteur `oscilloscopeState.js` expose `{xMin, xMax, samples, revision, channels}` ; Run/Debug et les images d'écran reçoivent `oscilloscopes`, `oscilloscopeFrames` et `screenFrameOscilloscopes`.

@@ -48,9 +48,10 @@
         <span class="tag">Générés depuis les exemples locaux</span>
       </div>
       <p>
-        La sélection privilégie les entrées aléatoires pour que le mode <b>Run autonomous</b> varie à chaque boucle,
-        ainsi que les exemples qui utilisent des classes et plusieurs modules. Elle couvre les widgets Screen, LED,
-        RGB LED, Gauge, ProgressBar, BarChart et Heatmap, sur les niveaux Simple, Medium et Hard.
+        La sélection privilégie les entrées aléatoires à chaque nouvelle simulation et les exemples à classes/modules.
+        <b>Run autonomous</b> rejoue la même trace calculée : ses boucles ne tirent pas de nouvelles valeurs.
+        Arrêtez puis relancez pour renouveler les données. La sélection couvre Screen, LED, RGB LED, Gauge,
+        ProgressBar, BarChart et Heatmap, aux niveaux Medium et Hard.
       </p>
 
       <div class="dashboard-gallery">
@@ -80,7 +81,7 @@
           <div class="dashboard-card__head">
             <p class="kicker">03 · Aléatoire</p>
             <h3>Matrix rain</h3>
-            <p>Colonnes de pluie matricielle avec positions et couleurs aléatoires.</p>
+            <p>Pluie matricielle verte : hauteurs initiales aléatoires de trois colonnes, puis boucle périodique.</p>
             <ul class="meta-chips"><li>Screen</li><li>Random</li></ul>
           </div>
           <div class="dashboard-frame"><iframe src="dashboards/rain.html" title="Dashboard Matrix rain" loading="lazy"></iframe></div>
