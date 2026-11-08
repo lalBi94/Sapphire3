@@ -30,6 +30,7 @@ const panelDefaults = Object.freeze({
   xyPlot: { w: 6, h: 8 },
   oscilloscope: { w: 8, h: 8 },
   heatmap: { w: 6, h: 8 },
+  comment: { w: 4, h: 4 },
   output: { w: 6, h: 8 },
   execution: { w: 6, h: 5 },
 })

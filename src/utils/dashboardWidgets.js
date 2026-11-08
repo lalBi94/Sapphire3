@@ -5,7 +5,7 @@ import { rgbLedGlobalName } from './logic/rgbLedState.js'
 import { barChartGlobalName } from './logic/barChartState.js'
 import { heatmapGlobalName } from './logic/heatmapState.js'
 
-export const dashboardWidgetTypes = Object.freeze(['screen', 'led', 'rgbLed', 'gauge', 'progress', 'barChart', 'xyPlot', 'oscilloscope', 'heatmap'])
+export const dashboardWidgetTypes = Object.freeze(['screen', 'led', 'rgbLed', 'gauge', 'progress', 'barChart', 'xyPlot', 'oscilloscope', 'heatmap', 'comment'])
 
 // Retrouve la déclaration globale interne à un widget.
 function globalDeclaration(project, moduleId, name) {
@@ -35,11 +35,14 @@ export function dashboardWidgets(project, cards) {
   const modules = new Map((project?.modules ?? []).map((module) => [module.id, module]))
   return (cards ?? [])
     .filter((card) => card && !card.hidden && dashboardWidgetTypes.includes(card.type))
-    .filter((card) => modules.has(card.id))
+    .filter((card) => card.type === 'comment' || modules.has(card.id))
     .sort((left, right) => (left.y ?? 0) - (right.y ?? 0) || (left.x ?? 0) - (right.x ?? 0) || String(left.name).localeCompare(String(right.name)))
     .map((card) => {
       const module = modules.get(card.id)
-      const base = { id: card.id, type: card.type, name: card.name || module.name || card.type }
+      const base = { id: card.id, type: card.type, name: card.name || module?.name || card.type }
+      if (card.type === 'comment') {
+        return { ...base, text: typeof card.text === 'string' ? card.text : '' }
+      }
       if (card.type === 'screen') {
         return { ...base, width: module.screen?.width ?? 15, height: module.screen?.height ?? 9 }
       }

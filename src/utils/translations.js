@@ -197,6 +197,7 @@ const messages = {
   'dashboard.widget.heatmap': ['Heatmap', 'Carte thermique', '热力图', 'Mapa de calor', 'خريطة حرارية', 'ヒートマップ', 'हीटमैप', 'Тепловая карта'],
   'dashboard.widget.xyPlot': ['XY plot', 'Traceur XY', 'XY 图', 'Gráfico XY', 'مخطط XY', 'XY プロット', 'XY प्लॉट', 'XY-график'],
   'dashboard.widget.oscilloscope': ['Oscilloscope', 'Oscilloscope', '示波器', 'Osciloscopio', 'راسم الإشارة', 'オシロスコープ', 'ऑसिलोस्कोप', 'Осциллограф'],
+  'dashboard.widget.comment': ['Comment', 'Commentaire', '注释', 'Comentario', 'تعليق', 'コメント', 'टिप्पणी', 'Комментарий'],
   'dashboard.closeMenu': ['Close panel menu', 'Fermer le menu des panneaux', '关闭面板菜单', 'Cerrar menú de paneles', 'إغلاق قائمة اللوحات', 'パネルメニューを閉じる', 'पैनल मेनू बंद करें', 'Закрыть меню панелей'],
   'dashboard.on': ['On', 'Allumée', '开', 'Encendida', 'مضاءة', 'オン', 'चालू', 'Вкл.'],
   'dashboard.off': ['Off', 'Éteinte', '关', 'Apagada', 'مطفأة', 'オフ', 'बंद', 'Выкл.'],

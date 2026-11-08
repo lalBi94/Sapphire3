@@ -305,6 +305,17 @@ test('dashboard : la disposition initiale inclut les widgets, la sortie et l’e
   assert.equal(normalizeDashboardLayout(layout, widgets.map((widget) => ({ id: widget.id, w: 4, h: 4 }))).length, widgets.length)
 })
 
+test('dashboard : les annotations Comment sont incluses avec leur texte', () => {
+  const workspace = exampleWorkspace('functionPlot')
+  const widgets = dashboardWidgets(workspace.project, workspace.presentation.cards)
+  const comment = widgets.find((widget) => widget.type === 'comment')
+  assert.ok(comment)
+  assert.equal(comment.name, 'Function plot')
+  assert.ok(comment.text.includes('SET_FUNCTION'))
+  const layout = dashboardDefaultLayout(widgets)
+  assert.ok(layout.some((entry) => entry.id === comment.id))
+})
+
 test('dashboard : l’export produit un HTML unique, échappé, hors ligne et thémé', () => {
   const workspace = exampleWorkspace('gaugeDemo')
   const widgets = dashboardWidgets(workspace.project, workspace.presentation.cards)

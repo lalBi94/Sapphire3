@@ -164,6 +164,7 @@ export function dashboardLabels(t) {
     xyPlot: t('dashboard.widget.xyPlot'),
     oscilloscope: t('dashboard.widget.oscilloscope'),
     heatmap: t('dashboard.widget.heatmap'),
+    comment: t('dashboard.widget.comment'),
     xyPlotHint: t('xyPlot.cursorHint'),
     xyPlotEmpty: t('xyPlot.empty'),
     oscilloscopeHint: t('oscilloscope.cursorHint'),

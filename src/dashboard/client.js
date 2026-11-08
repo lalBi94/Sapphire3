@@ -410,6 +410,14 @@ function start(config, runtimeSource) {
       createXyPlotContent(ref)
       return
     }
+    if (panel.type === 'comment') {
+      const text = document.createElement('div')
+      text.className = 'db-comment'
+      text.textContent = panel.widget?.text ?? ''
+      body.append(text)
+      ref.comment = text
+      return
+    }
     if (panel.type === 'output') {
       const output = document.createElement('div')
       output.className = 'db-output'

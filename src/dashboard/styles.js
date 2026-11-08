@@ -739,6 +739,9 @@ p, h1, h2, h3 { margin: 0; }
 .db-xyplot__chart .u-select { background: var(--db-primary-soft); }
 .db-xyplot__empty { position: absolute; inset: 0 0 18px; display: grid; place-items: center; margin: 0; padding: 12px; color: var(--db-muted); font-size: 10px; text-align: center; pointer-events: none; }
 .db-xyplot__readout { margin: 0; overflow: hidden; color: var(--db-muted); font-family: var(--db-mono); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.db-oscilloscope__empty[hidden],
+.db-xyplot__empty[hidden] { display: none; }
+.db-comment { width: 100%; height: 100%; overflow: auto; color: var(--db-text); font-family: var(--db-mono); font-size: 11px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 .db-heatmap { display: grid; gap: 2px; width: 100%; height: 100%; min-height: 40px; }
 .db-heatmap__cell {
   min-width: 0;
