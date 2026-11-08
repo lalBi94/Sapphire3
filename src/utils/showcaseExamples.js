@@ -230,18 +230,18 @@ function solarSystem() {
     elements: [6, 8, 20, 255, 190, 190, 200, 255, 235, 215, 160, 255, 70, 150, 255, 255, 230, 110, 80, 255, 230, 170, 100, 255, 235, 210, 130, 255, 120, 230, 235, 255, 90, 130, 255, 255, 255, 245, 150, 255, 255, 190, 60, 255, 35, 45, 80, 255, 220, 240, 255, 255].map(b.integer),
   }))
   const grid = b.declare('grid', intArrayType, b.math('arrayFill', [b.integer(width * height), b.integer(0)]))
-  // Trace vingt repères par orbite : une aide visuelle statique, pas une position calculée.
+  // Seule la Terre reçoit une traînée : son orbite complète est dessinée une fois.
   const guides = []
-  for (const planet of planets) {
-    const aPx = pixelRadius(planet.a)
-    const bPx = aPx * Math.sqrt(1 - planet.e * planet.e)
-    for (let marker = 0; marker < 20; marker += 1) {
-      const angle = 2 * Math.PI * marker / 20
-      const x = Math.floor(centerX + aPx * Math.cos(angle) - aPx * planet.e)
+  {
+    const aPx = pixelRadius(earth.a)
+    const bPx = aPx * Math.sqrt(1 - earth.e * earth.e)
+    for (let marker = 0; marker < 64; marker += 1) {
+      const angle = 2 * Math.PI * marker / 64
+      const x = Math.floor(centerX + aPx * Math.cos(angle) - aPx * earth.e)
       const y = Math.floor(centerY + bPx * Math.sin(angle))
       guides.push(b.node('AssignmentStatement', {}, {
         target: b.node('ArrayAccess', {}, { array: b.ref('grid'), index: b.integer(y * width + x) }),
-        value: b.integer(11),
+        value: b.integer(3),
       }))
     }
   }
@@ -258,9 +258,10 @@ function solarSystem() {
       }
     }
   }
-  const draws = []
+  const draws = [b.declare('frameGrid', intArrayType, b.math('arraySlice', [b.ref('grid'), b.integer(0), b.integer(width * height)]))]
   for (const planet of planets) {
     const key = planet.id
+    const target = planet.id === 'earth' ? 'grid' : 'frameGrid'
     const angle = b.declare(`angle_${key}`, doubleType, b.op('+', b.ref(`phase_${key}`), b.op('*', b.ref(`speed_${key}`), b.cast(doubleType, b.ref('frame')))))
     const xValue = planet.id === 'earth'
       ? b.call(b.imported(b.library, 'earthX'), [b.ref(`angle_${key}`)])
@@ -272,7 +273,7 @@ function solarSystem() {
     const y = b.declare(`y_${key}`, doubleType, yValue)
     const pixel = b.declare(`pixel_${key}`, intType, b.op('+', b.op('*', b.cast(intType, b.ref(`y_${key}`)), b.integer(width)), b.cast(intType, b.ref(`x_${key}`))))
     draws.push(angle, x, y, pixel, b.node('AssignmentStatement', {}, {
-      target: b.node('ArrayAccess', {}, { array: b.ref('grid'), index: b.ref(`pixel_${key}`) }),
+      target: b.node('ArrayAccess', {}, { array: b.ref(target), index: b.ref(`pixel_${key}`) }),
       value: b.ref(`color_${key}`),
     }))
     if (planet.id === 'earth') {
@@ -288,13 +289,13 @@ function solarSystem() {
       }))
     }
   }
-  const paint = b.statement(b.call(b.imported(widget.module, widget.functions.blit), [b.ref('grid'), b.ref('palette')]))
+  const paint = b.statement(b.call(b.imported(widget.module, widget.functions.blit), [b.ref('frameGrid'), b.ref('palette')]))
   const present = b.statement(b.call(b.imported(widget.module, widget.functions.present), []))
   const loop = b.node('ForStatement', {}, {
     initializer: b.declare('frame', intType, b.integer(0)), test: b.op('<', b.ref('frame'), b.integer(frames)),
     update: b.assign('frame', b.op('+', b.ref('frame'), b.integer(1))), body: b.block([...draws, paint, present]),
   })
-  return b.finish([...declarations, palette, grid, ...guides, ...sun, loop], String.raw`Écran 128×96. Huit planètes suivent des ellipses képlériennes autour du Soleil, avec les demi-grands axes, excentricités et périodes réelles ; la projection radiale logarithmique garde tout le système visible. La Terre, en bleu, est suivie par sa traînée épaisse. Le Soleil est le disque jaune central. Pas d'interactions planète-planète ni de Lune. $$x=a(\cos E-e),\quad y=b\sin E$$`)
+  return b.finish([...declarations, palette, grid, ...guides, ...sun, loop], String.raw`Écran 128×96. Huit planètes suivent des ellipses képlériennes autour du Soleil, avec les demi-grands axes, excentricités et périodes réelles ; la projection radiale logarithmique garde tout le système visible. La Terre, en bleu, est la seule à laisser une traînée ; les autres planètes restent des points. Le Soleil est le disque jaune central. L'écran rejoue la séquence tant que le Run est actif. Pas d'interactions planète-planète ni de Lune. $$x=a(\cos E-e),\quad y=b\sin E$$`)
 }
 
 // Six créations dédiées, également ouvrables dans la bibliothèque locale.
