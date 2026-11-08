@@ -539,6 +539,7 @@ const messages = {
   'examples.wavePacket': ['Wave packet', 'Paquet d’ondes', '波包', 'Paquete de ondas', 'حزمة موجية', '波束', 'तरंग पैकेट', 'Волновой пакет'],
   'examples.neonRose': ['Neon rose', 'Rosace néon', '霓虹玫瑰', 'Rosa de neón', 'وردة نيون', 'ネオンローズ', 'नियॉन गुलाब', 'Неоновая роза'],
   'examples.orbitalTrails': ['Orbital trails', 'Trajectoires orbitales', '轨道轨迹', 'Trayectorias orbitales', 'مسارات مدارية', '軌道の軌跡', 'कक्षीय पथ', 'Орбитальные следы'],
+  'examples.solarSystem': ['Solar system', 'Système solaire', '太阳系', 'Sistema solar', 'النظام الشمسي', '太陽系', 'सौर मंडल', 'Солнечная система'],
   'examples.oscilloscopeDemo': ['Oscilloscope demo', 'Démo oscilloscope', '示波器演示', 'Demostración de osciloscopio', 'عرض راسم الإشارة', 'オシロスコープのデモ', 'ऑसिलोस्कोप डेमो', 'Демонстрация осциллографа'],
   'examples.linearPlot': ['Linear plot', 'Traceur linéaire', '线性图', 'Gráfico lineal', 'مخطط خطي', '線形プロット', 'रैखिक प्लॉट', 'Линейный график'],
   'examples.waveInterference': ['Wave interference', 'Interférence d’ondes', '波的干涉', 'Interferencia de ondas', 'تداخل الموجات', '波の干渉', 'तरंग व्यतिकरण', 'Интерференция волн'],

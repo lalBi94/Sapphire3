@@ -2,6 +2,12 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Système solaire képlérien — 8 novembre 2026
+
+- Nouvel exemple **Solar system** (Hard → Simulation), écran 128×96 : huit planètes suivent des ellipses képlériennes autour du Soleil, avec demi-grands axes, excentricités et périodes réelles. Une projection radiale logarithmique garde tout le système visible ; vingt repères par orbite dessinent les trajectoires, et la Terre (bloc bleu 2×2 avec un pixel clair) laisse une traînée épaisse.
+- Le module `solarSystemMath` calcule la trajectoire terrestre (`earthX`, `earthY`) et le module `solarSystemApp` orchestre les huit planètes, le Soleil et l'écran. Aucune interaction planète-planète ni Lune : modèle képlérien à deux corps, pas intégration N-corps.
+- Vérifications : analyse sans diagnostic, **9 729 pas** pour 26 images sous la borne de 10 000, 26 images distinctes, couleurs des huit planètes, du Soleil, des repères et de la Terre présentes, lien Math → App. Le catalogue passe à **63 exemples** (Simple 7, Medium 32, Hard 24) et la suite à **608 tests**. Aucun changement du moteur, de la transpilation ni du dashboard.
+
 ## Vitrine dashboards enrichie — 8 novembre 2026
 
 - `src/utils/showcaseExamples.js` ajoute cinq créations à la bibliothèque locale : **Harmonic studio** (oscilloscope, trois canaux), **Chirp ribbon** et **Wave packet** (XY plot, 64 points), **Neon rose** (écran 64×40, 32 images) et **Orbital trails** (écran 64×40, 64 images, classe `Rotor`). Chaque démo sépare un module `*Math` du module `*App`, importe les API de widget existantes et porte une formule KaTeX. Le catalogue passe à **62 exemples** (Simple 7, Medium 32, Hard 23).

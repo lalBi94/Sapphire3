@@ -25,8 +25,8 @@ function run(id) {
   return { workspace, result }
 }
 
-test('vitrine : cinq créations à modules séparés, valides et exécutables', () => {
-  assert.equal(showcaseExamples.length, 5)
+test('vitrine : six créations à modules séparés, valides et exécutables', () => {
+  assert.equal(showcaseExamples.length, 6)
   for (const entry of showcaseExamples) run(entry.id)
 })
 
@@ -71,4 +71,22 @@ test('vitrine : écrans progressifs et classe Rotor réellement utilisée', () =
       assert.ok(workspace.project.nodes.some((node) => node.kind === 'NewExpression' && node.properties.classId === 'orbitalRotor'))
     }
   }
+})
+
+test('vitrine : système solaire, orbites et couleurs des huit planètes', () => {
+  const { workspace, result } = run('solarSystem')
+  assert.equal(result.screenFrames.length, 26)
+  assert.equal(result.screens.solarSystemScreen.width, 128)
+  assert.equal(result.screens.solarSystemScreen.height, 96)
+  const pictures = result.screenFrames.map((frame) => JSON.stringify(frame.solarSystemScreen.pixels))
+  assert.equal(new Set(pictures).size, 26)
+  const colors = new Set()
+  const pixels = result.screens.solarSystemScreen.pixels
+  for (let index = 0; index < pixels.length; index += 4) colors.add(`${pixels[index]},${pixels[index + 1]},${pixels[index + 2]}`)
+  for (const color of ['190,190,200', '235,215,160', '70,150,255', '230,110,80', '230,170,100', '235,210,130', '120,230,235', '90,130,255', '255,245,150', '255,190,60', '35,45,80', '220,240,255']) {
+    assert.ok(colors.has(color), color)
+  }
+  assert.ok(workspace.project.modules.some((module) => module.screen?.width === 128 && module.screen?.height === 96))
+  const note = workspace.presentation.cards.find((card) => card.type === 'comment')
+  assert.match(note.text, /képlériennes/)
 })

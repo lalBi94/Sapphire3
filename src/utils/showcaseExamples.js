@@ -179,11 +179,130 @@ function orbitalTrails() {
   return b.finish([instance, palette, grid, loop], String.raw`Deux satellites jaune/cyan dessinent une trajectoire de Lissajous en 64 images. La classe Rotor encapsule sa phase privée et avance avec step(). Le module Math fournit les coordonnées, App orchestre les appels et l’écran. Modèle géométrique, pas simulation gravitationnelle. $$x=32+26\cos(t),\quad y=20+15\sin(2t)$$`)
 }
 
-// Cinq créations de la vitrine, également ouvrables dans la bibliothèque locale.
+// Huit planètes sur des ellipses képlériennes ; la Terre bleue est suivie par sa traînée.
+function solarSystem() {
+  const width = 128
+  const height = 96
+  const frames = 26
+  const years = 2
+  const centerX = 64
+  const centerY = 48
+  const widget = createScreenModule('solarSystemScreen', 'Solar system', 1, { width, height })
+  const b = scene('solarSystem', 'Solar system', widget)
+  const planets = [
+    { id: 'mercury', a: 0.387, e: 0.2056, period: 0.2408, phase: 0.4, color: 1 },
+    { id: 'venus', a: 0.723, e: 0.0068, period: 0.6152, phase: 1.3, color: 2 },
+    { id: 'earth', a: 1, e: 0.0167, period: 1, phase: 2.2, color: 3 },
+    { id: 'mars', a: 1.524, e: 0.0934, period: 1.8808, phase: 3.1, color: 4 },
+    { id: 'jupiter', a: 5.203, e: 0.0489, period: 11.862, phase: 4, color: 5 },
+    { id: 'saturn', a: 9.537, e: 0.0565, period: 29.457, phase: 5, color: 6 },
+    { id: 'uranus', a: 19.19, e: 0.0463, period: 84.011, phase: 0.8, color: 7 },
+    { id: 'neptune', a: 30.07, e: 0.0086, period: 164.79, phase: 2.6, color: 8 },
+  ]
+  // Projette une distance en UA dans le cadre : les orbites externes restent visibles.
+  const scale = Math.log(1 + 31)
+  const pixelRadius = (a) => 6 + 36 * Math.log(1 + a) / scale
+  const earth = planets.find((planet) => planet.id === 'earth')
+  const earthMajor = pixelRadius(earth.a)
+  const earthMinor = earthMajor * Math.sqrt(1 - earth.e * earth.e)
+  const earthFocus = earthMajor * earth.e
+  // La trajectoire de la Terre est calculée dans le module Math, puis importée par App.
+  b.formula('earthX', b.op('-', b.op('+', b.real(centerX), b.op('*', b.real(earthMajor), b.math('cos', [b.ref('x')]))), b.real(earthFocus)))
+  b.formula('earthY', b.op('+', b.real(centerY), b.op('*', b.real(earthMinor), b.math('sin', [b.ref('x')]))))
+  b.useApp()
+  const declarations = []
+  for (const planet of planets) {
+    const aPx = pixelRadius(planet.a)
+    declarations.push(
+      b.declare(`phase_${planet.id}`, doubleType, b.real(planet.phase)),
+      b.declare(`speed_${planet.id}`, doubleType, b.real(2 * Math.PI * years / planet.period / (frames - 1))),
+      b.declare(`color_${planet.id}`, intType, b.integer(planet.color)),
+    )
+    if (planet.id !== 'earth') {
+      declarations.push(
+        b.declare(`major_${planet.id}`, doubleType, b.real(aPx)),
+        b.declare(`minor_${planet.id}`, doubleType, b.real(aPx * Math.sqrt(1 - planet.e * planet.e))),
+        b.declare(`focus_${planet.id}`, doubleType, b.real(aPx * planet.e)),
+      )
+    }
+  }
+  const palette = b.declare('palette', intArrayType, b.node('ArrayLiteral', { elementType: intType }, {
+    elements: [6, 8, 20, 255, 190, 190, 200, 255, 235, 215, 160, 255, 70, 150, 255, 255, 230, 110, 80, 255, 230, 170, 100, 255, 235, 210, 130, 255, 120, 230, 235, 255, 90, 130, 255, 255, 255, 245, 150, 255, 255, 190, 60, 255, 35, 45, 80, 255, 220, 240, 255, 255].map(b.integer),
+  }))
+  const grid = b.declare('grid', intArrayType, b.math('arrayFill', [b.integer(width * height), b.integer(0)]))
+  // Trace vingt repères par orbite : une aide visuelle statique, pas une position calculée.
+  const guides = []
+  for (const planet of planets) {
+    const aPx = pixelRadius(planet.a)
+    const bPx = aPx * Math.sqrt(1 - planet.e * planet.e)
+    for (let marker = 0; marker < 20; marker += 1) {
+      const angle = 2 * Math.PI * marker / 20
+      const x = Math.floor(centerX + aPx * Math.cos(angle) - aPx * planet.e)
+      const y = Math.floor(centerY + bPx * Math.sin(angle))
+      guides.push(b.node('AssignmentStatement', {}, {
+        target: b.node('ArrayAccess', {}, { array: b.ref('grid'), index: b.integer(y * width + x) }),
+        value: b.integer(11),
+      }))
+    }
+  }
+  // Le Soleil est un disque fixe de 29 pixels, dessiné une seule fois.
+  const sun = []
+  for (let dy = -3; dy <= 3; dy += 1) {
+    for (let dx = -3; dx <= 3; dx += 1) {
+      const distance = dx * dx + dy * dy
+      if (distance <= 10) {
+        sun.push(b.node('AssignmentStatement', {}, {
+          target: b.node('ArrayAccess', {}, { array: b.ref('grid'), index: b.integer((centerY + dy) * width + centerX + dx) }),
+          value: b.integer(distance <= 4 ? 9 : 10),
+        }))
+      }
+    }
+  }
+  const draws = []
+  for (const planet of planets) {
+    const key = planet.id
+    const angle = b.declare(`angle_${key}`, doubleType, b.op('+', b.ref(`phase_${key}`), b.op('*', b.ref(`speed_${key}`), b.cast(doubleType, b.ref('frame')))))
+    const xValue = planet.id === 'earth'
+      ? b.call(b.imported(b.library, 'earthX'), [b.ref(`angle_${key}`)])
+      : b.op('-', b.op('+', b.real(centerX), b.op('*', b.ref(`major_${key}`), b.math('cos', [b.ref(`angle_${key}`)]))), b.ref(`focus_${key}`))
+    const yValue = planet.id === 'earth'
+      ? b.call(b.imported(b.library, 'earthY'), [b.ref(`angle_${key}`)])
+      : b.op('+', b.real(centerY), b.op('*', b.ref(`minor_${key}`), b.math('sin', [b.ref(`angle_${key}`)])))
+    const x = b.declare(`x_${key}`, doubleType, xValue)
+    const y = b.declare(`y_${key}`, doubleType, yValue)
+    const pixel = b.declare(`pixel_${key}`, intType, b.op('+', b.op('*', b.cast(intType, b.ref(`y_${key}`)), b.integer(width)), b.cast(intType, b.ref(`x_${key}`))))
+    draws.push(angle, x, y, pixel, b.node('AssignmentStatement', {}, {
+      target: b.node('ArrayAccess', {}, { array: b.ref('grid'), index: b.ref(`pixel_${key}`) }),
+      value: b.ref(`color_${key}`),
+    }))
+    if (planet.id === 'earth') {
+      for (const offset of [1, width, width + 1]) {
+        draws.push(b.node('AssignmentStatement', {}, {
+          target: b.node('ArrayAccess', {}, { array: b.ref('grid'), index: b.op('+', b.ref(`pixel_${key}`), b.integer(offset)) }),
+          value: b.ref(`color_${key}`),
+        }))
+      }
+      draws.push(b.node('AssignmentStatement', {}, {
+        target: b.node('ArrayAccess', {}, { array: b.ref('grid'), index: b.ref(`pixel_${key}`) }),
+        value: b.integer(12),
+      }))
+    }
+  }
+  const paint = b.statement(b.call(b.imported(widget.module, widget.functions.blit), [b.ref('grid'), b.ref('palette')]))
+  const present = b.statement(b.call(b.imported(widget.module, widget.functions.present), []))
+  const loop = b.node('ForStatement', {}, {
+    initializer: b.declare('frame', intType, b.integer(0)), test: b.op('<', b.ref('frame'), b.integer(frames)),
+    update: b.assign('frame', b.op('+', b.ref('frame'), b.integer(1))), body: b.block([...draws, paint, present]),
+  })
+  return b.finish([...declarations, palette, grid, ...guides, ...sun, loop], String.raw`Écran 128×96. Huit planètes suivent des ellipses képlériennes autour du Soleil, avec les demi-grands axes, excentricités et périodes réelles ; la projection radiale logarithmique garde tout le système visible. La Terre, en bleu, est suivie par sa traînée épaisse. Le Soleil est le disque jaune central. Pas d'interactions planète-planète ni de Lune. $$x=a(\cos E-e),\quad y=b\sin E$$`)
+}
+
+// Six créations dédiées, également ouvrables dans la bibliothèque locale.
 export const showcaseExamples = [
   { id: 'harmonicStudio', labelKey: 'examples.harmonicStudio', category: 'medium', subcategory: 'widgets', build: harmonicStudio },
   { id: 'chirpRibbon', labelKey: 'examples.chirpRibbon', category: 'medium', subcategory: 'widgets', build: chirpRibbon },
   { id: 'wavePacket', labelKey: 'examples.wavePacket', category: 'medium', subcategory: 'widgets', build: wavePacket },
   { id: 'neonRose', labelKey: 'examples.neonRose', category: 'hard', subcategory: 'animation', build: neonRose },
   { id: 'orbitalTrails', labelKey: 'examples.orbitalTrails', category: 'hard', subcategory: 'animation', build: orbitalTrails },
+  { id: 'solarSystem', labelKey: 'examples.solarSystem', category: 'hard', subcategory: 'simulation', build: solarSystem },
 ]
