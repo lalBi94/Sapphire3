@@ -14,8 +14,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const outputDirectory = path.join(root, 'abstract', 'visual', 'dashboards')
 const { version } = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'))
 
-// Les dix exemples mis en avant sur le site ; la page dashboards.html reprend les mêmes identifiants.
+// Les douze exemples mis en avant sur le site ; la page dashboards.html reprend les mêmes identifiants.
 const showcase = [
+  { id: 'solarSystem', title: 'Solar system', description: 'Huit planètes képlériennes ; la Terre bleue est la seule à laisser une traînée.' },
+  { id: 'buttonLed', title: 'Two buttons and an LED', description: 'Un bouton à bascule, un bouton maintenu et une LED : les deux entrées pilotent le voyant.' },
   { id: 'rotatingCube', title: 'Rotating cube', description: 'Un cube filaire en rotation, deux projections synchronisées : perspective et orthographique.' },
   { id: 'neonRose', title: 'Neon rose', description: 'Une rosace multicolore se dessine point par point : cinq pétales, 32 images, calculs SP3.' },
   { id: 'spirograph', title: 'Spirograph', description: 'Une hypotrochoïde lumineuse se construit progressivement sur un écran pixel.' },

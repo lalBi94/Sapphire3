@@ -2,6 +2,12 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Vitrine GH Pages : système solaire et boutons d'entrée — 8 novembre 2026
+
+- `scripts/build-dashboard-showcase.mjs` passe à **douze dashboards** : **Solar system** en premier, **Two buttons and an LED** ensuite, puis les dix exemples précédents. Les deux nouveaux fichiers sont générés avec le vrai moteur et les widgets d'entrée.
+- `abstract/visual/dashboards.html` est renumérotée de 01 à 12, avec les textes, chips et compteurs alignés. La page d'accueil met les deux nouveaux dashboards en aperçu, et `documentation.html`, `README.md`, `docs/PROJECT_STATE.md` et le rapport LaTeX passent de dix à douze.
+- Vérifications : `pnpm dashboards:build` régénère les douze fichiers, contrôle des liens locaux, `pnpm test` et build Vite. Publication GitHub Pages après validation.
+
 ## Boutons d'entrée interactifs — 8 novembre 2026
 
 - Ajout de **Widgets → Entrées** avec `toggleButton` et `holdButton`. Chaque carte est adossée à un module caché ordinaire qui déclare une globale booléenne `INPUT_SP3_GLOBAL_ISPRESS_<n>` et exporte `isPress()`. Le toggle bascule à chaque clic ; le hold reste vrai pendant l'appui et redevient faux au relâchement (pointeur, clavier ou perte de focus).
