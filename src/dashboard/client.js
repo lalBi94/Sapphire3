@@ -52,14 +52,39 @@ function oscilloscopeXValues(xMin, xMax, samples) {
 }
 
 // Prépare les séries uPlot d'un oscilloscope, sans recalculer les valeurs du moteur.
-function oscilloscopeData(state) {
+function oscilloscopeData(state, settings = {}, stretch = 1) {
   const channels = Array.isArray(state?.channels) ? state.channels : []
   const samples = Math.max(2, Math.trunc(Number(state?.samples) || 64))
   const xMin = Number.isFinite(state?.xMin) ? state.xMin : -10
   const xMax = Number.isFinite(state?.xMax) && state.xMax > xMin ? state.xMax : xMin + 1
   const x = oscilloscopeXValues(xMin, xMax, samples)
-  return [x, ...channels.map((channel) => channel.values.map((value) => value == null || !Number.isFinite(value) ? null : value))]
+  return [x, ...channels.map((channel) => {
+    const setting = settings[channel.id] ?? {}
+    const amplitude = Number.isFinite(setting.amplitude) ? setting.amplitude : 1
+    const offset = Number.isFinite(setting.offset) ? setting.offset : 0
+    return (Array.isArray(channel.values) ? channel.values : []).map((value) => value == null || !Number.isFinite(value) ? null : value * amplitude * stretch + offset)
+  })]
 }
+
+// Prépare les séries uPlot d'un traceur XY à partir de ses points [x, y].
+function xyPlotData(state) {
+  const points = Array.isArray(state?.points) ? state.points : []
+  const x = points.map((point) => Number(point?.[0]))
+  const y = points.map((point) => Number(point?.[1]))
+  return [x, y]
+}
+
+// Construit une petite icône SVG inline pour les commandes du dashboard.
+function dashboardControlIcon(path) {
+  return `<svg class="db-oscilloscope__icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">${path}</svg>`
+}
+
+const oscilloscopeIcons = Object.freeze({
+  eye: dashboardControlIcon('<path d="M1.5 8s2.4-4 6.5-4 6.5 4 6.5 4-2.4 4-6.5 4S1.5 8 1.5 8Z" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="8" r="1.8" fill="currentColor"/>'),
+  eyeOff: dashboardControlIcon('<path d="M2 2l12 12M6.6 4.5A7.7 7.7 0 0 1 8 4c4.1 0 6.5 4 6.5 4a10.8 10.8 0 0 1-2.2 2.4M4.2 5.4A10.4 10.4 0 0 0 1.5 8s2.4 4 6.5 4a7.7 7.7 0 0 0 2.4-.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>'),
+  power: dashboardControlIcon('<path d="M8 2v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4.6 4.3a5 5 0 1 0 6.8 0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'),
+  powerOff: dashboardControlIcon('<path d="M8 2v5M2 2l12 12M4.6 4.3a5 5 0 0 0 6.8 6.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'),
+})
 
 // Convertit un ratio 0..1 en point sur l'arc de jauge, comme la carte Gauge de l'application.
 function gaugePoint(ratio) {
@@ -378,18 +403,11 @@ function start(config, runtimeSource) {
       return
     }
     if (panel.type === 'oscilloscope') {
-      const wrapper = document.createElement('div')
-      wrapper.className = 'db-oscilloscope'
-      const chart = document.createElement('div')
-      chart.className = 'db-oscilloscope__chart'
-      chart.setAttribute('role', 'img')
-      chart.setAttribute('aria-label', panel.name)
-      const readout = document.createElement('p')
-      readout.className = 'db-oscilloscope__readout'
-      readout.textContent = labels.oscilloscopeHint ?? 'Move the cursor over the signal.'
-      wrapper.append(chart, readout)
-      body.append(wrapper)
-      ref.oscilloscope = { chart, readout, plot: null, channelsKey: '', resizeObserver: null }
+      createOscilloscopeContent(ref)
+      return
+    }
+    if (panel.type === 'xyPlot') {
+      createXyPlotContent(ref)
       return
     }
     if (panel.type === 'output') {
@@ -546,6 +564,13 @@ function start(config, runtimeSource) {
       const label = labels.repository ?? 'Open the Sapphire 3 repository on GitHub'
       github.setAttribute('aria-label', label)
       github.title = label
+    }
+    for (const ref of refs.values()) {
+      if (ref.oscilloscope) applyOscilloscopeLabels(ref.oscilloscope)
+      if (ref.xyPlot) {
+        ref.xyPlot.readout.textContent = labels.xyPlotHint ?? 'Move the cursor over the curve.'
+        ref.xyPlot.empty.textContent = labels.xyPlotEmpty ?? 'Call SET_FUNCTION to draw the curve.'
+      }
     }
     renderMenu()
     renderControls()
@@ -708,6 +733,8 @@ function start(config, runtimeSource) {
       ref.progressTrack.setAttribute('aria-label', `${widget.name}: ${formatNumber(bar.value)} / ${formatNumber(bar.max)}`)
     } else if (widget.type === 'barChart') {
       renderBars(ref, states.barCharts?.[widget.id]?.values ?? new Array(widget.size ?? 12).fill(0))
+    } else if (widget.type === 'xyPlot') {
+      renderXyPlot(ref, widget, states.xyPlots?.[widget.id])
     } else if (widget.type === 'oscilloscope') {
       renderOscilloscope(ref, widget, states.oscilloscopes?.[widget.id])
     } else if (widget.type === 'heatmap') {
@@ -715,36 +742,332 @@ function start(config, runtimeSource) {
     }
   }
 
-  // Trace les canaux de l'oscilloscope avec uPlot, sans recréer le graphique à chaque pas.
-  function renderOscilloscope(ref, widget, state) {
-    const scope = ref.oscilloscope
-    if (!scope) return
+  // Prépare la carte d'un oscilloscope : commandes de l'instrument autour du graphique.
+  function createOscilloscopeContent(ref) {
+    const wrapper = document.createElement('div')
+    wrapper.className = 'db-oscilloscope'
+    const toolbar = document.createElement('div')
+    toolbar.className = 'db-oscilloscope__toolbar'
+    const control = (action, text, label) => {
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className = 'db-oscilloscope__control'
+      button.dataset.action = action
+      button.textContent = text
+      button.setAttribute('aria-label', label)
+      button.title = label
+      return button
+    }
+    const reset = control('reset', '↺', labels.oscilloscopeReset ?? 'Reset view')
+    const zoomOutX = control('zoom-out-x', 'X−', labels.oscilloscopeZoomOutX ?? 'Zoom out X')
+    const zoomInX = control('zoom-in-x', 'X+', labels.oscilloscopeZoomInX ?? 'Zoom in X')
+    const zoomOutY = control('zoom-out-y', 'Y−', labels.oscilloscopeZoomOutY ?? 'Zoom out Y')
+    const zoomInY = control('zoom-in-y', 'Y+', labels.oscilloscopeZoomInY ?? 'Zoom in Y')
+    const panLeft = control('pan-left', '←', labels.oscilloscopePanLeft ?? 'Pan left')
+    const panRight = control('pan-right', '→', labels.oscilloscopePanRight ?? 'Pan right')
+    const panUp = control('pan-up', '↑', labels.oscilloscopePanUp ?? 'Pan up')
+    const panDown = control('pan-down', '↓', labels.oscilloscopePanDown ?? 'Pan down')
+    const stretchLabel = document.createElement('label')
+    stretchLabel.className = 'db-oscilloscope__stretch'
+    const stretchText = document.createElement('span')
+    stretchText.textContent = labels.oscilloscopeStretch ?? 'Stretch'
+    const stretchInput = document.createElement('input')
+    stretchInput.type = 'range'
+    stretchInput.min = '0.25'
+    stretchInput.max = '4'
+    stretchInput.step = '0.25'
+    stretchInput.value = '1'
+    stretchInput.setAttribute('aria-label', labels.oscilloscopeStretch ?? 'Stretch')
+    stretchLabel.append(stretchText, stretchInput)
+    const hideControls = control('hide-controls', '⌃', labels.oscilloscopeHideControls ?? 'Hide controls')
+    toolbar.append(reset, zoomOutX, zoomInX, zoomOutY, zoomInY, panLeft, panRight, panUp, panDown, stretchLabel, hideControls)
+
+    const bodyRow = document.createElement('div')
+    bodyRow.className = 'db-oscilloscope__body'
+    const channels = document.createElement('div')
+    channels.className = 'db-oscilloscope__channels'
+    const chartWrap = document.createElement('div')
+    chartWrap.className = 'db-oscilloscope__chart-wrap'
+    const chart = document.createElement('div')
+    chart.className = 'db-oscilloscope__chart'
+    chart.setAttribute('role', 'img')
+    chart.setAttribute('aria-label', ref.panel.name)
+    const empty = document.createElement('p')
+    empty.className = 'db-oscilloscope__empty'
+    empty.textContent = labels.oscilloscopeEmpty ?? 'No signal yet.'
+    const expand = document.createElement('button')
+    expand.type = 'button'
+    expand.className = 'db-oscilloscope__expand'
+    expand.dataset.action = 'show-controls'
+    expand.textContent = '⚙'
+    expand.setAttribute('aria-label', labels.oscilloscopeShowControls ?? 'Show controls')
+    expand.title = labels.oscilloscopeShowControls ?? 'Show controls'
+    chartWrap.append(chart, empty, expand)
+    bodyRow.append(channels, chartWrap)
+    const readout = document.createElement('p')
+    readout.className = 'db-oscilloscope__readout'
+    readout.textContent = labels.oscilloscopeHint ?? 'Move the cursor over the signal.'
+    wrapper.append(toolbar, bodyRow, readout)
+    ref.body.append(wrapper)
+
+    const scope = {
+      panel: ref.panel,
+      wrapper,
+      toolbar,
+      channels,
+      chartWrap,
+      chart,
+      empty,
+      readout,
+      expand,
+      stretchInput,
+      controls: { reset, zoomOutX, zoomInX, zoomOutY, zoomInY, panLeft, panRight, panUp, panDown, hideControls, expand, stretchText },
+      plot: null,
+      channelsKey: '',
+      rowsKey: '',
+      resizeObserver: null,
+      state: null,
+      revision: null,
+      channelList: [],
+      rows: new Map(),
+      settings: {},
+      stretch: 1,
+      collapsed: false,
+    }
+    reset.addEventListener('click', () => resetOscilloscopeView(scope))
+    zoomOutX.addEventListener('click', () => zoomOscilloscopeAxis(scope, 'x', 1.25))
+    zoomInX.addEventListener('click', () => zoomOscilloscopeAxis(scope, 'x', 0.8))
+    zoomOutY.addEventListener('click', () => zoomOscilloscopeAxis(scope, 'y', 1.25))
+    zoomInY.addEventListener('click', () => zoomOscilloscopeAxis(scope, 'y', 0.8))
+    panLeft.addEventListener('click', () => panOscilloscopeAxis(scope, 'x', -0.15))
+    panRight.addEventListener('click', () => panOscilloscopeAxis(scope, 'x', 0.15))
+    panUp.addEventListener('click', () => panOscilloscopeAxis(scope, 'y', 0.15))
+    panDown.addEventListener('click', () => panOscilloscopeAxis(scope, 'y', -0.15))
+    stretchInput.addEventListener('input', () => {
+      scope.stretch = Math.max(0.25, Math.min(4, Number(stretchInput.value) || 1))
+      updateOscilloscopePlot(scope)
+    })
+    hideControls.addEventListener('click', () => setOscilloscopeCollapsed(scope, true))
+    expand.addEventListener('click', () => setOscilloscopeCollapsed(scope, false))
+    ref.oscilloscope = scope
+  }
+
+  // Replie ou déplie les commandes de l'oscilloscope pour agrandir le graphique.
+  function setOscilloscopeCollapsed(scope, collapsed) {
+    scope.collapsed = collapsed
+    scope.wrapper.classList.toggle('db-oscilloscope--collapsed', collapsed)
+  }
+
+  // Rafraîchit une ligne de canal après un changement de réglage.
+  function refreshOscilloscopeRow(scope, channel, index) {
+    const row = scope.rows.get(channel.id)
+    if (!row) return
+    const setting = scope.settings[channel.id]
+    const visible = setting.visible !== false
+    const enabled = setting.enabled !== false
+    row.row.classList.toggle('db-oscilloscope__channel--off', !visible || !enabled)
+    row.visible.innerHTML = visible ? oscilloscopeIcons.eye : oscilloscopeIcons.eyeOff
+    row.visible.setAttribute('aria-pressed', String(visible))
+    row.visible.setAttribute('aria-label', formatTemplate(visible ? (labels.oscilloscopeHideChannel ?? 'Hide channel {index}') : (labels.oscilloscopeShowChannel ?? 'Show channel {index}'), { index }))
+    row.visible.title = row.visible.getAttribute('aria-label')
+    row.enabled.innerHTML = enabled ? oscilloscopeIcons.power : oscilloscopeIcons.powerOff
+    row.enabled.setAttribute('aria-pressed', String(enabled))
+    row.enabled.setAttribute('aria-label', formatTemplate(enabled ? (labels.oscilloscopeDisableChannel ?? 'Disable channel {index}') : (labels.oscilloscopeEnableChannel ?? 'Enable channel {index}'), { index }))
+    row.enabled.title = row.enabled.getAttribute('aria-label')
+    row.amplitudeInput.value = String(setting.amplitude)
+    row.amplitudeValue.textContent = Number(setting.amplitude).toFixed(1)
+    row.offsetInput.value = String(setting.offset)
+    row.offsetValue.textContent = Number(setting.offset).toFixed(1)
+  }
+
+  // Reconstruit la liste des canaux uniquement lorsque leur identité change.
+  function syncOscilloscopeChannels(scope, channels) {
+    const key = channels.map((channel) => channel.id).join(',')
+    if (key === scope.rowsKey) return
+    scope.rowsKey = key
+    scope.channelList = channels
+    const current = new Set(channels.map((channel) => channel.id))
+    for (const id of Object.keys(scope.settings)) {
+      if (!current.has(Number(id))) delete scope.settings[id]
+    }
+    scope.channels.replaceChildren()
+    scope.rows.clear()
+    for (const [index, channel] of channels.entries()) {
+      scope.settings[channel.id] = scope.settings[channel.id] ?? { visible: true, enabled: true, amplitude: 1, offset: 0 }
+      const row = document.createElement('div')
+      row.className = 'db-oscilloscope__channel'
+      const swatch = document.createElement('span')
+      swatch.className = 'db-oscilloscope__swatch'
+      swatch.style.background = oscilloscopeColor(channel.id)
+      const name = document.createElement('span')
+      name.className = 'db-oscilloscope__channel-name'
+      name.textContent = formatTemplate(labels.oscilloscopeChannel ?? 'Channel {index}', { index: index + 1 })
+      const visible = document.createElement('button')
+      visible.type = 'button'
+      visible.className = 'db-oscilloscope__toggle'
+      const enabled = document.createElement('button')
+      enabled.type = 'button'
+      enabled.className = 'db-oscilloscope__toggle'
+      const amplitudeLabel = document.createElement('label')
+      amplitudeLabel.className = 'db-oscilloscope__range'
+      const amplitudeText = document.createElement('span')
+      amplitudeText.textContent = labels.oscilloscopeAmplitude ?? 'Amplitude'
+      const amplitudeInput = document.createElement('input')
+      amplitudeInput.type = 'range'
+      amplitudeInput.min = '0.1'
+      amplitudeInput.max = '3'
+      amplitudeInput.step = '0.1'
+      amplitudeInput.setAttribute('aria-label', `${labels.oscilloscopeAmplitude ?? 'Amplitude'} ${index + 1}`)
+      const amplitudeValue = document.createElement('b')
+      amplitudeLabel.append(amplitudeText, amplitudeInput, amplitudeValue)
+      const offsetLabel = document.createElement('label')
+      offsetLabel.className = 'db-oscilloscope__range'
+      const offsetText = document.createElement('span')
+      offsetText.textContent = labels.oscilloscopeOffset ?? 'Offset'
+      const offsetInput = document.createElement('input')
+      offsetInput.type = 'range'
+      offsetInput.min = '-5'
+      offsetInput.max = '5'
+      offsetInput.step = '0.1'
+      offsetInput.setAttribute('aria-label', `${labels.oscilloscopeOffset ?? 'Offset'} ${index + 1}`)
+      const offsetValue = document.createElement('b')
+      offsetLabel.append(offsetText, offsetInput, offsetValue)
+      row.append(swatch, name, visible, enabled, amplitudeLabel, offsetLabel)
+      scope.channels.append(row)
+      scope.rows.set(channel.id, { row, visible, enabled, amplitudeInput, amplitudeValue, offsetInput, offsetValue })
+      visible.addEventListener('click', () => {
+        const setting = scope.settings[channel.id]
+        setting.visible = setting.visible === false
+        refreshOscilloscopeRow(scope, channel, index)
+        updateOscilloscopePlot(scope)
+      })
+      enabled.addEventListener('click', () => {
+        const setting = scope.settings[channel.id]
+        setting.enabled = setting.enabled === false
+        refreshOscilloscopeRow(scope, channel, index)
+        updateOscilloscopePlot(scope)
+      })
+      amplitudeInput.addEventListener('input', () => {
+        scope.settings[channel.id].amplitude = Math.max(0.1, Math.min(3, Number(amplitudeInput.value) || 1))
+        refreshOscilloscopeRow(scope, channel, index)
+        updateOscilloscopePlot(scope)
+      })
+      offsetInput.addEventListener('input', () => {
+        scope.settings[channel.id].offset = Math.max(-5, Math.min(5, Number(offsetInput.value) || 0))
+        refreshOscilloscopeRow(scope, channel, index)
+        updateOscilloscopePlot(scope)
+      })
+      refreshOscilloscopeRow(scope, channel, index)
+    }
+  }
+
+  // Met à jour les libellés des commandes après un changement de langue.
+  function applyOscilloscopeLabels(scope) {
+    const set = (button, text) => {
+      button.setAttribute('aria-label', text)
+      button.title = text
+    }
+    set(scope.controls.reset, labels.oscilloscopeReset ?? 'Reset view')
+    set(scope.controls.zoomOutX, labels.oscilloscopeZoomOutX ?? 'Zoom out X')
+    set(scope.controls.zoomInX, labels.oscilloscopeZoomInX ?? 'Zoom in X')
+    set(scope.controls.zoomOutY, labels.oscilloscopeZoomOutY ?? 'Zoom out Y')
+    set(scope.controls.zoomInY, labels.oscilloscopeZoomInY ?? 'Zoom in Y')
+    set(scope.controls.panLeft, labels.oscilloscopePanLeft ?? 'Pan left')
+    set(scope.controls.panRight, labels.oscilloscopePanRight ?? 'Pan right')
+    set(scope.controls.panUp, labels.oscilloscopePanUp ?? 'Pan up')
+    set(scope.controls.panDown, labels.oscilloscopePanDown ?? 'Pan down')
+    set(scope.controls.hideControls, labels.oscilloscopeHideControls ?? 'Hide controls')
+    set(scope.controls.expand, labels.oscilloscopeShowControls ?? 'Show controls')
+    scope.controls.stretchText.textContent = labels.oscilloscopeStretch ?? 'Stretch'
+    scope.stretchInput.setAttribute('aria-label', labels.oscilloscopeStretch ?? 'Stretch')
+    for (const [index, channel] of scope.channelList.entries()) refreshOscilloscopeRow(scope, channel, index)
+  }
+
+  // Calcule les bornes Y visibles du graphique de l'oscilloscope.
+  function oscilloscopeBounds(scope) {
+    const plot = scope.plot
+    if (!plot) return { min: -1, max: 1 }
+    let minimum = Infinity
+    let maximum = -Infinity
+    for (let position = 1; position < plot.series.length; position += 1) {
+      if (plot.series[position]?.show === false) continue
+      for (const value of plot.data[position] ?? []) {
+        if (value == null || !Number.isFinite(value)) continue
+        if (value < minimum) minimum = value
+        if (value > maximum) maximum = value
+      }
+    }
+    if (!Number.isFinite(minimum) || !Number.isFinite(maximum)) return { min: -1, max: 1 }
+    if (maximum - minimum < 1e-9) return { min: minimum - 1, max: maximum + 1 }
+    const padding = (maximum - minimum) * 0.1
+    return { min: minimum - padding, max: maximum + padding }
+  }
+
+  // Remet la vue de l'oscilloscope sur la fenêtre et les bornes naturelles.
+  function resetOscilloscopeView(scope) {
+    const plot = scope.plot
+    if (!plot) return
+    const state = scope.state ?? {}
+    const xMin = Number.isFinite(state.xMin) ? state.xMin : -10
+    const xMax = Number.isFinite(state.xMax) && state.xMax > xMin ? state.xMax : xMin + 1
+    plot.setScale('x', { min: xMin, max: xMax })
+    plot.setScale('y', oscilloscopeBounds(scope))
+  }
+
+  // Zoome un axe de l'oscilloscope sans toucher à l'autre.
+  function zoomOscilloscopeAxis(scope, axis, factor) {
+    const plot = scope.plot
+    if (!plot) return
+    const scale = plot.scales[axis]
+    if (!scale || !Number.isFinite(scale.min) || !Number.isFinite(scale.max)) return
+    const span = scale.max - scale.min
+    if (!(span > 1e-9)) return
+    const center = (scale.min + scale.max) / 2
+    const next = (span * factor) / 2
+    plot.setScale(axis, { min: center - next, max: center + next })
+  }
+
+  // Déplace la fenêtre d'un axe de l'oscilloscope.
+  function panOscilloscopeAxis(scope, axis, fraction) {
+    const plot = scope.plot
+    if (!plot) return
+    const scale = plot.scales[axis]
+    if (!scale || !Number.isFinite(scale.min) || !Number.isFinite(scale.max)) return
+    const span = scale.max - scale.min
+    if (!(span > 1e-9)) return
+    const delta = span * fraction
+    plot.setScale(axis, { min: scale.min + delta, max: scale.max + delta })
+  }
+
+  // Met à jour les données tracées et la visibilité des séries.
+  function updateOscilloscopePlot(scope) {
+    const state = scope.state
     const channels = Array.isArray(state?.channels) ? state.channels : []
-    const channelsKey = channels.map((channel) => channel.id).join(',')
-    const hint = labels.oscilloscopeHint ?? 'Move the cursor over the signal.'
     if (channels.length === 0) {
       if (scope.plot) scope.plot.destroy()
-      scope.resizeObserver?.disconnect()
+      if (scope.resizeObserver) scope.resizeObserver.disconnect()
       scope.plot = null
       scope.resizeObserver = null
-      scope.channelsKey = ''
       scope.chart.replaceChildren()
-      scope.readout.textContent = labels.oscilloscopeEmpty ?? 'No signal yet.'
+      scope.empty.hidden = false
+      scope.chart.setAttribute('aria-label', `${scope.panel.name}: 0`)
       return
     }
-    const data = oscilloscopeData(state)
-    const chart = scope.chart
+    scope.empty.hidden = true
+    const data = oscilloscopeData(state, scope.settings, scope.stretch)
+    const channelsKey = channels.map((channel) => channel.id).join(',')
     if (!scope.plot || scope.channelsKey !== channelsKey) {
       if (scope.plot) scope.plot.destroy()
-      scope.resizeObserver?.disconnect()
-      const computed = getComputedStyle(chart)
+      if (scope.resizeObserver) scope.resizeObserver.disconnect()
+      const computed = getComputedStyle(scope.chart)
       const textColor = computed.getPropertyValue('--db-muted').trim() || '#b5b2c2'
       const gridColor = computed.getPropertyValue('--db-grid').trim() || '#ffffff0c'
       const borderColor = computed.getPropertyValue('--db-border').trim() || '#ffffff24'
       const channelTemplate = labels.oscilloscopeChannel ?? 'Channel {index}'
+      const hint = labels.oscilloscopeHint ?? 'Move the cursor over the signal.'
       const plot = new uPlot({
-        width: Math.max(1, chart.clientWidth),
-        height: Math.max(1, chart.clientHeight),
+        width: Math.max(1, scope.chart.clientWidth),
+        height: Math.max(1, scope.chart.clientHeight),
         padding: [8, 8, 0, 0],
         cursor: { drag: { x: true, y: true, setScale: true }, points: { show: false } },
         legend: { show: false },
@@ -755,7 +1078,12 @@ function start(config, runtimeSource) {
         ],
         series: [
           {},
-          ...channels.map((channel, index) => ({ label: formatTemplate(channelTemplate, { index: index + 1 }), stroke: oscilloscopeColor(channel.id), width: 2 })),
+          ...channels.map((channel, index) => ({
+            label: formatTemplate(channelTemplate, { index: index + 1 }),
+            stroke: oscilloscopeColor(channel.id),
+            width: 2,
+            show: scope.settings[channel.id]?.visible !== false && scope.settings[channel.id]?.enabled !== false,
+          })),
         ],
         hooks: {
           setCursor: [(self) => {
@@ -772,19 +1100,131 @@ function start(config, runtimeSource) {
             scope.readout.textContent = parts.join(' · ')
           }],
         },
-      }, data, chart)
+      }, data, scope.chart)
       scope.plot = plot
-      scope.channelsKey = channelsKey
+      scope.revision = Number(state?.revision) || 0
       scope.readout.textContent = hint
       const observer = new ResizeObserver(() => {
         if (!scope.plot) return
-        scope.plot.setSize({ width: Math.max(1, chart.clientWidth), height: Math.max(1, chart.clientHeight) })
+        scope.plot.setSize({ width: Math.max(1, scope.chart.clientWidth), height: Math.max(1, scope.chart.clientHeight) })
       })
-      observer.observe(chart)
+      observer.observe(scope.chart)
       scope.resizeObserver = observer
     } else {
       scope.plot.setData(data, false)
+      const revision = Number(state?.revision) || 0
+      if (revision !== scope.revision) {
+        scope.revision = revision
+        const xMin = Number.isFinite(state?.xMin) ? state.xMin : -10
+        const xMax = Number.isFinite(state?.xMax) && state.xMax > xMin ? state.xMax : xMin + 1
+        scope.plot.setScale('x', { min: xMin, max: xMax })
+        scope.plot.setScale('y', oscilloscopeBounds(scope))
+      }
     }
+    channels.forEach((channel, index) => scope.plot.setSeries(index + 1, {
+      show: scope.settings[channel.id]?.visible !== false && scope.settings[channel.id]?.enabled !== false,
+    }))
+    scope.chart.setAttribute('aria-label', `${scope.panel.name}: ${channels.length}`)
+  }
+
+  // Prépare la carte d'un traceur XY dans le dashboard.
+  function createXyPlotContent(ref) {
+    const wrapper = document.createElement('div')
+    wrapper.className = 'db-xyplot'
+    const chart = document.createElement('div')
+    chart.className = 'db-xyplot__chart'
+    chart.setAttribute('role', 'img')
+    chart.setAttribute('aria-label', ref.panel.name)
+    const empty = document.createElement('p')
+    empty.className = 'db-xyplot__empty'
+    empty.textContent = labels.xyPlotEmpty ?? 'Call SET_FUNCTION to draw the curve.'
+    const readout = document.createElement('p')
+    readout.className = 'db-xyplot__readout'
+    readout.textContent = labels.xyPlotHint ?? 'Move the cursor over the curve.'
+    wrapper.append(chart, empty, readout)
+    ref.body.append(wrapper)
+    ref.xyPlot = { chart, empty, readout, plot: null, resizeObserver: null, revision: null }
+  }
+
+  // Trace le traceur XY avec uPlot, sans recréer le graphique à chaque pas.
+  function renderXyPlot(ref, widget, state) {
+    const scope = ref.xyPlot
+    if (!scope) return
+    const points = Array.isArray(state?.points) ? state.points : []
+    if (points.length < 2) {
+      if (scope.plot) scope.plot.destroy()
+      if (scope.resizeObserver) scope.resizeObserver.disconnect()
+      scope.plot = null
+      scope.resizeObserver = null
+      scope.chart.replaceChildren()
+      scope.empty.hidden = false
+      scope.readout.textContent = labels.xyPlotHint ?? 'Move the cursor over the curve.'
+      return
+    }
+    scope.empty.hidden = true
+    const data = xyPlotData(state)
+    const revision = Number(state?.revision) || 0
+    const xMin = Number.isFinite(Number(state?.xMin)) ? Number(state.xMin) : -10
+    const xMax = Number.isFinite(Number(state?.xMax)) && Number(state.xMax) > xMin ? Number(state.xMax) : xMin + 1
+    const yMin = Number.isFinite(Number(state?.yMin)) ? Number(state.yMin) : -10
+    const yMax = Number.isFinite(Number(state?.yMax)) && Number(state.yMax) > yMin ? Number(state.yMax) : yMin + 1
+    if (!scope.plot) {
+      const computed = getComputedStyle(scope.chart)
+      const textColor = computed.getPropertyValue('--db-muted').trim() || '#b5b2c2'
+      const gridColor = computed.getPropertyValue('--db-grid').trim() || '#ffffff0c'
+      const borderColor = computed.getPropertyValue('--db-border').trim() || '#ffffff24'
+      const primary = computed.getPropertyValue('--db-primary').trim() || '#f5d547'
+      const plot = new uPlot({
+        width: Math.max(1, scope.chart.clientWidth),
+        height: Math.max(1, scope.chart.clientHeight),
+        padding: [8, 8, 0, 0],
+        cursor: { drag: { x: true, y: true, setScale: true }, points: { show: false } },
+        legend: { show: false },
+        scales: { x: { time: false, min: xMin, max: xMax }, y: { min: yMin, max: yMax } },
+        axes: [
+          { stroke: textColor, grid: { stroke: gridColor, width: 1 }, ticks: { stroke: borderColor, width: 1 } },
+          { stroke: textColor, grid: { stroke: gridColor, width: 1 }, ticks: { stroke: borderColor, width: 1 } },
+        ],
+        series: [{}, { stroke: primary, width: 2 }],
+        hooks: {
+          setCursor: [(self) => {
+            const index = self.cursor?.idx
+            if (!Number.isInteger(index) || !Array.isArray(self.data?.[0])) {
+              scope.readout.textContent = labels.xyPlotHint ?? 'Move the cursor over the curve.'
+              return
+            }
+            scope.readout.textContent = `x ${formatNumber(self.data[0][index])} · y ${formatNumber(self.data[1]?.[index])}`
+          }],
+        },
+      }, data, scope.chart)
+      scope.plot = plot
+      scope.revision = revision
+      scope.readout.textContent = labels.xyPlotHint ?? 'Move the cursor over the curve.'
+      const observer = new ResizeObserver(() => {
+        if (!scope.plot) return
+        scope.plot.setSize({ width: Math.max(1, scope.chart.clientWidth), height: Math.max(1, scope.chart.clientHeight) })
+      })
+      observer.observe(scope.chart)
+      scope.resizeObserver = observer
+    } else {
+      scope.plot.setData(data, false)
+      if (revision !== scope.revision) {
+        scope.revision = revision
+        scope.plot.setScale('x', { min: xMin, max: xMax })
+        scope.plot.setScale('y', { min: yMin, max: yMax })
+      }
+    }
+    scope.chart.setAttribute('aria-label', `${widget.name}: ${points.length}`)
+  }
+
+  // Trace les canaux de l'oscilloscope avec uPlot, sans recréer le graphique à chaque pas.
+  function renderOscilloscope(ref, widget, state) {
+    const scope = ref.oscilloscope
+    if (!scope) return
+    scope.state = state
+    const channels = Array.isArray(state?.channels) ? state.channels : []
+    syncOscilloscopeChannels(scope, channels)
+    updateOscilloscopePlot(scope)
     scope.chart.setAttribute('aria-label', `${widget.name}: ${channels.length}`)
   }
 

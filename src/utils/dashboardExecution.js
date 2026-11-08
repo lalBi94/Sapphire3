@@ -104,6 +104,7 @@ export function dashboardStatesAt(result, index, initial = {}) {
     rgbLeds: initial.rgbLeds ?? {},
     progresses: initial.progresses ?? {},
     barCharts: initial.barCharts ?? {},
+    xyPlots: initial.xyPlots ?? {},
     oscilloscopes: initial.oscilloscopes ?? {},
     heatmaps: initial.heatmaps ?? {},
   }
@@ -117,6 +118,7 @@ export function dashboardStatesAt(result, index, initial = {}) {
     rgbLeds: result.rgbLedFrames,
     progresses: result.progressFrames,
     barCharts: result.barChartFrames,
+    xyPlots: result.xyPlotFrames,
     oscilloscopes: result.oscilloscopeFrames,
     heatmaps: result.heatmapFrames,
   }
@@ -127,6 +129,7 @@ export function dashboardStatesAt(result, index, initial = {}) {
     rgbLeds: atEnd ? result.rgbLeds ?? fallback.rgbLeds : frameAtIndex(frames.rgbLeds, index, fallback.rgbLeds),
     progresses: atEnd ? result.progresses ?? fallback.progresses : frameAtIndex(frames.progresses, index, fallback.progresses),
     barCharts: atEnd ? result.barCharts ?? fallback.barCharts : frameAtIndex(frames.barCharts, index, fallback.barCharts),
+    xyPlots: atEnd ? result.xyPlots ?? fallback.xyPlots : frameAtIndex(frames.xyPlots, index, fallback.xyPlots),
     oscilloscopes: atEnd ? result.oscilloscopes ?? fallback.oscilloscopes : frameAtIndex(frames.oscilloscopes, index, fallback.oscilloscopes),
     heatmaps: atEnd ? result.heatmaps ?? fallback.heatmaps : frameAtIndex(frames.heatmaps, index, fallback.heatmaps),
   }

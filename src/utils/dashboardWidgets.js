@@ -5,7 +5,7 @@ import { rgbLedGlobalName } from './logic/rgbLedState.js'
 import { barChartGlobalName } from './logic/barChartState.js'
 import { heatmapGlobalName } from './logic/heatmapState.js'
 
-export const dashboardWidgetTypes = Object.freeze(['screen', 'led', 'rgbLed', 'gauge', 'progress', 'barChart', 'oscilloscope', 'heatmap'])
+export const dashboardWidgetTypes = Object.freeze(['screen', 'led', 'rgbLed', 'gauge', 'progress', 'barChart', 'xyPlot', 'oscilloscope', 'heatmap'])
 
 // Retrouve la déclaration globale interne à un widget.
 function globalDeclaration(project, moduleId, name) {
@@ -62,6 +62,9 @@ export function dashboardWidgets(project, cards) {
       if (card.type === 'barChart') {
         return { ...base, size: barChartSize(project, module.id, module.barChart?.index) }
       }
+      if (card.type === 'xyPlot') {
+        return { ...base }
+      }
       if (card.type === 'oscilloscope') {
         return { ...base, samples: module.oscilloscope?.samples ?? 64 }
       }
@@ -71,7 +74,7 @@ export function dashboardWidgets(project, cards) {
 
 // Produit les états affichés avant le premier Run, sans simulation ni effet de bord.
 export function dashboardInitialStates(widgets) {
-  const states = { screens: {}, gauges: {}, leds: {}, rgbLeds: {}, progresses: {}, barCharts: {}, oscilloscopes: {}, heatmaps: {} }
+  const states = { screens: {}, gauges: {}, leds: {}, rgbLeds: {}, progresses: {}, barCharts: {}, xyPlots: {}, oscilloscopes: {}, heatmaps: {} }
   for (const widget of widgets ?? []) {
     if (widget.type === 'screen') {
       states.screens[widget.id] = { width: widget.width, height: widget.height, pixels: new Array(widget.width * widget.height * 4).fill(0) }
@@ -85,6 +88,8 @@ export function dashboardInitialStates(widgets) {
       states.rgbLeds[widget.id] = { red: widget.red, green: widget.green, blue: widget.blue }
     } else if (widget.type === 'barChart') {
       states.barCharts[widget.id] = { values: new Array(widget.size).fill(0) }
+    } else if (widget.type === 'xyPlot') {
+      states.xyPlots[widget.id] = { points: [], xMin: -10, xMax: 10, yMin: -10, yMax: 10, revision: 0 }
     } else if (widget.type === 'oscilloscope') {
       states.oscilloscopes[widget.id] = { xMin: -10, xMax: 10, samples: widget.samples, revision: 0, channels: [] }
     } else if (widget.type === 'heatmap') {

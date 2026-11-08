@@ -170,14 +170,14 @@ test('dashboard : la sortie suit les pas réels et les images de widgets sont s�
   assert.deepEqual(dashboardVisibleOutput(result, 4), ['one', 'two', 'three'])
   assert.deepEqual(dashboardVisibleOutput(result, 5), ['one', 'two', 'three'])
 
-  const initial = { screens: {}, gauges: {}, leds: {}, rgbLeds: {}, progresses: {}, barCharts: {}, oscilloscopes: {}, heatmaps: {} }
+  const initial = { screens: {}, gauges: {}, leds: {}, rgbLeds: {}, progresses: {}, barCharts: {}, xyPlots: {}, oscilloscopes: {}, heatmaps: {} }
   assert.equal(dashboardStatesAt(result, 0, initial).gauges.gauge.value, 0)
   assert.equal(dashboardStatesAt(result, 1, initial).gauges.gauge.value, 4)
   assert.equal(dashboardStatesAt(result, 5, initial).gauges.gauge.value, 9, 'la fin affiche l’état final')
   assert.deepEqual(dashboardStatesAt(result, 5, initial).screens.screen.pixels, [9, 9, 9, 255])
 })
 
-test('dashboard : les sept familles de widgets reçoivent un état initial sans exécuter le programme', () => {
+test('dashboard : les neuf familles de widgets reçoivent un état initial sans exécuter le programme', () => {
   const widgets = [
     { id: 'screen', type: 'screen', name: 'Screen', width: 2, height: 2 },
     { id: 'led', type: 'led', name: 'LED', value: true },
@@ -185,6 +185,7 @@ test('dashboard : les sept familles de widgets reçoivent un état initial sans 
     { id: 'gauge', type: 'gauge', name: 'Gauge', min: 5, max: 15 },
     { id: 'progress', type: 'progress', name: 'Progress', min: 2, max: 8 },
     { id: 'bars', type: 'barChart', name: 'Bars', size: 3 },
+    { id: 'curve', type: 'xyPlot', name: 'Curve' },
     { id: 'scope', type: 'oscilloscope', name: 'Scope', samples: 4 },
     { id: 'heat', type: 'heatmap', name: 'Heat', width: 2, height: 2 },
   ]
@@ -196,6 +197,7 @@ test('dashboard : les sept familles de widgets reçoivent un état initial sans 
   assert.deepEqual(states.gauges.gauge, { value: 5, min: 5, max: 15 })
   assert.deepEqual(states.progresses.progress, { value: 2, min: 2, max: 8 })
   assert.deepEqual(states.barCharts.bars, { values: [0, 0, 0] })
+  assert.deepEqual(states.xyPlots.curve, { points: [], xMin: -10, xMax: 10, yMin: -10, yMax: 10, revision: 0 })
   assert.deepEqual(states.oscilloscopes.scope, { xMin: -10, xMax: 10, samples: 4, revision: 0, channels: [] })
   assert.deepEqual(states.heatmaps.heat, { width: 2, height: 2, values: [0, 0, 0, 0] })
 })
@@ -214,6 +216,22 @@ test('dashboard : un oscilloscope reçoit ses canaux au pas courant', () => {
   assert.deepEqual(dashboardStatesAt(result, 0, initial).oscilloscopes.scope.channels[0].values, [0, 0])
   assert.deepEqual(dashboardStatesAt(result, 1, initial).oscilloscopes.scope.channels[0].values, [1, 1])
   assert.deepEqual(dashboardStatesAt(result, 2, initial).oscilloscopes.scope.channels[0].values, [2, 2])
+})
+
+test('dashboard : un traceur XY reçoit ses points au pas courant', () => {
+  const frame = (value) => ({ curve: { points: [[0, value], [1, value + 1]], xMin: 0, xMax: 1, yMin: 0, yMax: 2, revision: value } })
+  const result = {
+    ok: true,
+    trace: ['a', 'b', 'c'],
+    output: [],
+    outputSteps: [],
+    xyPlots: { curve: frame(2).curve },
+    xyPlotFrames: [frame(0), frame(1), frame(2)],
+  }
+  const initial = dashboardInitialStates([{ id: 'curve', type: 'xyPlot', name: 'Curve' }])
+  assert.deepEqual(dashboardStatesAt(result, 0, initial).xyPlots.curve.points, [[0, 0], [1, 1]])
+  assert.deepEqual(dashboardStatesAt(result, 1, initial).xyPlots.curve.points, [[0, 1], [1, 2]])
+  assert.deepEqual(dashboardStatesAt(result, 2, initial).xyPlots.curve.points, [[0, 2], [1, 3]])
 })
 
 test('dashboard : la palette est extraite, validée et dérivée en variante claire', () => {

@@ -27,6 +27,7 @@ const panelDefaults = Object.freeze({
   led: { w: 2, h: 5 },
   rgbLed: { w: 3, h: 5 },
   barChart: { w: 6, h: 7 },
+  xyPlot: { w: 6, h: 8 },
   oscilloscope: { w: 8, h: 8 },
   heatmap: { w: 6, h: 8 },
   output: { w: 6, h: 8 },

@@ -698,13 +698,47 @@ p, h1, h2, h3 { margin: 0; }
 }
 .db-bar span.db-bar__fill--negative { background: linear-gradient(0deg, var(--db-secondary), var(--db-primary) 58%, var(--db-condition)); }
 
-.db-oscilloscope { display: flex; flex-direction: column; gap: 4px; width: 100%; height: 100%; min-height: 120px; }
-.db-oscilloscope__chart { position: relative; flex: 1; min-height: 0; overflow: hidden; border: 1px solid var(--db-border); border-radius: var(--db-radius-small); background: var(--db-surface); }
+.db-oscilloscope { display: flex; flex-direction: column; gap: 4px; width: 100%; height: 100%; min-height: 140px; }
+.db-oscilloscope__toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; }
+.db-oscilloscope__control { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; padding: 0 5px; border: 1px solid var(--db-border); border-radius: var(--db-radius-control); color: var(--db-text); background: transparent; font: inherit; font-size: 10px; line-height: 1; cursor: pointer; }
+.db-oscilloscope__control:hover { background: var(--db-hover); }
+.db-oscilloscope__control:focus-visible { outline: 2px solid var(--db-primary); outline-offset: 1px; }
+.db-oscilloscope__stretch { display: inline-flex; align-items: center; gap: 4px; color: var(--db-muted); font-size: 9px; letter-spacing: 0.04em; text-transform: uppercase; }
+.db-oscilloscope__stretch input { width: 58px; accent-color: var(--db-primary); }
+.db-oscilloscope__body { display: grid; grid-template-columns: minmax(150px, 0.34fr) minmax(0, 1fr); gap: 6px; flex: 1; min-height: 0; }
+.db-oscilloscope__channels { display: flex; flex-direction: column; gap: 4px; min-height: 0; padding: 2px; overflow: auto; }
+.db-oscilloscope__channel { display: grid; grid-template-columns: auto minmax(42px, 1fr) auto auto; align-items: center; gap: 4px; padding: 4px; border: 1px solid var(--db-border); border-radius: var(--db-radius-control); background: var(--db-surface); }
+.db-oscilloscope__channel--off { opacity: 0.55; }
+.db-oscilloscope__swatch { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 0 1px #00000055; }
+.db-oscilloscope__channel-name { overflow: hidden; color: var(--db-text); font-family: var(--db-display); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.db-oscilloscope__toggle { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; padding: 0; border: 1px solid var(--db-border); border-radius: var(--db-radius-control); color: var(--db-muted); background: transparent; cursor: pointer; }
+.db-oscilloscope__toggle:hover { background: var(--db-hover); }
+.db-oscilloscope__icon { width: 12px; height: 12px; }
+.db-oscilloscope__range { grid-column: 1 / -1; display: grid; grid-template-columns: 58px minmax(0, 1fr) 26px; align-items: center; gap: 4px; color: var(--db-muted); font-size: 9px; }
+.db-oscilloscope__range b { color: var(--db-text); font-size: 9px; font-variant-numeric: tabular-nums; text-align: end; }
+.db-oscilloscope__range input { min-width: 0; accent-color: var(--db-primary); }
+.db-oscilloscope__chart-wrap { position: relative; min-width: 0; min-height: 0; overflow: hidden; border: 1px solid var(--db-border); border-radius: var(--db-radius-small); background: var(--db-surface); }
+.db-oscilloscope__chart { position: absolute; inset: 0; }
 .db-oscilloscope__chart .uplot { font-family: var(--db-mono); }
 .db-oscilloscope__chart .u-hz .u-cursor-x,
 .db-oscilloscope__chart .u-vt .u-cursor-y { border-color: var(--db-border-hover); }
 .db-oscilloscope__chart .u-select { background: var(--db-primary-soft); }
+.db-oscilloscope__empty { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 12px; color: var(--db-muted); font-size: 10px; text-align: center; pointer-events: none; }
 .db-oscilloscope__readout { margin: 0; overflow: hidden; color: var(--db-muted); font-family: var(--db-mono); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.db-oscilloscope__expand { position: absolute; z-index: 2; top: 4px; left: 4px; display: none; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 1px solid var(--db-border); border-radius: var(--db-radius-control); color: var(--db-text); background: var(--db-raised); cursor: pointer; }
+.db-oscilloscope--collapsed .db-oscilloscope__toolbar,
+.db-oscilloscope--collapsed .db-oscilloscope__channels,
+.db-oscilloscope--collapsed .db-oscilloscope__readout { display: none; }
+.db-oscilloscope--collapsed .db-oscilloscope__body { grid-template-columns: minmax(0, 1fr); }
+.db-oscilloscope--collapsed .db-oscilloscope__expand { display: inline-flex; }
+.db-xyplot { position: relative; display: flex; flex-direction: column; gap: 4px; width: 100%; height: 100%; min-height: 120px; }
+.db-xyplot__chart { position: relative; flex: 1; min-height: 0; overflow: hidden; border: 1px solid var(--db-border); border-radius: var(--db-radius-small); background: var(--db-surface); }
+.db-xyplot__chart .uplot { font-family: var(--db-mono); }
+.db-xyplot__chart .u-hz .u-cursor-x,
+.db-xyplot__chart .u-vt .u-cursor-y { border-color: var(--db-border-hover); }
+.db-xyplot__chart .u-select { background: var(--db-primary-soft); }
+.db-xyplot__empty { position: absolute; inset: 0 0 18px; display: grid; place-items: center; margin: 0; padding: 12px; color: var(--db-muted); font-size: 10px; text-align: center; pointer-events: none; }
+.db-xyplot__readout { margin: 0; overflow: hidden; color: var(--db-muted); font-family: var(--db-mono); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .db-heatmap { display: grid; gap: 2px; width: 100%; height: 100%; min-height: 40px; }
 .db-heatmap__cell {
   min-width: 0;
