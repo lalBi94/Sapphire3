@@ -1,4 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process'
+import { readFile } from 'node:fs/promises'
 import net from 'node:net'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -10,7 +11,8 @@ if (process.platform !== 'win32') {
 }
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const appDirectory = path.join(root, 'build', 'release', 'Sapphire3-0.1.0-beta.6-windows')
+const packageJson = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'))
+const appDirectory = path.join(root, 'build', 'release', `Sapphire3-${packageJson.version}-windows`)
 const executable = path.join(appDirectory, 'Sapphire3.exe')
 const pipePath = `\\\\.\\pipe\\sapphire3-app-test-${process.pid}`
 const activities = []

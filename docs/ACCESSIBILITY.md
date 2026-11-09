@@ -1,12 +1,12 @@
 # Accessibilité — Sapphire 3
 
-> Référentiel d'accessibilité de **Sapphire 3**, version `0.1.0-beta.6`. Audit daté des **6, 7 et 8 novembre 2026**. Ce document décrit ce qui a été vérifié, corrigé et ce qui reste partiel ou non vérifié. **Il ne constitue pas une certification WCAG.**
+> Référentiel d'accessibilité de **Sapphire 3**, audit réalisé sur la version `0.1.0-beta.6` les **6, 7 et 8 novembre 2026**. Le code courant est `0.1.0-beta.8` ; les vérifications ci-dessous n'ont pas été rejouées intégralement sur cette bêta. Ce document décrit ce qui a été vérifié, corrigé et ce qui reste partiel ou non vérifié. **Il ne constitue pas une certification WCAG.**
 
 ## A. Périmètre
 
 ### Version et environnements
 
-- Application : Sapphire 3 `0.1.0-beta.6`, React 19, Vite 8, JavaScript/JSX, CSS, pnpm, Neutralinojs 6.10.0.
+- Application auditée : Sapphire 3 `0.1.0-beta.6`, React 19, Vite 8, JavaScript/JSX, CSS, pnpm, Neutralinojs 6.10.0.
 - Audit principal : Chromium piloté par l'outil navigateur, serveur `pnpm dev:web` sur `http://127.0.0.1:5173`.
 - Fenêtre desktop Neutralinojs/WebView2 : **non testée dans cet audit**. Les résultats ci-dessous concernent le frontend dans Chromium.
 - Système : Windows. Facteur de mise à l'échelle Windows, zoom WebView2 et haute densité : **non testés**.
