@@ -5,7 +5,7 @@
 ## Dashboard : vrai Run live — 9 novembre 2026
 
 - Le dashboard exporté embarque désormais le worker live de l'application (`src/services/live.worker.js`) comme source autonome dans le JSON de configuration, en plus du runtime borné et du client.
-- Le bouton **Run live** démarre le vrai interpréteur coopératif, sans budget total, avec Pause/Reprise/Stop. Le Run borné et le mode **Run autonomous** restent disponibles ; les boutons de la barre changent de mode sans redémarrer une session live active.
+- Le bouton **Run live** démarre le vrai interpréteur coopératif, sans budget total, avec Pause/Reprise/Stop. Le Run borné reste disponible. Le mode **Run autonomous** rejoue la trace pour les programmes finis, mais démarre le vrai live continu quand le projet déclare `SP3_LIVE`, afin de ne plus montrer un seul passage des boucles continues. Les boutons de la barre changent de mode sans redémarrer une session live active.
 - Les frames live alimentent directement les écrans, jauges, LED, LED RVB, progressions, barres, XY plots, oscilloscopes et heatmaps. La barre de progression est désactivée en live et le statut affiche le nombre de pas.
 - Les callbacks `onClick(bool)` des boutons sont envoyés au worker live avec l'identifiant de la variable `onClick` ; le toggle répète toutes les 500 ms dans le live, le hold reste one-shot. Sans live actif, un clic de callback démarre le live automatiquement. Les anciens boutons `isPress` envoient leurs entrées au live.
 - Le curseur de vitesse du dashboard règle la cadence live de 1 à 100 en live, et la vitesse de lecture de la trace en borné. La source live est refusée proprement si le navigateur ne fournit pas `Worker` ou `Blob`.

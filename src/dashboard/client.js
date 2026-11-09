@@ -188,6 +188,8 @@ function start(config, runtimeSource) {
   const panelsButtonLabel = panelsButton.querySelector('span')
   const panelsMenu = document.querySelector('[data-panels-menu]')
   const nodes = dashboardNodeMap(config.project)
+  // Les exemples continus déclarent SP3_LIVE ; l'autonome doit lancer le vrai live, pas rejouer un seul passage.
+  const liveProject = (config.project?.nodes ?? []).some((node) => node?.kind === 'VariableDeclaration' && node?.properties?.name === 'SP3_LIVE')
 
   const panels = [
     ...(config.widgets ?? []).map((widget) => ({ id: widget.id, type: widget.type, name: widget.name, kind: labels[widget.type] ?? widget.type, widget })),
@@ -641,7 +643,7 @@ function start(config, runtimeSource) {
       liveButton.title = labels.liveHint ?? 'Run live'
     }
     autonomousButton.querySelector('span').textContent = labels.autonomous
-    autonomousButton.title = labels.autonomousHint
+    autonomousButton.title = liveProject ? (labels.liveHint ?? labels.autonomousHint) : labels.autonomousHint
     if (panelsButtonLabel) panelsButtonLabel.textContent = labels.panels ?? 'Panels'
     for (const button of modeButtons) {
       const span = button.querySelector('span')
@@ -1652,6 +1654,11 @@ function start(config, runtimeSource) {
   function handleAutonomous() {
     if (state.live) return
     if (state.status === 'running' || state.status === 'preparing' || state.status === 'paused') return
+    if (liveProject && config.liveWorkerSource) {
+      startLiveDashboard()
+      announce(labels.liveHint ?? 'Run live')
+      return
+    }
     callbackRequest = false
     clearInputTimers()
     requestId += 1
