@@ -4,6 +4,9 @@ import { execFileSync } from 'node:child_process'
 import { examples, exampleCategories, exampleSubcategories } from '../../src/utils/examples.js'
 import { deserializeWorkspace } from '../../src/utils/workspaceFile.js'
 import { analyzeProgram, simulateProgram } from '../../src/utils/logic/index.js'
+import { runLiveProgram } from '../../src/utils/logic/liveSimulation.js'
+import { inputNumberOnChangeNodeId } from '../../src/utils/logic/inputNumberState.js'
+import { inputButtonOnClickNodeId } from '../../src/utils/logic/inputButtonState.js'
 import { findFrameCycle } from '../../src/utils/screenPlayback.js'
 import { nodeSchema } from '../../src/utils/logic/nodeSchema.js'
 import { transpileProgram } from '../../src/utils/transpilation/index.js'
@@ -73,13 +76,14 @@ const expectedOutput = {
   orbitalTrails: ['Orbital trails'],
   solarSystem: ['Solar system'],
   buttonLed: ['Two buttons and an LED'],
+  inputConsole: ['Input console ready'],
 }
 
 // Ces exemples utilisent une entrée aléatoire : leur sortie varie d'une exécution à l'autre.
 const randomOutputExamples = new Set(['thermostat', 'reactorControl'])
 
 test('bibliothèque d’exemples : chaque projet est valide, analysable et s’exécute', () => {
-  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'recursion', 'arrays', 'foreach', 'sorting', 'maths', 'imports', 'rgbLedDemo', 'pointers', 'higherOrder', 'quickSort', 'coinChange', 'gaugeDemo', 'carDashboard', 'trafficControl', 'dnaAnalyzer', 'signalProcessing', 'mandelbrotEscape', 'collatzAtlas', 'sortRace', 'heatDiffusion', 'imageConvolution', 'weatherStation', 'networkMonitor', 'pixelScreens', 'rain', 'knapsack', 'calculus', 'gameOfLife', 'roverSurvey', 'signalLab', 'coral', 'labyrinth', 'starfield', 'colorFlow', 'rgbMixer', 'functionPlot', 'linearPlot', 'waveInterference', 'fourierSquare', 'oscilloscopeDemo', 'rotatingCube', 'rotatingTriangle', 'spirograph', 'sierpinskiChaos', 'pendulumWave', 'euclid', 'binarySearch', 'primeSieve', 'insertionSort', 'diceHistogram', 'checkoutQueue', 'thermostat', 'dampedSpring', 'reactorControl', 'floodFill', 'pascalTriangle', 'harmonicStudio', 'chirpRibbon', 'wavePacket', 'neonRose', 'orbitalTrails', 'solarSystem', 'buttonLed'])
+  assert.deepEqual(examples.map((example) => example.id), ['fibonacci', 'recursion', 'arrays', 'foreach', 'sorting', 'maths', 'imports', 'rgbLedDemo', 'pointers', 'higherOrder', 'quickSort', 'coinChange', 'gaugeDemo', 'carDashboard', 'trafficControl', 'dnaAnalyzer', 'signalProcessing', 'mandelbrotEscape', 'collatzAtlas', 'sortRace', 'heatDiffusion', 'imageConvolution', 'weatherStation', 'networkMonitor', 'pixelScreens', 'rain', 'knapsack', 'calculus', 'gameOfLife', 'roverSurvey', 'signalLab', 'coral', 'labyrinth', 'starfield', 'colorFlow', 'rgbMixer', 'functionPlot', 'linearPlot', 'waveInterference', 'fourierSquare', 'oscilloscopeDemo', 'rotatingCube', 'rotatingTriangle', 'spirograph', 'sierpinskiChaos', 'pendulumWave', 'euclid', 'binarySearch', 'primeSieve', 'insertionSort', 'diceHistogram', 'checkoutQueue', 'thermostat', 'dampedSpring', 'reactorControl', 'floodFill', 'pascalTriangle', 'harmonicStudio', 'chirpRibbon', 'wavePacket', 'neonRose', 'orbitalTrails', 'solarSystem', 'buttonLed', 'inputConsole'])
   assert.deepEqual(exampleCategories.map((category) => category.id), ['simple', 'medium', 'hard'])
   for (const example of examples) {
     assert.ok(exampleCategories.some((category) => category.id === example.category), `${example.id}: catégorie connue`)
@@ -94,6 +98,55 @@ test('bibliothèque d’exemples : chaque projet est valide, analysable et s’e
     if (randomOutputExamples.has(example.id)) assert.ok(result.output.length >= 1, example.id)
     else assert.deepEqual(result.output, expectedOutput[example.id], example.id)
   }
+})
+
+test('exemple console d’entrées : cinq entrées pilotent les widgets en live', async () => {
+  const workspace = deserializeWorkspace(JSON.stringify(examples.find((entry) => entry.id === 'inputConsole').build()))
+  const types = workspace.presentation.cards.map((card) => card.type)
+  for (const type of ['toggleButton', 'holdButton', 'numberInput', 'floatInput', 'stringInput', 'screen', 'gauge', 'progress', 'barChart', 'led', 'rgbLed']) {
+    assert.ok(types.includes(type), `${type}: carte présente`)
+  }
+  const events = [
+    { nodeId: inputButtonOnClickNodeId(workspace.project, 'consoleToggle'), value: false },
+    { nodeId: inputButtonOnClickNodeId(workspace.project, 'consolePulse'), value: true },
+    { nodeId: inputNumberOnChangeNodeId(workspace.project, 'consoleChannelsInput'), value: 6 },
+    { nodeId: inputNumberOnChangeNodeId(workspace.project, 'consoleLevelInput'), value: 0.8 },
+    { nodeId: inputNumberOnChangeNodeId(workspace.project, 'consoleLabelInput'), value: 'abc' },
+  ]
+  const frames = []
+  const colors = (state) => {
+    const pixels = state.screens.consoleScreen?.pixels ?? []
+    const seen = new Set()
+    for (let index = 0; index < pixels.length; index += 4) {
+      if (pixels[index + 3] === 255) seen.add(`${pixels[index]},${pixels[index + 1]},${pixels[index + 2]}`)
+    }
+    return seen
+  }
+  let sent = false
+  const result = await runLiveProgram(workspace.project, {
+    sliceSteps: 200,
+    onFrame: (state) => {
+      frames.push(state)
+      const seen = colors(state)
+      if (!sent && seen.has('255,213,71')) {
+        sent = true
+        return { events }
+      }
+      if (sent && seen.has('48,52,66')) return { stop: true }
+      if (frames.length > 200) return { stop: true }
+      return {}
+    },
+  })
+  assert.equal(result.ok, true, result.errorCode)
+  const last = frames.at(-1)
+  assert.equal(last.gauges.consoleGauge.value, 80)
+  assert.equal(last.progresses.consoleProgress.value, 1)
+  assert.equal(last.leds.consoleLed.value, false)
+  assert.deepEqual(last.rgbLeds.consoleRgb, { red: 36, green: 80, blue: 1 })
+  assert.deepEqual(last.barCharts.consoleChart.values.slice(0, 8), [80, 68, 56, 44, 32, 20, 0, 0])
+  assert.ok(last.output.includes('abc'))
+  assert.ok(frames.some((state) => colors(state).has('255,213,71')), 'écran jaune quand l’interrupteur est actif')
+  assert.ok(colors(last).has('48,52,66'), 'écran anthracite quand l’interrupteur est coupé')
 })
 
 test('exemple LED RVB : séquence de sept couleurs, module appelant et état final', () => {

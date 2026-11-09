@@ -1,9 +1,10 @@
-import { createProject, createModule, createNode, bindInputButtonCallback } from './logic/index.js'
+import { createProject, createModule, createNode, bindInputButtonCallback, bindInputNumberCallback } from './logic/index.js'
 import { createScreenModule, screenDefaults } from './screenNode.js'
 import { createGaugeModule, gaugeDefaults } from './gaugeNode.js'
 import { createLedModule, ledDefaults } from './ledNode.js'
 import { createRgbLedModule, rgbLedDefaults } from './rgbLedNode.js'
 import { createInputButtonModule, inputButtonDefaults } from './inputButtonNode.js'
+import { createInputNumberModule } from './inputNumberNode.js'
 import { createProgressModule, progressDefaults } from './progressNode.js'
 import { createBarChartModule, barChartDefaults } from './barChartNode.js'
 import { createXyPlotModule } from './xyPlotNode.js'
@@ -4001,6 +4002,318 @@ function buttonLed() {
   ])
 }
 
+// Console d'entrées : cinq entrées typées pilotent un écran, une jauge, une barre, des barres et deux LED.
+function inputConsole() {
+  const b = builder()
+  const width = 40
+  const height = 12
+  const barCount = 8
+  const frames = 16
+  const floatType = { kind: 'primitive', name: 'float' }
+  const stringType = { kind: 'primitive', name: 'string' }
+  const floatValue = (id, value) => b.make(id, 'Literal', { type: floatType, value })
+
+  const toggle = createInputButtonModule('consoleToggle', 'Master switch', 1, { mode: 'toggle' })
+  const hold = createInputButtonModule('consolePulse', 'Pulse', 2, { mode: 'hold' })
+  const channelsInput = createInputNumberModule('consoleChannelsInput', 'Channels', 1, { valueType: 'int' })
+  const levelInput = createInputNumberModule('consoleLevelInput', 'Level', 2, { valueType: 'float' })
+  const labelInput = createInputNumberModule('consoleLabelInput', 'Label', 3, { valueType: 'string' })
+  const screen = createScreenModule('consoleScreen', 'Console screen', 1, { width, height })
+  const gauge = createGaugeModule('consoleGauge', 'Level gauge', 1, { min: 0, max: 100 })
+  const progress = createProgressModule('consoleProgress', 'Pulse meter', 1, { min: 0, max: 100 })
+  const chart = createBarChartModule('consoleChart', 'Channel levels', 1, { size: barCount })
+  const led = createLedModule('consoleLed', 'Power LED', 1, ledDefaults)
+  const rgb = createRgbLedModule('consoleRgb', 'Label color', 1, rgbLedDefaults)
+  for (const widget of [toggle, hold, channelsInput, levelInput, labelInput, screen, gauge, progress, chart, led, rgb]) {
+    b.project.modules.push(widget.module)
+    b.project.nodes.push(...widget.nodes)
+  }
+  const app = b.useModule('consoleApp', 'Input console')
+  b.liveFlag()
+
+  const exported = (widget, name) => widget.module.exports.find((entry) => entry.name === name).nodeId
+  importFunction(app, 'consoleBlitImport', screen.module.id, exported(screen, screen.functions.blit), 'blit')
+  importFunction(app, 'consolePresentImport', screen.module.id, exported(screen, screen.functions.present), 'present')
+  importFunction(app, 'consoleGaugeImport', gauge.module.id, exported(gauge, gauge.functions.setValue), 'setGauge')
+  importFunction(app, 'consoleProgressImport', progress.module.id, exported(progress, progress.functions.setValue), 'setProgress')
+  importFunction(app, 'consoleChartImport', chart.module.id, exported(chart, chart.functions.setValue), 'setBar')
+  importFunction(app, 'consoleLedImport', led.module.id, exported(led, led.functions.setValue), 'setLed')
+  importFunction(app, 'consoleRgbImport', rgb.module.id, exported(rgb, rgb.functions.setColor), 'setColor')
+
+  // Globaux partagés entre les callbacks et la boucle principale.
+  b.root('consolePower', 'VariableDeclaration', { name: 'power', type: booleanType }, { initializer: 'consolePowerStart' })
+  b.make('consolePowerStart', 'Literal', { type: booleanType, value: true })
+  b.root('consolePulses', 'VariableDeclaration', { name: 'pulses', type: intType }, { initializer: 'consolePulsesStart' })
+  b.intValue('consolePulsesStart', 0)
+  b.root('consoleChannels', 'VariableDeclaration', { name: 'channels', type: intType }, { initializer: 'consoleChannelsStart' })
+  b.intValue('consoleChannelsStart', 4)
+  b.root('consoleLevel', 'VariableDeclaration', { name: 'level', type: floatType }, { initializer: 'consoleLevelStart' })
+  floatValue('consoleLevelStart', '0.5')
+  b.root('consoleLabelLength', 'VariableDeclaration', { name: 'labelLength', type: intType }, { initializer: 'consoleLabelLengthStart' })
+  b.intValue('consoleLabelLengthStart', 8)
+
+  // setPower(value) recopie l'état du toggle dans la globale.
+  b.root('consoleSetPower', 'FunctionDeclaration', { name: 'setPower', type: voidType }, { parameters: ['consolePowerValue'], body: 'consolePowerBody' })
+  b.make('consolePowerValue', 'Parameter', { name: 'value', type: booleanType })
+  b.block('consolePowerBody', ['consolePowerAssign'])
+  b.assign('consolePowerAssign', 'consolePowerTarget', 'consolePowerParam')
+  b.ref('consolePowerTarget', 'power')
+  b.ref('consolePowerParam', 'value')
+
+  // pulse(value) compte un appui maintenu.
+  b.root('consolePulseFn', 'FunctionDeclaration', { name: 'pulse', type: voidType }, { parameters: ['consolePulseValue'], body: 'consolePulseBody' })
+  b.make('consolePulseValue', 'Parameter', { name: 'value', type: booleanType })
+  b.block('consolePulseBody', ['consolePulseIf'])
+  b.make('consolePulseIf', 'IfStatement', {}, { test: 'consolePulseTest', consequent: 'consolePulseThen', alternate: null })
+  b.ref('consolePulseTest', 'value')
+  b.block('consolePulseThen', ['consolePulseAssign'])
+  b.assign('consolePulseAssign', 'consolePulseTarget', 'consolePulseNext')
+  b.ref('consolePulseTarget', 'pulses')
+  b.binary('consolePulseNext', '+', 'consolePulseRead', 'consolePulseOne')
+  b.ref('consolePulseRead', 'pulses')
+  b.intValue('consolePulseOne', 1)
+
+  // setChannels(value) borne le nombre de barres entre 1 et 8.
+  b.root('consoleChannelsFn', 'FunctionDeclaration', { name: 'setChannels', type: voidType }, { parameters: ['consoleChannelsValue'], body: 'consoleChannelsBody' })
+  b.make('consoleChannelsValue', 'Parameter', { name: 'value', type: intType })
+  b.block('consoleChannelsBody', ['consoleChannelsAssign'])
+  b.assign('consoleChannelsAssign', 'consoleChannelsTarget', 'consoleChannelsClamp')
+  b.ref('consoleChannelsTarget', 'channels')
+  b.math('consoleChannelsClamp', 'clamp', ['consoleChannelsParam', 'consoleChannelsMin', 'consoleChannelsMax'])
+  b.ref('consoleChannelsParam', 'value')
+  b.intValue('consoleChannelsMin', 1)
+  b.intValue('consoleChannelsMax', 8)
+
+  // setLevel(value) borne le niveau flottant entre 0 et 1.
+  b.root('consoleLevelFn', 'FunctionDeclaration', { name: 'setLevel', type: voidType }, { parameters: ['consoleLevelValue'], body: 'consoleLevelBody' })
+  b.make('consoleLevelValue', 'Parameter', { name: 'value', type: floatType })
+  b.block('consoleLevelBody', ['consoleLevelLowIf'])
+  b.make('consoleLevelLowIf', 'IfStatement', {}, { test: 'consoleLevelLowTest', consequent: 'consoleLevelLowThen', alternate: 'consoleLevelHighBlock' })
+  b.binary('consoleLevelLowTest', '<', 'consoleLevelLowRead', 'consoleLevelZero')
+  b.ref('consoleLevelLowRead', 'value')
+  floatValue('consoleLevelZero', '0.0')
+  b.block('consoleLevelLowThen', ['consoleLevelLowAssign'])
+  b.assign('consoleLevelLowAssign', 'consoleLevelLowTarget', 'consoleLevelZeroValue')
+  b.ref('consoleLevelLowTarget', 'level')
+  floatValue('consoleLevelZeroValue', '0.0')
+  b.block('consoleLevelHighBlock', ['consoleLevelHighIf'])
+  b.make('consoleLevelHighIf', 'IfStatement', {}, { test: 'consoleLevelHighTest', consequent: 'consoleLevelHighThen', alternate: 'consoleLevelElseBlock' })
+  b.binary('consoleLevelHighTest', '>', 'consoleLevelHighRead', 'consoleLevelOne')
+  b.ref('consoleLevelHighRead', 'value')
+  floatValue('consoleLevelOne', '1.0')
+  b.block('consoleLevelHighThen', ['consoleLevelHighAssign'])
+  b.assign('consoleLevelHighAssign', 'consoleLevelHighTarget', 'consoleLevelOneValue')
+  b.ref('consoleLevelHighTarget', 'level')
+  floatValue('consoleLevelOneValue', '1.0')
+  b.block('consoleLevelElseBlock', ['consoleLevelElseAssign'])
+  b.assign('consoleLevelElseAssign', 'consoleLevelElseTarget', 'consoleLevelParam')
+  b.ref('consoleLevelElseTarget', 'level')
+  b.ref('consoleLevelParam', 'value')
+
+  // setLabel(value) mesure le texte et l'écrit dans la sortie.
+  b.root('consoleLabelFn', 'FunctionDeclaration', { name: 'setLabel', type: voidType }, { parameters: ['consoleLabelValue'], body: 'consoleLabelBody' })
+  b.make('consoleLabelValue', 'Parameter', { name: 'value', type: stringType })
+  b.block('consoleLabelBody', ['consoleLabelAssign', 'consoleLabelPrint'])
+  b.math('consoleLabelLengthValue', 'length', ['consoleLabelParam'])
+  b.ref('consoleLabelParam', 'value')
+  b.assign('consoleLabelAssign', 'consoleLabelTarget', 'consoleLabelLengthValue')
+  b.ref('consoleLabelTarget', 'labelLength')
+  b.print('consoleLabelPrint', 'consoleLabelPrintValue')
+  b.ref('consoleLabelPrintValue', 'value')
+
+  // Palette à trois entrées : fond noir, actif jaune, inactif anthracite.
+  b.root('consolePalette', 'VariableDeclaration', { name: 'palette', type: intArrayType }, { initializer: 'consolePaletteInit' })
+  b.make('consolePaletteInit', 'ArrayLiteral', { elementType: intType }, { elements: [0, 0, 0, 255, 255, 213, 71, 255, 48, 52, 66, 255].map((value, index) => {
+    b.intValue(`consolePaletteValue${index}`, value)
+    return `consolePaletteValue${index}`
+  }) })
+
+  // Grille de l'écran, réinitialisée à chaque image.
+  b.root('consoleGrid', 'VariableDeclaration', { name: 'grid', type: intArrayType }, { initializer: 'consoleGridInit' })
+  b.math('consoleGridInit', 'arrayFill', ['consoleGridSize', 'consoleGridZero'])
+  b.intValue('consoleGridSize', width * height)
+  b.intValue('consoleGridZero', 0)
+
+  b.root('consoleMain', 'FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: 'consoleMainBody' })
+  b.make('consoleFrameDecl', 'VariableDeclaration', { name: 'frame', type: intType }, { initializer: 'consoleFrameStart' })
+  b.intValue('consoleFrameStart', 0)
+  b.liveTest('consoleFrame', 'consoleFrameRead', 'consoleFrameEnd')
+  b.ref('consoleFrameRead', 'frame')
+  b.intValue('consoleFrameEnd', frames)
+  b.make('consoleFrameUpdate', 'AssignmentStatement', {}, { target: 'consoleFrameTarget', value: 'consoleFrameNext' })
+  b.ref('consoleFrameTarget', 'frame')
+  b.binary('consoleFrameNext', '+', 'consoleFrameNextRead', 'consoleFrameOne')
+  b.ref('consoleFrameNextRead', 'frame')
+  b.intValue('consoleFrameOne', 1)
+
+  // Niveau en pourcentage entier, dérivé du flottant saisi.
+  b.make('consolePercentDecl', 'VariableDeclaration', { name: 'levelPercent', type: intType }, { initializer: 'consolePercentCast' })
+  b.make('consolePercentCast', 'CastExpression', { type: intType }, { argument: 'consolePercentProduct' })
+  b.binary('consolePercentProduct', '*', 'consolePercentLevel', 'consolePercentHundred')
+  b.ref('consolePercentLevel', 'level')
+  floatValue('consolePercentHundred', '100.0')
+
+  // Compteur d'appuis replié sur 0..99.
+  b.make('consoleFillDecl', 'VariableDeclaration', { name: 'fill', type: intType }, { initializer: 'consoleFillValue' })
+  b.binary('consoleFillValue', '%', 'consoleFillRead', 'consoleFillHundred')
+  b.ref('consoleFillRead', 'pulses')
+  b.intValue('consoleFillHundred', 100)
+
+  // Couleur de l'écran : jaune quand l'interrupteur est actif, anthracite sinon.
+  b.make('consoleColorDecl', 'VariableDeclaration', { name: 'color', type: intType }, { initializer: 'consoleColorStart' })
+  b.intValue('consoleColorStart', 2)
+  b.make('consoleColorIf', 'IfStatement', {}, { test: 'consoleColorTest', consequent: 'consoleColorThen', alternate: null })
+  b.ref('consoleColorTest', 'power')
+  b.block('consoleColorThen', ['consoleColorAssign'])
+  b.assign('consoleColorAssign', 'consoleColorTarget', 'consoleColorOn')
+  b.ref('consoleColorTarget', 'color')
+  b.intValue('consoleColorOn', 1)
+
+  // Jauge et barre de progression reçoivent des doubles explicites.
+  b.make('consoleGaugeValue', 'CastExpression', { type: doubleType }, { argument: 'consoleGaugePercent' })
+  b.ref('consoleGaugePercent', 'levelPercent')
+  const gaugeCall = callStatement(b, 'consoleGauge', 'consoleGaugeImport', ['consoleGaugeValue'])
+  b.make('consoleProgressValue', 'CastExpression', { type: doubleType }, { argument: 'consoleProgressFill' })
+  b.ref('consoleProgressFill', 'fill')
+  const progressCall = callStatement(b, 'consoleProgress', 'consoleProgressImport', ['consoleProgressValue'])
+
+  // Huit barres : chaque canal actif décroît avec le niveau.
+  b.make('consoleBarValueDecl', 'VariableDeclaration', { name: 'barValue', type: intType }, { initializer: 'consoleBarValueStart' })
+  b.intValue('consoleBarValueStart', 0)
+  b.make('consoleBarValueIf', 'IfStatement', {}, { test: 'consoleBarValueTest', consequent: 'consoleBarValueThen', alternate: null })
+  b.binary('consoleBarValueTest', '<', 'consoleBarValueIndex', 'consoleBarValueChannels')
+  b.ref('consoleBarValueIndex', 'i')
+  b.ref('consoleBarValueChannels', 'channels')
+  b.block('consoleBarValueThen', ['consoleBarValueAssign'])
+  b.assign('consoleBarValueAssign', 'consoleBarValueTarget', 'consoleBarValueClamp')
+  b.ref('consoleBarValueTarget', 'barValue')
+  b.math('consoleBarValueClamp', 'clamp', ['consoleBarValueScaled', 'consoleBarValueMin', 'consoleBarValueMax'])
+  b.binary('consoleBarValueScaled', '-', 'consoleBarValuePercent', 'consoleBarValueOffset')
+  b.ref('consoleBarValuePercent', 'levelPercent')
+  b.binary('consoleBarValueOffset', '*', 'consoleBarValueOffsetRead', 'consoleBarValueStep')
+  b.ref('consoleBarValueOffsetRead', 'i')
+  b.intValue('consoleBarValueStep', 12)
+  b.intValue('consoleBarValueMin', 0)
+  b.intValue('consoleBarValueMax', 100)
+  b.ref('consoleBarValueArgIndex', 'i')
+  b.ref('consoleBarValueArgValue', 'barValue')
+  const barCall = callStatement(b, 'consoleBarValue', 'consoleChartImport', ['consoleBarValueArgIndex', 'consoleBarValueArgValue'])
+  b.intValue('consoleBarValueCount', barCount)
+  const barLoop = b.countedLoop('consoleBars', 'i', 'consoleBarValueCount', ['consoleBarValueDecl', 'consoleBarValueIf', barCall, 'consoleScreenIf'])
+
+  // LED et LED RVB : alimentation et couleur dérivée de la longueur du texte.
+  b.ref('consoleLedValue', 'power')
+  const ledCall = callStatement(b, 'consoleLed', 'consoleLedImport', ['consoleLedValue'])
+  b.make('consoleRedDecl', 'VariableDeclaration', { name: 'red', type: intType }, { initializer: 'consoleRedValue' })
+  b.binary('consoleRedValue', '%', 'consoleRedProduct', 'consoleRedModulo')
+  b.binary('consoleRedProduct', '*', 'consoleRedRead', 'consoleRedStep')
+  b.ref('consoleRedRead', 'labelLength')
+  b.intValue('consoleRedStep', 12)
+  b.intValue('consoleRedModulo', 256)
+  b.ref('consoleRgbRed', 'red')
+  b.ref('consoleRgbGreen', 'levelPercent')
+  b.ref('consoleRgbBlue', 'fill')
+  const rgbCall = callStatement(b, 'consoleRgb', 'consoleRgbImport', ['consoleRgbRed', 'consoleRgbGreen', 'consoleRgbBlue'])
+
+  // Écran : grille remise à zéro, puis un marqueur de deux pixels par canal actif.
+  b.assign('consoleGridResetAssign', 'consoleGridResetTarget', 'consoleGridResetValue')
+  b.ref('consoleGridResetTarget', 'grid')
+  b.math('consoleGridResetValue', 'arrayFill', ['consoleGridResetSize', 'consoleGridResetZero'])
+  b.intValue('consoleGridResetSize', width * height)
+  b.intValue('consoleGridResetZero', 0)
+  b.make('consoleScreenIf', 'IfStatement', {}, { test: 'consoleScreenTest', consequent: 'consoleScreenThen', alternate: null })
+  b.binary('consoleScreenTest', '<', 'consoleScreenIndex', 'consoleScreenChannels')
+  b.ref('consoleScreenIndex', 'i')
+  b.ref('consoleScreenChannels', 'channels')
+  b.block('consoleScreenThen', ['consoleHeightDecl', 'consoleMarkerDecl', 'consoleMarkerAssign1', 'consoleMarkerAssign2'])
+  b.make('consoleHeightDecl', 'VariableDeclaration', { name: 'barHeight', type: intType }, { initializer: 'consoleHeightValue' })
+  b.binary('consoleHeightValue', '+', 'consoleHeightBase', 'consoleHeightDivision')
+  b.intValue('consoleHeightBase', 2)
+  b.binary('consoleHeightDivision', '/', 'consoleHeightScaled', 'consoleHeightHundred')
+  b.binary('consoleHeightScaled', '*', 'consoleHeightRead', 'consoleHeightTen')
+  b.ref('consoleHeightRead', 'levelPercent')
+  b.intValue('consoleHeightTen', 10)
+  b.intValue('consoleHeightHundred', 100)
+  b.ref('consoleHeightRef', 'barHeight')
+  b.make('consoleMarkerDecl', 'VariableDeclaration', { name: 'marker', type: intType }, { initializer: 'consoleMarkerValue' })
+  b.binary('consoleMarkerValue', '+', 'consoleMarkerSum', 'consoleMarkerOffset')
+  b.binary('consoleMarkerSum', '+', 'consoleMarkerRow', 'consoleMarkerBar')
+  b.binary('consoleMarkerRow', '*', 'consoleMarkerBase', 'consoleMarkerWidth')
+  b.binary('consoleMarkerBase', '-', 'consoleMarkerHeight', 'consoleHeightRef')
+  b.intValue('consoleMarkerHeight', height)
+  b.intValue('consoleMarkerWidth', width)
+  b.binary('consoleMarkerBar', '*', 'consoleMarkerBarRead', 'consoleMarkerFive')
+  b.ref('consoleMarkerBarRead', 'i')
+  b.intValue('consoleMarkerFive', 5)
+  b.intValue('consoleMarkerOffset', 2)
+  b.access('consoleMarkerCell1', 'consoleMarkerGrid1', 'consoleMarkerRef1')
+  b.ref('consoleMarkerGrid1', 'grid')
+  b.ref('consoleMarkerRef1', 'marker')
+  b.assign('consoleMarkerAssign1', 'consoleMarkerCell1', 'consoleMarkerColor1')
+  b.ref('consoleMarkerColor1', 'color')
+  b.binary('consoleMarkerNext', '+', 'consoleMarkerRef2', 'consoleMarkerWidth2')
+  b.ref('consoleMarkerRef2', 'marker')
+  b.intValue('consoleMarkerWidth2', width)
+  b.access('consoleMarkerCell2', 'consoleMarkerGrid2', 'consoleMarkerNext')
+  b.ref('consoleMarkerGrid2', 'grid')
+  b.assign('consoleMarkerAssign2', 'consoleMarkerCell2', 'consoleMarkerColor2')
+  b.ref('consoleMarkerColor2', 'color')
+  b.ref('consoleGridArg', 'grid')
+  b.ref('consolePaletteArg', 'palette')
+  const blitCall = callStatement(b, 'consoleBlit', 'consoleBlitImport', ['consoleGridArg', 'consolePaletteArg'])
+  const presentCall = callStatement(b, 'consolePresent', 'consolePresentImport', [])
+
+  b.block('consoleLoopBody', [
+    'consolePercentDecl', 'consoleFillDecl', 'consoleColorDecl', 'consoleColorIf',
+    gaugeCall, progressCall,
+    'consoleGridResetAssign', barLoop,
+    ledCall, 'consoleRedDecl', rgbCall,
+    blitCall, presentCall,
+    'consoleFrameUpdate',
+  ])
+  b.make('consoleLoop', 'WhileStatement', {}, { test: 'consoleFrameTest', body: 'consoleLoopBody' })
+  b.stringValue('consoleMessage', 'Input console ready')
+  b.print('consolePrint', 'consoleMessage')
+  b.block('consoleMainBody', ['consoleFrameDecl', 'consoleLoop', 'consolePrint'])
+
+  // Lie chaque entrée à sa fonction ; imports et exports sont créés automatiquement.
+  let project = b.project
+  const bindings = [
+    [toggle.module.id, 'consoleSetPower', bindInputButtonCallback],
+    [hold.module.id, 'consolePulseFn', bindInputButtonCallback],
+    [channelsInput.module.id, 'consoleChannelsFn', bindInputNumberCallback],
+    [levelInput.module.id, 'consoleLevelFn', bindInputNumberCallback],
+    [labelInput.module.id, 'consoleLabelFn', bindInputNumberCallback],
+  ]
+  for (const [moduleId, targetId, bind] of bindings) {
+    const bound = bind(project, moduleId, targetId)
+    if (!bound.ok) throw new Error(`Input console binding failed: ${bound.code ?? 'unknown'}`)
+    project = bound.project
+  }
+
+  const result = workspace(project, [
+    note('consoleNote', 'Input console', String.raw`Cinq entrées pilotent l'interface. Le toggle alimente la LED et colore l'écran ; le bouton maintenu incrémente le compteur d'appuis ; l'entrée entière choisit le nombre de canaux ; l'entrée décimale règle le niveau ; l'entrée texte mesure sa longueur pour la couleur RVB et écrit le texte dans la sortie. $$\text{niveau}=\lfloor 100\,l\rfloor,\quad \text{barres}=n,\quad \text{compteur}=p \bmod 100$$`, 0, 1180, 1560, 260),
+  ])
+  const cards = result.presentation.cards
+  const place = (id, patch) => {
+    const card = cards.find((entry) => entry.id === id)
+    if (card) Object.assign(card, patch)
+  }
+  place(toggle.module.id, { x: 0, y: 0, pressed: true })
+  place(hold.module.id, { x: 0, y: 230 })
+  place(channelsInput.module.id, { x: 0, y: 460, value: 4 })
+  place(levelInput.module.id, { x: 0, y: 700, value: 0.5 })
+  place(labelInput.module.id, { x: 0, y: 940, value: 'Sapphire' })
+  place(screen.module.id, { x: 340, y: 0, width: 860, height: 380 })
+  place(gauge.module.id, { x: 1240, y: 0 })
+  place(progress.module.id, { x: 1240, y: 300 })
+  place(chart.module.id, { x: 1240, y: 490 })
+  place(led.module.id, { x: 1240, y: 740 })
+  place(rgb.module.id, { x: 1240, y: 950 })
+  place(app.id, { x: 340, y: 420, width: 860, height: 600 })
+  return result
+}
+
 // Catalogue local, ouvrable sans réseau ni fichier externe, classé par difficulté puis par thème.
 export const examples = [
   { id: 'fibonacci', labelKey: 'examples.fibonacci', category: 'medium', subcategory: 'basics', build: fibonacci },
@@ -4058,6 +4371,7 @@ export const examples = [
     },
   })),
   { id: 'buttonLed', labelKey: 'examples.buttonLed', category: 'simple', subcategory: 'input', build: buttonLed },
+  { id: 'inputConsole', labelKey: 'examples.inputConsole', category: 'medium', subcategory: 'input', build: inputConsole },
 ]
 
 // Sous-catégories facultatives à l'intérieur d'une catégorie du volet Examples.

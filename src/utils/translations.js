@@ -570,6 +570,7 @@ const messages = {
   'examples.pendulumWave': ['Pendulum wave', 'Onde de pendules', '摆波', 'Onda de péndulos', 'موجة البندول', '振り子の波', 'लोलक तरंग', 'Волна маятников'],
   'examples.rgbLedDemo': ['RGB LED', 'LED RVB', 'RGB 发光二极管', 'LED RGB', 'مصباح RGB', 'RGB LED', 'RGB LED', 'RGB-светодиод'],
   'examples.buttonLed': ['Two buttons and an LED', 'Deux boutons et une LED', '两个按钮和一个 LED', 'Dos botones y un LED', 'زرّان ومصباح LED', '2 つのボタンと LED', 'दो बटन और एक LED', 'Две кнопки и светодиод'],
+  'examples.inputConsole': ['Input console', 'Console d’entrées', '输入控制台', 'Consola de entradas', 'وحدة تحكم الإدخال', '入力コンソール', 'इनपुट कंसोल', 'Пульт ввода'],
   'examples.euclid': ['Euclidean algorithm', 'Algorithme d’Euclide', '欧几里得算法', 'Algoritmo de Euclides', 'خوارزمية إقليدس', 'ユークリッドの互除法', 'यूक्लिड का एल्गोरिथ्म', 'Алгоритм Евклида'],
   'examples.binarySearch': ['Binary search', 'Recherche dichotomique', '二分查找', 'Búsqueda binaria', 'البحث الثنائي', '二分探索', 'द्विआधारी खोज', 'Двоичный поиск'],
   'examples.primeSieve': ['Prime sieve', 'Crible des nombres premiers', '素数筛', 'Criba de números primos', 'غربال الأعداد الأولية', '素数のふるい', 'अभाज्य संख्याओं की छलनी', 'Решето простых чисел'],

@@ -2,6 +2,12 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Exemple Input console — 9 novembre 2026
+
+- Ajout de l'exemple **Input console** (Medium → Inputs, `inputConsole`) : un toggle, un bouton maintenu, une entrée entière, une entrée décimale et une entrée texte sont liés à cinq fonctions `(boolean|int|float|string) -> void`. Les callbacks écrivent des globales ; la boucle principale les relit et pilote un écran 40×12, une jauge, une barre de progression, un graphique à huit barres, une LED et une LED RVB.
+- L'écran dessine deux pixels par canal actif, colorés en jaune quand l'interrupteur est actif et en anthracite sinon ; la longueur du texte règle le canal rouge de la LED RVB et le texte est écrit dans la sortie. Les cartes sont disposées en trois colonnes (entrées, écran, affichages) avec une note explicative hors des cartes.
+- Vérifications : **631 tests Node/Python réussis**, dont un test live ciblé qui injecte les cinq événements et vérifie jauge 80, progression 1, barres `[80, 68, 56, 44, 32, 20, 0, 0]`, LED RVB `36 · 80 · 1` et bascule jaune/anthracite de l'écran. Le Run borné reste sous le budget (7 511 pas pour 16 images). Build Vite réussi, ouverture de l'exemple et interactions vérifiées dans le navigateur sans erreur console. Le catalogue passe à **65 exemples** (Simple 8, Medium 33, Hard 24).
+
 ## Entrées typées : décimal et texte — 9 novembre 2026
 
 - Ajout de `floatInput` et `stringInput` dans **Widgets → Entrées**, avec le même mécanisme que l'entrée entière : module caché, variable `INPUT_SP3_GLOBAL_ONCHANGE_<n>` typée `(float) -> void` ou `(string) -> void`, fonction vide, binding avec import/export automatiques et bascule aperçu/code.
