@@ -1,0 +1,56 @@
+/* Interactions communes : recherche locale et mouvement progressif, sans filtre GPU coûteux. */
+html.site-smooth { scroll-behavior: auto !important; }
+.motion-progress { position: absolute; left: 0; bottom: -1px; width: 100%; height: 2px; background: #f5d547; transform: scaleX(0); transform-origin: left; pointer-events: none; }
+.site-search[open] ~ * { pointer-events: none; }
+body:has(dialog[open]) { overflow: hidden; }
+.search-trigger {
+  display: inline-flex; align-items: center; gap: 9px; padding: 9px 12px;
+  border: 1px solid #ffffff24; border-radius: 3px; background: #19191f;
+  color: #b5b2c2; font: 10px Mono, monospace; min-height: 36px; flex-shrink: 0;
+}
+.search-trigger:hover { color: #f5d547; border-color: #f5d547; }
+.search-trigger svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+.search-trigger kbd { margin-left: 6px; color: #f2f1f6; }
+.site-header .search-trigger { margin-left: 0; }
+.site-search {
+  width: min(720px, calc(100vw - 32px)); max-height: min(660px, calc(100dvh - 48px));
+  padding: 16px; color: #f2f1f6; background: #0e0e12;
+  border: 1px solid #c4b1ff; border-radius: 6px; corner-shape: bevel;
+  margin: 8vh auto auto; box-shadow: 0 20px 80px #00000088; overflow: auto;
+  font: 13px/1.5 Inter, system-ui, sans-serif;
+}
+.site-search::backdrop { background: #000000b8; }
+.search-bar { display: flex; gap: 6px; align-items: center; padding: 8px; border: 1px solid #ffffff48; background: #19191f; }
+.search-bar:focus-within { border-color: #f5d547; }
+.search-bar input { flex: 1; min-width: 0; width: 100%; border: 0; outline: none; background: transparent; color: #f2f1f6; padding: 8px; font: 16px Inter, system-ui, sans-serif; }
+.search-bar input::-webkit-search-cancel-button { display: none; }
+.search-bar button { padding: 7px 9px; min-width: 32px; min-height: 32px; background: transparent; border: 0; color: #b5b2c2; font: 11px Mono, monospace; }
+.search-bar button:hover { color: #f5d547; }
+.search-bar [data-search-close] { font: 24px/1 Inter, sans-serif; }
+.search-count { margin: 16px 5px 10px; color: #b5b2c2; font: 10px/1.7 Mono, monospace; }
+.search-results { max-height: min(390px, 48dvh); overflow: auto; overscroll-behavior: contain; margin: 0; padding: 0; list-style: none; scrollbar-width: thin; }
+.search-results li { display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; margin: 0 0 6px; border: 1px solid transparent; border-radius: 3px; background: #19191f; color: #f2f1f6; cursor: pointer; }
+.search-category { color: #c4b1ff; font: 9px Mono, monospace; text-transform: uppercase; letter-spacing: .06em; }
+.search-results strong { font: 500 16px Space, sans-serif; color: inherit; }
+.search-results small { color: #b5b2c2; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search-results [aria-selected="true"] { background: #f5d547; color: #0e0e12; }
+.search-results [aria-selected="true"] .search-category, .search-results [aria-selected="true"] small { color: #39321b; }
+.search-footer { display: flex; flex-wrap: wrap; gap: 12px; padding-top: 14px; border-top: 1px solid #ffffff24; margin-top: 10px; color: #b5b2c2; font: 9px Mono, monospace; }
+.search-footer b { color: #c4b1ff; margin-left: auto; font-weight: 400; }
+.search-footer kbd { color: #f2f1f6; margin-right: 4px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; clip-path: inset(50%); overflow: hidden; white-space: nowrap; }
+.hero h1 .word, .closing h2 .word, .section-heading h2 .word, .doc-gateway h2 .word { white-space: nowrap; }
+.hero h1 .char, .closing h2 .char { backface-visibility: hidden; }
+@media(max-width: 1100px) {
+  .search-trigger > span, .search-trigger kbd { display: none; }
+  .search-trigger { padding: 9px; }
+}
+@media(max-width: 760px) {
+  .site-header .search-trigger { position: absolute; right: 18px; top: 16px; }
+  .site-search { padding: 10px; margin-top: 20px; }
+  .search-footer b { display: none; }
+  .search-bar [data-search-clear] { font-size: 9px; padding-inline: 4px; }
+}
+@media(prefers-reduced-motion: reduce) {
+  html.site-smooth { scroll-behavior: auto; }
+}

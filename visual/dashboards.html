@@ -5,7 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dashboards exportés — Sapphire 3</title>
   <meta name="description" content="Douze dashboards Sapphire 3 réellement exportés et interactifs : système solaire, boutons d'entrée, widgets, Run live, Run/Pause/Stop, Run autonomous, thèmes et langues.">
-  <link rel="stylesheet" href="assets/site.css">
+  <link rel="stylesheet" href="assets/identity.css?v=2">
+  <link rel="stylesheet" href="assets/site.css?v=2">
+  <link rel="stylesheet" href="assets/vendor/lenis.css">
+  <link rel="stylesheet" href="assets/experience.css">
+  <script src="assets/vendor/gsap.min.js" defer></script>
+  <script src="assets/vendor/ScrollTrigger.min.js" defer></script>
+  <script src="assets/vendor/lenis.min.js" defer></script>
+  <script src="assets/vendor/split-type.min.js" defer></script>
+  <script src="assets/search-core.js" defer></script>
+  <script src="assets/search-index.js" defer></script>
+  <script src="assets/search.js" defer></script>
+  <script src="assets/motion.js" defer></script>
 </head>
 <body class="page page-dashboards">
   <a class="skip-link" href="#contenu">Aller au contenu</a>
@@ -13,11 +24,13 @@
     <p class="mark"><img class="mark-logo" src="assets/sapphire3-logo.webp" alt="" width="28" height="28"><span class="mark-word">Sapphire<span>3</span></span></p>
     <span class="header-status"><span aria-hidden="true"></span>Dashboards exportés</span>
     <nav aria-label="Navigation du site">
-      <a href="index.html">Projet</a>
+      <a href="index.html">Accueil</a>
+      <a href="project.html">État du projet</a>
       <a href="documentation.html">Documentation visuelle</a>
       <a href="ast.html">Le modèle AST</a>
       <a href="dashboards.html" aria-current="page">Dashboards</a>
     </nav>
+    <button class="search-trigger" type="button" data-search-trigger aria-label="Rechercher dans le site (Ctrl ou Commande K)"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><span>Rechercher</span><kbd>Ctrl K</kbd></button>
   </header>
 
   <main id="contenu">
@@ -225,6 +238,6 @@
     </footer>
   </main>
 
-  <script src="assets/site.js"></script>
+  <script src="assets/site.js?v=5"></script>
 </body>
 </html>
