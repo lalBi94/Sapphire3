@@ -33,6 +33,7 @@ const panelDefaults = Object.freeze({
   rgbLed: { w: 3, h: 5, span: 'half', group: 'indicator' },
   toggleButton: { w: 3, h: 5, span: 'half', group: 'indicator' },
   holdButton: { w: 3, h: 5, span: 'half', group: 'indicator' },
+  numberInput: { w: 3, h: 5, span: 'half', group: 'indicator' },
   output: { w: 6, h: 8, span: 'full', group: 'output' },
   execution: { w: 6, h: 9, span: 'full', group: 'execution' },
   contracts: { w: 6, h: 5, span: 'full', group: 'comment' },

@@ -32,6 +32,7 @@ import { dashboardLabels, dashboardPaletteFromTheme, dashboardSimulationBudget, 
 import { dashboardWidgets, dashboardInitialStates, dashboardWidgetTypes } from '../../utils/dashboardWidgets.js'
 import { dashboardContractPanels } from '../../utils/dashboardContracts.js'
 import { collectInputButtonValues, inputButtonCallbackId, inputButtonOnClickNodeId } from '../../utils/logic/inputButtonState.js'
+import { inputNumberCallbackId, inputNumberOnChangeNodeId } from '../../utils/logic/inputNumberState.js'
 import { buildDashboardDocument, dashboardDefaultLayout } from '../../utils/dashboardExport.js'
 import { dashboardModuleMapFromCards } from '../../utils/dashboardModuleMap.js'
 import dashboardRuntimeSource from 'virtual:dashboard-runtime'
@@ -50,7 +51,7 @@ import { useNotifications } from '../../contexts/NotificationContext.jsx'
 import { useTheme } from '../../contexts/ThemeContext.jsx'
 import { diagnosticLabel, nodeLine } from '../LogicTree/logicLabels.js'
 import { failureLabel, translations } from '../../utils/translations.js'
-import { moveDebugSession, resolveDebugScreens, getModuleLinks, getUnusedDeclarationIds, getPureIds, captureBookmark, captureSourceNode, isInputButtonCallbackType, isInputButtonNoop } from '../../utils/logic/index.js'
+import { moveDebugSession, resolveDebugScreens, getModuleLinks, getUnusedDeclarationIds, getPureIds, captureBookmark, captureSourceNode, isInputButtonCallbackType, isInputButtonNoop, isInputNumberCallbackType, isInputNumberNoop } from '../../utils/logic/index.js'
 import { runDebugSession, runSimulation, runTranspilation, runTranspilationChecks, cancelEngineWork, isEngineCancelled } from '../../services/engineRunner.js'
 import { transpilationLanguages } from '../../utils/transpilation/languages.js'
 import { exportWorkspaceFile } from '../../services/workspaceFiles.js'
@@ -347,6 +348,22 @@ export default function Canvas() {
   const inputButtonCallbackSupport = useMemo(() => new Map(document.cards
     .filter((card) => card.type === 'toggleButton' || card.type === 'holdButton')
     .map((card) => [card.id, Boolean(inputButtonOnClickNodeId(document.project, card.id))])), [document.cards, document.project])
+  // Fonctions `(int) -> void` proposées au binding des entrées numériques.
+  const inputNumberCallbacks = useMemo(() => {
+    const callbacks = []
+    for (const symbol of document.index.symbols.values()) {
+      if (symbol.kind !== 'FunctionDeclaration' || symbol.importedFrom || !isInputNumberCallbackType(symbol.type)) continue
+      if (isInputNumberNoop(document.index.nodes.get(symbol.nodeId))) continue
+      const module = document.index.modules.get(symbol.moduleId)
+      if (!module || module.kind === 'class' || !(module.rootNodeIds ?? []).includes(symbol.nodeId)) continue
+      callbacks.push({ nodeId: symbol.nodeId, name: symbol.name, moduleName: module.name })
+    }
+    return callbacks.sort((left, right) => left.moduleName.localeCompare(right.moduleName) || left.name.localeCompare(right.name))
+  }, [document.index])
+  // Binding courant de chaque entrée numérique, résolu depuis la source.
+  const inputNumberBindings = useMemo(() => new Map(document.cards
+    .filter((card) => card.type === 'numberInput')
+    .map((card) => [card.id, inputNumberCallbackId(document.project, card.id)])), [document.cards, document.project])
   // Modules visibles proposés comme destination d'insertion d'un favori.
   const moduleChoices = document.cards.filter((card) => card.type === 'module').map((card) => ({ id: card.id, name: card.name }))
   const functionNode = functionTarget ? document.index.nodes.get(functionTarget) ?? null : null
@@ -755,6 +772,26 @@ export default function Canvas() {
       return
     }
     if (!autoStart || !value) return
+    handleRunLive()
+    liveSession.sendEvents(events)
+  }
+
+  // Met à jour la valeur d'une entrée numérique sans toucher à la source logique.
+  function handleNumberInputChange(id, value) {
+    document.updateInputNumber(id, value)
+  }
+
+  // Déclenche le callback d'une entrée numérique avec l'entier courant.
+  function handleNumberInputTrigger(id, value, autoStart = true) {
+    if (!inputNumberCallbackId(document.project, id)) return
+    const nodeId = inputNumberOnChangeNodeId(document.project, id)
+    if (!nodeId) return
+    const events = [{ nodeId, value: Number(value) }]
+    if (live.status === 'running' || live.status === 'paused') {
+      liveSession.sendEvents(events)
+      return
+    }
+    if (!autoStart) return
     handleRunLive()
     liveSession.sendEvents(events)
   }
@@ -1459,6 +1496,12 @@ export default function Canvas() {
         inputButtonCallbackId={inputButtonBindings.get(card.id) ?? null}
         inputButtonCallbackSupported={inputButtonCallbackSupport.get(card.id) !== false}
         onBindInputClick={(id, functionId) => document.bindInputButton(id, functionId)}
+        onInputNumberViewChange={(id, inputNumberView) => document.updateGeometry(id, { inputNumberView })}
+        onNumberInputChange={handleNumberInputChange}
+        onNumberInputTrigger={handleNumberInputTrigger}
+        numberInputCallbacks={inputNumberCallbacks}
+        numberInputCallbackId={inputNumberBindings.get(card.id) ?? null}
+        onBindNumberInput={(id, functionId) => document.bindInputNumber(id, functionId)}
         screenState={screenPlayback ? null : screenStates[card.id] ?? null}
         screenFrames={screenPlayback ? simulationResult.screenFrames : null}
         screenPlaying={screenPlayback && Boolean(execution?.running)}

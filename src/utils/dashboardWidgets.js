@@ -5,8 +5,9 @@ import { rgbLedGlobalName } from './logic/rgbLedState.js'
 import { barChartGlobalName } from './logic/barChartState.js'
 import { heatmapGlobalName } from './logic/heatmapState.js'
 import { inputButtonGlobalName, inputButtonCallbackId, inputButtonOnClickNodeId } from './logic/inputButtonState.js'
+import { inputNumberCallbackId, inputNumberOnChangeNodeId } from './logic/inputNumberState.js'
 
-export const dashboardWidgetTypes = Object.freeze(['screen', 'led', 'rgbLed', 'gauge', 'progress', 'barChart', 'xyPlot', 'oscilloscope', 'heatmap', 'toggleButton', 'holdButton', 'comment'])
+export const dashboardWidgetTypes = Object.freeze(['screen', 'led', 'rgbLed', 'gauge', 'progress', 'barChart', 'xyPlot', 'oscilloscope', 'heatmap', 'toggleButton', 'holdButton', 'numberInput', 'comment'])
 
 // Retrouve la déclaration globale interne à un widget.
 function globalDeclaration(project, moduleId, name) {
@@ -62,6 +63,14 @@ export function dashboardWidgets(project, cards) {
           globalNodeId: declaration?.id ?? null,
           callbackFunctionId: inputButtonCallbackId(project, module.id),
           onClickNodeId: inputButtonOnClickNodeId(project, module.id),
+        }
+      }
+      if (card.type === 'numberInput') {
+        return {
+          ...base,
+          value: Number.isInteger(card.value) ? card.value : 0,
+          callbackFunctionId: inputNumberCallbackId(project, module.id),
+          onChangeNodeId: inputNumberOnChangeNodeId(project, module.id),
         }
       }
       if (card.type === 'led') {

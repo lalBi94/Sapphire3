@@ -1,5 +1,5 @@
 import { logicalCardTypes, moduleCardTypes, moduleTypes } from './moduleTypes.js'
-import { createProject, createModule, moduleKinds, analyzeProgram, createContextIndex, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol, deleteSourceTargets, duplicateSourceTargets, moveSourceNodes, bindInputButtonCallback } from './logic/index.js'
+import { createProject, createModule, moduleKinds, analyzeProgram, createContextIndex, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol, deleteSourceTargets, duplicateSourceTargets, moveSourceNodes, bindInputButtonCallback, bindInputNumberCallback } from './logic/index.js'
 import { defaultDashboardConfig } from './dashboardConfig.js'
 
 // Recalcule les dérivés uniquement quand la source logique change.
@@ -37,6 +37,7 @@ function replaySourceMutation(state, action) {
   if (action.type === 'moduleImport') return addModuleImport(state.project, action.moduleId, action.entry)
   if (action.type === 'moduleImportRemove') return removeModuleImport(state.project, action.moduleId, action.importId)
   if (action.type === 'inputButtonBind') return bindInputButtonCallback(state.project, action.moduleId, action.targetFunctionId)
+  if (action.type === 'inputNumberBind') return bindInputNumberCallback(state.project, action.moduleId, action.targetFunctionId)
   return { ok: false, code: 'PATCH_INVALID' }
 }
 
@@ -85,6 +86,12 @@ export function reduceDocument(state, action) {
     const card = action.card
     if (state.cards.some((entry) => entry.id === card.id)) return state
     return withSource({ ...state, cards: [...state.cards, card] }, { ...state.project, modules: [...state.project.modules, action.inputButton.module], nodes: [...state.project.nodes, ...action.inputButton.nodes] })
+  }
+  // Une entrée numérique est une fonction onChange(int) derrière un champ interactif.
+  if (action.type === 'createInputNumber') {
+    const card = action.card
+    if (state.cards.some((entry) => entry.id === card.id)) return state
+    return withSource({ ...state, cards: [...state.cards, card] }, { ...state.project, modules: [...state.project.modules, action.inputNumber.module], nodes: [...state.project.nodes, ...action.inputNumber.nodes] })
   }
   // Une LED RVB reprend la même carte logique, avec trois canaux au lieu d'un booléen.
   if (action.type === 'createRgbLed') {
@@ -182,7 +189,7 @@ export function reduceDocument(state, action) {
     const next = { ...state, cards: state.cards.map((entry) => entry.id === card.id ? { ...entry, name: action.name } : entry) }
     return logicalCardTypes.includes(card.type) ? withSource(next, { ...state.project, modules: state.project.modules.map((module) => module.id === card.id ? { ...module, name: action.name } : module) }) : next
   }
-  if (['insert', 'configure', 'delete', 'reorderNode', 'contracts', 'renameSymbol', 'moduleExport', 'moduleImport', 'moduleImportRemove', 'inputButtonBind', 'pasteNode', 'moveNode', 'moveNodes', 'duplicateNode'].includes(action.type)) {
+  if (['insert', 'configure', 'delete', 'reorderNode', 'contracts', 'renameSymbol', 'moduleExport', 'moduleImport', 'moduleImportRemove', 'inputButtonBind', 'inputNumberBind', 'pasteNode', 'moveNode', 'moveNodes', 'duplicateNode'].includes(action.type)) {
     const result = state.project === action.previousProject ? action.prepared : replaySourceMutation(state, action)
     return result.ok ? withSource(state, result.project, result.analysis, result.index) : { ...state, mutationError: result.code }
   }

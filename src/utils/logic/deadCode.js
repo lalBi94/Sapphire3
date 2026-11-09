@@ -15,7 +15,7 @@ export function getUnusedDeclarationIds(project, analysis = analyzeProgram(proje
   for (const symbol of analysis.semantic.symbols) {
     if (symbol.importedFrom) continue
     // Le binding onClick et sa fonction vide sont appelés par l'interface, hors références source.
-    if (typeof symbol.name === 'string' && (symbol.name.startsWith('INPUT_SP3_GLOBAL_ONCLICK_') || symbol.name.startsWith('INPUT_SP3_GLOBAL_NOOP_'))) continue
+    if (typeof symbol.name === 'string' && (symbol.name.startsWith('INPUT_SP3_GLOBAL_ONCLICK_') || symbol.name.startsWith('INPUT_SP3_GLOBAL_ONCHANGE_') || symbol.name.startsWith('INPUT_SP3_GLOBAL_NOOP_'))) continue
     if (!['VariableDeclaration', 'ConstantDeclaration', 'FunctionDeclaration', 'Parameter'].includes(symbol.kind)) continue
     if (seen.has(symbol.nodeId) || used.has(symbol.nodeId) || exported.has(symbol.nodeId)) continue
     const node = project.nodes?.find((entry) => entry?.id === symbol.nodeId)

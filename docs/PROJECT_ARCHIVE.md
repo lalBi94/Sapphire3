@@ -2,6 +2,12 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Entrée numérique entière — 9 novembre 2026
+
+- Nouvelle carte **Number input** dans **Widgets → Entrées** (`numberInput`), adossée à un module caché ordinaire. Le module déclare `INPUT_SP3_GLOBAL_ONCHANGE_<n>` de type `(int) -> void`, initialisée à `INPUT_SP3_GLOBAL_NOOP_<n>` ; `bindInputNumberCallback` lie une fonction du projet avec import/export automatiques.
+- La carte conserve une valeur `int` 32 bits dans la présentation, avec un champ stylé (pas −/+, saisie clavier, focus visible), un sélecteur de fonction `(int) -> void`, une bascule aperçu/code et des libellés dans les huit langues. Le live reçoit `{nodeId, value}` et exécute la fonction avec l'entier ; le dashboard reprend la valeur et le callback. La transpilation est refusée (`TRANSPILE_INPUT_NUMBER_UNSUPPORTED`).
+- Vérifications : **629 tests Node/Python réussis** (dont 5 nouveaux dans `tests/workspace/inputNumbers.test.js`), build Vite réussi, contrôle navigateur du menu, de la carte, du binding, de la valeur, de la bascule code et de l'absence d'erreur console. Le workspace conserve la valeur et la vue. **Les entrées flottantes restent à venir.**
+
 ## Distribution bêta 0.1.0-beta.8 et publication du site — 9 novembre 2026
 
 - `package.json` versionné `0.1.0-beta.8` ; sources poussées sur `master` (`bbcff80`), tag `v0.1.0-beta.8`, release **publiée en préversion** avec cinq assets. Notes : `docs/releases/v0.1.0-beta.8.md`.

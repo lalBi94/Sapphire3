@@ -142,6 +142,8 @@ function workspace(project, notes = []) {
                   const type = module.inputButton.mode === 'hold' ? 'holdButton' : 'toggleButton'
                   return { id: module.id, type, name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes[type].width, height: moduleTypes[type].height, expandedNodeIds: [], pressed: false }
                 })()
+              : module.inputNumber
+                ? { id: module.id, type: 'numberInput', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.numberInput.width, height: moduleTypes.numberInput.height, expandedNodeIds: [], value: 0 }
               : module.kind === 'class'
                 ? { id: module.id, type: 'class', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.class.width, height: moduleTypes.class.height, expandedNodeIds: [] }
                 : { id: module.id, type: 'module', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: Math.max(definition.width, 520), height: Math.max(definition.height, 420), expandedNodeIds: [] })

@@ -196,7 +196,9 @@ export async function runLiveProgram(project, { inputs = {}, sliceSteps = 400, o
       const node = nodes.get(event?.nodeId)
       if (!node || node.kind !== 'VariableDeclaration') continue
       const callback = global.values.get(node.id)
-      const value = Boolean(event.value)
+      const rawValue = event?.value
+      const value = typeof rawValue === 'boolean' ? rawValue : typeof rawValue === 'number' && Number.isFinite(rawValue) ? rawValue : null
+      if (value === null) continue
       if (callback?.functionValue === true) {
         const target = functions.get(callback.nodeId)
         if (target) await executeFunction(target, [value])

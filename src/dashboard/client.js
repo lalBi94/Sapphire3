@@ -376,6 +376,56 @@ function start(config, runtimeSource) {
       }
       return
     }
+    if (panel.type === 'numberInput') {
+      const wrapper = document.createElement('div')
+      wrapper.className = 'db-input db-input--number'
+      const field = document.createElement('div')
+      field.className = 'db-number'
+      const minus = document.createElement('button')
+      minus.type = 'button'
+      minus.className = 'db-number__step'
+      minus.textContent = '−'
+      minus.setAttribute('aria-label', labels.inputNumberDecrement ?? 'Decrease')
+      const input = document.createElement('input')
+      input.type = 'number'
+      input.inputMode = 'numeric'
+      input.min = '-2147483648'
+      input.max = '2147483647'
+      input.step = '1'
+      input.className = 'db-number__field'
+      input.setAttribute('aria-label', panel.name)
+      const plus = document.createElement('button')
+      plus.type = 'button'
+      plus.className = 'db-number__step'
+      plus.textContent = '+'
+      plus.setAttribute('aria-label', labels.inputNumberIncrement ?? 'Increase')
+      const label = document.createElement('span')
+      label.className = 'db-input__label'
+      label.textContent = 'int'
+      field.append(minus, input, plus)
+      wrapper.append(field, label)
+      body.append(wrapper)
+      ref.numberInput = input
+      const widget = panel.widget
+      input.value = String(Number.isInteger(widget?.value) ? widget.value : 0)
+      const apply = (value) => {
+        if (!Number.isInteger(value) || value < -2147483648 || value > 2147483647) return
+        if (value === widget?.value) return
+        widget.value = value
+        input.value = String(value)
+        handleNumberInput(widget, value)
+      }
+      input.addEventListener('input', () => {
+        const value = Number.parseInt(input.value, 10)
+        if (Number.isInteger(value)) apply(value)
+      })
+      input.addEventListener('blur', () => {
+        if (!Number.isInteger(Number.parseInt(input.value, 10))) input.value = String(Number.isInteger(widget?.value) ? widget.value : 0)
+      })
+      minus.addEventListener('click', () => apply((Number.isInteger(widget?.value) ? widget.value : 0) - 1))
+      plus.addEventListener('click', () => apply((Number.isInteger(widget?.value) ? widget.value : 0) + 1))
+      return
+    }
     if (panel.type === 'led' || panel.type === 'rgbLed') {
       const wrapper = document.createElement('div')
       wrapper.className = 'db-led'
@@ -1102,6 +1152,8 @@ function start(config, runtimeSource) {
       ref.inputButton.classList.toggle('db-input__button--pressed', pressed)
       ref.inputButton.setAttribute('aria-pressed', String(pressed))
       ref.inputLabel.textContent = pressed ? (labels.inputPressed ?? 'Pressed') : (labels.inputReleased ?? 'Released')
+    } else if (widget.type === 'numberInput') {
+      if (ref.numberInput && document.activeElement !== ref.numberInput) ref.numberInput.value = String(Number.isInteger(widget.value) ? widget.value : 0)
     } else if (widget.type === 'rgbLed') {
       const led = states.rgbLeds?.[widget.id] ?? { red: 0, green: 0, blue: 0 }
       const brightest = Math.max(led.red, led.green, led.blue)
@@ -1843,6 +1895,23 @@ function start(config, runtimeSource) {
     runProgram(requestId)
   }
 
+  // Met à jour une entrée numérique et déclenche son callback ou le live courant.
+  function handleNumberInput(widget, value) {
+    if (!widget) return
+    widget.value = value
+    if (state.live) {
+      if (widget.onChangeNodeId) sendLiveEvents([{ nodeId: widget.onChangeNodeId, value }])
+      return
+    }
+    if (widget.callbackFunctionId) {
+      if (config.liveWorkerSource && widget.onChangeNodeId && startLiveDashboard()) {
+        sendLiveEvents([{ nodeId: widget.onChangeNodeId, value }])
+        return
+      }
+      runInputCallback(widget, value)
+    }
+  }
+
   // Déclenche la fonction liée dans le live actif, ou en one-shot borné hors live.
   function triggerInputCallback(widget, pressed) {
     if (!widget?.callbackFunctionId) return
@@ -1853,8 +1922,8 @@ function start(config, runtimeSource) {
     runInputCallback(widget, pressed)
   }
 
-  // Exécute la fonction liée au bouton avec l'état courant.
-  function runInputCallback(widget, pressed) {
+  // Exécute la fonction liée au widget avec la valeur courante.
+  function runInputCallback(widget, value) {
     if (!widget?.callbackFunctionId) return
     requestId += 1
     terminateWorker()
@@ -1864,7 +1933,7 @@ function start(config, runtimeSource) {
     renderControls()
     renderStates()
     announce(labels.feedbackStarted ?? 'Execution started.')
-    runProgram(requestId, { functionId: widget.callbackFunctionId, args: [Boolean(pressed)] })
+    runProgram(requestId, { functionId: widget.callbackFunctionId, args: [value] })
   }
 
   // Lance une nouvelle session, ou reprend une session en pause.

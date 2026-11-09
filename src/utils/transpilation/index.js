@@ -156,6 +156,22 @@ function inputButtonFailure(source, target, analysis = null) {
   }
 }
 
+// Une entrée numérique dépend aussi de l'interface : même refus explicite.
+function hasInputNumber(source) {
+  return Array.isArray(source?.modules) && source.modules.some((module) => module?.inputNumber)
+}
+
+// Produit le refus stable opposé à toute transpilation contenant une entrée numérique.
+function inputNumberFailure(source, target, analysis = null) {
+  return {
+    ok: false,
+    target,
+    code: 'TRANSPILE_INPUT_NUMBER_UNSUPPORTED',
+    diagnostics: [{ code: 'TRANSPILE_INPUT_NUMBER_UNSUPPORTED', severity: 'error', message: 'Une entrée numérique SP3 rend le programme non transpilable.', location: { projectId: source?.id ?? null, moduleId: null, nodeId: null, field: null } }],
+    ...(analysis ? { analysis } : {}),
+  }
+}
+
 // Une classe reste locale au moteur tant que les backends ne génèrent pas sa sémantique d'instance.
 function hasClass(source) {
   return Array.isArray(source?.modules) && source.modules.some((module) => module?.kind === 'class')
@@ -185,6 +201,7 @@ export function transpileSelection(source, selection, { target = 'javascript', a
   if (Array.isArray(source?.modules) && source.modules.some((module) => module?.heatmap)) return heatmapFailure(source, target, analysis)
   if (hasLed(source)) return ledFailure(source, target, analysis)
   if (hasRgbLed(source)) return rgbLedFailure(source, target, analysis)
+  if (hasInputNumber(source)) return inputNumberFailure(source, target, analysis)
   if (hasInputButton(source)) return inputButtonFailure(source, target, analysis)
   return backends[target](analysis, { selection })
 }
@@ -207,6 +224,7 @@ export function transpileProgram(source, options = {}) {
   if (Array.isArray(source?.modules) && source.modules.some((module) => module?.heatmap)) return heatmapFailure(source, target, analysis)
   if (hasLed(source)) return ledFailure(source, target, analysis)
   if (hasRgbLed(source)) return rgbLedFailure(source, target, analysis)
+  if (hasInputNumber(source)) return inputNumberFailure(source, target, analysis)
   if (hasInputButton(source)) return inputButtonFailure(source, target, analysis)
   if (hasBlockingDiagnostics(analysis.diagnostics)) return { ok: false, target, code: '', diagnostics: analysis.diagnostics, analysis }
   options.onProgress?.({ phase: 'generate', target, current: 1, total: 1 })
