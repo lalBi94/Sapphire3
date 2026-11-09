@@ -331,21 +331,39 @@ Le workspace est un dossier choisi : \code{workspace.sp3}, images liées dans
 \code{images/}, trois sauvegardes directes au plus dans \code{backups/}, export ZIP.
 Un document neuf non vierge utilise le dossier persistant \code{sapphire3-recovery/}.
 
+Le \textbf{Run live} est le mode par défaut de l'application : un interpréteur
+coopératif exécute le programme par tranches, sans budget total, et rend la main
+au pilote à chaque tranche ou à \code{screenPresent}. Le pilote applique les entrées
+et les événements \code{onClick} entre deux frames, met à jour les écrans et widgets,
+et permet Pause/Stop. Un curseur règle la cadence du live de 1 à 100 sans redémarrer
+le worker. En live, le curseur de pas ne sélectionne pas les nœuds : le module actif
+pulse brièvement, sans ouvrir les propriétés. Les boutons d'entrée lient une fonction
+\code{(boolean) -> void} :
+le hold l'appelle une fois à l'appui, le toggle l'appelle immédiatement puis toutes
+les 500~ms tant qu'il est actif, et le dashboard exécute la même fonction. Le
+\textbf{Run borné} reste disponible pour précalculer une trace finie avec un budget
+d'étapes ; le debug et la transpilation conservent leur fonctionnement borné.
+Le live ne fournit ni trace complète, ni contrats, ni retour arrière.
+
 L'\textbf{Export Web Dashboard} produit un unique \code{dashboard.html} autonome :
 le moteur de simulation réel y est embarqué et exécuté dans un Web Worker, avec un
-repli synchrone borné. Le dashboard reprend les neuf widgets graphiques et les annotations Comment avec formules KaTeX et polices embarquées, dont l'écran
+repli synchrone borné. Le dashboard reprend les onze widgets graphiques et d'entrée et les annotations Comment avec formules KaTeX et polices embarquées, dont l'écran
 se zoome automatiquement pour remplir sa carte en conservant les proportions
-et en rognant les bords si nécessaire, Run/Pause/Stop,
+et en rognant les bords si nécessaire. Il propose \textbf{Run live} avec
+l'interpréteur coopératif embarqué et Pause/Reprise/Stop, un Run borné,
 un curseur de vitesse de 1 à 100, un mode Run autonomous qui rejoue la trace
-en boucle avec les mêmes commandes que Run, la sortie,
-le nœud courant et une bascule clair/sombre. Il reprend la direction
+en boucle pour les programmes finis et lance le live continu pour les exemples
+\code{SP3\_LIVE}, la sortie,
+une mini-carte des modules et classes avec leurs flèches de dépendance et le nœud courant,
+des panneaux de contrats par module au même niveau que les commentaires,
+et une bascule clair/sombre. Il reprend la direction
 Void/Acid de l'application : tokens, panneaux biseautés sans halo décoratif et polices Inter, Space Grotesk
 et JetBrains Mono embarquées en data URL. La barre de progression permet de revenir à
 un pas en cliquant ou au clavier ; l'exécution se met alors en pause. Les actions et
-les modes portent des icônes SVG inline, avec un toast local qui confirme chaque action. Un sélecteur reprend les langues de l'application. Le pied de page affiche le logo Sapphire 3,
+les modes portent des icônes SVG inline, avec un toast local qui confirme chaque action. Un sélecteur reprend les langues de l'application. Un second sélecteur propose les thèmes prédéfinis et personnalisés de l'application ; le thème choisi dans Settings reste le défaut, le visiteur peut changer librement de thème et de luminosité, et son choix est mémorisé localement. Le pied de page affiche le logo Sapphire 3,
 la version utilisée, la mention Threadlock Systems et un bouton GitHub sombre vers le dépôt.
-La palette sombre choisie est imposée et sa
-variante claire est dérivée avec contrôle du contraste. La disposition initiale est un bento
+Chaque thème embarque sa palette sombre et une
+variante claire dérivée avec contrôle du contraste ; la palette exportée reste une palette de secours portable. La disposition initiale est un bento
 à deux colonnes : affichages, tracés, indicateurs, sortie, exécution et commentaires ; les
 panneaux pleine largeur occupent une colonne, les indicateurs carrés une demi-colonne. Les
 panneaux sont déplaçables, redimensionnables et masquables ; la disposition reste dans le
@@ -355,13 +373,14 @@ version. Aucun serveur, CDN, police distante ou dépendance externe n'est utilis
 seule l'ouverture volontaire du lien GitHub quitte le fonctionnement hors ligne. Un
 préflight exécute le vrai moteur avant l'écriture et refuse les programmes incompatibles.
 Les noms saisis et les sorties du programme ne sont pas traduits. Le choix de langue
-est mémorisé dans le navigateur ; l'arabe active la direction droite à gauche.
-Le genre du nœud affiché dans Current execution suit la langue du visiteur ;
-les noms saisis et les sorties du programme ne sont pas traduits.
-Le mode Run autonomous rejoue la même trace en boucle jusqu'à Pause ou Stop,
-sans renouveler les tirages aléatoires ; Stop puis Run lance une nouvelle simulation.
-Pause, reprise, vitesse et retour arrière restent disponibles. Aucun historique
-supplémentaire n'est calculé et le préflight d'export reste inchangé.
+est mémorisé dans le navigateur ; l'arabe active la direction droite à gauche. Le libellé
+du nœud courant et les types de la mini-carte suivent la langue du visiteur.
+Pour les programmes finis, Run autonomous rejoue la même trace sans renouveler
+les tirages ; pour les projets \code{SP3\_LIVE}, il lance le vrai live continu.
+Pause et Stop restent disponibles dans les deux cas ; le retour arrière est réservé
+à la trace bornée. Les panneaux de contrats restent visibles avant toute exécution :
+nom du module, nœud concerné et règle traduite. Le Run borné fournit les résultats
+et les violations ; le live ne les calcule pas et ne présente aucun statut de réussite.
 Le site de présentation expose douze dashboards générés dans \code{abstract/visual/dashboards.html} ;
 \code{pnpm dashboards:build} et la CI les maintiennent alignés après tout changement du dashboard.
 

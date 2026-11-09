@@ -82,9 +82,10 @@
             écriture, génériques avancés (plusieurs paramètres <code>T</code>, <code>U</code>, tableaux génériques
             et contraintes exactes), lambdas et fermetures avec retours de type fonction, opérations natives SP3
             (maths, texte et tableaux), formules KaTeX dans les notes et références intermodules avec flèches
-            courbes. La simulation, le debug et la transpilation JavaScript/Python s'exécutent hors du fil React,
-            avec progression et annulation ; le debug ajoute points d'arrêt, mémoire abstraite et valeurs au survol.
-            Run propose une simulation graphique simplifiée. L'interface offre aussi les graphes de contrôle et de dépendances, les
+            courbes. La simulation s'exécute hors du fil React : <b>Run live</b> par défaut, avec entrées appliquées
+            entre deux frames et Pause/Stop, ou <b>Run borné</b> pour précalculer une trace finie. Le debug et la
+            transpilation JavaScript/Python restent bornés, avec progression et annulation ; le debug ajoute points
+            d'arrêt, mémoire abstraite et valeurs au survol. Run propose aussi une simulation graphique simplifiée. L'interface offre aussi les graphes de contrôle et de dépendances, les
             cartes Screen/Gauge/ProgressBar/BarChart/LED avec lecture synchronisée à 24 fps,
             XY plot (Mafs), oscilloscope multicanal (uPlot), les grilles Heatmap
             fixes suivies par pas sans horloge de lecture, les contrats vérifiables, le gestionnaire de fenêtres, le constructeur
@@ -149,8 +150,9 @@
       <p>
         Douze fichiers HTML autonomes : le système solaire, les deux boutons d'entrée avec LED, cinq démos visuelles
         existantes et cinq créations dédiées. Entrées aléatoires à chaque nouvelle simulation, entrées interactives,
-        widgets, classes, modules, thèmes et huit langues. Run autonomous rejoue la même trace en boucle ; Stop puis
-        Run renouvelle les tirages. Rien ne démarre avant un clic.
+        widgets, classes, modules, thèmes et huit langues. Le thème choisi dans Settings est le défaut, puis chaque
+        visiteur peut changer librement de thème et de luminosité, avec un choix mémorisé localement. Run live exécute l’interpréteur continu ; Run autonomous
+        rejoue la trace des programmes finis et lance le live continu des exemples SP3_LIVE. Rien ne démarre avant un clic.
       </p>
       <div class="dashboard-preview-grid">
         <iframe src="dashboards/solarSystem.html" title="Dashboard Solar system" loading="lazy"></iframe>
@@ -222,7 +224,7 @@
         <div class="card">
           <h3><a href="dashboards.html">Dashboards exportés</a></h3>
           <p>Douze fichiers HTML autonomes et interactifs : système solaire, boutons d'entrée, cube 3D, rosaces,
-          signaux, widgets, Run/Pause/Stop, Run autonomous, thèmes et langues. Chaque exemple est régénéré après les
+          signaux, widgets, contrats, Run live, Run/Pause/Stop, Run autonomous, thèmes et langues. Le thème de l'éditeur est le défaut et le visiteur peut changer librement de thème et de luminosité. Chaque exemple est régénéré après les
           changements du dashboard.</p>
         </div>
         <div class="card">

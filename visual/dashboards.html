@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dashboards exportés — Sapphire 3</title>
-  <meta name="description" content="Douze dashboards Sapphire 3 réellement exportés et interactifs : système solaire, boutons d'entrée, widgets, Run/Pause/Stop, Run autonomous, thèmes et langues.">
+  <meta name="description" content="Douze dashboards Sapphire 3 réellement exportés et interactifs : système solaire, boutons d'entrée, widgets, Run live, Run/Pause/Stop, Run autonomous, thèmes et langues.">
   <link rel="stylesheet" href="assets/site.css">
 </head>
 <body class="page page-dashboards">
@@ -27,8 +27,12 @@
       <p class="lede">
         Chaque cadre ci-dessous est un fichier <code>dashboard.html</code> réellement produit par
         <b>Settings → Export → Web dashboard</b>, pas une capture. Les panneaux sont déplaçables, les thèmes et
-        les langues sont réglables, et les commandes exécutent le vrai moteur embarqué. Rien ne démarre avant
-        un clic sur <b>Run</b> ou <b>Run autonomous</b>.
+        les langues sont réglables, et les commandes exécutent le vrai moteur embarqué. Le thème choisi dans
+        Settings est proposé par défaut ; chaque visiteur peut ensuite changer librement de thème et de luminosité,
+        son choix étant mémorisé localement. Une mini-carte des modules et classes affiche leurs flèches de dépendance
+        et surligne le module actif pendant l'exécution. Les modules qui déclarent des contrats affichent un panneau
+        <b>Contrats</b> dédié, au même niveau que les commentaires, avec chaque règle et son statut après le Run borné. Rien ne démarre avant
+        un clic sur <b>Run live</b>, <b>Run</b> ou <b>Run autonomous</b>.
       </p>
       <ul class="chips">
         <li>12 fichiers autonomes</li>
@@ -36,7 +40,8 @@
         <li>Entrées interactives</li>
         <li>Classes et modules</li>
         <li>8 familles de widgets</li>
-        <li>Run / Pause / Stop</li>
+        <li>Run live / Pause / Stop</li>
+        <li>Run borné</li>
         <li>Run autonomous</li>
         <li>8 langues</li>
         <li>Aucune ressource distante</li>
@@ -51,10 +56,11 @@
       <p>
         La sélection réunit le système solaire, les deux boutons d'entrée avec LED, cinq démos visuelles déjà
         présentes et cinq créations dédiées. Elle couvre géométrie 3D, rosaces progressives, signaux, croissance
-        cellulaire, trajectoires et entrées interactives. <b>Run autonomous</b> rejoue la même trace calculée : ses
-        boucles ne tirent pas de nouvelles valeurs. Arrêtez puis relancez pour renouveler les données. Les boutons
-        d'entrée relancent le moteur avec la nouvelle valeur. Widgets représentés : Screen, XY plot, Oscilloscope,
-        ProgressBar, Gauge, LED, RGB LED et boutons d'entrée.
+        cellulaire, trajectoires et entrées interactives. <b>Run live</b> exécute l’interpréteur coopératif continu ;
+        <b>Run autonomous</b> rejoue la trace pour les programmes finis et lance le live continu pour les exemples
+        <code>SP3_LIVE</code>. Arrêtez puis relancez pour renouveler les données. Les boutons
+        d'entrée appellent la fonction liée avec leur état ; le toggle la répète toutes les 500 ms. Widgets
+        représentés : Screen, XY plot, Oscilloscope, ProgressBar, Gauge, LED, RGB LED et boutons d'entrée.
       </p>
 
       <div class="dashboard-gallery">
@@ -213,7 +219,7 @@
       <div class="credits">
         <p><b>Projet et direction</b><br>Bilal Boudjemline — Threadlock Systems</p>
         <p><b>Dashboards</b><br>Douze fichiers HTML autonomes générés depuis les exemples locaux ; aucun serveur, CDN ou ressource distante.</p>
-        <p><b>Interaction</b><br>Chaque cadre exécute le vrai moteur embarqué. Rien ne démarre sans Run ou Run autonomous.</p>
+        <p><b>Interaction</b><br>Chaque cadre exécute le vrai moteur embarqué. Rien ne démarre sans Run live, Run ou Run autonomous.</p>
       </div>
       <p>Sapphire 3 — document de travail. Les exemples suivent le code courant du dashboard.</p>
     </footer>
