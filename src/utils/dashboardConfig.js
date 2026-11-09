@@ -6,6 +6,7 @@ export const dashboardSimulationBudget = 20000
 export const dashboardLayoutStoragePrefix = 'sapphire3-dashboard-layout'
 export const dashboardModeStorageKey = 'sapphire3-dashboard-mode'
 export const dashboardLanguageStorageKey = 'sapphire3-dashboard-language'
+export const dashboardThemeStorageKey = 'sapphire3-dashboard-theme'
 export const dashboardOutputPanelId = 'sapphire:dashboard:output'
 export const dashboardExecutionPanelId = 'sapphire:dashboard:execution'
 
@@ -119,6 +120,7 @@ export function dashboardLabels(t) {
     light: t('dashboard.light'),
     dark: t('dashboard.dark'),
     appearance: t('theme.appearance'),
+    theme: t('dashboard.theme'),
     switchToLight: t('dashboard.switchToLight'),
     switchToDark: t('dashboard.switchToDark'),
     idle: t('dashboard.idle'),

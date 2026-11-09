@@ -8,7 +8,8 @@ import { dashboardWidgets, dashboardInitialStates } from '../src/utils/dashboard
 import { buildDashboardDocument, dashboardDefaultLayout } from '../src/utils/dashboardExport.js'
 import { repositoryUrl } from '../src/utils/appInfo.js'
 import { simulateProgram } from '../src/utils/logic/simulation.js'
-import { dashboardSimulationBudget } from '../src/utils/dashboardConfig.js'
+import { dashboardSimulationBudget, dashboardPaletteFromTheme } from '../src/utils/dashboardConfig.js'
+import { presetThemes } from '../src/utils/theme.js'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const outputDirectory = path.join(root, 'abstract', 'visual', 'dashboards')
@@ -81,6 +82,10 @@ const palette = {
   '--color-on-primary': '#0e0e12',
   '--color-node-condition': '#d9a441',
 }
+const themes = presetThemes
+  .map((theme) => ({ id: theme.id, labelKey: theme.labelKey, palette: dashboardPaletteFromTheme(theme.colors) }))
+  .filter((theme) => theme.palette)
+const themeId = 'sapphire'
 
 const runtimeSource = await bundle('src/dashboard/runtimeEntry.js', 'SapphireDashboardRuntime')
 const clientSource = await bundle('src/dashboard/client.js', 'SapphireDashboardClient')
@@ -101,6 +106,8 @@ for (const entry of showcase) {
     name: entry.title,
     description: entry.description,
     palette,
+    themes,
+    themeId,
     widgets,
     initialStates: dashboardInitialStates(widgets),
     layout: dashboardDefaultLayout(widgets),

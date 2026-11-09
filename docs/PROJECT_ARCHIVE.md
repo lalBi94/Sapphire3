@@ -2,6 +2,13 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Dashboard : thèmes complets de l'application — 9 novembre 2026
+
+- Le dashboard exporté embarque désormais les thèmes prédéfinis et personnalisés de l'application, chacun avec sa palette sombre et sa variante claire dérivée (`dashboardThemesCss`, `buildLightColors`). La palette exportée reste la secours portable.
+- Le thème choisi dans **Settings → Export → Web dashboard** est le défaut du dashboard. Un sélecteur propose tous les thèmes embarqués avec leurs noms traduits ; le visiteur peut changer librement de thème et de luminosité, et son choix est mémorisé dans `localStorage` (`sapphire3-dashboard-theme`).
+- Le catalogue des sept palettes prédéfinies quitte `ThemeContext.jsx` pour `src/utils/theme.js`, afin que l'interface et le générateur de vitrine partagent la même définition. `pnpm dashboards:build` embarque ces thèmes dans les douze dashboards.
+- Vérifications : **618 tests Node/Python réussis** (+1 test ciblé sur les thèmes embarqués et le thème par défaut), build Vite et `pnpm dashboards:build`. Contrôles navigateur sur un dashboard généré puis sur `buttonLed.html` : sept thèmes listés et traduits, Sapphire par défaut, passage à Neon, variante claire, persistance du thème et de l'apparence après rechargement, annonce `Color theme — Neon`, aucune erreur console.
+
 ## Dashboard : contrats affichés — 9 novembre 2026
 
 - Le panneau **Output** du dashboard affiche désormais les contrats calculés par le Run borné : nombre total respecté ou liste des violations avec nom, règle traduite, étape et valeur.

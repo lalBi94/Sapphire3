@@ -346,6 +346,27 @@ test('dashboard : les commentaires conservent leurs formules KaTeX', () => {
   assert.match(renderMath(math[0].value), /class="katex"/)
 })
 
+test('dashboard : les thèmes de l’application sont embarqués et le thème éditeur reste le défaut', () => {
+  const palette = { '--color-black': '#101014', '--color-anthracite': '#19191f', '--color-anthracite-raised': '#24242c', '--color-text': '#f2f1f6', '--color-yellow': '#f5d547', '--color-violet': '#c4b1ff' }
+  const html = buildDashboardDocument({
+    name: 'Themed dashboard',
+    palette,
+    themes: [
+      { id: 'sapphire', name: 'Sapphire', palette },
+      { id: 'void', name: 'Void', palette: { ...palette, '--color-yellow': '#b6ff2e' } },
+    ],
+    themeId: 'void',
+    language: 'en',
+  })
+  assert.match(html, /data-theme="void"/)
+  assert.match(html, /data-theme-select/)
+  assert.match(html, /:root\[data-theme="void"\]\[data-mode="dark"\]/)
+  assert.match(html, /:root\[data-theme="void"\]\[data-mode="light"\]/)
+  assert.match(html, /"themes":/)
+  assert.match(html, /"themeId":"void"/)
+  assert.match(html, /"themeNames":/)
+})
+
 test('dashboard : l’export produit un HTML unique, échappé, hors ligne et thémé', () => {
   const workspace = exampleWorkspace('gaugeDemo')
   const widgets = dashboardWidgets(workspace.project, workspace.presentation.cards)

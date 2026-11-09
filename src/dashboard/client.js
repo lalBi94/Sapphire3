@@ -55,6 +55,7 @@ import {
   dashboardLayoutStorageKey,
   dashboardModeStorageKey,
   dashboardOutputPanelId,
+  dashboardThemeStorageKey,
 } from '../utils/dashboardConfig.js'
 
 // Les polices KaTeX sont intégrées en data URLs : le dashboard reste autonome, sans requête réseau.
@@ -183,6 +184,8 @@ function start(config, runtimeSource) {
   const speedSlider = document.querySelector('[data-speed-slider]')
   const speedValue = document.querySelector('[data-speed-value]')
   const speedLabel = document.querySelector('[data-speed-label]')
+  const themeSelect = document.querySelector('[data-theme-select]')
+  const themeLabel = document.querySelector('[data-theme-label]')
   const languageSelect = document.querySelector('[data-language-select]')
   const languageLabel = document.querySelector('[data-language-label]')
   const panelsButton = document.querySelector('[data-action="panels"]')
@@ -214,6 +217,8 @@ function start(config, runtimeSource) {
     liveSpeed: liveSpeedDefault,
     live: false,
     steps: 0,
+    themes: Array.isArray(config.themes) ? config.themes : [],
+    themeId: readTheme(config.themeId, config.themes),
     language: initialLanguage,
     autonomous: false,
     inputs: Object.fromEntries(inputWidgets.filter((widget) => widget.globalNodeId).map((widget) => [widget.globalNodeId, Boolean(widget.pressed)])),
@@ -627,6 +632,18 @@ function start(config, runtimeSource) {
     }
   }
 
+  // Relit le thème choisi par le visiteur, ou garde celui proposé par l'éditeur.
+  function readTheme(fallback, themes = []) {
+    const ids = new Set((Array.isArray(themes) ? themes : []).map((theme) => theme?.id).filter(Boolean))
+    try {
+      const stored = window.localStorage.getItem(dashboardThemeStorageKey)
+      if (stored && ids.has(stored)) return stored
+    } catch {
+      // Le choix reste actif pour la session si le stockage local est indisponible.
+    }
+    return ids.has(fallback) ? fallback : (ids.values().next().value ?? '')
+  }
+
   // Relit la langue choisie, si elle existe encore dans les catalogues embarqués.
   function readLanguage(fallback, catalogs) {
     try {
@@ -646,6 +663,9 @@ function start(config, runtimeSource) {
     document.documentElement.dir = state.language === 'ar' ? 'rtl' : 'ltr'
     if (languageSelect) languageSelect.value = state.language
     if (languageLabel) languageLabel.textContent = labels.language ?? 'Language'
+    if (themeLabel) themeLabel.textContent = labels.theme ?? 'Theme'
+    if (themeSelect) themeSelect.setAttribute('aria-label', labels.theme ?? 'Theme')
+    renderThemeOptions()
     if (speedLabel) speedLabel.textContent = labels.speed ?? 'Speed'
     if (speedSlider) speedSlider.setAttribute('aria-label', labels.speed ?? 'Speed')
     if (pauseButtonLabel) pauseButtonLabel.textContent = labels.pause ?? 'Pause'
@@ -735,6 +755,35 @@ function start(config, runtimeSource) {
       const active = button.dataset.mode === state.mode
       button.setAttribute('aria-pressed', String(active))
     }
+  }
+
+  // Applique le thème choisi au document.
+  function applyTheme() {
+    if (!state.themeId) {
+      document.documentElement.removeAttribute('data-theme')
+      return
+    }
+    document.documentElement.dataset.theme = state.themeId
+    if (themeSelect) themeSelect.value = state.themeId
+  }
+
+  // Remplit le sélecteur avec les thèmes embarqués et leurs noms traduits.
+  function renderThemeOptions() {
+    if (!themeSelect) return
+    const themes = state.themes ?? []
+    themeSelect.hidden = themes.length === 0
+    if (themes.length === 0) {
+      themeSelect.replaceChildren()
+      return
+    }
+    const names = config.themeNames?.[state.language] ?? {}
+    themeSelect.replaceChildren(...themes.map((theme) => {
+      const option = document.createElement('option')
+      option.value = theme.id
+      option.textContent = names[theme.id] ?? theme.name ?? theme.id
+      return option
+    }))
+    themeSelect.value = state.themeId
   }
 
   // Peint la valeur et la portion remplie du curseur de vitesse.
@@ -2129,6 +2178,20 @@ function start(config, runtimeSource) {
   autonomousButton.addEventListener('click', handleAutonomous)
   pauseButton.addEventListener('click', handlePause)
   stopButton.addEventListener('click', handleStop)
+  if (themeSelect) {
+    themeSelect.addEventListener('change', () => {
+      const next = state.themes.some((theme) => theme.id === themeSelect.value) ? themeSelect.value : state.themeId
+      state.themeId = next
+      try {
+        window.localStorage.setItem(dashboardThemeStorageKey, state.themeId)
+      } catch {
+        // Le choix reste actif pour la session si le stockage local est indisponible.
+      }
+      applyTheme()
+      const name = themeSelect.selectedOptions?.[0]?.textContent ?? state.themeId
+      announce(`${labels.theme ?? 'Theme'} — ${name}`)
+    })
+  }
   if (languageSelect) {
     languageSelect.addEventListener('change', () => {
       const next = languageSelect.value
@@ -2205,6 +2268,7 @@ function start(config, runtimeSource) {
   buildPanels()
   applyLayout()
   applyMode()
+  applyTheme()
   applySpeed()
   applyLanguage()
   renderControls()

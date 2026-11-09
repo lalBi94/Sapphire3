@@ -97,17 +97,26 @@ export function dashboardFontCss(fonts = {}) {
 }
 
 // Produit les variables CSS des deux variantes à partir de la palette sombre imposée.
-export function dashboardThemeCss(palette = {}) {
+export function dashboardThemeCss(palette = {}, themeId = '') {
   const dark = { ...palette }
   const light = buildLightColors(dark)
+  const selector = (mode) => themeId
+    ? `:root[data-theme="${String(themeId).replace(/["\\]/g, '')}"][data-mode="${mode}"]`
+    : `:root[data-mode="${mode}"]`
   const declarations = (colors, mode) => {
     const entries = Object.entries(colors)
       .filter(([token, value]) => /^--[a-z0-9-]+$/i.test(token) && /^#([0-9a-f]{6}|[0-9a-f]{8})$/i.test(value))
       .map(([token, value]) => `${token}:${value};`)
       .join('')
-    return `:root[data-mode="${mode}"]{color-scheme:${mode};${entries}}`
+    return `${selector(mode)}{color-scheme:${mode};${entries}}`
   }
   return `${declarations(dark, 'dark')}${declarations(light, 'light')}`
+}
+
+// Produit une règle par thème embarqué, avec la palette de secours pour les anciens exports.
+export function dashboardThemesCss(themes = [], fallbackPalette = {}) {
+  if (!Array.isArray(themes) || themes.length === 0) return dashboardThemeCss(fallbackPalette)
+  return themes.map((theme) => dashboardThemeCss(theme.palette ?? {}, theme.id)).join('')
 }
 
 // Construit la disposition initiale en deux colonnes bento, groupées par nature de panneau.
@@ -124,6 +133,8 @@ export function buildDashboardDocument({
   name,
   description = '',
   palette = {},
+  themes = [],
+  themeId = '',
   widgets = [],
   initialStates = {},
   layout = null,
@@ -147,6 +158,13 @@ export function buildDashboardDocument({
   const kindLabels = dashboardKindTranslations[language] ?? providedKindLabels
   const defaultLayout = layout ?? dashboardDefaultLayout(widgets)
   const logo = typeof branding?.logo === 'string' && branding.logo.startsWith('data:image/') ? branding.logo : null
+  const availableThemes = (Array.isArray(themes) ? themes : [])
+    .filter((theme) => typeof theme?.id === 'string' && /^[A-Za-z0-9_-]{1,120}$/.test(theme.id) && theme.palette && typeof theme.palette === 'object')
+  const defaultThemeId = availableThemes.some((theme) => theme.id === themeId) ? themeId : (availableThemes[0]?.id ?? '')
+  const themeNames = Object.fromEntries(supportedLanguages.map(({ id }) => [
+    id,
+    Object.fromEntries(availableThemes.map((theme) => [theme.id, theme.labelKey ? translate(id, theme.labelKey) : (theme.name || theme.id)])),
+  ]))
   const data = {
     widgets,
     initialStates,
@@ -157,13 +175,16 @@ export function buildDashboardDocument({
     languages: supportedLanguages,
     kindLabels,
     kindTranslations: dashboardKindTranslations,
+    themes: availableThemes,
+    themeId: defaultThemeId,
+    themeNames,
     project,
     simulationBudget: dashboardSimulationBudget,
     liveWorkerSource: liveSource,
     language,
   }
   return `<!doctype html>
-<html lang="${escapeDashboardHtml(language)}" dir="${direction}" data-mode="dark">
+<html lang="${escapeDashboardHtml(language)}" dir="${direction}" data-mode="dark"${defaultThemeId ? ` data-theme="${escapeDashboardHtml(defaultThemeId)}"` : ''}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -171,7 +192,7 @@ export function buildDashboardDocument({
 <meta name="description" content="${summary}">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' blob:; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; worker-src blob:; child-src blob:; connect-src 'none'">
 <title>${title}</title>
-<style>${dashboardFontCss(fonts)}${dashboardStyles}${dashboardThemeCss(palette)}</style>
+<style>${dashboardFontCss(fonts)}${dashboardStyles}${dashboardThemesCss(availableThemes, palette)}</style>
 </head>
 <body>
 <a class="db-skip-link" data-skip href="#dashboard-stage">${escapeDashboardHtml(labels.skip ?? 'Skip to widgets')}</a>
@@ -192,6 +213,10 @@ export function buildDashboardDocument({
       <button type="button" class="db-button db-mode__button" data-mode="dark" aria-pressed="true">${dashboardIcons.dark}<span>${escapeDashboardHtml(labels.dark ?? 'Dark')}</span></button>
       <button type="button" class="db-button db-mode__button" data-mode="light" aria-pressed="false">${dashboardIcons.light}<span>${escapeDashboardHtml(labels.light ?? 'Light')}</span></button>
     </div>
+    <label class="db-lang db-theme">
+      <span class="visually-hidden" data-theme-label>${escapeDashboardHtml(labels.theme ?? 'Theme')}</span>
+      <select class="db-lang__select" data-theme-select aria-label="${escapeDashboardHtml(labels.theme ?? 'Theme')}"></select>
+    </label>
     <label class="db-lang">
       <span class="visually-hidden" data-language-label>${escapeDashboardHtml(labels.language ?? 'Language')}</span>
       <select class="db-lang__select" data-language-select>

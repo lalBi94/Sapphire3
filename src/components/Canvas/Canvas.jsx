@@ -28,7 +28,7 @@ import { logicalCardTypes, moduleCardTypes, moduleTypes } from '../../utils/modu
 import { expandableNodeIdsByModule, expandAllNodeIds, isFullyExpanded } from '../../utils/nodeTree.js'
 import { scrollNodeIntoCard } from '../../utils/cardScroll.js'
 import { buildWorkspaceSvg } from '../../utils/workspaceSvg.js'
-import { dashboardLabels, dashboardSimulationBudget, defaultDashboardConfig, resolveDashboardPalette } from '../../utils/dashboardConfig.js'
+import { dashboardLabels, dashboardPaletteFromTheme, dashboardSimulationBudget, defaultDashboardConfig, resolveDashboardPalette } from '../../utils/dashboardConfig.js'
 import { dashboardWidgets, dashboardInitialStates, dashboardWidgetTypes } from '../../utils/dashboardWidgets.js'
 import { collectInputButtonValues, inputButtonCallbackId, inputButtonOnClickNodeId } from '../../utils/logic/inputButtonState.js'
 import { buildDashboardDocument, dashboardDefaultLayout } from '../../utils/dashboardExport.js'
@@ -955,6 +955,13 @@ export default function Canvas() {
         notify({ type: 'error', message: t('dashboard.generationFailed'), duration: 0 })
         return
       }
+      const themes = [...presetThemes, ...customThemes]
+        .map((theme) => ({ id: theme.id, name: theme.name, labelKey: theme.labelKey, palette: dashboardPaletteFromTheme(theme.colors) }))
+        .filter((theme) => theme.palette)
+      const selectedTheme = themes.find((theme) => theme.id === config.themeId)
+      const customPalette = dashboardPaletteFromTheme(config.palette)
+      if (!selectedTheme && customPalette) themes.unshift({ id: '__custom', name: t('dashboard.customPalette'), palette: customPalette })
+      const themeId = selectedTheme?.id ?? (customPalette ? '__custom' : (themes[0]?.id ?? ''))
       const nextConfig = { ...config, palette }
       const result = await runSimulation(project, { maxSteps: dashboardSimulationBudget, inputs: collectInputButtonValues(project, document.cards) })
       if (!result.ok) {
@@ -972,6 +979,8 @@ export default function Canvas() {
         name: config.name,
         description: config.description,
         palette,
+        themes,
+        themeId,
         widgets,
         initialStates: dashboardInitialStates(widgets),
         layout: dashboardDefaultLayout(widgets),
