@@ -4,7 +4,7 @@
 
 ## Téléchargements par système dans le hero — 9 novembre 2026
 
-- Le bouton unique est remplacé par trois accès : Windows, macOS et Linux. Windows est marqué validé avec une pastille verte ; Linux et macOS restent « à tester » avec une pastille orange.
+- Le bouton unique est remplacé par trois accès : Windows, macOS et Linux. Les boutons restent sobres ; une ligne discrète sous le groupe indique Windows validé (pastille verte) et Linux/macOS à tester (pastille orange).
 - Windows propose un dépliant installateur `.exe` ou ZIP portable. Linux propose x64 ou ARM64. macOS pointe directement vers l'archive universelle. Les liens visent les assets de la release `v0.1.0-beta.7`.
 - Un seul dépliant peut rester ouvert ; un clic hors du groupe les referme. En mobile, les trois accès passent en colonne et les choix s'affichent dans le flux.
 - Vérifications : `pnpm site:test` (3 tests), liens de release vérifiés, dépliants et fermeture extérieure contrôlés dans Chromium, aucun débordement à 375 px, audit axe sans violation après l'animation d'entrée. Aucune modification du code applicatif.

@@ -251,14 +251,14 @@ i {
 .download__button:hover { border-color:var(--primary); transform:translateY(-2px); }
 .download__button--primary { background:var(--primary); color:var(--bg); border-color:var(--primary); }
 .download__button--primary:hover { background:#ffe777; }
-.download__button--primary .download__state,
 .download__button--primary .download__caret { color:#4d4213; }
-.download__dot { width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
-.download__dot--ok { background:#7bd3a0; box-shadow:0 0 0 3px #7bd3a022; }
-.download__dot--warn { background:#f0a35e; box-shadow:0 0 0 3px #f0a35e22; }
 .download__name { white-space:nowrap; }
-.download__state { font:8px var(--mono); letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
 .download__caret { margin-left:2px; color:var(--muted); font-size:12px; }
+.download-status { display:flex; flex-wrap:wrap; gap:6px 16px; margin:0 0 12px; color:var(--muted); font:8px var(--mono); letter-spacing:.04em; }
+.download-status span { display:inline-flex; align-items:center; gap:6px; }
+.download-status__dot { display:inline-block; width:6px; height:6px; border-radius:50%; }
+.download-status__dot--ok { background:#7bd3a0; box-shadow:0 0 0 3px #7bd3a022; }
+.download-status__dot--warn { background:#f0a35e; box-shadow:0 0 0 3px #f0a35e22; }
 .download__menu {
   position:absolute;
   top:calc(100% + 6px);
