@@ -47,3 +47,16 @@ for (const button of document.querySelectorAll('[data-preview]')) {
 for (const link of document.querySelectorAll('[data-feedback]')) {
   link.addEventListener('click', () => announce(link.dataset.feedback))
 }
+
+// Ferme les choix de téléchargement concurrents et ceux ouverts hors du groupe.
+const downloadGroups = [...document.querySelectorAll('.download')]
+for (const group of downloadGroups) {
+  group.addEventListener('toggle', () => {
+    if (!group.open) return
+    for (const other of downloadGroups) if (other !== group) other.open = false
+  })
+}
+document.addEventListener('click', (event) => {
+  if (event.target.closest('.download')) return
+  for (const group of downloadGroups) group.open = false
+})

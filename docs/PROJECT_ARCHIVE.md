@@ -2,6 +2,13 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Téléchargements par système dans le hero — 9 novembre 2026
+
+- Le bouton unique est remplacé par trois accès : Windows, macOS et Linux. Windows est marqué validé avec une pastille verte ; Linux et macOS restent « à tester » avec une pastille orange.
+- Windows propose un dépliant installateur `.exe` ou ZIP portable. Linux propose x64 ou ARM64. macOS pointe directement vers l'archive universelle. Les liens visent les assets de la release `v0.1.0-beta.7`.
+- Un seul dépliant peut rester ouvert ; un clic hors du groupe les referme. En mobile, les trois accès passent en colonne et les choix s'affichent dans le flux.
+- Vérifications : `pnpm site:test` (3 tests), liens de release vérifiés, dépliants et fermeture extérieure contrôlés dans Chromium, aucun débordement à 375 px, audit axe sans violation après l'animation d'entrée. Aucune modification du code applicatif.
+
 ## Captures rapprochées et documentation resserrée — 9 novembre 2026
 
 - Les 42 captures distantes et leurs annotations ont été retirées. La documentation visuelle utilise dix vues de l'interface actuelle, cadrées sur les cartes, menus et panneaux utiles : vue d'ensemble, carte Module, carte App, menu d'ajout, formulaire, note, propriétés, simulation, transpilation et thèmes.
