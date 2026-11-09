@@ -2,6 +2,13 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Vitrine multilingue — 9 novembre 2026
+
+- L'accueil vitrine est traduit en huit langues avec l'anglais par défaut : `assets/site-i18n.js` porte les dictionnaires et applique `data-i18n`, `data-i18n-html`, `data-i18n-aria` et `data-i18n-title`. La langue est mémorisée dans `localStorage` sous `sapphire3-site-language` et la direction passe à `rtl` pour l'arabe.
+- Le sélecteur `data-site-language` est placé dans l'en-tête, stylé dans `home.css` ; sous 560 px l'en-tête se replie sur deux lignes pour éviter tout débordement.
+- `home.js` utilise les clés `data-feedback-key` et réapplique l'inspection et la capture courantes au changement de langue. `search.js` traduit ses libellés et son compteur ; le catalogue indexé reste dans sa langue source. Les captures restent en anglais, et les pages `documentation.html`, `ast.html` et `project.html` restent en français.
+- Vérifications : `pnpm site:test` (3 tests), parcours des huit langues sans clé manquante (102 clés), persistance après rechargement, bascule RTL arabe, recherche et retours traduits, en-tête sans débordement à 375 px (espagnol, arabe, hindi), aucune erreur console. Aucune modification du code applicatif.
+
 ## Téléchargements par système dans le hero — 9 novembre 2026
 
 - Le bouton unique est remplacé par trois accès : Windows, macOS et Linux. Les boutons restent sobres ; une ligne discrète sous le groupe indique Windows validé (pastille verte) et Linux/macOS à tester (pastille orange).

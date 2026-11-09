@@ -1,14 +1,15 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0e0e12">
-  <title>Sapphire 3 — Le code. Sous un autre angle.</title>
-  <meta name="description" content="Un canvas, de vrais types, votre logique. Sapphire 3 : programmation visuelle desktop, simulation locale et code open source. Téléchargez la bêta.">
+  <title>Sapphire 3 — The code. From another angle.</title>
+  <meta name="description" content="A canvas, real types, your logic. Sapphire 3: desktop visual programming, local simulation and open source. Download the beta.">
   <link rel="icon" href="assets/sapphire3-logo.webp" type="image/webp">
   <link rel="stylesheet" href="assets/identity.css?v=2">
-  <link rel="stylesheet" href="assets/home.css?v=2">
+  <link rel="stylesheet" href="assets/home.css?v=3">
+  <script src="assets/site-i18n.js" defer></script>
   <script src="assets/home.js" defer></script>
   <link rel="stylesheet" href="assets/vendor/lenis.css">
   <link rel="stylesheet" href="assets/experience.css">
@@ -22,38 +23,51 @@
   <script src="assets/motion.js" defer></script>
 </head>
 <body>
-  <a class="skip" href="#contenu">Aller au contenu</a>
+  <a class="skip" href="#contenu" data-i18n="skip">Skip to content</a>
   <header class="nav-shell">
-    <a class="brand" href="index.html" aria-label="Sapphire 3 — Accueil"><img src="assets/sapphire3-logo.webp" alt="" width="34" height="34">SAPPHIRE<span>3</span><span class="brand-mark" aria-hidden="true">/</span></a>
-    <nav aria-label="Navigation principale">
-      <a href="#apercu">L’application</a>
-      <a href="dashboards.html">Démos</a>
-      <a href="documentation.html">Documentation</a>
+    <a class="brand" href="index.html" aria-label="Sapphire 3 — Home" data-i18n-aria="nav.home"><img src="assets/sapphire3-logo.webp" alt="" width="34" height="34">SAPPHIRE<span>3</span><span class="brand-mark" aria-hidden="true">/</span></a>
+    <nav aria-label="Main navigation" data-i18n-aria="nav.aria">
+      <a href="#apercu" data-i18n="nav.app">The app</a>
+      <a href="dashboards.html" data-i18n="nav.demos">Demos</a>
+      <a href="documentation.html" data-i18n="nav.docs">Documentation</a>
     </nav>
-    <a class="nav-github" href="https://github.com/lalBi94/Sapphire3" aria-label="Sapphire 3 sur GitHub">GitHub</a>
+    <label class="site-language">
+      <span class="visually-hidden" data-i18n="language.label">Language</span>
+      <select data-site-language aria-label="Language" data-i18n-aria="language.label">
+        <option value="en">English</option>
+        <option value="fr">Français</option>
+        <option value="zh">中文</option>
+        <option value="es">Español</option>
+        <option value="ar">العربية</option>
+        <option value="ja">日本語</option>
+        <option value="hi">हिन्दी</option>
+        <option value="ru">Русский</option>
+      </select>
+    </label>
+    <a class="nav-github" href="https://github.com/lalBi94/Sapphire3" aria-label="Sapphire 3 on GitHub" data-i18n-aria="nav.githubAria"><span data-i18n="nav.github">GitHub</span></a>
   </header>
 
   <main id="contenu">
     <section class="hero" aria-labelledby="hero-title">
-      <div class="hero-meta"><span><i aria-hidden="true"></i> VISUAL PROGRAMMING ENVIRONMENT</span><span>DESKTOP / OPEN SOURCE / BÊTA</span></div>
+      <div class="hero-meta"><span><i aria-hidden="true"></i> <span data-i18n="hero.environment">VISUAL PROGRAMMING ENVIRONMENT</span></span><span data-i18n="hero.platform">DESKTOP / OPEN SOURCE / BETA</span></div>
       <div class="hero-grid">
         <div class="hero-copy">
-          <h1 id="hero-title">LE CODE.<br>SOUS UN<br><em>AUTRE ANGLE.</em></h1>
-          <p class="hero-line">Même rigueur. Moins de syntaxe entre vous et votre logique.</p>
-          <p class="hero-description">Posez vos fonctions. Reliez vos modules. Voyez votre programme tourner. Un vrai AST sous les blocs, pas de la magie noire.</p>
-          <div class="downloads" role="group" aria-label="Télécharger Sapphire 3">
+          <h1 id="hero-title" data-i18n-html="hero.title">THE CODE.<br>FROM ANOTHER<br><em>ANGLE.</em></h1>
+          <p class="hero-line" data-i18n="hero.line">Same rigor. Less syntax between you and your logic.</p>
+          <p class="hero-description" data-i18n="hero.description">Place your functions. Connect your modules. Watch your program run. A real AST under the blocks, not black magic.</p>
+          <div class="downloads" role="group" aria-label="Download Sapphire 3" data-i18n-aria="download.aria">
             <details class="download download--windows">
               <summary class="download__button download__button--primary">
                 <span class="download__name">Windows</span>
                 <span class="download__caret" aria-hidden="true">⌄</span>
               </summary>
               <div class="download__menu">
-                <p>Installateur avec raccourcis, ou ZIP portable sans installation.</p>
-                <a href="https://github.com/lalBi94/Sapphire3/releases/download/v0.1.0-beta.7/Sapphire3-0.1.0-beta.7-windows-setup.exe" data-feedback="Téléchargement de l'installateur Windows.">Installateur .exe <span>8,2 Mo</span></a>
-                <a href="https://github.com/lalBi94/Sapphire3/releases/download/v0.1.0-beta.7/Sapphire3-0.1.0-beta.7-windows.zip" data-feedback="Téléchargement du ZIP portable Windows.">ZIP portable <span>6,5 Mo</span></a>
+                <p data-i18n="download.windowsHint">Installer with shortcuts, or portable ZIP without installation.</p>
+                <a href="https://github.com/lalBi94/Sapphire3/releases/download/v0.1.0-beta.7/Sapphire3-0.1.0-beta.7-windows-setup.exe" data-feedback-key="feedback.windowsInstaller"><span data-i18n="download.installer">Installer .exe</span> <span>8.2 MB</span></a>
+                <a href="https://github.com/lalBi94/Sapphire3/releases/download/v0.1.0-beta.7/Sapphire3-0.1.0-beta.7-windows.zip" data-feedback-key="feedback.windowsZip"><span data-i18n="download.portable">Portable ZIP</span> <span>6.5 MB</span></a>
               </div>
             </details>
-            <a class="download__button download__button--mac" href="https://github.com/lalBi94/Sapphire3/releases/download/v0.1.0-beta.7/Sapphire3-0.1.0-beta.7-macos-universal.zip" data-feedback="Téléchargement de l'archive macOS universelle." title="Archive universelle Intel et Apple Silicon. Paquet construit, non testé à l'exécution.">
+            <a class="download__button download__button--mac" href="https://github.com/lalBi94/Sapphire3/releases/download/v0.1.0-beta.7/Sapphire3-0.1.0-beta.7-macos-universal.zip" data-feedback-key="feedback.macos" title="Universal archive for Intel and Apple Silicon. Built but not tested at runtime." data-i18n-title="download.macTitle">
               <span class="download__name">macOS</span>
             </a>
             <details class="download download--linux">
@@ -62,52 +76,52 @@
                 <span class="download__caret" aria-hidden="true">⌄</span>
               </summary>
               <div class="download__menu">
-                <p>Choisissez l'architecture de votre machine. Paquets construits, non testés à l'exécution.</p>
-                <a href="https://github.com/lalBi94/Sapphire3/releases/download/v0.1.0-beta.7/Sapphire3-0.1.0-beta.7-linux-x64.tar.gz" data-feedback="Téléchargement de l'archive Linux x64.">Linux x64 <span>10 Mo</span></a>
-                <a href="https://github.com/lalBi94/Sapphire3/releases/download/v0.1.0-beta.7/Sapphire3-0.1.0-beta.7-linux-arm64.tar.gz" data-feedback="Téléchargement de l'archive Linux ARM64.">Linux ARM64 <span>10 Mo</span></a>
+                <p data-i18n="download.linuxHint">Choose your machine architecture. Built but not tested at runtime.</p>
+                <a href="https://github.com/lalBi94/Sapphire3/releases/download/v0.1.0-beta.7/Sapphire3-0.1.0-beta.7-linux-x64.tar.gz" data-feedback-key="feedback.linuxX64">Linux x64 <span>10 MB</span></a>
+                <a href="https://github.com/lalBi94/Sapphire3/releases/download/v0.1.0-beta.7/Sapphire3-0.1.0-beta.7-linux-arm64.tar.gz" data-feedback-key="feedback.linuxArm64">Linux ARM64 <span>10 MB</span></a>
               </div>
             </details>
           </div>
           <p class="download-status">
-            <span><i class="download-status__dot download-status__dot--ok" aria-hidden="true"></i>Windows validé</span>
-            <span><i class="download-status__dot download-status__dot--warn" aria-hidden="true"></i>Linux et macOS à tester</span>
+            <span><i class="download-status__dot download-status__dot--ok" aria-hidden="true"></i><span data-i18n="download.statusWindows">Windows validated</span></span>
+            <span><i class="download-status__dot download-status__dot--warn" aria-hidden="true"></i><span data-i18n="download.statusOthers">Linux and macOS to test</span></span>
           </p>
           <div class="cta-row cta-row--secondary">
-            <a class="cta cta-secondary" href="https://github.com/lalBi94/Sapphire3" data-feedback="Ouverture du dépôt : sources, issues et historique."><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 19c-5 1-5-3-7-3m14 6v-4c0-1-.2-2-1-2 4-.4 7-2 7-6 0-2-1-3-2-4 0-1 0-2-.3-3-2 0-3 1-4 2a14 14 0 0 0-7 0C7 4 6 3 4 3c-.4 1-.4 2-.2 3C3 7 2 8 2 10c0 4 3 6 7 6-1 1-1 2-1 3v3"/></svg>Voir le code</a>
+            <a class="cta cta-secondary" href="https://github.com/lalBi94/Sapphire3" data-feedback-key="feedback.github"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 19c-5 1-5-3-7-3m14 6v-4c0-1-.2-2-1-2 4-.4 7-2 7-6 0-2-1-3-2-4 0-1 0-2-.3-3-2 0-3 1-4 2a14 14 0 0 0-7 0C7 4 6 3 4 3c-.4 1-.4 2-.2 3C3 7 2 8 2 10c0 4 3 6 7 6-1 1-1 2-1 3v3"/></svg><span data-i18n="hero.code">View the code</span></a>
           </div>
         </div>
 
-        <div class="model-console" aria-label="Aperçu interactif du modèle de programmation">
-          <div class="console-top"><span><i aria-hidden="true"></i> LOGIC / OVERVIEW</span><span>SP3—001</span></div>
+        <div class="model-console" aria-label="Interactive preview of the programming model" data-i18n-aria="model.aria">
+          <div class="console-top"><span><i aria-hidden="true"></i> <span data-i18n="model.overview">LOGIC / OVERVIEW</span></span><span>SP3—001</span></div>
           <div class="model-field">
             <div class="field-cross field-cross--a" aria-hidden="true">+</div><div class="field-cross field-cross--b" aria-hidden="true">+</div>
             <svg class="model-wires" viewBox="0 0 500 340" preserveAspectRatio="none" aria-hidden="true"><path d="M145 100 C145 205 350 140 350 235"/><path d="M145 100 C145 235 145 220 145 275"/><circle cx="145" cy="100" r="4"/><circle cx="350" cy="235" r="4"/><circle cx="145" cy="275" r="4"/></svg>
-            <button class="model-node model-node--function" type="button" data-node="function" aria-pressed="true"><span class="node-type">ƒ / FUNCTION</span><strong>fibonacci</strong><span class="node-signature">n: int <b>→ int</b></span><span class="node-port" aria-hidden="true"></span></button>
-            <button class="model-node model-node--variable" type="button" data-node="variable" aria-pressed="false"><span class="node-type">x / VARIABLE</span><strong>result</strong><span class="node-signature">int <b>= fibonacci(10)</b></span><span class="node-port" aria-hidden="true"></span></button>
-            <button class="model-node model-node--output" type="button" data-node="output" aria-pressed="false"><span class="node-type">SP3 / NATIVE</span><strong>Print</strong><span class="node-signature">result <b>→ output</b></span><span class="node-port" aria-hidden="true"></span></button>
+            <button class="model-node model-node--function" type="button" data-node="function" aria-pressed="true"><span class="node-type">ƒ / <span data-i18n="model.typeFunction">FUNCTION</span></span><strong>fibonacci</strong><span class="node-signature">n: int <b>→ int</b></span><span class="node-port" aria-hidden="true"></span></button>
+            <button class="model-node model-node--variable" type="button" data-node="variable" aria-pressed="false"><span class="node-type">x / <span data-i18n="model.typeVariable">VARIABLE</span></span><strong>result</strong><span class="node-signature">int <b>= fibonacci(10)</b></span><span class="node-port" aria-hidden="true"></span></button>
+            <button class="model-node model-node--output" type="button" data-node="output" aria-pressed="false"><span class="node-type">SP3 / <span data-i18n="model.typeNative">NATIVE</span></span><strong>Print</strong><span class="node-signature">result <b>→ output</b></span><span class="node-port" aria-hidden="true"></span></button>
             <span class="field-coordinate" aria-hidden="true">X 0248 / Y 0120</span>
           </div>
-          <div class="inspector"><span class="inspector-label">INSPECT / <span data-inspect-type>FUNCTION</span></span><p data-inspect-text>Une fonction typée. Ses paramètres, son corps et son retour font partie de l’arbre.</p><span class="inspect-hint">Sélectionnez un bloc pour l’inspecter</span></div>
-          <div class="console-bottom"><span>APERÇU DU MODÈLE · PAS UNE EXÉCUTION</span><span aria-hidden="true">▰ ▰ ▰ ▱</span></div>
+          <div class="inspector"><span class="inspector-label"><span data-i18n="inspect.label">INSPECT</span> / <span data-inspect-type>FUNCTION</span></span><p data-inspect-text data-i18n="inspect.function">A typed function. Its parameters, body and return are part of the tree.</p><span class="inspect-hint" data-i18n="inspect.hint">Select a block to inspect it</span></div>
+          <div class="console-bottom"><span data-i18n="model.preview">MODEL PREVIEW · NOT AN EXECUTION</span><span aria-hidden="true">▰ ▰ ▰ ▱</span></div>
         </div>
       </div>
-      <div class="hero-bottom"><span>01 — CHANGEZ DE POINT DE VUE</span><a href="#apercu">VOIR L’APPLICATION <span aria-hidden="true">↓</span></a><span aria-hidden="true">[ SP3 / THREADLOCK SYSTEMS ]</span></div>
+      <div class="hero-bottom"><span data-i18n="hero.step">01 — CHANGE YOUR POINT OF VIEW</span><a href="#apercu"><span data-i18n="hero.viewApp">VIEW THE APP</span> <span aria-hidden="true">↓</span></a><span aria-hidden="true">[ SP3 / THREADLOCK SYSTEMS ]</span></div>
     </section>
 
-    <section class="proof-strip" aria-label="Les fondamentaux"><p><span aria-hidden="true">◇</span> UN VRAI AST</p><p><span aria-hidden="true">⌁</span> TYPAGE STRICT</p><p><span aria-hidden="true">▷</span> SIMULATION LOCALE</p><p> JAVASCRIPT / PYTHON*</p></section>
+    <section class="proof-strip" aria-label="Fundamentals" data-i18n-aria="proof.aria"><p><span aria-hidden="true">◇</span> <span data-i18n="proof.ast">A REAL AST</span></p><p><span aria-hidden="true">⌁</span> <span data-i18n="proof.types">STRICT TYPING</span></p><p><span aria-hidden="true">▷</span> <span data-i18n="proof.sim">LOCAL SIMULATION</span></p><p><span data-i18n="proof.targets">JAVASCRIPT / PYTHON*</span></p></section>
 
     <section class="showcase section-wrap" id="apercu" aria-labelledby="preview-title">
-      <div class="section-heading"><div><p class="eyebrow">02 / PAS UN SLIDESHOW DE PROMESSES</p><h2 id="preview-title">C’est votre logique.<br><span>Vous avez la vue d’ensemble.</span></h2></div><a class="text-link" href="dashboards.html">Tester les dashboards</a></div>
-      <div class="preview-toolbar"><div class="preview-choices" role="group" aria-label="Captures de l’application"><button type="button" data-preview="canvas" aria-pressed="true">01 / CONSTRUIRE</button><button type="button" data-preview="read" aria-pressed="false">02 / LIRE</button><button type="button" data-preview="export" aria-pressed="false">03 / EXPORTER</button></div><span class="capture-label">CAPTURE RÉELLE / INTERFACE HISTORIQUE</span></div>
-      <figure class="app-preview"><img data-preview-image src="assets/shots/overview.png" alt="Canvas Sapphire 3 avec les modules Library et App reliés par une flèche." width="1388" height="838" loading="lazy"><figcaption><span data-preview-caption>Deux modules, une dépendance, une note. Le programme en une vue.</span><a href="documentation.html">Ouvrir la visite guidée</a></figcaption></figure>
-      <div class="feature-grid"><article><span class="feature-number">[01]</span><h3>Visuel. Pas simpliste.</h3><p>Fonctions, classes, lambdas, pointeurs et génériques. Les concepts restent. La représentation change.</p></article><article><span class="feature-number">[02]</span><h3>Run. Pause. Comprenez.</h3><p>Simulation locale, points d’arrêt et inspection mémoire. Pas besoin d’un backend pour suivre votre logique.</p></article><article><span class="feature-number">[03]</span><h3>Votre projet reste à vous.</h3><p>Workspace local, source JSON versionnée, export HTML autonome. Le code de l’application est sur GitHub.</p></article></div>
-      <p class="release-note">* Transpilation disponible sur un sous-ensemble documenté. Classes et widgets graphiques non transpilés. Les captures précèdent la direction visuelle actuelle. Le site présente le code courant ; les releases peuvent être en retrait.</p>
+      <div class="section-heading"><div><p class="eyebrow" data-i18n="showcase.eyebrow">02 / NOT A SLIDESHOW OF PROMISES</p><h2 id="preview-title" data-i18n-html="showcase.title">This is your logic.<br><span>You get the whole picture.</span></h2></div><a class="text-link" href="dashboards.html"><span data-i18n="showcase.dashboards">Try the dashboards</span></a></div>
+      <div class="preview-toolbar"><div class="preview-choices" role="group" aria-label="Application previews" data-i18n-aria="preview.aria"><button type="button" data-preview="canvas" aria-pressed="true" data-i18n="preview.build">01 / BUILD</button><button type="button" data-preview="read" aria-pressed="false" data-i18n="preview.read">02 / READ</button><button type="button" data-preview="export" aria-pressed="false" data-i18n="preview.export">03 / EXPORT</button></div><span class="capture-label" data-i18n="preview.capture">REAL CAPTURE / HISTORICAL UI</span></div>
+      <figure class="app-preview"><img data-preview-image src="assets/shots/overview.png" alt="Sapphire 3 canvas with the Library and App modules linked by an arrow." width="1388" height="838" loading="lazy"><figcaption><span data-preview-caption>Two modules, one dependency, one note. The program in one view.</span><a href="documentation.html" data-i18n="preview.guided">Open the guided tour</a></figcaption></figure>
+      <div class="feature-grid"><article><span class="feature-number">[01]</span><h3 data-i18n="feature.1.title">Visual. Not simplistic.</h3><p data-i18n="feature.1.text">Functions, classes, lambdas, pointers and generics. The concepts stay. The representation changes.</p></article><article><span class="feature-number">[02]</span><h3 data-i18n="feature.2.title">Run. Pause. Understand.</h3><p data-i18n="feature.2.text">Local simulation, breakpoints and memory inspection. No backend needed to follow your logic.</p></article><article><span class="feature-number">[03]</span><h3 data-i18n="feature.3.title">Your project stays yours.</h3><p data-i18n="feature.3.text">Local workspace, versioned JSON source, standalone HTML export. The application code is on GitHub.</p></article></div>
+      <p class="release-note" data-i18n="showcase.note">* Transpilation is available for a documented subset. Classes and graphical widgets are not transpiled. Captures predate the current visual direction. This site describes the current code; releases may lag behind.</p>
     </section>
 
-    <section class="doc-gateway section-wrap" aria-labelledby="doc-title"><div><p class="eyebrow">03 / SOUS LE CAPOT</p><h2 id="doc-title">La vitrine s’arrête ici.<br><span>La doc prend le relais.</span></h2></div><div class="doc-links"><a href="documentation.html"><span>Prendre en main<span class="doc-link-detail">La visite guidée de l’interface</span></span></a><a href="ast.html"><span>Comprendre le modèle<span class="doc-link-detail">AST, types, portées, invariants</span></span></a><a href="project.html"><span>État du projet<span class="doc-link-detail">Stack, périmètre et limites — sans filtre</span></span></a></div></section>
-    <section class="closing section-wrap"><p class="eyebrow">MOINS DE FRICTION. PLUS DE LOGIQUE.</p><h2>Votre prochain programme<br>ne commence pas forcément<br><span>par une ligne de texte.</span></h2><a class="cta cta-primary" href="https://github.com/lalBi94/Sapphire3/releases" data-feedback="Ouverture des releases GitHub : choisissez le paquet de votre système.">Prendre la bêta</a></section>
+    <section class="doc-gateway section-wrap" aria-labelledby="doc-title"><div><p class="eyebrow" data-i18n="gateway.eyebrow">03 / UNDER THE HOOD</p><h2 id="doc-title" data-i18n-html="gateway.title">The showcase ends here.<br><span>The docs take over.</span></h2></div><div class="doc-links"><a href="documentation.html"><span><span data-i18n="gateway.getStarted">Get started</span><span class="doc-link-detail" data-i18n="gateway.getStartedDetail">The guided interface tour</span></span></a><a href="ast.html"><span><span data-i18n="gateway.model">Understand the model</span><span class="doc-link-detail" data-i18n="gateway.modelDetail">AST, types, scopes, invariants</span></span></a><a href="project.html"><span><span data-i18n="gateway.project">Project status</span><span class="doc-link-detail" data-i18n="gateway.projectDetail">Stack, scope and limits — unfiltered</span></span></a></div></section>
+    <section class="closing section-wrap"><p class="eyebrow" data-i18n="closing.eyebrow">LESS FRICTION. MORE LOGIC.</p><h2 data-i18n-html="closing.title">Your next program<br>does not have to start<br><span>with a line of text.</span></h2><a class="cta cta-primary" href="https://github.com/lalBi94/Sapphire3/releases" data-feedback-key="feedback.releases"><span data-i18n="closing.cta">Get the beta</span></a></section>
   </main>
-  <footer class="home-footer"><a class="brand" href="index.html">SAPPHIRE<span>3</span></a><p>CONÇU PAR THREADLOCK SYSTEMS.</p><div><a href="https://github.com/lalBi94/Sapphire3">GitHub</a><a href="documentation.html">Documentation</a><a href="project.html#demarche">Comment c’est construit</a></div><span class="footer-code">END OF TRANSMISSION / SP3</span></footer>
+  <footer class="home-footer"><a class="brand" href="index.html">SAPPHIRE<span>3</span></a><p data-i18n="footer.credit">DESIGNED BY THREADLOCK SYSTEMS.</p><div><a href="https://github.com/lalBi94/Sapphire3">GitHub</a><a href="documentation.html" data-i18n="footer.docs">Documentation</a><a href="project.html#demarche" data-i18n="footer.build">How it is built</a></div><span class="footer-code">END OF TRANSMISSION / SP3</span></footer>
   <div class="feedback" role="status" aria-live="polite" aria-atomic="true" data-feedback-status></div>
 </body>
 </html>

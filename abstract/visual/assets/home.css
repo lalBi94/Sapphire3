@@ -142,6 +142,49 @@ button {
   border:1px solid var(--line);
 }
 
+.site-language {
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  flex-shrink:0;
+}
+
+.site-language::after {
+  content:"⌄";
+  position:absolute;
+  inset-inline-end:9px;
+  color:var(--muted);
+  font-size:11px;
+  pointer-events:none;
+}
+
+.site-language select {
+  appearance:none;
+  -webkit-appearance:none;
+  min-height:36px;
+  padding-block:8px;
+  padding-inline:10px 26px;
+  border:1px solid var(--line);
+  border-radius:3px;
+  corner-shape:bevel;
+  background:var(--surface);
+  color:var(--muted);
+  font:500 10px var(--mono);
+  letter-spacing:.02em;
+  cursor:pointer;
+  transition:color var(--ease),border-color var(--ease);
+}
+
+.site-language select:hover {
+  color:var(--primary);
+  border-color:var(--primary);
+}
+
+.site-language select:focus-visible {
+  outline:2px solid var(--primary);
+  outline-offset:2px;
+}
+
 .hero {
   max-width:1600px;
   margin:auto;
@@ -981,6 +1024,15 @@ h2 span {
   .brand-mark,.nav-github {
     display:none;
   }
+  .site-language select {
+    min-height:32px;
+    padding-block:6px;
+    padding-inline:8px 22px;
+    font-size:9px;
+  }
+  .site-language::after {
+    inset-inline-end:7px;
+  }
   .nav-shell nav {
     gap:16px;
   }
@@ -1149,4 +1201,12 @@ h2 span {
   .download__button{justify-content:space-between}
   .download__menu{position:static;width:100%;margin-top:6px;box-shadow:none}
   .download:last-child .download__menu{right:auto}
+}
+
+@media(max-width:560px){
+  .nav-shell{flex-wrap:wrap;gap:8px 10px;padding-block:10px;min-height:0}
+  .nav-shell .brand{order:1}
+  .site-language{order:2}
+  .search-trigger{order:3}
+  .nav-shell nav{order:4;width:100%;justify-content:space-between;gap:12px}
 }

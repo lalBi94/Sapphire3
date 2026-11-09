@@ -4,19 +4,24 @@
   const catalog = SapphireSearch.prepare(window.SapphireSearchEntries)
   const header = document.querySelector('.nav-shell, .site-header')
   if (!header) return
+
+  // Retourne un libellé traduit, ou son repli français sur les pages sans module de langues.
+  function t(key, fallback, params) {
+    if (window.SiteI18n) return window.SiteI18n.t(key, params)
+    return fallback.replace(/\{(\w+)\}/g, (match, name) => (params && name in params ? String(params[name]) : match))
+  }
+
   const trigger = document.createElement('button')
   trigger.type = 'button'
   trigger.className = 'search-trigger'
-  trigger.setAttribute('aria-label', 'Rechercher dans le site (Ctrl ou Commande K)')
-  trigger.innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><span>Rechercher</span><kbd>Ctrl K</kbd>'
+  trigger.innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><span></span><kbd>Ctrl K</kbd>'
   header.append(trigger)
 
   const dialog = document.createElement('dialog')
   dialog.className = 'site-search'
-  dialog.setAttribute('aria-label', 'Rechercher dans Sapphire 3')
   dialog.setAttribute('data-lenis-prevent', '')
   // Le balisage est constant ; les textes de résultats sont ensuite insérés par textContent.
-  dialog.innerHTML = `<div class="search-bar"><label class="visually-hidden" for="site-search-input">Votre recherche</label><input id="site-search-input" type="search" autocomplete="off" spellcheck="false" maxlength="120" placeholder="Fonction, débogage, pointeurs…" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="site-search-results"><button type="button" data-search-clear>Effacer</button><button type="button" data-search-close aria-label="Fermer la recherche">×</button></div><p class="search-count" role="status" aria-live="polite"></p><ul class="search-results" id="site-search-results" role="listbox" aria-label="Résultats"></ul><footer class="search-footer"><span><kbd>↑</kbd><kbd>↓</kbd> Parcourir</span><span><kbd>Entrée</kbd> Ouvrir</span><span><kbd>Échap</kbd> Fermer</span><b>LOCAL / SANS TRACKING</b></footer>`
+  dialog.innerHTML = `<div class="search-bar"><label class="visually-hidden" for="site-search-input"></label><input id="site-search-input" type="search" autocomplete="off" spellcheck="false" maxlength="120" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="site-search-results"><button type="button" data-search-clear></button><button type="button" data-search-close>×</button></div><p class="search-count" role="status" aria-live="polite"></p><ul class="search-results" id="site-search-results" role="listbox"></ul><footer class="search-footer"><span><kbd>↑</kbd><kbd>↓</kbd> <span data-search-browse></span></span><span><kbd data-search-enter></kbd> <span data-search-open></span></span><span><kbd data-search-esc></kbd> <span data-search-closehint></span></span><b data-search-local></b></footer>`
   document.body.append(dialog)
   const input = dialog.querySelector('input')
   const list = dialog.querySelector('.search-results')
@@ -25,6 +30,24 @@
   let selected = 0
   let inputTimer
   let returnFocus
+
+  // Met à jour les libellés de la palette dans la langue courante.
+  function applyLabels() {
+    trigger.setAttribute('aria-label', t('search.triggerAria', 'Rechercher dans le site (Ctrl ou Commande K)'))
+    trigger.querySelector('span').textContent = t('search.trigger', 'Rechercher')
+    dialog.setAttribute('aria-label', t('search.dialogAria', 'Rechercher dans Sapphire 3'))
+    dialog.querySelector('label').textContent = t('search.inputLabel', 'Votre recherche')
+    input.placeholder = t('search.placeholder', 'Fonction, débogage, pointeurs…')
+    dialog.querySelector('[data-search-clear]').textContent = t('search.clear', 'Effacer')
+    dialog.querySelector('[data-search-close]').setAttribute('aria-label', t('search.close', 'Fermer la recherche'))
+    list.setAttribute('aria-label', t('search.resultsAria', 'Résultats'))
+    dialog.querySelector('[data-search-browse]').textContent = t('search.browse', 'Parcourir')
+    dialog.querySelector('[data-search-enter]').textContent = t('search.enter', 'Entrée')
+    dialog.querySelector('[data-search-open]').textContent = t('search.open', 'Ouvrir')
+    dialog.querySelector('[data-search-esc]').textContent = t('search.esc', 'Échap')
+    dialog.querySelector('[data-search-closehint]').textContent = t('search.closeHint', 'Fermer')
+    dialog.querySelector('[data-search-local]').textContent = t('search.local', 'LOCAL / SANS TRACKING')
+  }
 
   // Met en avant un résultat tout en gardant le focus dans le champ de saisie.
   function selectResult(index, scroll = true) {
@@ -60,9 +83,10 @@
       option.addEventListener('click', () => openResult(index))
       list.append(option)
     })
-    count.textContent = input.value.trim()
-      ? results.length ? `${results.length} résultat${results.length > 1 ? 's' : ''}.` : 'Aucun résultat. Essayez « débogage », « classes » ou « sauvegarde ».'
-      : 'Accès rapides — ou cherchez un concept dans la documentation.'
+    if (!input.value.trim()) count.textContent = t('search.quickAccess', 'Accès rapides — ou cherchez un concept dans la documentation.')
+    else if (!results.length) count.textContent = t('search.noResults', 'Aucun résultat. Essayez « débogage », « classes » ou « sauvegarde ».')
+    else if (results.length === 1) count.textContent = t('search.resultsOne', '1 résultat.', { count: 1 })
+    else count.textContent = t('search.resultsMany', '{count} résultats.', { count: results.length })
     list.scrollTop = 0
     selectResult(0, false)
   }
@@ -98,6 +122,11 @@
     input.focus({ preventScroll: true })
   }
 
+  applyLabels()
+  document.addEventListener('site-language-change', () => {
+    applyLabels()
+    if (dialog.open) render()
+  })
   trigger.addEventListener('click', open)
   dialog.querySelector('[data-search-close]').addEventListener('click', close)
   dialog.querySelector('[data-search-clear]').addEventListener('click', () => { input.value = ''; render(); input.focus() })
