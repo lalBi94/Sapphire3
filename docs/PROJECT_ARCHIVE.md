@@ -11,6 +11,7 @@
 - **macOS Universal** : 10 438 169 octets, SHA-256 `27009bc277ae28ad21bc4363f1d5dfdaec6e0c182ebd1ce0275b6cf339cfdca5`.
 - Vérifications : **624 tests Node/Python** et 3 tests du site réussis ; tests C++ du sidecar, IPC Discord et scénario sans Discord réussis ; build Vite réussi ; archives auditées (`VERSION.txt` = `0.1.0-beta.8`, licences et notices présentes, permissions Unix conservées, `dist/` sans sources maps ni fixtures). ZIP Windows extrait et lancé : fenêtre `Sapphire 3` répondante, sidecar `discord-presence` démarré depuis le paquet. Windows ZIP et installateur retéléchargés depuis GitHub avec SHA-256 identiques.
 - **Vitrine** : branche `gh-pages` poussée sur `a27c262` ; build GitHub Pages terminé sur ce commit. `https://lalbi94.github.io/Sapphire3/visual/` vérifié : sélecteur de langue, `site-i18n.js`, liens de téléchargement `v0.1.0-beta.8` et bouton de recherche statique présents ; la racine redirige vers `visual/`.
+- Correction de version : `abstract/visual/project.html` et les douze dashboards générés affichaient encore `v0.1.0-beta.7` ; ils ont été régénérés en `v0.1.0-beta.8`, `search-index.js` reconstruit, et le site republié sur `gh-pages` (`df6e107`). `project.html` et un dashboard vérifiés en ligne.
 - Limites : Linux et macOS compilés mais non exécutés ; installation/désinstallation Windows non rejouées ; Windows non signé et macOS non notarié ; pas de nouvelle campagne exhaustive des dialogues natifs ni de l'accessibilité.
 
 ## Vitrine multilingue — 9 novembre 2026
