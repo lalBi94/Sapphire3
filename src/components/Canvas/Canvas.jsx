@@ -30,6 +30,7 @@ import { scrollNodeIntoCard } from '../../utils/cardScroll.js'
 import { buildWorkspaceSvg } from '../../utils/workspaceSvg.js'
 import { dashboardLabels, dashboardPaletteFromTheme, dashboardSimulationBudget, defaultDashboardConfig, resolveDashboardPalette } from '../../utils/dashboardConfig.js'
 import { dashboardWidgets, dashboardInitialStates, dashboardWidgetTypes } from '../../utils/dashboardWidgets.js'
+import { dashboardContractPanels } from '../../utils/dashboardContracts.js'
 import { collectInputButtonValues, inputButtonCallbackId, inputButtonOnClickNodeId } from '../../utils/logic/inputButtonState.js'
 import { buildDashboardDocument, dashboardDefaultLayout } from '../../utils/dashboardExport.js'
 import { dashboardModuleMapFromCards } from '../../utils/dashboardModuleMap.js'
@@ -946,7 +947,7 @@ export default function Canvas() {
     try {
       const project = document.project
       const cards = document.cards
-      const widgets = dashboardWidgets(project, cards)
+      const widgets = [...dashboardWidgets(project, cards), ...dashboardContractPanels(project)]
       const config = {
         ...(document.dashboard ?? defaultDashboardConfig()),
         layoutKey: document.dashboard?.layoutKey || crypto.randomUUID(),

@@ -778,11 +778,18 @@ p, h1, h2, h3 { margin: 0; }
   white-space: pre-wrap;
 }
 .db-empty { color: var(--db-muted); font-family: var(--db-mono); font-size: 10px; text-align: center; }
-.db-contracts { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--db-border); }
-.db-contracts h3 { margin: 0 0 6px; color: var(--db-text); font-family: var(--db-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
-.db-contracts p { margin: 0; color: var(--db-muted); font-family: var(--db-mono); font-size: 10px; }
-.db-contracts ul { display: grid; gap: 4px; margin: 6px 0 0; padding: 0; list-style: none; }
-.db-contracts li { padding: 5px 6px; border: 1px solid var(--db-diagnostic); border-radius: var(--db-radius-small); color: var(--db-diagnostic); font-family: var(--db-mono); font-size: 10px; line-height: 1.45; }
+.db-contracts-widget { display: flex; flex-direction: column; gap: 10px; width: 100%; height: 100%; overflow: auto; }
+.db-contract-group { display: flex; flex-direction: column; gap: 5px; }
+.db-contract-group h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; margin: 0; color: var(--db-text); font-family: var(--db-display); font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.db-contract-group__kind { color: var(--db-muted); font-family: var(--db-mono); font-size: 9px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; }
+.db-contract-list { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.db-contract-item { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 10px; padding: 6px 7px; border: 1px solid var(--db-border); border-radius: var(--db-radius-small); background: color-mix(in srgb, var(--db-bg) 35%, transparent); }
+.db-contract-item__rule { color: var(--db-text); font-family: var(--db-mono); font-size: 10px; line-height: 1.45; }
+.db-contract-item__status { color: var(--db-muted); font-family: var(--db-mono); font-size: 9px; line-height: 1.45; }
+.db-contract-item[data-status="satisfied"] { border-color: color-mix(in srgb, var(--db-success) 55%, transparent); }
+.db-contract-item[data-status="satisfied"] .db-contract-item__status { color: var(--db-success); }
+.db-contract-item[data-status="violated"] { border-color: var(--db-diagnostic); }
+.db-contract-item[data-status="violated"] .db-contract-item__status { color: var(--db-diagnostic); }
 
 .db-execution { display: flex; flex-direction: column; gap: 8px; width: 100%; height: 100%; min-height: 0; }
 .db-map {

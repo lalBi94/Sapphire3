@@ -174,6 +174,7 @@ function orbitalTrails() {
   const palette = b.declare('palette', intArrayType, b.node('ArrayLiteral', { elementType: intType }, { elements: [10, 10, 18, 255, 245, 213, 71, 255, 90, 220, 240, 255].map(b.integer) }))
   const grid = b.declare('grid', intArrayType, b.math('arrayFill', [b.integer(64 * 40), b.integer(0)]))
   const angle = b.declare('angle', doubleType, b.call(b.node('MemberExpression', { name: 'step' }, { object: b.ref('rotor') }), []))
+  b.project.nodes.find((node) => node.id === angle).contracts = [{ kind: 'nonNegative' }]
   const writes = []
   for (let satellite = 0; satellite < 2; satellite += 1) {
     const x = b.cast(intType, b.call(b.imported(b.library, 'orbitX'), [b.op('+', b.ref('angle'), b.real(satellite * Math.PI / 2))]))

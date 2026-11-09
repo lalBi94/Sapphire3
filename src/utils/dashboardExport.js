@@ -35,6 +35,7 @@ const panelDefaults = Object.freeze({
   holdButton: { w: 3, h: 5, span: 'half', group: 'indicator' },
   output: { w: 6, h: 8, span: 'full', group: 'output' },
   execution: { w: 6, h: 9, span: 'full', group: 'execution' },
+  contracts: { w: 6, h: 5, span: 'full', group: 'comment' },
   comment: { w: 6, h: 4, span: 'full', group: 'comment' },
 })
 

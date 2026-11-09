@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { examples } from '../src/utils/examples.js'
 import { deserializeWorkspace } from '../src/utils/workspaceFile.js'
 import { dashboardWidgets, dashboardInitialStates } from '../src/utils/dashboardWidgets.js'
+import { dashboardContractPanels } from '../src/utils/dashboardContracts.js'
 import { buildDashboardDocument, dashboardDefaultLayout } from '../src/utils/dashboardExport.js'
 import { dashboardModuleMapFromCards } from '../src/utils/dashboardModuleMap.js'
 import { analyzeProgram, createContextIndex } from '../src/utils/logic/index.js'
@@ -103,7 +104,7 @@ for (const entry of showcase) {
   const workspace = deserializeWorkspace(JSON.stringify(example.build()))
   const result = simulateProgram(workspace.project, { maxSteps: dashboardSimulationBudget })
   if (!result.ok) throw new Error(`${entry.id}: ${result.errorCode ?? 'Simulation failed'}`)
-  const widgets = dashboardWidgets(workspace.project, workspace.presentation.cards)
+  const widgets = [...dashboardWidgets(workspace.project, workspace.presentation.cards), ...dashboardContractPanels(workspace.project)]
   const index = createContextIndex(workspace.project, analyzeProgram(workspace.project))
   const moduleMap = dashboardModuleMapFromCards(workspace.presentation.cards, index)
   const html = buildDashboardDocument({

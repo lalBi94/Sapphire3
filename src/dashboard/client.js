@@ -196,7 +196,13 @@ function start(config, runtimeSource) {
   const liveProject = (config.project?.nodes ?? []).some((node) => node?.kind === 'VariableDeclaration' && node?.properties?.name === 'SP3_LIVE')
 
   const panels = [
-    ...(config.widgets ?? []).map((widget) => ({ id: widget.id, type: widget.type, name: widget.name, kind: labels[widget.type] ?? widget.type, widget })),
+    ...(config.widgets ?? []).map((widget) => ({
+      id: widget.id,
+      type: widget.type,
+      name: widget.type === 'contracts' ? (widget.name || labels.contractsTitle || 'Contracts') : widget.name,
+      kind: widget.type === 'contracts' ? (labels.contractsTitle ?? 'Contracts') : (labels[widget.type] ?? widget.type),
+      widget,
+    })),
     { id: dashboardOutputPanelId, type: 'output', name: labels.output ?? 'Output', kind: labels.output ?? 'Output' },
     { id: dashboardExecutionPanelId, type: 'execution', name: labels.moduleMap ?? labels.currentExecution ?? 'Modules & classes', kind: labels.moduleMap ?? labels.currentExecution ?? 'Modules & classes' },
   ]
@@ -274,7 +280,7 @@ function start(config, runtimeSource) {
       header.append(handle, titles, hide)
 
       const body = document.createElement('div')
-      body.className = `db-panel__body${panel.type === 'output' || panel.type === 'execution' ? ' db-panel__body--stretch' : ''}`
+      body.className = `db-panel__body${panel.type === 'output' || panel.type === 'execution' || panel.type === 'contracts' ? ' db-panel__body--stretch' : ''}`
       const resize = document.createElement('button')
       resize.type = 'button'
       resize.className = 'db-panel__resize'
@@ -556,24 +562,16 @@ function start(config, runtimeSource) {
       empty.className = 'db-empty'
       empty.textContent = labels.noOutput ?? 'No output yet.'
       const lines = document.createElement('div')
-      const contracts = document.createElement('section')
-      contracts.className = 'db-contracts'
-      contracts.hidden = true
-      const contractsTitle = document.createElement('h3')
-      contractsTitle.textContent = labels.contractsTitle ?? 'Contracts'
-      const contractsMessage = document.createElement('p')
-      const contractsList = document.createElement('ul')
-      contracts.append(contractsTitle, contractsMessage, contractsList)
-      output.append(empty, lines, contracts)
+      output.append(empty, lines)
       body.append(output)
       ref.output = output
       ref.outputEmpty = empty
       ref.outputLines = lines
       ref.outputCount = 0
-      ref.contracts = contracts
-      ref.contractsTitle = contractsTitle
-      ref.contractsMessage = contractsMessage
-      ref.contractsList = contractsList
+      return
+    }
+    if (panel.type === 'contracts') {
+      createContractsContent(ref, body)
       return
     }
     if (panel.type === 'execution') createExecutionContent(ref, body)
@@ -645,6 +643,86 @@ function start(config, runtimeSource) {
       titles.set(box.id, { element: title, kind: box.kind, name: box.name })
     }
     return { svg, boxes, titles }
+  }
+
+  // Produit le libellé traduit d'une règle de contrat.
+  function contractRuleText(contract) {
+    return contractLabel(contract, (key, values) => formatTemplate(labels.contractRules?.[key.slice('contract.'.length)] ?? key, values))
+  }
+
+  // Identifie une règle précise pour retrouver ses violations.
+  function contractKey(contract) {
+    return `${contract.nodeId}::${contract.kind}::${JSON.stringify(contract.arguments ?? [])}`
+  }
+
+  // Prépare un panneau de contrats groupés par nœud.
+  function createContractsContent(ref, body) {
+    const wrapper = document.createElement('div')
+    wrapper.className = 'db-contracts-widget'
+    ref.contractItems = []
+    const groups = new Map()
+    for (const contract of ref.panel.widget?.contracts ?? []) {
+      const group = groups.get(contract.nodeId) ?? { name: contract.nodeName, kind: contract.nodeKind, contracts: [] }
+      group.contracts.push(contract)
+      groups.set(contract.nodeId, group)
+    }
+    for (const group of groups.values()) {
+      const section = document.createElement('section')
+      section.className = 'db-contract-group'
+      const heading = document.createElement('h3')
+      const title = document.createElement('span')
+      title.textContent = group.name || (config.kindLabels?.[group.kind] ?? group.kind)
+      const kind = document.createElement('span')
+      kind.className = 'db-contract-group__kind'
+      kind.textContent = config.kindLabels?.[group.kind] ?? group.kind
+      heading.append(title, kind)
+      const list = document.createElement('ul')
+      list.className = 'db-contract-list'
+      for (const contract of group.contracts) {
+        const item = document.createElement('li')
+        item.className = 'db-contract-item'
+        const rule = document.createElement('span')
+        rule.className = 'db-contract-item__rule'
+        rule.textContent = contractRuleText(contract)
+        const status = document.createElement('span')
+        status.className = 'db-contract-item__status'
+        status.textContent = labels.contractsHint ?? 'Checked during Run.'
+        item.append(rule, status)
+        list.append(item)
+        ref.contractItems.push({ element: item, rule, status, contract })
+      }
+      section.append(heading, list)
+      wrapper.append(section)
+    }
+    body.append(wrapper)
+    ref.contractsWidget = wrapper
+  }
+
+  // Met à jour l'état de chaque contrat après un Run borné ou pendant le live.
+  function renderContractsWidget(ref) {
+    const violations = !state.live && state.result && Array.isArray(state.result.contracts?.violations)
+      ? state.result.contracts.violations
+      : null
+    const byKey = new Map()
+    for (const violation of violations ?? []) {
+      const key = contractKey(violation)
+      const list = byKey.get(key) ?? []
+      list.push(violation)
+      byKey.set(key, list)
+    }
+    for (const item of ref.contractItems ?? []) {
+      const matches = byKey.get(contractKey(item.contract)) ?? []
+      item.element.dataset.status = !violations ? 'idle' : matches.length > 0 ? 'violated' : 'satisfied'
+      item.status.textContent = !violations
+        ? (labels.contractsHint ?? 'Checked during Run.')
+        : matches.length > 0
+          ? formatTemplate(labels.contractsStatusViolated ?? 'Violated {count}× · first at step {step} (value {value})', {
+              count: matches.length,
+              step: matches[0].step ?? '',
+              value: String(matches[0].value ?? ''),
+            })
+          : (labels.contractsStatusSatisfied ?? 'Satisfied')
+    }
   }
 
   // Prépare la mini-carte des modules puis le libellé du nœud courant.
@@ -740,6 +818,15 @@ function start(config, runtimeSource) {
     return fallback
   }
 
+  // Met à jour les règles et statuts des panneaux de contrats après un changement de langue.
+  function updateContractLabels() {
+    for (const ref of refs.values()) {
+      if (!ref.contractItems) continue
+      for (const item of ref.contractItems) item.rule.textContent = contractRuleText(item.contract)
+      renderContractsWidget(ref)
+    }
+  }
+
   // Met à jour les libellés accessibles de la mini-carte après un changement de langue.
   function updateModuleMapLabels() {
     const ref = refs.get(dashboardExecutionPanelId)
@@ -762,6 +849,7 @@ function start(config, runtimeSource) {
     if (themeSelect) themeSelect.setAttribute('aria-label', labels.theme ?? 'Theme')
     renderThemeOptions()
     updateModuleMapLabels()
+    updateContractLabels()
     if (speedLabel) speedLabel.textContent = labels.speed ?? 'Speed'
     if (speedSlider) speedSlider.setAttribute('aria-label', labels.speed ?? 'Speed')
     if (pauseButtonLabel) pauseButtonLabel.textContent = labels.pause ?? 'Pause'
@@ -799,6 +887,9 @@ function start(config, runtimeSource) {
       } else if (panel.type === 'execution') {
         panel.name = labels.moduleMap ?? labels.currentExecution ?? 'Modules & classes'
         panel.kind = panel.name
+      } else if (panel.type === 'contracts') {
+        panel.kind = labels.contractsTitle ?? 'Contracts'
+        panel.name = panel.widget?.name || panel.kind
       } else {
         panel.kind = labels[panel.type] ?? panel.type
       }
@@ -993,7 +1084,6 @@ function start(config, runtimeSource) {
         ? (state.result.output ?? [])
         : dashboardVisibleOutput(state.result, state.index)
       renderOutput(outputRef, lines)
-      renderContracts(outputRef, state.result)
     }
     const executionRef = refs.get(dashboardExecutionPanelId)
     if (executionRef) renderExecution(executionRef)
@@ -1046,6 +1136,8 @@ function start(config, runtimeSource) {
       renderOscilloscope(ref, widget, states.oscilloscopes?.[widget.id])
     } else if (widget.type === 'heatmap') {
       renderHeatmap(ref, widget, states.heatmaps?.[widget.id])
+    } else if (widget.type === 'contracts') {
+      renderContractsWidget(ref)
     }
   }
 
@@ -1631,37 +1723,6 @@ function start(config, runtimeSource) {
       ref.outputCount = lines.length
       if (wasNearBottom) ref.output.scrollTop = ref.output.scrollHeight
     }
-  }
-
-  // Affiche les contrats calculés par le Run borné, ou masque la section en live.
-  function renderContracts(ref, result) {
-    const section = ref.contracts
-    if (!section) return
-    const contracts = result?.contracts
-    if (!contracts || !Number.isInteger(contracts.total) || contracts.total <= 0) {
-      section.hidden = true
-      return
-    }
-    section.hidden = false
-    ref.contractsTitle.textContent = labels.contractsTitle ?? 'Contracts'
-    const violations = Array.isArray(contracts.violations) ? contracts.violations : []
-    if (violations.length === 0) {
-      ref.contractsMessage.hidden = false
-      ref.contractsMessage.textContent = formatTemplate(labels.contractsSatisfied ?? 'Contracts satisfied: {count}.', { count: contracts.total })
-      ref.contractsList.replaceChildren()
-      return
-    }
-    ref.contractsMessage.hidden = true
-    ref.contractsList.replaceChildren(...violations.map((violation) => {
-      const item = document.createElement('li')
-      item.textContent = formatTemplate(labels.contractsViolated ?? '{name} {rule} - violated at step {step} (value {value})', {
-        name: violation.name ?? '',
-        rule: contractLabel(violation, (key, values) => formatTemplate(labels.contractRules?.[key.slice('contract.'.length)] ?? key, values)),
-        step: violation.step ?? '',
-        value: String(violation.value ?? ''),
-      })
-      return item
-    }))
   }
 
   // Met en avant la boîte du module ou de la classe en cours, ou son module appelant si le nœud est dans un widget caché.

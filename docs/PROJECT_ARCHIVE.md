@@ -2,6 +2,13 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Dashboard : contrats en panneaux dédiés — 9 novembre 2026
+
+- Les contrats quittent le panneau **Output** et deviennent des panneaux par module, placés au même niveau que les commentaires. Chaque panneau reprend le nom du module, la mention **Contrats** et liste chaque règle avec son nœud, son type et son libellé traduit.
+- Le statut est explicite : « Vérifié pendant l’exécution » avant un Run, « Respecté » après le Run borné, ou « Violé N fois · d’abord à l’étape X (valeur V) ». Le Run live ne calcule pas les contrats et affiche donc l’aide.
+- L’exemple **Orbital trails** déclare un contrat `nonNegative` sur `angle` pour rendre le panneau visible dans la vitrine ; le générateur ajoute le panneau `contracts` aux dashboards.
+- Vérifications : **624 tests Node/Python réussis** (+2 dans `tests/workspace/dashboardContracts.test.js`), build Vite et `pnpm dashboards:build`. Contrôles navigateur : `orbitalTrails.html` affiche le panneau « Orbital trails · Contrats » avec « angle — doit rester positif ou nul — Respecté » après Run ; une copie temporaire avec `greaterThan 1000` affiche « Violé 64 fois · d’abord à l’étape 74 (valeur 3.11…) » ; Output ne contient plus de contrats ; aucune erreur console.
+
 ## Dashboard : mini-carte des modules et classes — 9 novembre 2026
 
 - Le panneau **Current execution** du dashboard exporté est remplacé par une mini-carte SVG des cartes Module/Class visibles : boîtes compactes, classes en trait discontinu, flèches de dépendance réelles et module actif surligné pendant Run live, borné et autonome. Le libellé du nœud courant, son type et son module restent affichés dessous.
