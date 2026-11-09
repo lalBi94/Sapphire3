@@ -35,6 +35,7 @@ import katexSize4Regular from '../../node_modules/katex/dist/fonts/KaTeX_Size4-R
 import katexTypewriterRegular from '../../node_modules/katex/dist/fonts/KaTeX_Typewriter-Regular.woff2?inline'
 import { parseMathText, renderMath } from '../utils/mathText.js'
 import { clampSimulationSpeed, liveSpeedDefault, liveTickDelay } from '../utils/simulationSpeed.js'
+import { contractLabel } from '../utils/logic/contracts.js'
 import { oscilloscopeColor } from '../utils/oscilloscopeColors.js'
 import {
   dashboardColumns,
@@ -550,12 +551,24 @@ function start(config, runtimeSource) {
       empty.className = 'db-empty'
       empty.textContent = labels.noOutput ?? 'No output yet.'
       const lines = document.createElement('div')
-      output.append(empty, lines)
+      const contracts = document.createElement('section')
+      contracts.className = 'db-contracts'
+      contracts.hidden = true
+      const contractsTitle = document.createElement('h3')
+      contractsTitle.textContent = labels.contractsTitle ?? 'Contracts'
+      const contractsMessage = document.createElement('p')
+      const contractsList = document.createElement('ul')
+      contracts.append(contractsTitle, contractsMessage, contractsList)
+      output.append(empty, lines, contracts)
       body.append(output)
       ref.output = output
       ref.outputEmpty = empty
       ref.outputLines = lines
       ref.outputCount = 0
+      ref.contracts = contracts
+      ref.contractsTitle = contractsTitle
+      ref.contractsMessage = contractsMessage
+      ref.contractsList = contractsList
       return
     }
     const wrapper = document.createElement('div')
@@ -835,6 +848,7 @@ function start(config, runtimeSource) {
         ? (state.result.output ?? [])
         : dashboardVisibleOutput(state.result, state.index)
       renderOutput(outputRef, lines)
+      renderContracts(outputRef, state.result)
     }
     const executionRef = refs.get(dashboardExecutionPanelId)
     if (executionRef) renderExecution(executionRef)
@@ -1472,6 +1486,37 @@ function start(config, runtimeSource) {
       ref.outputCount = lines.length
       if (wasNearBottom) ref.output.scrollTop = ref.output.scrollHeight
     }
+  }
+
+  // Affiche les contrats calculés par le Run borné, ou masque la section en live.
+  function renderContracts(ref, result) {
+    const section = ref.contracts
+    if (!section) return
+    const contracts = result?.contracts
+    if (!contracts || !Number.isInteger(contracts.total) || contracts.total <= 0) {
+      section.hidden = true
+      return
+    }
+    section.hidden = false
+    ref.contractsTitle.textContent = labels.contractsTitle ?? 'Contracts'
+    const violations = Array.isArray(contracts.violations) ? contracts.violations : []
+    if (violations.length === 0) {
+      ref.contractsMessage.hidden = false
+      ref.contractsMessage.textContent = formatTemplate(labels.contractsSatisfied ?? 'Contracts satisfied: {count}.', { count: contracts.total })
+      ref.contractsList.replaceChildren()
+      return
+    }
+    ref.contractsMessage.hidden = true
+    ref.contractsList.replaceChildren(...violations.map((violation) => {
+      const item = document.createElement('li')
+      item.textContent = formatTemplate(labels.contractsViolated ?? '{name} {rule} - violated at step {step} (value {value})', {
+        name: violation.name ?? '',
+        rule: contractLabel(violation, (key, values) => formatTemplate(labels.contractRules?.[key.slice('contract.'.length)] ?? key, values)),
+        step: violation.step ?? '',
+        value: String(violation.value ?? ''),
+      })
+      return item
+    }))
   }
 
   // Affiche le type, le nom, le module et le numéro d'étape du nœud courant.

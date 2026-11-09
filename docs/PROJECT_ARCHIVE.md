@@ -2,6 +2,12 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Dashboard : contrats affichés — 9 novembre 2026
+
+- Le panneau **Output** du dashboard affiche désormais les contrats calculés par le Run borné : nombre total respecté ou liste des violations avec nom, règle traduite, étape et valeur.
+- Les libellés de contrats sont embarqués dans les traductions du dashboard ; la règle utilise le catalogue existant (`contract.*`). En live, le moteur ne calcule pas les contrats, donc la section reste masquée.
+- Vérifications : build Vite, `pnpm dashboards:build`, et contrôles navigateur sur un dashboard généré avec contrats respectés puis avec violations (50 entrées listées, règle traduite). **617 tests Node/Python réussis**.
+
 ## Dashboard : vrai Run live — 9 novembre 2026
 
 - Le dashboard exporté embarque désormais le worker live de l'application (`src/services/live.worker.js`) comme source autonome dans le JSON de configuration, en plus du runtime borné et du client.

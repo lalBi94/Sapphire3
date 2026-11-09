@@ -778,6 +778,11 @@ p, h1, h2, h3 { margin: 0; }
   white-space: pre-wrap;
 }
 .db-empty { color: var(--db-muted); font-family: var(--db-mono); font-size: 10px; text-align: center; }
+.db-contracts { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--db-border); }
+.db-contracts h3 { margin: 0 0 6px; color: var(--db-text); font-family: var(--db-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
+.db-contracts p { margin: 0; color: var(--db-muted); font-family: var(--db-mono); font-size: 10px; }
+.db-contracts ul { display: grid; gap: 4px; margin: 6px 0 0; padding: 0; list-style: none; }
+.db-contracts li { padding: 5px 6px; border: 1px solid var(--db-diagnostic); border-radius: var(--db-radius-small); color: var(--db-diagnostic); font-family: var(--db-mono); font-size: 10px; line-height: 1.45; }
 
 .db-execution { display: flex; flex-direction: column; gap: 8px; width: 100%; }
 .db-execution__step {

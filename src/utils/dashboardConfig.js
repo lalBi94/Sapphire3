@@ -1,5 +1,7 @@
 // Configuration d'export du dashboard web, indépendante de React et du stockage.
 
+import { contractKinds } from './logic/contracts.js'
+
 export const dashboardSimulationBudget = 20000
 export const dashboardLayoutStoragePrefix = 'sapphire3-dashboard-layout'
 export const dashboardModeStorageKey = 'sapphire3-dashboard-mode'
@@ -139,6 +141,10 @@ export function dashboardLabels(t) {
     noOutput: t('simulation.noOutput'),
     step: t('flow.step'),
     steps: t('simulation.steps'),
+    contractsTitle: t('contracts.title'),
+    contractsSatisfied: t('contracts.satisfied'),
+    contractsViolated: t('contracts.violated'),
+    contractRules: Object.fromEntries(contractKinds.map((kind) => [kind, t(`contract.${kind}`)])),
     on: t('dashboard.on'),
     off: t('dashboard.off'),
     inputPressed: t('inputButton.pressed'),
