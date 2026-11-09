@@ -616,6 +616,12 @@ figure.shot { margin: 26px 0 34px; }
 }
 .shot figcaption b { color: var(--color-text); }
 .shot-anchor { scroll-margin-top: 0; }
+.shot--compact { max-width: 620px; }
+.shot--small { max-width: 470px; }
+.shot--medium { max-width: 900px; }
+.shot-pair { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(260px, .85fr); gap: 20px; align-items: start; margin: 22px 0 28px; }
+.shot-pair .shot { margin: 0; }
+@media (max-width: 760px) { .shot-pair { grid-template-columns: minmax(0, 1fr); } }
 
 .notes { margin: 0; padding: 0; list-style: none; counter-reset: note; }
 .notes li {

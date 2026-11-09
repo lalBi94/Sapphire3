@@ -63,15 +63,15 @@
         </div>
         <a class="hero-preview" href="documentation.html#projet" aria-label="Voir la capture du projet complet">
           <div class="hero-preview__bar"><span></span><span></span><span></span><em>canvas · projet réel</em></div>
-          <img src="assets/shots/42-apercu.png" alt="Vue générale du canvas de Sapphire 3 avec deux modules reliés par une flèche courbe, une note et une carte image." width="1600" height="900">
+          <img src="assets/shots/overview.png" alt="Canvas actuel de Sapphire 3 avec les modules Library et App reliés par une flèche." width="1388" height="838">
           <div class="hero-preview__caption"><span>Deux modules, une dépendance réelle</span><b>Voir la visite →</b></div>
         </a>
       </div>
     </section>
 
     <section class="stats" aria-label="Chiffres clés">
-      <div class="stat"><b>20</b><span>sections de documentation</span></div>
-      <div class="stat"><b>42</b><span>captures réelles annotées</span></div>
+      <div class="stat"><b>9</b><span>étapes de documentation</span></div>
+      <div class="stat"><b>10</b><span>captures rapprochées</span></div>
       <div class="stat"><b>64</b><span>exemples locaux</span></div>
       <div class="stat"><b>8</b><span>langues d'interface</span></div>
     </section>
@@ -138,18 +138,11 @@
 
     <section id="visite">
       <div class="figure-wrap">
-        <figure class="shot shot-anchor" data-shot="42-apercu" id="apercu">
-          <div class="shot-layout">
-            <div class="shot-frame">
-              <img src="assets/shots/42-apercu.png" alt="Vue générale du canvas de Sapphire 3 avec deux modules reliés par une flèche courbe, une note et une carte image." width="1600" height="900">
-            </div>
-            <ol class="notes">
-              <li data-marker="carte">Deux cartes Module&nbsp;: <b>Calculs</b> publie une fonction, <b>Affichage</b> l'importe et l'appelle. Une carte porte la hiérarchie des blocs, l'autre ses propres étapes.</li>
-              <li data-marker="lien">La flèche courbe va du module exportateur vers le module récepteur. Elle n'apparaît que si une exportation est réellement utilisée&nbsp;: déplacer une carte ne crée ni ne supprime aucune dépendance.</li>
-              <li data-marker="statut">Le statut en bas à gauche rappelle la zoom courant et l'état d'analyse du document&nbsp;: nombre de modules, de nœuds et de diagnostics.</li>
-            </ol>
+        <figure class="shot shot-anchor" id="apercu">
+          <div class="shot-frame">
+            <img src="assets/shots/overview.png" alt="Canvas actuel de Sapphire 3 avec les modules Library et App reliés par une flèche." width="1388" height="838">
           </div>
-          <figcaption><b>Aperçu.</b> Un projet complet, deux modules dépendants, annotations de présentation et vue dézoomée.</figcaption>
+          <figcaption><b>Aperçu.</b> Deux modules dépendants, une note et la barre de statut de l'application actuelle.</figcaption>
         </figure>
       </div>
     </section>
@@ -221,11 +214,9 @@
       <div class="grid">
         <div class="card">
           <h3><a href="documentation.html">Documentation visuelle</a></h3>
-          <p>Vingt sections, quarante-deux captures réelles annotées&nbsp;: créer un module, construire une
-          expression, déclarer un export, importer une fonction, lire une flèche de dépendance, simuler, déboguer
-          pas à pas, transpiler, changer de thème et de langue. Les fonctionnalités récentes — généricité avancée,
-          lambdas et fermetures, zoom sémantique, sauvegardes et migration du workspace — sont décrites dans le
-          texte&nbsp;; les captures datent de la campagne précédente.</p>
+          <p>Neuf étapes et dix captures rapprochées de l'interface actuelle&nbsp;: ouvrir un projet, lire une carte,
+          ajouter une construction, relier deux modules, vérifier les propriétés, exécuter, exporter et changer
+          d'apparence.</p>
         </div>
         <div class="card">
           <h3><a href="ast.html">Le modèle AST</a></h3>
@@ -246,10 +237,10 @@
         </div>
       </div>
       <div class="gallery">
-        <a href="documentation.html#arborescence"><img src="assets/shots/11-arborescence.png" alt="Arborescence des blocs d'une fonction, chaque nœud coloré par sa catégorie." loading="lazy"><span>Une fonction vue comme un arbre</span></a>
-        <a href="documentation.html#dependances"><img src="assets/shots/24-lien-survol.png" alt="Infobulle au survol d'une flèche de dépendance listant les exportations utilisées." loading="lazy"><span>Survol d'une dépendance</span></a>
-        <a href="documentation.html#simulation"><img src="assets/shots/30-debug.png" alt="Panneau de débogage avec contrôles pas à pas, mémoire et nœud courant surligné." loading="lazy"><span>Débogage pas à pas</span></a>
-        <a href="ast.html#source"><img src="assets/shots/34-transpile.png" alt="Panneau de transpilation montrant le code JavaScript équivalent d'un projet visuel." loading="lazy"><span>Le même arbre en JavaScript</span></a>
+        <a href="documentation.html#module"><img src="assets/shots/module-library.png" alt="Carte Module Library avec la fonction square, son entrée, ses étapes et son retour." loading="lazy"><span>Une carte Module en détail</span></a>
+        <a href="documentation.html#relier"><img src="assets/shots/module-comment.png" alt="Note de présentation du projet Imports." loading="lazy"><span>Une annotation de présentation</span></a>
+        <a href="documentation.html#executer"><img src="assets/shots/simulation.png" alt="Panneau Simulation de Sapphire 3 après une exécution." loading="lazy"><span>Exécuter et suivre l'état</span></a>
+        <a href="documentation.html#exporter"><img src="assets/shots/transpile.png" alt="Panneau de transpilation avec le code JavaScript généré." loading="lazy"><span>Le même modèle en JavaScript</span></a>
       </div>
     </section>
 
@@ -257,13 +248,12 @@
       <div class="credits">
         <p><b>Projet et direction</b><br>Bilal Boudjemline — Threadlock Systems</p>
         <p><b>Assistance au développement</b><br>OpenCode · DeepSeek V3.2 · ChatGPT Sol 6.1 · GLM 3.2 · Nemotron (NVIDIA)</p>
-        <p><b>Captures</b><br>Application réelle, fenêtre de développement 1600 × 900, sans retouche des images&nbsp;: les annotations sont posées en HTML par-dessus les PNG.</p>
+        <p><b>Captures</b><br>Application réelle, vues rapprochées de l'interface actuelle, sans retouche.</p>
       </div>
       <p>Sapphire 3 — document de travail. L'état décrit ici correspond à l'incrément courant&nbsp;; la suite est en cours.</p>
     </footer>
   </main>
 
-  <script src="assets/shots-data.js"></script>
-  <script src="assets/site.js?v=4"></script>
+  <script src="assets/site.js?v=5"></script>
 </body>
 </html>

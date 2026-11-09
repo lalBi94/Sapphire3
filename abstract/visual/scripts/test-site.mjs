@@ -17,7 +17,7 @@ const entries = search.prepare(sandbox.window.SapphireSearchEntries)
 test('recherche : accents, synonymes, faute et inversion retrouvent les concepts', () => {
   assert.equal(search.normalize('DÉBOGAGE / Types'), 'debogage types')
   for (const query of ['debug', 'debogage', 'simluation']) {
-    assert.ok(search.rank(entries, query).some((entry) => entry.url === 'documentation.html#simulation'), query)
+    assert.ok(search.rank(entries, query).some((entry) => /#(executer|execution|simulation)$/.test(entry.url)), query)
   }
   assert.ok(search.rank(entries, 'telecharger')[0].url.endsWith('/releases'))
   assert.ok(search.rank(entries, 'pointeur').some((entry) => entry.url.includes('#types') || entry.url.includes('#typage')))

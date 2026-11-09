@@ -1,8 +1,7 @@
-// Interactions du site de présentation : annotations, progression, sommaire, copie et agrandissement.
+// Interactions du site de présentation : progression, sommaire, copie et agrandissement.
 (function () {
   'use strict'
 
-  var SHOTS = window.SHOTS || {}
   var reduceMotion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false
   document.documentElement.classList.add('js')
 
@@ -13,84 +12,6 @@
 
   // Rend les tableaux défilables au clavier sur les écrans étroits.
   selectAll('table').forEach(function (table) { table.tabIndex = 0 })
-
-  // Retrouve un rectangle d'annotation, sur la capture ou sur un nœud de l'arbre.
-  function rectOf(scene, note) {
-    var data = SHOTS[scene]
-    if (!data) return null
-    if (note.dataset.marker) return data.boxes[note.dataset.marker] || null
-    if (note.dataset.node) return data.nodes[note.dataset.node] || null
-    return null
-  }
-
-  // Marqueur note : chiffre posé au centre de la zone, avec son cadre de surbrillance.
-  function attach(scene, frame, note, number) {
-    var rect = rectOf(scene, note)
-    if (!rect) {
-      note.classList.add('is-missing')
-      return
-    }
-    var ring = document.createElement('div')
-    ring.className = 'ring'
-    ring.style.left = rect.x + '%'
-    ring.style.top = rect.y + '%'
-    ring.style.width = rect.w + '%'
-    ring.style.height = rect.h + '%'
-    var marker = document.createElement('button')
-    marker.type = 'button'
-    marker.className = 'marker'
-    marker.textContent = number
-    marker.style.left = (rect.x + rect.w / 2) + '%'
-    marker.style.top = (rect.y + rect.h / 2) + '%'
-    marker.setAttribute('aria-label', 'Figer le repère ' + number)
-    marker.setAttribute('aria-pressed', 'false')
-    frame.appendChild(ring)
-    frame.appendChild(marker)
-
-    // Synchronise la note et la zone mise en évidence.
-    function setActive(on) {
-      ring.classList.toggle('is-active', on)
-      marker.classList.toggle('is-active', on)
-      note.classList.toggle('is-active', on)
-    }
-
-    note.addEventListener('mouseenter', function () { setActive(true) })
-    note.addEventListener('mouseleave', function () { if (!note.classList.contains('is-pinned')) setActive(false) })
-    note.addEventListener('focusin', function () { setActive(true) })
-    note.addEventListener('focusout', function () { if (!note.classList.contains('is-pinned')) setActive(false) })
-    // Conserve ou libère la surbrillance du repère choisi.
-    function togglePin() {
-      note.classList.toggle('is-pinned')
-      setActive(note.classList.contains('is-pinned'))
-      marker.setAttribute('aria-pressed', String(note.classList.contains('is-pinned')))
-    }
-    marker.addEventListener('click', function () {
-      togglePin()
-      note.scrollIntoView({ block: 'nearest' })
-    })
-    note.addEventListener('click', function (event) {
-      if (!event.target.closest('a')) togglePin()
-    })
-    note.addEventListener('keydown', function (event) {
-      if (event.target === note && (event.key === 'Enter' || event.key === ' ')) {
-        event.preventDefault()
-        togglePin()
-      }
-    })
-  }
-
-  Array.prototype.forEach.call(document.querySelectorAll('figure.shot'), function (figure) {
-    var scene = figure.dataset.shot
-    var frame = figure.querySelector('.shot-frame')
-    var notes = figure.querySelectorAll('.notes li')
-    if (!frame || !notes.length) return
-    if (!SHOTS[scene]) frame.classList.add('no-data')
-    Array.prototype.forEach.call(notes, function (note, index) {
-      note.setAttribute('tabindex', '0')
-      note.title = 'Survolez pour localiser sur la capture'
-      attach(scene, frame, note, index + 1)
-    })
-  })
 
   // Notifications discrètes pour les actions du site.
   var toastStack = document.createElement('div')

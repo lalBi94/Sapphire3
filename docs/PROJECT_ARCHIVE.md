@@ -2,6 +2,13 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Captures rapprochées et documentation resserrée — 9 novembre 2026
+
+- Les 42 captures distantes et leurs annotations ont été retirées. La documentation visuelle utilise dix vues de l'interface actuelle, cadrées sur les cartes, menus et panneaux utiles : vue d'ensemble, carte Module, carte App, menu d'ajout, formulaire, note, propriétés, simulation, transpilation et thèmes.
+- Le texte a été réécrit en neuf étapes courtes, orientées prise en main : lire une carte, ajouter une construction, relier deux modules, vérifier les propriétés, exécuter, exporter et changer d'apparence. Les anciennes sections techniques et les annotations HTML ont été supprimées.
+- Les pages `project.html`, `ast.html` et l'accueil utilisent les nouvelles vues ; `shots-data.js`, `shots.json` et les anciennes captures ont été supprimés. Le code d'annotation de `site.js` a été retiré.
+- Vérifications : `pnpm site:search` (31 destinations), `pnpm site:test` (3 tests), images chargées après défilement, liens et ancres valides, aucune erreur console. Aucune modification du code applicatif.
+
 ## Animations et recherche locale du site — 9 novembre 2026
 
 - Accueil enrichi avec GSAP/ScrollTrigger et SplitType : révélation du titre par lettres, entrée du HUD, tracés SVG progressifs, scènes de section et parallaxe légère du modèle. La documentation reçoit des révélations courtes, sans ScrollTrigger complexe. Lenis lisse le défilement sur les cinq pages.

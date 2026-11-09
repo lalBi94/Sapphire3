@@ -27,9 +27,9 @@ for (const button of document.querySelectorAll('[data-node]')) {
 }
 
 const previews = {
-  canvas: { file: '42-apercu.png', alt: 'Canvas Sapphire 3 avec des modules reliés, une note et une image.', caption: 'Modules, dépendances et annotations. Le programme, en une seule vue.' },
-  debug: { file: '30-debug.png', alt: 'Débogueur de Sapphire 3 avec commandes pas à pas et nœud actif.', caption: 'Suivez les étapes, inspectez les valeurs. Comprendre avant de corriger.' },
-  export: { file: '34-transpile.png', alt: 'Panneau de transpilation de Sapphire 3 et code JavaScript généré.', caption: 'Le même modèle, une autre représentation. Export JavaScript et Python sur le sous-ensemble pris en charge.' },
+  canvas: { file: 'overview.png', alt: 'Canvas Sapphire 3 avec les modules Library et App reliés par une flèche.', caption: 'Deux modules, une dépendance, une note. Le programme en une vue.' },
+  read: { file: 'module-library.png', alt: 'Carte Module Library avec la fonction square, son entrée et son retour.', caption: 'Une carte Module, ses entrées, ses étapes et son retour. Le code reste lisible.' },
+  export: { file: 'transpile.png', alt: 'Panneau de transpilation avec le code JavaScript généré.', caption: 'Le même modèle, une autre représentation. Export JavaScript et Python sur le sous-ensemble pris en charge.' },
 }
 
 for (const button of document.querySelectorAll('[data-preview]')) {
