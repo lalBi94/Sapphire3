@@ -3,18 +3,27 @@ import { createContextIndex } from './contextResolver.js'
 import { addModuleImport, removeModuleImport } from './moduleInterface.js'
 import { updateSourceNode } from './sourceMutation.js'
 import { sameType } from './primitives.js'
-import { inputNumberOnChangeBinding } from './inputNumberState.js'
+import { inputNumberOnChangeBinding, inputNumberValueType } from './inputNumberState.js'
 
-const intType = { kind: 'primitive', name: 'int' }
 const voidType = { kind: 'primitive', name: 'void' }
-const callbackType = { kind: 'function', parameters: [intType], returnType: voidType }
+const valueTypes = ['int', 'float', 'string']
 
-// Vérifie qu'une fonction accepte exactement un entier et ne retourne rien.
-export function isInputNumberCallbackType(type) {
-  return sameType(type, callbackType)
+// Construit la signature attendue pour un type d'entrée.
+function inputCallbackType(valueType) {
+  return { kind: 'function', parameters: [{ kind: 'primitive', name: valueType }], returnType: voidType }
 }
 
-// Vérifie qu'un nœud est la fonction vide interne d'une entrée numérique.
+// Vérifie qu'une fonction accepte exactement la valeur d'une entrée et ne retourne rien.
+export function isInputNumberCallbackType(type, valueType = 'int') {
+  return sameType(type, inputCallbackType(valueType))
+}
+
+// Retourne le type d'entrée accepté par une signature, ou null si elle ne correspond à aucun.
+export function inputValueCallbackType(type) {
+  return valueTypes.find((valueType) => sameType(type, inputCallbackType(valueType))) ?? null
+}
+
+// Vérifie qu'un nœud est la fonction vide interne d'une entrée typée.
 export function isInputNumberNoop(node) {
   return node?.kind === 'FunctionDeclaration' && typeof node?.properties?.name === 'string' && node.properties.name.startsWith('INPUT_SP3_GLOBAL_NOOP_')
 }
@@ -45,6 +54,7 @@ export function bindInputNumberCallback(project, moduleId, targetFunctionId) {
   if (!Array.isArray(project?.modules) || !Array.isArray(project?.nodes)) return failure('SOURCE_INVALID')
   const module = project.modules.find((entry) => entry?.id === moduleId)
   if (!module?.inputNumber) return failure('INPUT_NUMBER_MISSING')
+  const valueType = inputNumberValueType(project, moduleId)
   const binding = inputNumberOnChangeBinding(project, moduleId)
   if (!binding?.initializerId) return failure('INPUT_NUMBER_CALLBACK_MISSING')
 
@@ -55,7 +65,7 @@ export function bindInputNumberCallback(project, moduleId, targetFunctionId) {
     targetSymbol = analysis.semantic.symbols.find((symbol) => symbol.nodeId === targetFunctionId && symbol.kind === 'FunctionDeclaration') ?? null
     const targetNode = project.nodes.find((node) => node?.id === targetFunctionId)
     if (!targetSymbol || !targetNode || isInputNumberNoop(targetNode)) return failure('INPUT_NUMBER_CALLBACK_INVALID')
-    if (!isInputNumberCallbackType(targetSymbol.type)) return failure('INPUT_NUMBER_CALLBACK_TYPE')
+    if (!isInputNumberCallbackType(targetSymbol.type, valueType)) return failure('INPUT_NUMBER_CALLBACK_TYPE')
   }
 
   let next = project

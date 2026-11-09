@@ -7,7 +7,7 @@ import { heatmapGlobalName } from './logic/heatmapState.js'
 import { inputButtonGlobalName, inputButtonCallbackId, inputButtonOnClickNodeId } from './logic/inputButtonState.js'
 import { inputNumberCallbackId, inputNumberOnChangeNodeId } from './logic/inputNumberState.js'
 
-export const dashboardWidgetTypes = Object.freeze(['screen', 'led', 'rgbLed', 'gauge', 'progress', 'barChart', 'xyPlot', 'oscilloscope', 'heatmap', 'toggleButton', 'holdButton', 'numberInput', 'comment'])
+export const dashboardWidgetTypes = Object.freeze(['screen', 'led', 'rgbLed', 'gauge', 'progress', 'barChart', 'xyPlot', 'oscilloscope', 'heatmap', 'toggleButton', 'holdButton', 'numberInput', 'floatInput', 'stringInput', 'comment'])
 
 // Retrouve la déclaration globale interne à un widget.
 function globalDeclaration(project, moduleId, name) {
@@ -65,10 +65,17 @@ export function dashboardWidgets(project, cards) {
           onClickNodeId: inputButtonOnClickNodeId(project, module.id),
         }
       }
-      if (card.type === 'numberInput') {
+      if (card.type === 'numberInput' || card.type === 'floatInput' || card.type === 'stringInput') {
+        const valueType = module.inputNumber?.valueType ?? (card.type === 'floatInput' ? 'float' : card.type === 'stringInput' ? 'string' : 'int')
+        const value = valueType === 'string'
+          ? (typeof card.value === 'string' ? card.value : '')
+          : valueType === 'float'
+            ? (Number.isFinite(card.value) ? card.value : 0)
+            : (Number.isInteger(card.value) ? card.value : 0)
         return {
           ...base,
-          value: Number.isInteger(card.value) ? card.value : 0,
+          valueType,
+          value,
           callbackFunctionId: inputNumberCallbackId(project, module.id),
           onChangeNodeId: inputNumberOnChangeNodeId(project, module.id),
         }

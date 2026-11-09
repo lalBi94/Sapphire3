@@ -1,4 +1,4 @@
-// Nom stable de la fonction `onChange(int)` interne à une entrée numérique.
+// Nom stable de la fonction `onChange(valeur)` interne à une entrée typée.
 export function inputNumberOnChangeName(index) {
   return `INPUT_SP3_GLOBAL_ONCHANGE_${index}`
 }
@@ -8,7 +8,14 @@ export function inputNumberNoopName(index) {
   return `INPUT_SP3_GLOBAL_NOOP_${index}`
 }
 
-// Retrouve la variable `onChange` d'une entrée numérique depuis son module.
+// Retourne le type de valeur d'une entrée, avec `int` comme valeur historique.
+export function inputNumberValueType(project, moduleId) {
+  const module = (project?.modules ?? []).find((entry) => entry?.id === moduleId)
+  const valueType = module?.inputNumber?.valueType
+  return valueType === 'float' || valueType === 'string' ? valueType : 'int'
+}
+
+// Retrouve la variable `onChange` d'une entrée typée depuis son module.
 export function inputNumberOnChangeNodeId(project, moduleId) {
   const module = (project?.modules ?? []).find((entry) => entry?.id === moduleId)
   const index = module?.inputNumber?.index
@@ -39,7 +46,7 @@ export function inputNumberOnChangeBinding(project, moduleId) {
     importId = target.importId
     callbackId = (module?.imports ?? []).find((entry) => entry?.id === target.importId)?.nodeId ?? null
   }
-  return { onChangeNodeId, initializerId, target, callbackId, importId, noopName, moduleId, index }
+  return { onChangeNodeId, initializerId, target, callbackId, importId, noopName, moduleId, index, valueType: inputNumberValueType(project, moduleId) }
 }
 
 // Identifiant de la fonction liée à l'entrée numérique, ou null si elle est vide.

@@ -161,6 +161,22 @@ function hasInputNumber(source) {
   return Array.isArray(source?.modules) && source.modules.some((module) => module?.inputNumber)
 }
 
+// Une entrée texte dépend de l'interface : refus spécifique.
+function hasInputString(source) {
+  return Array.isArray(source?.modules) && source.modules.some((module) => module?.inputNumber?.valueType === 'string')
+}
+
+// Produit le refus stable opposé à toute transpilation contenant une entrée texte.
+function inputStringFailure(source, target, analysis = null) {
+  return {
+    ok: false,
+    target,
+    code: 'TRANSPILE_INPUT_STRING_UNSUPPORTED',
+    diagnostics: [{ code: 'TRANSPILE_INPUT_STRING_UNSUPPORTED', severity: 'error', message: 'Une entrée texte SP3 rend le programme non transpilable.', location: { projectId: source?.id ?? null, moduleId: null, nodeId: null, field: null } }],
+    ...(analysis ? { analysis } : {}),
+  }
+}
+
 // Produit le refus stable opposé à toute transpilation contenant une entrée numérique.
 function inputNumberFailure(source, target, analysis = null) {
   return {
@@ -201,6 +217,7 @@ export function transpileSelection(source, selection, { target = 'javascript', a
   if (Array.isArray(source?.modules) && source.modules.some((module) => module?.heatmap)) return heatmapFailure(source, target, analysis)
   if (hasLed(source)) return ledFailure(source, target, analysis)
   if (hasRgbLed(source)) return rgbLedFailure(source, target, analysis)
+  if (hasInputString(source)) return inputStringFailure(source, target, analysis)
   if (hasInputNumber(source)) return inputNumberFailure(source, target, analysis)
   if (hasInputButton(source)) return inputButtonFailure(source, target, analysis)
   return backends[target](analysis, { selection })
@@ -224,6 +241,7 @@ export function transpileProgram(source, options = {}) {
   if (Array.isArray(source?.modules) && source.modules.some((module) => module?.heatmap)) return heatmapFailure(source, target, analysis)
   if (hasLed(source)) return ledFailure(source, target, analysis)
   if (hasRgbLed(source)) return rgbLedFailure(source, target, analysis)
+  if (hasInputString(source)) return inputStringFailure(source, target, analysis)
   if (hasInputNumber(source)) return inputNumberFailure(source, target, analysis)
   if (hasInputButton(source)) return inputButtonFailure(source, target, analysis)
   if (hasBlockingDiagnostics(analysis.diagnostics)) return { ok: false, target, code: '', diagnostics: analysis.diagnostics, analysis }

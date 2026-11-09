@@ -15,7 +15,9 @@ export const moduleTypes = {
   rgbLed: { label: 'RGB LED', labelKey: 'card.rgbLed', targetLabelKey: 'canvas.rgbLed', actionKey: 'nav.createRgbLed', width: 240, height: 190, renamable: true, hasRgbLed: true },
   toggleButton: { label: 'Toggle button', labelKey: 'card.toggleButton', targetLabelKey: 'canvas.toggleButton', actionKey: 'nav.createToggleButton', width: 280, height: 190, renamable: true, hasInputButton: true, inputMode: 'toggle' },
   holdButton: { label: 'Hold button', labelKey: 'card.holdButton', targetLabelKey: 'canvas.holdButton', actionKey: 'nav.createHoldButton', width: 280, height: 190, renamable: true, hasInputButton: true, inputMode: 'hold' },
-  numberInput: { label: 'Number input', labelKey: 'card.numberInput', targetLabelKey: 'canvas.numberInput', actionKey: 'nav.createNumberInput', width: 300, height: 210, renamable: true, hasInputNumber: true },
+  numberInput: { label: 'Number input', labelKey: 'card.numberInput', targetLabelKey: 'canvas.numberInput', actionKey: 'nav.createNumberInput', width: 300, height: 210, renamable: true, hasInputValue: true, inputValueType: 'int' },
+  floatInput: { label: 'Float input', labelKey: 'card.floatInput', targetLabelKey: 'canvas.floatInput', actionKey: 'nav.createFloatInput', width: 300, height: 210, renamable: true, hasInputValue: true, inputValueType: 'float' },
+  stringInput: { label: 'String input', labelKey: 'card.stringInput', targetLabelKey: 'canvas.stringInput', actionKey: 'nav.createStringInput', width: 300, height: 190, renamable: true, hasInputValue: true, inputValueType: 'string' },
   comment: { label: 'Comment', labelKey: 'card.comment', targetLabelKey: 'canvas.note', actionKey: 'nav.createComment', width: 320, height: 220, renamable: true, hasText: true },
   image: { label: 'Image', labelKey: 'card.image', targetLabelKey: 'canvas.image', actionKey: 'nav.createImage', width: 420, height: 260, renamable: true, hasImage: true },
 }
@@ -27,7 +29,7 @@ const widgetCardGroups = [
   { id: 'displays', labelKey: 'canvas.createCategory.widgetsDisplays', types: ['screen', 'gauge', 'progress'] },
   { id: 'charts', labelKey: 'canvas.createCategory.widgetsCharts', types: ['barChart', 'xyPlot', 'oscilloscope', 'heatmap'] },
   { id: 'indicators', labelKey: 'canvas.createCategory.widgetsIndicators', types: ['led', 'rgbLed'] },
-  { id: 'inputs', labelKey: 'canvas.createCategory.widgetsInputs', types: ['toggleButton', 'holdButton', 'numberInput'] },
+  { id: 'inputs', labelKey: 'canvas.createCategory.widgetsInputs', types: ['toggleButton', 'holdButton', 'numberInput', 'floatInput', 'stringInput'] },
 ]
 
 // Catégories stables du menu de création, dans l'ordre d'affichage.

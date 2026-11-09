@@ -4,15 +4,24 @@ import { inputNumberOnChangeName, inputNumberNoopName } from './logic/inputNumbe
 export { inputNumberOnChangeName, inputNumberNoopName } from './logic/inputNumberState.js'
 
 export const inputNumberDefaults = Object.freeze({ value: 0 })
+export const inputFloatDefaults = Object.freeze({ value: 0 })
+export const inputStringDefaults = Object.freeze({ value: '' })
 
-const intType = { kind: 'primitive', name: 'int' }
+// Retourne la valeur initiale de présentation pour un type d'entrée.
+export function inputValueDefaults(valueType) {
+  return valueType === 'string' ? inputStringDefaults : valueType === 'float' ? inputFloatDefaults : inputNumberDefaults
+}
+
+const valueTypes = ['int', 'float', 'string']
 const voidType = { kind: 'primitive', name: 'void' }
-const callbackType = { kind: 'function', parameters: [intType], returnType: voidType }
 
-// Crée le module caché d'une entrée entière : une fonction `onChange(int)` liée par la carte.
-export function createInputNumberModule(moduleId, name, index) {
+// Crée le module caché d'une entrée typée : une fonction `onChange(valeur)` liée par la carte.
+export function createInputNumberModule(moduleId, name, index, options = {}) {
+  const valueType = valueTypes.includes(options.valueType) ? options.valueType : 'int'
+  const valuePrimitive = { kind: 'primitive', name: valueType }
+  const callbackType = { kind: 'function', parameters: [valuePrimitive], returnType: voidType }
   const module = createModule(moduleId, name)
-  module.inputNumber = { index }
+  module.inputNumber = { index, valueType }
   const nodes = []
   let sequence = 0
   const node = (suffix, kind, properties = {}, children = {}, references = {}) => {
@@ -27,7 +36,7 @@ export function createInputNumberModule(moduleId, name, index) {
   const noopName = inputNumberNoopName(index)
 
   // Fonction vide utilisée tant qu'aucune fonction n'est liée à l'entrée.
-  const noopParameter = node('noop:value', 'Parameter', { name: 'value', type: intType })
+  const noopParameter = node('noop:value', 'Parameter', { name: 'value', type: valuePrimitive })
   const noop = node('function:noop', 'FunctionDeclaration', { name: noopName, type: voidType }, {
     parameters: [noopParameter],
     body: block('body:noop', []),

@@ -2,6 +2,12 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Entrées typées : décimal et texte — 9 novembre 2026
+
+- Ajout de `floatInput` et `stringInput` dans **Widgets → Entrées**, avec le même mécanisme que l'entrée entière : module caché, variable `INPUT_SP3_GLOBAL_ONCHANGE_<n>` typée `(float) -> void` ou `(string) -> void`, fonction vide, binding avec import/export automatiques et bascule aperçu/code.
+- La carte décimale accepte les décimales avec un pas de 0,1 et un champ `float` ; la carte texte propose un champ stylé entre guillemets. Les valeurs et les vues sont conservées dans le workspace, le dashboard reprend valeurs et callbacks, et la transpilation est refusée (`TRANSPILE_INPUT_NUMBER_UNSUPPORTED` pour int/float, `TRANSPILE_INPUT_STRING_UNSUPPORTED` pour string).
+- Vérifications : **630 tests Node/Python réussis**, build Vite réussi, contrôle navigateur des cartes décimale et texte (valeurs, absence de débordement, erreurs console), audit axe sans violation. Les 12 dashboards générés ont été reconstruits.
+
 ## Entrée numérique entière — 9 novembre 2026
 
 - Nouvelle carte **Number input** dans **Widgets → Entrées** (`numberInput`), adossée à un module caché ordinaire. Le module déclare `INPUT_SP3_GLOBAL_ONCHANGE_<n>` de type `(int) -> void`, initialisée à `INPUT_SP3_GLOBAL_NOOP_<n>` ; `bindInputNumberCallback` lie une fonction du projet avec import/export automatiques.

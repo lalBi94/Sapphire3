@@ -653,6 +653,29 @@ p, h1, h2, h3 { margin: 0; }
 }
 .db-number__field::-webkit-outer-spin-button,
 .db-number__field::-webkit-inner-spin-button { margin: 0; appearance: none; -webkit-appearance: none; }
+.db-string {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 58px;
+  padding: 8px 12px;
+  border: 1px solid var(--db-border);
+  border-radius: var(--db-radius-control);
+  background: linear-gradient(180deg, var(--db-raised), var(--db-surface));
+}
+.db-string:focus-within { border-color: var(--db-focus); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--db-focus) 35%, transparent); }
+.db-string__field {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: var(--db-text);
+  background: transparent;
+  font-family: var(--db-mono);
+  font-size: 17px;
+}
+.db-string__quote { color: var(--db-primary); font-family: var(--db-display); font-size: 20px; }
 
 .db-gauge { display: grid; place-items: center; width: 100%; height: 100%; min-height: 0; padding: 6px; }
 .db-gauge svg { width: 100%; height: 100%; max-width: 260px; max-height: 260px; overflow: visible; }

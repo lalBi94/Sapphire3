@@ -376,9 +376,39 @@ function start(config, runtimeSource) {
       }
       return
     }
-    if (panel.type === 'numberInput') {
+    if (panel.type === 'numberInput' || panel.type === 'floatInput' || panel.type === 'stringInput') {
       const wrapper = document.createElement('div')
-      wrapper.className = 'db-input db-input--number'
+      wrapper.className = `db-input db-input--${panel.type}`
+      const widget = panel.widget
+      const valueType = widget?.valueType ?? (panel.type === 'floatInput' ? 'float' : panel.type === 'stringInput' ? 'string' : 'int')
+      if (valueType === 'string') {
+        const field = document.createElement('div')
+        field.className = 'db-string'
+        const quote = document.createElement('span')
+        quote.className = 'db-string__quote'
+        quote.textContent = '“'
+        const input = document.createElement('input')
+        input.type = 'text'
+        input.className = 'db-string__field'
+        input.setAttribute('aria-label', panel.name)
+        const endQuote = document.createElement('span')
+        endQuote.className = 'db-string__quote'
+        endQuote.textContent = '”'
+        field.append(quote, input, endQuote)
+        const label = document.createElement('span')
+        label.className = 'db-input__label'
+        label.textContent = 'string'
+        wrapper.append(field, label)
+        body.append(wrapper)
+        ref.valueInput = input
+        input.value = typeof widget?.value === 'string' ? widget.value : ''
+        input.addEventListener('input', () => {
+          if (input.value === widget?.value) return
+          widget.value = input.value
+          handleValueInput(widget, input.value)
+        })
+        return
+      }
       const field = document.createElement('div')
       field.className = 'db-number'
       const minus = document.createElement('button')
@@ -388,10 +418,15 @@ function start(config, runtimeSource) {
       minus.setAttribute('aria-label', labels.inputNumberDecrement ?? 'Decrease')
       const input = document.createElement('input')
       input.type = 'number'
-      input.inputMode = 'numeric'
-      input.min = '-2147483648'
-      input.max = '2147483647'
-      input.step = '1'
+      input.inputMode = valueType === 'float' ? 'decimal' : 'numeric'
+      input.step = valueType === 'float' ? '0.1' : '1'
+      if (valueType === 'int') {
+        input.min = '-2147483648'
+        input.max = '2147483647'
+      } else {
+        input.min = '-3.4028234663852886e38'
+        input.max = '3.4028234663852886e38'
+      }
       input.className = 'db-number__field'
       input.setAttribute('aria-label', panel.name)
       const plus = document.createElement('button')
@@ -401,29 +436,36 @@ function start(config, runtimeSource) {
       plus.setAttribute('aria-label', labels.inputNumberIncrement ?? 'Increase')
       const label = document.createElement('span')
       label.className = 'db-input__label'
-      label.textContent = 'int'
+      label.textContent = valueType
       field.append(minus, input, plus)
       wrapper.append(field, label)
       body.append(wrapper)
-      ref.numberInput = input
-      const widget = panel.widget
-      input.value = String(Number.isInteger(widget?.value) ? widget.value : 0)
+      ref.valueInput = input
+      input.value = String(valueType === 'float' ? (Number.isFinite(widget?.value) ? widget.value : 0) : (Number.isInteger(widget?.value) ? widget.value : 0))
       const apply = (value) => {
-        if (!Number.isInteger(value) || value < -2147483648 || value > 2147483647) return
+        if (!Number.isFinite(value)) return
+        if (valueType === 'int' && (!Number.isInteger(value) || value < -2147483648 || value > 2147483647)) return
+        if (valueType === 'float' && Math.abs(value) > 3.4028234663852886e38) return
         if (value === widget?.value) return
         widget.value = value
         input.value = String(value)
-        handleNumberInput(widget, value)
+        handleValueInput(widget, value)
       }
       input.addEventListener('input', () => {
-        const value = Number.parseInt(input.value, 10)
-        if (Number.isInteger(value)) apply(value)
+        const value = Number(input.value)
+        if (Number.isFinite(value)) apply(value)
       })
       input.addEventListener('blur', () => {
-        if (!Number.isInteger(Number.parseInt(input.value, 10))) input.value = String(Number.isInteger(widget?.value) ? widget.value : 0)
+        if (!Number.isFinite(Number(input.value))) input.value = String(Number.isFinite(widget?.value) ? widget.value : 0)
       })
-      minus.addEventListener('click', () => apply((Number.isInteger(widget?.value) ? widget.value : 0) - 1))
-      plus.addEventListener('click', () => apply((Number.isInteger(widget?.value) ? widget.value : 0) + 1))
+      const delta = valueType === 'float' ? 0.1 : 1
+      const stepValue = (direction) => {
+        const base = Number.isFinite(widget?.value) ? widget.value : 0
+        const value = valueType === 'float' ? Math.round((base + direction * delta) * 1e6) / 1e6 : base + direction * delta
+        apply(value)
+      }
+      minus.addEventListener('click', () => stepValue(-1))
+      plus.addEventListener('click', () => stepValue(1))
       return
     }
     if (panel.type === 'led' || panel.type === 'rgbLed') {
@@ -1152,8 +1194,9 @@ function start(config, runtimeSource) {
       ref.inputButton.classList.toggle('db-input__button--pressed', pressed)
       ref.inputButton.setAttribute('aria-pressed', String(pressed))
       ref.inputLabel.textContent = pressed ? (labels.inputPressed ?? 'Pressed') : (labels.inputReleased ?? 'Released')
-    } else if (widget.type === 'numberInput') {
-      if (ref.numberInput && document.activeElement !== ref.numberInput) ref.numberInput.value = String(Number.isInteger(widget.value) ? widget.value : 0)
+    } else if (widget.type === 'numberInput' || widget.type === 'floatInput' || widget.type === 'stringInput') {
+      const value = widget.valueType === 'string' ? (typeof widget.value === 'string' ? widget.value : '') : String(Number.isFinite(widget.value) ? widget.value : 0)
+      if (ref.valueInput && document.activeElement !== ref.valueInput) ref.valueInput.value = value
     } else if (widget.type === 'rgbLed') {
       const led = states.rgbLeds?.[widget.id] ?? { red: 0, green: 0, blue: 0 }
       const brightest = Math.max(led.red, led.green, led.blue)
@@ -1895,8 +1938,8 @@ function start(config, runtimeSource) {
     runProgram(requestId)
   }
 
-  // Met à jour une entrée numérique et déclenche son callback ou le live courant.
-  function handleNumberInput(widget, value) {
+  // Met à jour une entrée typée et déclenche son callback ou le live courant.
+  function handleValueInput(widget, value) {
     if (!widget) return
     widget.value = value
     if (state.live) {

@@ -111,7 +111,7 @@ function validateProject(project) {
     if (module.rgbLed) rgbLedIndices.add(module.rgbLed.index)
     if (module.inputButton !== undefined && (!isRecord(module.inputButton) || !Number.isInteger(module.inputButton.index) || module.inputButton.index < 1 || !['toggle', 'hold'].includes(module.inputButton.mode) || inputButtonIndices.has(module.inputButton.index))) throw workspaceError('Invalid input button module data.')
     if (module.inputButton) inputButtonIndices.add(module.inputButton.index)
-    if (module.inputNumber !== undefined && (!isRecord(module.inputNumber) || !Number.isInteger(module.inputNumber.index) || module.inputNumber.index < 1 || inputNumberIndices.has(module.inputNumber.index))) throw workspaceError('Invalid input number module data.')
+    if (module.inputNumber !== undefined && (!isRecord(module.inputNumber) || !Number.isInteger(module.inputNumber.index) || module.inputNumber.index < 1 || (module.inputNumber.valueType !== undefined && !['int', 'float', 'string'].includes(module.inputNumber.valueType)) || inputNumberIndices.has(module.inputNumber.index))) throw workspaceError('Invalid input number module data.')
     if (module.inputNumber) inputNumberIndices.add(module.inputNumber.index)
   }
   const nodeIds = new Set()
@@ -172,8 +172,15 @@ function validatePresentation(project, presentation) {
                 ? !modules.has(card.id) || !modules.get(card.id).heatmap
                 : card.type === 'toggleButton' || card.type === 'holdButton'
                   ? !modules.has(card.id) || !modules.get(card.id).inputButton || !Number.isInteger(modules.get(card.id).inputButton.index) || modules.get(card.id).inputButton.mode !== (card.type === 'holdButton' ? 'hold' : 'toggle') || (card.pressed !== undefined && typeof card.pressed !== 'boolean')
-                  : card.type === 'numberInput'
-                    ? !modules.has(card.id) || !modules.get(card.id).inputNumber || (card.value !== undefined && (!Number.isInteger(card.value) || card.value < -2147483648 || card.value > 2147483647))
+                  : card.type === 'numberInput' || card.type === 'floatInput' || card.type === 'stringInput'
+                    ? !modules.has(card.id) || !modules.get(card.id).inputNumber || (() => {
+                      const valueType = modules.get(card.id).inputNumber.valueType ?? 'int'
+                      const expectedType = card.type === 'floatInput' ? 'float' : card.type === 'stringInput' ? 'string' : 'int'
+                      if (valueType !== expectedType) return true
+                      if (valueType === 'string') return card.value !== undefined && typeof card.value !== 'string'
+                      if (valueType === 'float') return card.value !== undefined && (!Number.isFinite(card.value) || Math.abs(card.value) > 3.4028234663852886e38)
+                      return card.value !== undefined && (!Number.isInteger(card.value) || card.value < -2147483648 || card.value > 2147483647)
+                    })()
                   : card.type === 'led'
                   ? !modules.has(card.id) || !modules.get(card.id).led
                   : card.type === 'rgbLed'
@@ -283,7 +290,11 @@ export function deserializeWorkspace(text) {
             : module.inputButton
               ? { id: module.id, type: module.inputButton.mode === 'hold' ? 'holdButton' : 'toggleButton', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes[module.inputButton.mode === 'hold' ? 'holdButton' : 'toggleButton'].width, height: moduleTypes[module.inputButton.mode === 'hold' ? 'holdButton' : 'toggleButton'].height, expandedNodeIds: [], pressed: false }
             : module.inputNumber
-              ? { id: module.id, type: 'numberInput', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes.numberInput.width, height: moduleTypes.numberInput.height, expandedNodeIds: [], value: 0 }
+              ? (() => {
+                const valueType = module.inputNumber.valueType ?? 'int'
+                const type = valueType === 'float' ? 'floatInput' : valueType === 'string' ? 'stringInput' : 'numberInput'
+                return { id: module.id, type, name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes[type].width, height: moduleTypes[type].height, expandedNodeIds: [], value: valueType === 'string' ? '' : 0 }
+              })()
             : module.led
             ? { id: module.id, type: 'led', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes.led.width, height: moduleTypes.led.height, expandedNodeIds: [] }
             : module.rgbLed

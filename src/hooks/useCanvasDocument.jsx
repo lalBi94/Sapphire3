@@ -10,7 +10,7 @@ import { createHeatmapModule } from '../utils/heatmapNode.js'
 import { createLedModule, ledDefaults } from '../utils/ledNode.js'
 import { createRgbLedModule, rgbLedDefaults } from '../utils/rgbLedNode.js'
 import { createInputButtonModule, inputButtonDefaults } from '../utils/inputButtonNode.js'
-import { createInputNumberModule, inputNumberDefaults } from '../utils/inputNumberNode.js'
+import { createInputNumberModule, inputValueDefaults } from '../utils/inputNumberNode.js'
 import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol, deleteSourceTargets, duplicateSourceTargets, moveSourceNodes, bindInputButtonCallback, bindInputNumberCallback } from '../utils/logic/index.js'
 import { initialDocument, reduceHistory } from '../utils/canvasDocument.js'
 
@@ -112,12 +112,13 @@ export default function useCanvasDocument() {
       dispatch({ type: 'createInputButton', card: { id, type, name: buttonName, ...position, width: definition.width, height: definition.height, expandedNodeIds: [], pressed: inputButtonDefaults.pressed }, inputButton })
       return
     }
-    if (type === 'numberInput') {
+    if (type === 'numberInput' || type === 'floatInput' || type === 'stringInput') {
       const id = crypto.randomUUID()
       const index = Math.max(0, ...document.project.modules.map((module) => Number(module.inputNumber?.index) || 0)) + 1
-      const numberName = `${name} ${index}`
-      const inputNumber = createInputNumberModule(id, numberName, index)
-      dispatch({ type: 'createInputNumber', card: { id, type, name: numberName, ...position, width: definition.width, height: definition.height, expandedNodeIds: [], value: inputNumberDefaults.value }, inputNumber })
+      const valueName = `${name} ${index}`
+      const valueType = definition.inputValueType
+      const inputNumber = createInputNumberModule(id, valueName, index, { valueType })
+      dispatch({ type: 'createInputNumber', card: { id, type, name: valueName, ...position, width: definition.width, height: definition.height, expandedNodeIds: [], value: inputValueDefaults(valueType).value }, inputNumber })
       return
     }
     dispatch({ type: 'createCard', card: { id: crypto.randomUUID(), type, name, ...(definition.hasText ? { text: '' } : {}), ...(definition.hasImage ? { image: '', caption: '' } : {}), ...position, width: definition.width, height: definition.height, expandedNodeIds: [] } })
@@ -133,8 +134,8 @@ export default function useCanvasDocument() {
     dispatch({ type: 'presentation', id, patch: { pressed: Boolean(pressed) } })
   }
 
-  // Met à jour la valeur entière d'une entrée numérique sans toucher à la source logique.
-  function updateInputNumber(id, value) {
+  // Met à jour la valeur d'une entrée typée sans toucher à la source logique.
+  function updateInputValue(id, value) {
     dispatch({ type: 'presentation', id, patch: { value } })
   }
 
@@ -145,8 +146,8 @@ export default function useCanvasDocument() {
     return prepared
   }
 
-  // Lie la fonction `(int) -> void` appelée par une entrée numérique.
-  function bindInputNumber(moduleId, targetFunctionId) {
+  // Lie la fonction `(int|float|string) -> void` appelée par une entrée typée.
+  function bindInputValue(moduleId, targetFunctionId) {
     const prepared = bindInputNumberCallback(document.project, moduleId, targetFunctionId)
     if (prepared.ok) dispatch({ type: 'inputNumberBind', previousProject: document.project, prepared, moduleId, targetFunctionId })
     return prepared
@@ -399,5 +400,5 @@ export default function useCanvasDocument() {
     dispatch({ type: 'redo' })
   }
 
-  return { ...document, createCard, updateGeometry, updateInputButton, updateInputNumber, bindInputButton, bindInputNumber, arrangeModules, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, moveNodes, duplicateNode, duplicateSelection, deleteNode, deleteModule, deleteSelection, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, previewSymbolRename, applySymbolRename, setExpandedNodes, setCardHidden, setCardLocked, setCardEmoji, setExercise, setDashboard, restoreStarter, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
+  return { ...document, createCard, updateGeometry, updateInputButton, updateInputValue, bindInputButton, bindInputValue, arrangeModules, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, moveNodes, duplicateNode, duplicateSelection, deleteNode, deleteModule, deleteSelection, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, previewSymbolRename, applySymbolRename, setExpandedNodes, setCardHidden, setCardLocked, setCardEmoji, setExercise, setDashboard, restoreStarter, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
 }

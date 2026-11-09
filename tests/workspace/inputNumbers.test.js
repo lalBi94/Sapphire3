@@ -15,9 +15,9 @@ const voidType = { kind: 'primitive', name: 'void' }
 const stringType = { kind: 'primitive', name: 'string' }
 
 // Construit une entrée numérique et une fonction onChange(int) qui imprime la valeur.
-function numberProject({ bind = true } = {}) {
+function numberProject({ bind = true, valueType = 'int' } = {}) {
   const project = createProject('numberInputTest')
-  const input = createInputNumberModule('numberInput', 'Number input', 1)
+  const input = createInputNumberModule('numberInput', 'Number input', 1, { valueType })
   project.modules.push(input.module)
   project.nodes.push(...input.nodes)
   const app = createModule('numberApp', 'Number app')
@@ -30,8 +30,9 @@ function numberProject({ bind = true } = {}) {
     return id
   }
 
-  // function onChange(value: int): void { Print(value); }
-  const parameter = node('Parameter', { name: 'value', type: intType })
+  // function onChange(value: type): void { Print(value); }
+  const valuePrimitive = { kind: 'primitive', name: valueType }
+  const parameter = node('Parameter', { name: 'value', type: valuePrimitive })
   const argument = node('Reference', {}, {}, { target: { kind: 'name', name: 'value' } })
   const print = node('PrintStatement', {}, { value: argument })
   const callbackBody = node('Block', {}, { statements: [print] })
@@ -62,9 +63,9 @@ function numberProject({ bind = true } = {}) {
 }
 
 // Produit les cartes de présentation minimales pour un projet de test.
-function numberCards(input, app, value = 0, view = undefined) {
+function numberCards(input, app, value = 0, view = undefined, type = 'numberInput') {
   return [
-    { id: input.module.id, type: 'numberInput', name: input.module.name, x: 0, y: 0, width: 300, height: 210, expandedNodeIds: [], value, ...(view ? { inputNumberView: view } : {}) },
+    { id: input.module.id, type, name: input.module.name, x: 0, y: 0, width: 300, height: 210, expandedNodeIds: [], value, ...(view ? { inputNumberView: view } : {}) },
     { id: app.id, type: 'module', name: app.name, x: 600, y: 0, width: 520, height: 420, expandedNodeIds: [] },
   ]
 }
@@ -137,6 +138,44 @@ test('entrée numérique : dashboard, valeur et vue conservées dans le workspac
   assert.equal(card.type, 'numberInput')
   assert.equal(card.value, 7)
   assert.equal(card.inputNumberView, 'code')
+})
+
+test('entrées décimale et texte : binding, live, dashboard et workspace', async () => {
+  for (const [valueType, cardType, value, code] of [
+    ['float', 'floatInput', 3.5, 'TRANSPILE_INPUT_NUMBER_UNSUPPORTED'],
+    ['string', 'stringInput', 'hello', 'TRANSPILE_INPUT_STRING_UNSUPPORTED'],
+  ]) {
+    const { project, input, app, callbackId, onChangeNodeId } = numberProject({ valueType })
+    assert.equal(input.module.inputNumber.valueType, valueType)
+    assert.equal(inputNumberCallbackId(project, input.module.id), callbackId)
+    assert.deepEqual(analyzeProgram(project).diagnostics, [])
+    assert.equal(transpileProgram(project).code, code)
+
+    const frames = []
+    const result = await runLiveProgram(project, {
+      sliceSteps: 20,
+      onFrame: (state) => {
+        frames.push(state)
+        if (frames.length === 1) return { events: [{ nodeId: onChangeNodeId, value }] }
+        if (frames.length >= 5) return { stop: true }
+        return {}
+      },
+    })
+    assert.equal(result.ok, true)
+    assert.ok(frames.some((frame) => frame.output.includes(String(value))))
+
+    const cards = numberCards(input, app, value, 'code', cardType)
+    const widget = dashboardWidgets(project, cards).find((entry) => entry.id === input.module.id)
+    assert.equal(widget.type, cardType)
+    assert.equal(widget.valueType, valueType)
+    assert.equal(widget.value, value)
+
+    const workspace = deserializeWorkspace(serializeWorkspace(project, cards, { x: 0, y: 0, zoomLevel: 0 }))
+    const card = workspace.presentation.cards.find((entry) => entry.id === input.module.id)
+    assert.equal(card.type, cardType)
+    assert.equal(card.value, value)
+    assert.equal(card.inputNumberView, 'code')
+  }
 })
 
 test('entrée numérique : une fonction booléenne est refusée', () => {

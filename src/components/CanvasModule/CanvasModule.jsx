@@ -13,7 +13,7 @@ import HeatmapCard from '../HeatmapCard/HeatmapCard.jsx'
 import LedCard from '../LedCard/LedCard.jsx'
 import RgbLedCard from '../RgbLedCard/RgbLedCard.jsx'
 import InputButtonCard from '../InputButtonCard/InputButtonCard.jsx'
-import NumberInputCard from '../NumberInputCard/NumberInputCard.jsx'
+import ValueInputCard from '../ValueInputCard/ValueInputCard.jsx'
 import CommentText from '../CommentText/CommentText.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './CanvasModule.css'
@@ -134,7 +134,7 @@ function ModuleEmoji({ emoji, onChange }) {
 }
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onImageFile, onEmojiChange, imageSource = null, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, progressState = null, progressFrames = null, progressPlaying = false, onProgressViewChange, barChartState = null, barChartFrames = null, barChartPlaying = false, onBarChartViewChange, xyPlotState = null, xyPlotFrames = null, xyPlotPlaying = false, onXyPlotViewChange, oscilloscopeState = null, oscilloscopeFrames = null, oscilloscopePlaying = false, onOscilloscopeViewChange, heatmapState = null, heatmapDimensions, onHeatmapViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, rgbLedState = null, rgbLedFrames = null, rgbLedPlaying = false, onRgbLedViewChange, onInputButtonViewChange, onInputChange, inputButtonCallbacks = [], inputButtonCallbackId = null, inputButtonCallbackSupported = true, onBindInputClick, onInputTrigger, onInputNumberViewChange, onNumberInputChange, onNumberInputTrigger, numberInputCallbacks = [], numberInputCallbackId = null, onBindNumberInput, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onImageFile, onEmojiChange, imageSource = null, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, progressState = null, progressFrames = null, progressPlaying = false, onProgressViewChange, barChartState = null, barChartFrames = null, barChartPlaying = false, onBarChartViewChange, xyPlotState = null, xyPlotFrames = null, xyPlotPlaying = false, onXyPlotViewChange, oscilloscopeState = null, oscilloscopeFrames = null, oscilloscopePlaying = false, onOscilloscopeViewChange, heatmapState = null, heatmapDimensions, onHeatmapViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, rgbLedState = null, rgbLedFrames = null, rgbLedPlaying = false, onRgbLedViewChange, onInputButtonViewChange, onInputChange, inputButtonCallbacks = [], inputButtonCallbackId = null, inputButtonCallbackSupported = true, onBindInputClick, onInputTrigger, onInputValueViewChange, onInputValueChange, onInputValueTrigger, inputValueCallbacks = [], inputValueCallbackId = null, onBindInputValue, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -549,14 +549,14 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         >
           {inputButtonView === 'code' ? <MousePointerClick size={13} strokeWidth={2} aria-hidden="true" /> : <Code2 size={13} strokeWidth={2} aria-hidden="true" />}
         </button>}
-        {definition.hasInputNumber && semanticLevel !== 'modules' && !readOnly && <button
+        {definition.hasInputValue && semanticLevel !== 'modules' && !readOnly && <button
           type="button"
           className="canvas-module__view"
-          aria-label={t(inputNumberView === 'code' ? 'inputNumber.viewInput' : 'inputNumber.viewCode')}
+          aria-label={t(inputNumberView === 'code' ? 'inputValue.viewInput' : 'inputValue.viewCode')}
           aria-pressed={inputNumberView === 'code'}
-          title={t(inputNumberView === 'code' ? 'inputNumber.viewInput' : 'inputNumber.viewCode')}
+          title={t(inputNumberView === 'code' ? 'inputValue.viewInput' : 'inputValue.viewCode')}
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => { event.stopPropagation(); onInputNumberViewChange?.(module.id, inputNumberView === 'code' ? 'input' : 'code') }}
+          onClick={(event) => { event.stopPropagation(); onInputValueViewChange?.(module.id, inputNumberView === 'code' ? 'input' : 'code') }}
         >
           {inputNumberView === 'code' ? <Hash size={13} strokeWidth={2} aria-hidden="true" /> : <Code2 size={13} strokeWidth={2} aria-hidden="true" />}
         </button>}
@@ -589,13 +589,13 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
               ? (deferContent ? null : structuredContent)
               : <InputButtonCard card={module} callbacks={inputButtonCallbacks} boundCallbackId={inputButtonCallbackId} callbackSupported={inputButtonCallbackSupported} onBind={(functionId) => onBindInputClick?.(module.id, functionId)} onChange={(pressed) => onInputChange?.(module.id, pressed)} onTrigger={(value, autoStart) => onInputTrigger?.(module.id, value, autoStart)} />}
         </div>
-      ) : definition.hasInputNumber ? (
+      ) : definition.hasInputValue ? (
         <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>
           {!contentVisible
             ? null
             : inputNumberView === 'code'
               ? (deferContent ? null : structuredContent)
-              : <NumberInputCard card={module} callbacks={numberInputCallbacks} boundCallbackId={numberInputCallbackId} onBind={(functionId) => onBindNumberInput?.(module.id, functionId)} onChange={(value) => onNumberInputChange?.(module.id, value)} onTrigger={(value, autoStart) => onNumberInputTrigger?.(module.id, value, autoStart)} />}
+              : <ValueInputCard card={module} valueType={definition.inputValueType} callbacks={inputValueCallbacks} boundCallbackId={inputValueCallbackId} onBind={(functionId) => onBindInputValue?.(module.id, functionId)} onChange={(value) => onInputValueChange?.(module.id, value)} onTrigger={(value, autoStart) => onInputValueTrigger?.(module.id, value, autoStart)} />}
         </div>
       ) : definition.hasLed ? (
         <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>

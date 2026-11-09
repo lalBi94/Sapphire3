@@ -183,6 +183,8 @@ export function dashboardLabels(t) {
     toggleButton: t('dashboard.widget.toggleButton'),
     holdButton: t('dashboard.widget.holdButton'),
     numberInput: t('dashboard.widget.numberInput'),
+    floatInput: t('dashboard.widget.floatInput'),
+    stringInput: t('dashboard.widget.stringInput'),
     gauge: t('dashboard.widget.gauge'),
     progress: t('dashboard.widget.progress'),
     barChart: t('dashboard.widget.barChart'),
