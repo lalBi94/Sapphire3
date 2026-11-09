@@ -11,7 +11,8 @@ import { createLedModule, ledDefaults } from '../utils/ledNode.js'
 import { createRgbLedModule, rgbLedDefaults } from '../utils/rgbLedNode.js'
 import { createInputButtonModule, inputButtonDefaults } from '../utils/inputButtonNode.js'
 import { createInputNumberModule, inputValueDefaults } from '../utils/inputNumberNode.js'
-import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol, deleteSourceTargets, duplicateSourceTargets, moveSourceNodes, bindInputButtonCallback, bindInputNumberCallback } from '../utils/logic/index.js'
+import { createColorPickerModule } from '../utils/colorPickerNode.js'
+import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol, deleteSourceTargets, duplicateSourceTargets, moveSourceNodes, bindInputButtonCallback, bindInputNumberCallback, bindColorPickerCallback } from '../utils/logic/index.js'
 import { initialDocument, reduceHistory } from '../utils/canvasDocument.js'
 
 // Évite deux cartes Module du même nom lors de l'insertion d'un favori.
@@ -121,6 +122,17 @@ export default function useCanvasDocument() {
       dispatch({ type: 'createInputNumber', card: { id, type, name: valueName, ...position, width: definition.width, height: definition.height, expandedNodeIds: [], value: inputValueDefaults(valueType).value }, inputNumber })
       return
     }
+    if (type === 'rgbPicker' || type === 'rgbaPicker') {
+      const id = crypto.randomUUID()
+      const channels = definition.colorPickerChannels
+      const index = Math.max(0, ...document.project.modules
+        .filter((module) => (module.colorPicker?.channels ?? 0) === channels)
+        .map((module) => Number(module.colorPicker?.index) || 0)) + 1
+      const pickerName = `${name} ${index}`
+      const colorPicker = createColorPickerModule(id, pickerName, index, { channels })
+      dispatch({ type: 'createColorPicker', card: { id, type, name: pickerName, ...position, width: definition.width, height: definition.height, expandedNodeIds: [], value: colorPicker.defaults }, colorPicker })
+      return
+    }
     dispatch({ type: 'createCard', card: { id: crypto.randomUUID(), type, name, ...(definition.hasText ? { text: '' } : {}), ...(definition.hasImage ? { image: '', caption: '' } : {}), ...position, width: definition.width, height: definition.height, expandedNodeIds: [] } })
   }
 
@@ -150,6 +162,18 @@ export default function useCanvasDocument() {
   function bindInputValue(moduleId, targetFunctionId) {
     const prepared = bindInputNumberCallback(document.project, moduleId, targetFunctionId)
     if (prepared.ok) dispatch({ type: 'inputNumberBind', previousProject: document.project, prepared, moduleId, targetFunctionId })
+    return prepared
+  }
+
+  // Met à jour la couleur d'un sélecteur sans toucher à la source logique.
+  function updateColorPicker(id, value) {
+    dispatch({ type: 'presentation', id, patch: { value } })
+  }
+
+  // Lie la fonction `(int[]) -> void` appelée par un sélecteur de couleur.
+  function bindColorPicker(moduleId, targetFunctionId) {
+    const prepared = bindColorPickerCallback(document.project, moduleId, targetFunctionId)
+    if (prepared.ok) dispatch({ type: 'colorPickerBind', previousProject: document.project, prepared, moduleId, targetFunctionId })
     return prepared
   }
 
@@ -400,5 +424,5 @@ export default function useCanvasDocument() {
     dispatch({ type: 'redo' })
   }
 
-  return { ...document, createCard, updateGeometry, updateInputButton, updateInputValue, bindInputButton, bindInputValue, arrangeModules, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, moveNodes, duplicateNode, duplicateSelection, deleteNode, deleteModule, deleteSelection, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, previewSymbolRename, applySymbolRename, setExpandedNodes, setCardHidden, setCardLocked, setCardEmoji, setExercise, setDashboard, restoreStarter, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
+  return { ...document, createCard, updateGeometry, updateInputButton, updateInputValue, bindInputButton, bindInputValue, updateColorPicker, bindColorPicker, arrangeModules, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, moveNodes, duplicateNode, duplicateSelection, deleteNode, deleteModule, deleteSelection, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, previewSymbolRename, applySymbolRename, setExpandedNodes, setCardHidden, setCardLocked, setCardEmoji, setExercise, setDashboard, restoreStarter, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
 }

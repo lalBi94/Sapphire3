@@ -468,6 +468,126 @@ function start(config, runtimeSource) {
       plus.addEventListener('click', () => stepValue(1))
       return
     }
+    if (panel.type === 'rgbPicker' || panel.type === 'rgbaPicker') {
+      const widget = panel.widget
+      const channels = widget?.channels ?? (panel.type === 'rgbaPicker' ? 4 : 3)
+      const wrapper = document.createElement('div')
+      wrapper.className = `db-color db-color--${channels === 4 ? 'rgba' : 'rgb'}`
+      const wheel = document.createElement('div')
+      wheel.className = 'db-color__wheel'
+      wheel.tabIndex = 0
+      wheel.setAttribute('role', 'slider')
+      wheel.setAttribute('aria-label', panel.name)
+      wheel.setAttribute('aria-valuemin', '0')
+      wheel.setAttribute('aria-valuemax', '360')
+      const saturation = document.createElement('span')
+      saturation.className = 'db-color__saturation'
+      const dark = document.createElement('span')
+      dark.className = 'db-color__dark'
+      const thumb = document.createElement('span')
+      thumb.className = 'db-color__thumb'
+      wheel.append(saturation, dark, thumb)
+      const controls = document.createElement('div')
+      controls.className = 'db-color__controls'
+      const hex = document.createElement('input')
+      hex.type = 'text'
+      hex.className = 'db-color__hex'
+      hex.spellcheck = false
+      hex.setAttribute('aria-label', labels.colorHex ?? 'Hex')
+      const alpha = channels === 4 ? document.createElement('input') : null
+      if (alpha) {
+        alpha.type = 'range'
+        alpha.min = '0'
+        alpha.max = '255'
+        alpha.className = 'db-color__alpha'
+        alpha.setAttribute('aria-label', labels.colorAlpha ?? 'Alpha')
+      }
+      controls.append(hex)
+      if (alpha) controls.append(alpha)
+      wrapper.append(wheel, controls)
+      body.append(wrapper)
+      ref.colorWheel = wheel
+      ref.colorThumb = thumb
+      ref.colorHex = hex
+      ref.colorAlpha = alpha
+      ref.colorDark = dark
+      let hsv = rgbToHsv(normalizeColor(widget?.value, channels))
+      const renderPicker = () => {
+        const color = normalizeColor(widget?.value, channels)
+        const preview = channels === 4 ? `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3] / 255})` : `rgb(${color[0]}, ${color[1]}, ${color[2]})`
+        wheel.style.setProperty('--wheel-value', String(hsv.v))
+        dark.style.opacity = String(1 - hsv.v)
+        wheel.setAttribute('aria-valuenow', String(Math.round(hsv.h)))
+        wheel.setAttribute('aria-valuetext', `${Math.round(hsv.h)}° · ${Math.round(hsv.s * 100)}%`)
+        const angle = ((hsv.h - 90) * Math.PI) / 180
+        thumb.style.left = `${50 + Math.cos(angle) * hsv.s * 50}%`
+        thumb.style.top = `${50 + Math.sin(angle) * hsv.s * 50}%`
+        thumb.style.background = preview
+        if (document.activeElement !== hex) hex.value = formatHex(color, channels)
+        if (alpha) alpha.value = String(color[3])
+      }
+      ref.colorRender = renderPicker
+      const apply = (next, nextHsv = rgbToHsv(next)) => {
+        const normalized = normalizeColor(next, channels)
+        widget.value = normalized
+        hsv = nextHsv
+        renderPicker()
+        handleValueInput(widget, normalized)
+      }
+      const updateFromPointer = (event) => {
+        const rect = wheel.getBoundingClientRect()
+        const x = event.clientX - rect.left - rect.width / 2
+        const y = event.clientY - rect.top - rect.height / 2
+        const radius = Math.min(rect.width, rect.height) / 2
+        const saturationValue = Math.max(0, Math.min(1, Math.hypot(x, y) / radius))
+        const hue = ((Math.atan2(y, x) * 180) / Math.PI + 90 + 360) % 360
+        const value = hsv.v === 0 ? 1 : hsv.v
+        const nextHsv = { h: hue, s: saturationValue, v: value }
+        const rgb = hsvToRgb(nextHsv)
+        const color = normalizeColor(widget?.value, channels)
+        apply(channels === 4 ? [...rgb, color[3]] : rgb, nextHsv)
+      }
+      let dragging = false
+      wheel.addEventListener('pointerdown', (event) => {
+        event.preventDefault()
+        wheel.setPointerCapture(event.pointerId)
+        dragging = true
+        updateFromPointer(event)
+      })
+      wheel.addEventListener('pointermove', (event) => {
+        if (dragging) updateFromPointer(event)
+      })
+      const stopDragging = (event) => {
+        if (!dragging) return
+        dragging = false
+        if (wheel.hasPointerCapture(event.pointerId)) wheel.releasePointerCapture(event.pointerId)
+      }
+      wheel.addEventListener('pointerup', stopDragging)
+      wheel.addEventListener('pointercancel', stopDragging)
+      wheel.addEventListener('keydown', (event) => {
+        let next = null
+        if (event.key === 'ArrowLeft') next = { ...hsv, h: (hsv.h - 5 + 360) % 360 }
+        else if (event.key === 'ArrowRight') next = { ...hsv, h: (hsv.h + 5) % 360 }
+        else if (event.key === 'ArrowUp') next = { ...hsv, s: Math.min(1, hsv.s + 0.05) }
+        else if (event.key === 'ArrowDown') next = { ...hsv, s: Math.max(0, hsv.s - 0.05) }
+        if (!next) return
+        event.preventDefault()
+        const rgb = hsvToRgb(next)
+        const color = normalizeColor(widget?.value, channels)
+        apply(channels === 4 ? [...rgb, color[3]] : rgb, next)
+      })
+      hex.addEventListener('input', () => {
+        const parsed = parseHex(hex.value, channels)
+        if (parsed) apply(parsed)
+      })
+      hex.addEventListener('blur', renderPicker)
+      if (alpha) alpha.addEventListener('input', () => {
+        const color = normalizeColor(widget?.value, channels)
+        apply([...color.slice(0, 3), Number(alpha.value)])
+      })
+      renderPicker()
+      return
+    }
     if (panel.type === 'led' || panel.type === 'rgbLed') {
       const wrapper = document.createElement('div')
       wrapper.className = 'db-led'
@@ -1197,6 +1317,8 @@ function start(config, runtimeSource) {
     } else if (widget.type === 'numberInput' || widget.type === 'floatInput' || widget.type === 'stringInput') {
       const value = widget.valueType === 'string' ? (typeof widget.value === 'string' ? widget.value : '') : String(Number.isFinite(widget.value) ? widget.value : 0)
       if (ref.valueInput && document.activeElement !== ref.valueInput) ref.valueInput.value = value
+    } else if (widget.type === 'rgbPicker' || widget.type === 'rgbaPicker') {
+      ref.colorRender?.()
     } else if (widget.type === 'rgbLed') {
       const led = states.rgbLeds?.[widget.id] ?? { red: 0, green: 0, blue: 0 }
       const brightest = Math.max(led.red, led.green, led.blue)
@@ -1936,6 +2058,71 @@ function start(config, runtimeSource) {
     renderStates()
     announce(labels.feedbackStarted ?? 'Execution started.')
     runProgram(requestId)
+  }
+
+  // Normalise une couleur de sélecteur en trois ou quatre entiers 0..255.
+  function normalizeColor(value, channels) {
+    const fallback = [255, 213, 71, 255]
+    return Array.from({ length: channels === 4 ? 4 : 3 }, (_, index) => {
+      const entry = Array.isArray(value) ? value[index] : fallback[index]
+      return Number.isInteger(entry) && entry >= 0 && entry <= 255 ? entry : fallback[index]
+    })
+  }
+
+  // Convertit une couleur RGB en teinte, saturation et luminosité.
+  function rgbToHsv([red, green, blue]) {
+    const r = red / 255
+    const g = green / 255
+    const b = blue / 255
+    const maximum = Math.max(r, g, b)
+    const minimum = Math.min(r, g, b)
+    const delta = maximum - minimum
+    let hue = 0
+    if (delta !== 0) {
+      if (maximum === r) hue = ((g - b) / delta) % 6
+      else if (maximum === g) hue = (b - r) / delta + 2
+      else hue = (r - g) / delta + 4
+      hue *= 60
+      if (hue < 0) hue += 360
+    }
+    return { h: hue, s: maximum === 0 ? 0 : delta / maximum, v: maximum }
+  }
+
+  // Convertit une teinte, saturation et luminosité en couleur RGB.
+  function hsvToRgb({ h, s, v }) {
+    const chroma = v * s
+    const sector = (h % 360) / 60
+    const second = chroma * (1 - Math.abs((sector % 2) - 1))
+    let red = 0
+    let green = 0
+    let blue = 0
+    if (sector < 1) [red, green, blue] = [chroma, second, 0]
+    else if (sector < 2) [red, green, blue] = [second, chroma, 0]
+    else if (sector < 3) [red, green, blue] = [0, chroma, second]
+    else if (sector < 4) [red, green, blue] = [0, second, chroma]
+    else if (sector < 5) [red, green, blue] = [second, 0, chroma]
+    else [red, green, blue] = [chroma, 0, second]
+    const base = v - chroma
+    return [red, green, blue].map((entry) => Math.round(Math.max(0, Math.min(1, entry + base)) * 255))
+  }
+
+  // Formate une couleur en hexadécimal, avec alpha pour les sélecteurs RGBA.
+  function formatHex(color, channels) {
+    const base = `#${color.slice(0, 3).map((entry) => entry.toString(16).padStart(2, '0')).join('')}`
+    return channels === 4 ? `${base}${color[3].toString(16).padStart(2, '0')}` : base
+  }
+
+  // Lit un hexadécimal court ou long et retourne les canaux attendus.
+  function parseHex(text, channels) {
+    let raw = String(text).trim().replace(/^#/, '')
+    if (!/^[0-9a-f]+$/i.test(raw)) return null
+    if (raw.length === 3 || raw.length === 4) raw = raw.split('').map((entry) => entry + entry).join('')
+    if (raw.length !== 6 && raw.length !== 8) return null
+    const values = []
+    for (let index = 0; index < raw.length; index += 2) values.push(Number.parseInt(raw.slice(index, index + 2), 16))
+    const rgb = values.slice(0, 3)
+    const alpha = values.length === 4 ? values[3] : 255
+    return channels === 4 ? [...rgb, alpha] : rgb
   }
 
   // Met à jour une entrée typée et déclenche son callback ou le live courant.

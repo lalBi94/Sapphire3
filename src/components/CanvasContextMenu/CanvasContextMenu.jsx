@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Activity, AudioWaveform, Box, Braces, ChartColumn, ChartLine, ChevronDown, ChevronRight, EyeOff, Gauge, Hash, Image, Lightbulb, Lock, LockOpen, MessageSquare, Monitor, MousePointerClick, Palette, Search, TextCursorInput } from 'lucide-react'
+import { Activity, AudioWaveform, Blend, Box, Braces, ChartColumn, ChartLine, ChevronDown, ChevronRight, EyeOff, Gauge, Hash, Image, Lightbulb, Lock, LockOpen, MessageSquare, Monitor, MousePointerClick, Palette, Search, TextCursorInput } from 'lucide-react'
 import { cardCategories, moduleTypes } from '../../utils/moduleTypes.js'
 import { normalizeSearchText } from '../../utils/searchText.js'
 import DeleteAction from '../DeleteAction/DeleteAction.jsx'
@@ -23,6 +23,8 @@ const menuIcons = {
   numberInput: Hash,
   floatInput: Hash,
   stringInput: TextCursorInput,
+  rgbPicker: Palette,
+  rgbaPicker: Blend,
   comment: MessageSquare,
   image: Image,
 }

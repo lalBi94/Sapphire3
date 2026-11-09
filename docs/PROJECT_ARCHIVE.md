@@ -2,6 +2,12 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Sélecteurs RGB et RGBA — 10 novembre 2026
+
+- Ajout des cartes **RGB picker** et **RGBA picker** dans **Widgets → Entrées**, adossées à un module caché ordinaire. Le module déclare `RGB_PICKER_SP3_GLOBAL_ONCHANGE_<n>` ou `RGBA_PICKER_SP3_GLOBAL_ONCHANGE_<n>` de type `(int[]) -> void`, initialisée à la fonction vide correspondante. Le binding n'accepte qu'une fonction `(int[]) -> void` et crée l'import/export automatique.
+- La carte RGB conserve trois entiers `0..255`, la carte RGBA quatre. L'interface propose une roue chromatique (teinte/saturation), une luminosité, un champ hexadécimal court ou long (`#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`), des champs R/G/B/A, des couleurs prédéfinies et un canal alpha pour RGBA. Le live transmet un tableau de 3 ou 4 entiers ; l'interpréteur accepte désormais ces tableaux pour les callbacks, sans nouvelle sémantique de tableau. Le dashboard exporté reprend les deux sélecteurs avec une roue et les champs hexadécimal/alpha. La transpilation est refusée (`TRANSPILE_RGB_PICKER_UNSUPPORTED`, `TRANSPILE_RGBA_PICKER_UNSUPPORTED`).
+- Vérifications : **637 tests Node/Python réussis**, dont six tests dédiés aux sélecteurs (valeurs normalisées, binding importé puis retiré, live avec tableaux, dashboard et workspace, dashboard exporté, refus d'une signature booléenne). Build Vite réussi ; cartes créées dans le navigateur, hexadécimal, luminosité, alpha, préréglages et bascule code vérifiés sans erreur console, ainsi que la roue et les champs du dashboard exporté. Aucun changement du format de workspace (version 3) : `module.colorPicker` et `colorPickerView` sont optionnels.
+
 ## Exemple Input console — 9 novembre 2026
 
 - Ajout de l'exemple **Input console** (Medium → Inputs, `inputConsole`) : un toggle, un bouton maintenu, une entrée entière, une entrée décimale et une entrée texte sont liés à cinq fonctions `(boolean|int|float|string) -> void`. Les callbacks écrivent des globales ; la boucle principale les relit et pilote un écran 40×12, une jauge, une barre de progression, un graphique à huit barres, une LED et une LED RVB.

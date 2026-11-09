@@ -2,11 +2,12 @@ import { isId, isRecord, sourceFormatVersion, moduleKinds, createProject } from 
 import { isContract } from './logic/contracts.js'
 import { serializeSource } from './logic/serialization.js'
 import { screenLimits } from './logic/mathNatives.js'
-import { barChartViews, heatmapViews, logicalCardTypes, moduleCardTypes, gaugeViews, inputButtonViews, inputNumberViews, ledViews, oscilloscopeViews, rgbLedViews, moduleTypes, minimumModuleSize, progressViews, screenViews, xyPlotViews } from './moduleTypes.js'
+import { barChartViews, colorPickerViews, heatmapViews, logicalCardTypes, moduleCardTypes, gaugeViews, inputButtonViews, inputNumberViews, ledViews, oscilloscopeViews, rgbLedViews, moduleTypes, minimumModuleSize, progressViews, screenViews, xyPlotViews } from './moduleTypes.js'
 import { heatmapMaximumDimension } from './logic/heatmapState.js'
 import { isEmbeddedImage, isImageReference } from './embeddedImage.js'
 import { validateExercise } from './exercise.js'
 import { assertDashboardConfig } from './dashboardConfig.js'
+import { colorPickerDefaults } from './logic/colorPickerState.js'
 
 export const workspaceFileVersion = 3
 
@@ -68,6 +69,11 @@ function validNodeLink(value) {
   return value === null || isId(value)
 }
 
+// Vérifie une couleur persistée : exactement 3 ou 4 entiers entre 0 et 255.
+function validColorValue(value, channels) {
+  return Array.isArray(value) && value.length === channels && value.every((entry) => Number.isInteger(entry) && entry >= 0 && entry <= 255)
+}
+
 // Refuse les structures que l'interface ne peut pas restaurer, sans exiger un programme sémantiquement complet.
 function validateProject(project) {
   if (!isRecord(project) || project.formatVersion !== sourceFormatVersion || !isId(project.id) || !Array.isArray(project.modules) || !Array.isArray(project.nodes)) {
@@ -85,6 +91,7 @@ function validateProject(project) {
   const rgbLedIndices = new Set()
   const inputButtonIndices = new Set()
   const inputNumberIndices = new Set()
+  const colorPickerIndices = new Set()
   for (const module of project.modules) {
     if (!isRecord(module) || !isId(module.id) || moduleIds.has(module.id) || !Object.values(moduleKinds).includes(module.kind) || !isId(module.name) || !['rootNodeIds', 'imports', 'exports'].every((field) => Array.isArray(module[field]))) {
       throw workspaceError('Invalid module data. Legacy Main modules are not supported.')
@@ -113,6 +120,8 @@ function validateProject(project) {
     if (module.inputButton) inputButtonIndices.add(module.inputButton.index)
     if (module.inputNumber !== undefined && (!isRecord(module.inputNumber) || !Number.isInteger(module.inputNumber.index) || module.inputNumber.index < 1 || (module.inputNumber.valueType !== undefined && !['int', 'float', 'string'].includes(module.inputNumber.valueType)) || inputNumberIndices.has(module.inputNumber.index))) throw workspaceError('Invalid input number module data.')
     if (module.inputNumber) inputNumberIndices.add(module.inputNumber.index)
+    if (module.colorPicker !== undefined && (!isRecord(module.colorPicker) || !Number.isInteger(module.colorPicker.index) || module.colorPicker.index < 1 || ![3, 4].includes(module.colorPicker.channels) || colorPickerIndices.has(`${module.colorPicker.channels}:${module.colorPicker.index}`))) throw workspaceError('Invalid color picker module data.')
+    if (module.colorPicker) colorPickerIndices.add(`${module.colorPicker.channels}:${module.colorPicker.index}`)
   }
   const nodeIds = new Set()
   for (const node of project.nodes) {
@@ -181,6 +190,12 @@ function validatePresentation(project, presentation) {
                       if (valueType === 'float') return card.value !== undefined && (!Number.isFinite(card.value) || Math.abs(card.value) > 3.4028234663852886e38)
                       return card.value !== undefined && (!Number.isInteger(card.value) || card.value < -2147483648 || card.value > 2147483647)
                     })()
+                  : card.type === 'rgbPicker' || card.type === 'rgbaPicker'
+                    ? !modules.has(card.id) || !modules.get(card.id).colorPicker || (() => {
+                      const channels = card.type === 'rgbaPicker' ? 4 : 3
+                      if (modules.get(card.id).colorPicker.channels !== channels) return true
+                      return card.value !== undefined && !validColorValue(card.value, channels)
+                    })()
                   : card.type === 'led'
                   ? !modules.has(card.id) || !modules.get(card.id).led
                   : card.type === 'rgbLed'
@@ -205,6 +220,7 @@ function validatePresentation(project, presentation) {
     if (card.rgbLedView !== undefined && !rgbLedViews.includes(card.rgbLedView)) throw workspaceError('Invalid RGB LED view.')
     if (card.inputButtonView !== undefined && !inputButtonViews.includes(card.inputButtonView)) throw workspaceError('Invalid input button view.')
     if (card.inputNumberView !== undefined && !inputNumberViews.includes(card.inputNumberView)) throw workspaceError('Invalid input number view.')
+    if (card.colorPickerView !== undefined && !colorPickerViews.includes(card.colorPickerView)) throw workspaceError('Invalid color picker view.')
     ids.add(card.id)
   }
   if (project.modules.some((module) => !ids.has(module.id))) throw workspaceError('A module is missing its visual card.')
@@ -217,8 +233,8 @@ function validatePresentation(project, presentation) {
 // N'écrit l'emoji ou les drapeaux de carte que lorsqu'ils sont définis, pour garder les fichiers habituels inchangés.
 function exportableCard(card, nodes) {
   // `screenScale` n'est plus produit : l'écran se dimensionne avec la carte, mais reste toléré à la relecture.
-  const { hidden, locked, emoji, screenView, gaugeView, progressView, barChartView, xyPlotView, oscilloscopeView, heatmapView, ledView, rgbLedView, inputButtonView, inputNumberView, screenScale, imageRef, ...rest } = card
-  return { ...rest, ...(typeof imageRef === 'string' && imageRef.length > 0 ? { imageRef } : {}), ...(hidden ? { hidden: true } : {}), ...(locked ? { locked: true } : {}), ...(emoji ? { emoji } : {}), ...(screenView && screenView !== 'screen' ? { screenView } : {}), ...(gaugeView && gaugeView !== 'gauge' ? { gaugeView } : {}), ...(progressView && progressView !== 'progress' ? { progressView } : {}), ...(barChartView && barChartView !== 'barChart' ? { barChartView } : {}), ...(xyPlotView && xyPlotView !== 'xyPlot' ? { xyPlotView } : {}), ...(oscilloscopeView && oscilloscopeView !== 'oscilloscope' ? { oscilloscopeView } : {}), ...(heatmapView && heatmapView !== 'heatmap' ? { heatmapView } : {}), ...(ledView && ledView !== 'led' ? { ledView } : {}), ...(rgbLedView && rgbLedView !== 'rgbLed' ? { rgbLedView } : {}), ...(inputButtonView && inputButtonView !== 'button' ? { inputButtonView } : {}), ...(inputNumberView && inputNumberView !== 'input' ? { inputNumberView } : {}), expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) }
+  const { hidden, locked, emoji, screenView, gaugeView, progressView, barChartView, xyPlotView, oscilloscopeView, heatmapView, ledView, rgbLedView, inputButtonView, inputNumberView, colorPickerView, screenScale, imageRef, ...rest } = card
+  return { ...rest, ...(typeof imageRef === 'string' && imageRef.length > 0 ? { imageRef } : {}), ...(hidden ? { hidden: true } : {}), ...(locked ? { locked: true } : {}), ...(emoji ? { emoji } : {}), ...(screenView && screenView !== 'screen' ? { screenView } : {}), ...(gaugeView && gaugeView !== 'gauge' ? { gaugeView } : {}), ...(progressView && progressView !== 'progress' ? { progressView } : {}), ...(barChartView && barChartView !== 'barChart' ? { barChartView } : {}), ...(xyPlotView && xyPlotView !== 'xyPlot' ? { xyPlotView } : {}), ...(oscilloscopeView && oscilloscopeView !== 'oscilloscope' ? { oscilloscopeView } : {}), ...(heatmapView && heatmapView !== 'heatmap' ? { heatmapView } : {}), ...(ledView && ledView !== 'led' ? { ledView } : {}), ...(rgbLedView && rgbLedView !== 'rgbLed' ? { rgbLedView } : {}), ...(inputButtonView && inputButtonView !== 'button' ? { inputButtonView } : {}), ...(inputNumberView && inputNumberView !== 'input' ? { inputNumberView } : {}), ...(colorPickerView && colorPickerView !== 'picker' ? { colorPickerView } : {}), expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) }
 }
 
 // Contrôle aussi le snapshot de départ d'un exercice, avec les mêmes règles que le document courant.
@@ -294,6 +310,12 @@ export function deserializeWorkspace(text) {
                 const valueType = module.inputNumber.valueType ?? 'int'
                 const type = valueType === 'float' ? 'floatInput' : valueType === 'string' ? 'stringInput' : 'numberInput'
                 return { id: module.id, type, name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes[type].width, height: moduleTypes[type].height, expandedNodeIds: [], value: valueType === 'string' ? '' : 0 }
+              })()
+            : module.colorPicker
+              ? (() => {
+                const channels = module.colorPicker.channels === 4 ? 4 : 3
+                const type = channels === 4 ? 'rgbaPicker' : 'rgbPicker'
+                return { id: module.id, type, name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes[type].width, height: moduleTypes[type].height, expandedNodeIds: [], value: colorPickerDefaults(channels) }
               })()
             : module.led
             ? { id: module.id, type: 'led', name: module.name, x: (position % 3) * 380, y: Math.floor(position / 3) * 280, width: moduleTypes.led.width, height: moduleTypes.led.height, expandedNodeIds: [] }

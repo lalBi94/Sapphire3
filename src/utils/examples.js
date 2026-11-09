@@ -5,6 +5,7 @@ import { createLedModule, ledDefaults } from './ledNode.js'
 import { createRgbLedModule, rgbLedDefaults } from './rgbLedNode.js'
 import { createInputButtonModule, inputButtonDefaults } from './inputButtonNode.js'
 import { createInputNumberModule } from './inputNumberNode.js'
+import { colorPickerDefaults } from './logic/colorPickerState.js'
 import { createProgressModule, progressDefaults } from './progressNode.js'
 import { createBarChartModule, barChartDefaults } from './barChartNode.js'
 import { createXyPlotModule } from './xyPlotNode.js'
@@ -148,6 +149,12 @@ function workspace(project, notes = []) {
                   const valueType = module.inputNumber.valueType ?? 'int'
                   const type = valueType === 'float' ? 'floatInput' : valueType === 'string' ? 'stringInput' : 'numberInput'
                   return { id: module.id, type, name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes[type].width, height: moduleTypes[type].height, expandedNodeIds: [], value: valueType === 'string' ? '' : 0 }
+                })()
+              : module.colorPicker
+                ? (() => {
+                  const channels = module.colorPicker.channels === 4 ? 4 : 3
+                  const type = channels === 4 ? 'rgbaPicker' : 'rgbPicker'
+                  return { id: module.id, type, name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes[type].width, height: moduleTypes[type].height, expandedNodeIds: [], value: colorPickerDefaults(channels) }
                 })()
               : module.kind === 'class'
                 ? { id: module.id, type: 'class', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.class.width, height: moduleTypes.class.height, expandedNodeIds: [] }

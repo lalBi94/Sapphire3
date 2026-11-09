@@ -31,6 +31,7 @@ export { captureBookmark, insertBookmark, describeBookmark } from './bookmarks.j
 export { getModuleRootSymbols, getModuleFunctions, getImportCandidates, getUnusedImportIds, setModuleExport, addModuleImport, removeModuleImport, getCallableSymbols, ensureModuleImports } from './moduleInterface.js'
 export { bindInputButtonCallback, isInputButtonCallbackType, isInputButtonNoop } from './inputButtonBinding.js'
 export { bindInputNumberCallback, isInputNumberCallbackType, isInputNumberNoop, inputValueCallbackType } from './inputNumberBinding.js'
+export { bindColorPickerCallback, isColorPickerCallbackType, isColorPickerNoop } from './colorPickerBinding.js'
 
 // Retrouve une construction à partir de son identifiant graphique/source stable.
 export function findAstNode(ast, sourceId) {

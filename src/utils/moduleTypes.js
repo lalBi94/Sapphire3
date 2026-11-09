@@ -18,6 +18,8 @@ export const moduleTypes = {
   numberInput: { label: 'Number input', labelKey: 'card.numberInput', targetLabelKey: 'canvas.numberInput', actionKey: 'nav.createNumberInput', width: 300, height: 210, renamable: true, hasInputValue: true, inputValueType: 'int' },
   floatInput: { label: 'Float input', labelKey: 'card.floatInput', targetLabelKey: 'canvas.floatInput', actionKey: 'nav.createFloatInput', width: 300, height: 210, renamable: true, hasInputValue: true, inputValueType: 'float' },
   stringInput: { label: 'String input', labelKey: 'card.stringInput', targetLabelKey: 'canvas.stringInput', actionKey: 'nav.createStringInput', width: 300, height: 190, renamable: true, hasInputValue: true, inputValueType: 'string' },
+  rgbPicker: { label: 'RGB picker', labelKey: 'card.rgbPicker', targetLabelKey: 'canvas.rgbPicker', actionKey: 'nav.createRgbPicker', width: 420, height: 460, renamable: true, hasColorPicker: true, colorPickerChannels: 3 },
+  rgbaPicker: { label: 'RGBA picker', labelKey: 'card.rgbaPicker', targetLabelKey: 'canvas.rgbaPicker', actionKey: 'nav.createRgbaPicker', width: 420, height: 500, renamable: true, hasColorPicker: true, colorPickerChannels: 4 },
   comment: { label: 'Comment', labelKey: 'card.comment', targetLabelKey: 'canvas.note', actionKey: 'nav.createComment', width: 320, height: 220, renamable: true, hasText: true },
   image: { label: 'Image', labelKey: 'card.image', targetLabelKey: 'canvas.image', actionKey: 'nav.createImage', width: 420, height: 260, renamable: true, hasImage: true },
 }
@@ -29,7 +31,7 @@ const widgetCardGroups = [
   { id: 'displays', labelKey: 'canvas.createCategory.widgetsDisplays', types: ['screen', 'gauge', 'progress'] },
   { id: 'charts', labelKey: 'canvas.createCategory.widgetsCharts', types: ['barChart', 'xyPlot', 'oscilloscope', 'heatmap'] },
   { id: 'indicators', labelKey: 'canvas.createCategory.widgetsIndicators', types: ['led', 'rgbLed'] },
-  { id: 'inputs', labelKey: 'canvas.createCategory.widgetsInputs', types: ['toggleButton', 'holdButton', 'numberInput', 'floatInput', 'stringInput'] },
+  { id: 'inputs', labelKey: 'canvas.createCategory.widgetsInputs', types: ['toggleButton', 'holdButton', 'numberInput', 'floatInput', 'stringInput', 'rgbPicker', 'rgbaPicker'] },
 ]
 
 // Catégories stables du menu de création, dans l'ordre d'affichage.
@@ -77,3 +79,6 @@ export const inputButtonViews = ['button', 'code']
 
 // Vues possibles d'une entrée numérique : le champ, ou le code de son module caché.
 export const inputNumberViews = ['input', 'code']
+
+// Vues possibles d'un sélecteur de couleur : la roue, ou le code de son module caché.
+export const colorPickerViews = ['picker', 'code']

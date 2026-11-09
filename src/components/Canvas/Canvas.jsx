@@ -33,6 +33,7 @@ import { dashboardWidgets, dashboardInitialStates, dashboardWidgetTypes } from '
 import { dashboardContractPanels } from '../../utils/dashboardContracts.js'
 import { collectInputButtonValues, inputButtonCallbackId, inputButtonOnClickNodeId } from '../../utils/logic/inputButtonState.js'
 import { inputNumberCallbackId, inputNumberOnChangeNodeId } from '../../utils/logic/inputNumberState.js'
+import { colorPickerCallbackId, colorPickerOnChangeNodeId } from '../../utils/logic/colorPickerState.js'
 import { buildDashboardDocument, dashboardDefaultLayout } from '../../utils/dashboardExport.js'
 import { dashboardModuleMapFromCards } from '../../utils/dashboardModuleMap.js'
 import dashboardRuntimeSource from 'virtual:dashboard-runtime'
@@ -51,7 +52,7 @@ import { useNotifications } from '../../contexts/NotificationContext.jsx'
 import { useTheme } from '../../contexts/ThemeContext.jsx'
 import { diagnosticLabel, nodeLine } from '../LogicTree/logicLabels.js'
 import { failureLabel, translations } from '../../utils/translations.js'
-import { moveDebugSession, resolveDebugScreens, getModuleLinks, getUnusedDeclarationIds, getPureIds, captureBookmark, captureSourceNode, isInputButtonCallbackType, isInputButtonNoop, inputValueCallbackType, isInputNumberNoop } from '../../utils/logic/index.js'
+import { moveDebugSession, resolveDebugScreens, getModuleLinks, getUnusedDeclarationIds, getPureIds, captureBookmark, captureSourceNode, isInputButtonCallbackType, isInputButtonNoop, inputValueCallbackType, isInputNumberNoop, isColorPickerCallbackType, isColorPickerNoop } from '../../utils/logic/index.js'
 import { runDebugSession, runSimulation, runTranspilation, runTranspilationChecks, cancelEngineWork, isEngineCancelled } from '../../services/engineRunner.js'
 import { transpilationLanguages } from '../../utils/transpilation/languages.js'
 import { exportWorkspaceFile } from '../../services/workspaceFiles.js'
@@ -366,6 +367,22 @@ export default function Canvas() {
   const inputValueBindings = useMemo(() => new Map(document.cards
     .filter((card) => card.type === 'numberInput' || card.type === 'floatInput' || card.type === 'stringInput')
     .map((card) => [card.id, inputNumberCallbackId(document.project, card.id)])), [document.cards, document.project])
+  // Fonctions `(int[]) -> void` proposées au binding des sélecteurs de couleur.
+  const colorPickerCallbacks = useMemo(() => {
+    const callbacks = []
+    for (const symbol of document.index.symbols.values()) {
+      if (symbol.kind !== 'FunctionDeclaration' || symbol.importedFrom || !isColorPickerCallbackType(symbol.type)) continue
+      if (isColorPickerNoop(document.index.nodes.get(symbol.nodeId))) continue
+      const module = document.index.modules.get(symbol.moduleId)
+      if (!module || module.kind === 'class' || !(module.rootNodeIds ?? []).includes(symbol.nodeId)) continue
+      callbacks.push({ nodeId: symbol.nodeId, name: symbol.name, moduleName: module.name })
+    }
+    return callbacks.sort((left, right) => left.moduleName.localeCompare(right.moduleName) || left.name.localeCompare(right.name))
+  }, [document.index])
+  // Binding courant de chaque sélecteur de couleur, résolu depuis la source.
+  const colorPickerBindings = useMemo(() => new Map(document.cards
+    .filter((card) => card.type === 'rgbPicker' || card.type === 'rgbaPicker')
+    .map((card) => [card.id, colorPickerCallbackId(document.project, card.id)])), [document.cards, document.project])
   // Modules visibles proposés comme destination d'insertion d'un favori.
   const moduleChoices = document.cards.filter((card) => card.type === 'module').map((card) => ({ id: card.id, name: card.name }))
   const functionNode = functionTarget ? document.index.nodes.get(functionTarget) ?? null : null
@@ -787,6 +804,26 @@ export default function Canvas() {
   function handleInputValueTrigger(id, value, autoStart = true) {
     if (!inputNumberCallbackId(document.project, id)) return
     const nodeId = inputNumberOnChangeNodeId(document.project, id)
+    if (!nodeId) return
+    const events = [{ nodeId, value }]
+    if (live.status === 'running' || live.status === 'paused') {
+      liveSession.sendEvents(events)
+      return
+    }
+    if (!autoStart) return
+    handleRunLive()
+    liveSession.sendEvents(events)
+  }
+
+  // Met à jour la couleur d'un sélecteur sans toucher à la source logique.
+  function handleColorPickerChange(id, value) {
+    document.updateColorPicker(id, value)
+  }
+
+  // Déclenche le callback d'un sélecteur avec le tableau de canaux courant.
+  function handleColorPickerTrigger(id, value, autoStart = true) {
+    if (!colorPickerCallbackId(document.project, id)) return
+    const nodeId = colorPickerOnChangeNodeId(document.project, id)
     if (!nodeId) return
     const events = [{ nodeId, value }]
     if (live.status === 'running' || live.status === 'paused') {
@@ -1504,6 +1541,12 @@ export default function Canvas() {
         inputValueCallbacks={inputValueCallbacks}
         inputValueCallbackId={inputValueBindings.get(card.id) ?? null}
         onBindInputValue={(id, functionId) => document.bindInputValue(id, functionId)}
+        onColorPickerViewChange={(id, colorPickerView) => document.updateGeometry(id, { colorPickerView })}
+        onColorPickerChange={handleColorPickerChange}
+        onColorPickerTrigger={handleColorPickerTrigger}
+        colorPickerCallbacks={colorPickerCallbacks}
+        colorPickerCallbackId={colorPickerBindings.get(card.id) ?? null}
+        onBindColorPicker={(id, functionId) => document.bindColorPicker(id, functionId)}
         screenState={screenPlayback ? null : screenStates[card.id] ?? null}
         screenFrames={screenPlayback ? simulationResult.screenFrames : null}
         screenPlaying={screenPlayback && Boolean(execution?.running)}

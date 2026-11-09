@@ -188,6 +188,28 @@ function inputNumberFailure(source, target, analysis = null) {
   }
 }
 
+// Un sélecteur de couleur dépend de l'interface : refus explicite selon ses canaux.
+function hasRgbaPicker(source) {
+  return Array.isArray(source?.modules) && source.modules.some((module) => module?.colorPicker?.channels === 4)
+}
+
+// Un sélecteur RGB reste distinct du sélecteur RGBA.
+function hasRgbPicker(source) {
+  return Array.isArray(source?.modules) && source.modules.some((module) => module?.colorPicker && module.colorPicker.channels !== 4)
+}
+
+// Produit le refus stable opposé à toute transpilation contenant un sélecteur de couleur.
+function colorPickerFailure(source, target, analysis = null, channels = 3) {
+  const code = channels === 4 ? 'TRANSPILE_RGBA_PICKER_UNSUPPORTED' : 'TRANSPILE_RGB_PICKER_UNSUPPORTED'
+  return {
+    ok: false,
+    target,
+    code,
+    diagnostics: [{ code, severity: 'error', message: 'Un sélecteur de couleur SP3 rend le programme non transpilable.', location: { projectId: source?.id ?? null, moduleId: null, nodeId: null, field: null } }],
+    ...(analysis ? { analysis } : {}),
+  }
+}
+
 // Une classe reste locale au moteur tant que les backends ne génèrent pas sa sémantique d'instance.
 function hasClass(source) {
   return Array.isArray(source?.modules) && source.modules.some((module) => module?.kind === 'class')
@@ -217,6 +239,8 @@ export function transpileSelection(source, selection, { target = 'javascript', a
   if (Array.isArray(source?.modules) && source.modules.some((module) => module?.heatmap)) return heatmapFailure(source, target, analysis)
   if (hasLed(source)) return ledFailure(source, target, analysis)
   if (hasRgbLed(source)) return rgbLedFailure(source, target, analysis)
+  if (hasRgbaPicker(source)) return colorPickerFailure(source, target, analysis, 4)
+  if (hasRgbPicker(source)) return colorPickerFailure(source, target, analysis, 3)
   if (hasInputString(source)) return inputStringFailure(source, target, analysis)
   if (hasInputNumber(source)) return inputNumberFailure(source, target, analysis)
   if (hasInputButton(source)) return inputButtonFailure(source, target, analysis)
@@ -241,6 +265,8 @@ export function transpileProgram(source, options = {}) {
   if (Array.isArray(source?.modules) && source.modules.some((module) => module?.heatmap)) return heatmapFailure(source, target, analysis)
   if (hasLed(source)) return ledFailure(source, target, analysis)
   if (hasRgbLed(source)) return rgbLedFailure(source, target, analysis)
+  if (hasRgbaPicker(source)) return colorPickerFailure(source, target, analysis, 4)
+  if (hasRgbPicker(source)) return colorPickerFailure(source, target, analysis, 3)
   if (hasInputString(source)) return inputStringFailure(source, target, analysis)
   if (hasInputNumber(source)) return inputNumberFailure(source, target, analysis)
   if (hasInputButton(source)) return inputButtonFailure(source, target, analysis)

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Activity, AudioWaveform, Bot, Box, Braces, Bug, ChartColumn, ChartLine, ChevronsDownUp, ChevronsUpDown, Clock, Cloud, Code2, Cog, Compass, Cpu, Database, FileCode, Flag, FlaskConical, Folder, Gauge, GitBranch, Globe, Hash, KeyRound, Lightbulb, Lock, Monitor, MousePointerClick, Network, Palette, Puzzle, Repeat, Rocket, Server, Shield, Smile, Sparkles, Target, Terminal, Wrench, Zap } from 'lucide-react'
+import { Activity, AudioWaveform, Blend, Bot, Box, Braces, Bug, ChartColumn, ChartLine, ChevronsDownUp, ChevronsUpDown, Clock, Cloud, Code2, Cog, Compass, Cpu, Database, FileCode, Flag, FlaskConical, Folder, Gauge, GitBranch, Globe, Hash, KeyRound, Lightbulb, Lock, Monitor, MousePointerClick, Network, Palette, Puzzle, Repeat, Rocket, Server, Shield, Smile, Sparkles, Target, Terminal, Wrench, Zap } from 'lucide-react'
 import { minimumModuleSize, moduleTypes } from '../../utils/moduleTypes.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
 import ScreenCanvas from '../ScreenCanvas/ScreenCanvas.jsx'
@@ -14,6 +14,7 @@ import LedCard from '../LedCard/LedCard.jsx'
 import RgbLedCard from '../RgbLedCard/RgbLedCard.jsx'
 import InputButtonCard from '../InputButtonCard/InputButtonCard.jsx'
 import ValueInputCard from '../ValueInputCard/ValueInputCard.jsx'
+import ColorPickerCard from '../ColorPickerCard/ColorPickerCard.jsx'
 import CommentText from '../CommentText/CommentText.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './CanvasModule.css'
@@ -134,7 +135,7 @@ function ModuleEmoji({ emoji, onChange }) {
 }
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onImageFile, onEmojiChange, imageSource = null, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, progressState = null, progressFrames = null, progressPlaying = false, onProgressViewChange, barChartState = null, barChartFrames = null, barChartPlaying = false, onBarChartViewChange, xyPlotState = null, xyPlotFrames = null, xyPlotPlaying = false, onXyPlotViewChange, oscilloscopeState = null, oscilloscopeFrames = null, oscilloscopePlaying = false, onOscilloscopeViewChange, heatmapState = null, heatmapDimensions, onHeatmapViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, rgbLedState = null, rgbLedFrames = null, rgbLedPlaying = false, onRgbLedViewChange, onInputButtonViewChange, onInputChange, inputButtonCallbacks = [], inputButtonCallbackId = null, inputButtonCallbackSupported = true, onBindInputClick, onInputTrigger, onInputValueViewChange, onInputValueChange, onInputValueTrigger, inputValueCallbacks = [], inputValueCallbackId = null, onBindInputValue, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onImageFile, onEmojiChange, imageSource = null, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, progressState = null, progressFrames = null, progressPlaying = false, onProgressViewChange, barChartState = null, barChartFrames = null, barChartPlaying = false, onBarChartViewChange, xyPlotState = null, xyPlotFrames = null, xyPlotPlaying = false, onXyPlotViewChange, oscilloscopeState = null, oscilloscopeFrames = null, oscilloscopePlaying = false, onOscilloscopeViewChange, heatmapState = null, heatmapDimensions, onHeatmapViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, rgbLedState = null, rgbLedFrames = null, rgbLedPlaying = false, onRgbLedViewChange, onInputButtonViewChange, onInputChange, inputButtonCallbacks = [], inputButtonCallbackId = null, inputButtonCallbackSupported = true, onBindInputClick, onInputTrigger, onInputValueViewChange, onInputValueChange, onInputValueTrigger, inputValueCallbacks = [], inputValueCallbackId = null, onBindInputValue, onColorPickerViewChange, onColorPickerChange, onColorPickerTrigger, colorPickerCallbacks = [], colorPickerCallbackId = null, onBindColorPicker, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -197,6 +198,8 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
   const inputButtonView = module.inputButtonView === 'code' ? 'code' : 'button'
   // Une entrée numérique montre son champ ou le code de son module caché.
   const inputNumberView = module.inputNumberView === 'code' ? 'code' : 'input'
+  // Un sélecteur de couleur montre sa roue ou le code de son module caché.
+  const colorPickerView = module.colorPickerView === 'code' ? 'code' : 'picker'
   // La bascule d'en-tête promet l'action inverse de l'état actuel du pliage.
   const expansionLabel = t(expansionState === 'collapse' ? 'canvas.collapseAll' : 'canvas.expandAll')
   // Le zoom sémantique remplace les instructions par les fonctions, puis masque le contenu au niveau modules.
@@ -560,6 +563,19 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
         >
           {inputNumberView === 'code' ? <Hash size={13} strokeWidth={2} aria-hidden="true" /> : <Code2 size={13} strokeWidth={2} aria-hidden="true" />}
         </button>}
+        {definition.hasColorPicker && semanticLevel !== 'modules' && !readOnly && <button
+          type="button"
+          className="canvas-module__view"
+          aria-label={t(colorPickerView === 'code' ? 'colorPicker.viewPicker' : 'colorPicker.viewCode')}
+          aria-pressed={colorPickerView === 'code'}
+          title={t(colorPickerView === 'code' ? 'colorPicker.viewPicker' : 'colorPicker.viewCode')}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => { event.stopPropagation(); onColorPickerViewChange?.(module.id, colorPickerView === 'code' ? 'picker' : 'code') }}
+        >
+          {colorPickerView === 'code'
+            ? (definition.colorPickerChannels === 4 ? <Blend size={13} strokeWidth={2} aria-hidden="true" /> : <Palette size={13} strokeWidth={2} aria-hidden="true" />)
+            : <Code2 size={13} strokeWidth={2} aria-hidden="true" />}
+        </button>}
         {module.locked && !readOnly && <button
           type="button"
           className="canvas-module__lock"
@@ -596,6 +612,14 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
             : inputNumberView === 'code'
               ? (deferContent ? null : structuredContent)
               : <ValueInputCard card={module} valueType={definition.inputValueType} callbacks={inputValueCallbacks} boundCallbackId={inputValueCallbackId} onBind={(functionId) => onBindInputValue?.(module.id, functionId)} onChange={(value) => onInputValueChange?.(module.id, value)} onTrigger={(value, autoStart) => onInputValueTrigger?.(module.id, value, autoStart)} />}
+        </div>
+      ) : definition.hasColorPicker ? (
+        <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>
+          {!contentVisible
+            ? null
+            : colorPickerView === 'code'
+              ? (deferContent ? null : structuredContent)
+              : <ColorPickerCard card={module} channels={definition.colorPickerChannels} callbacks={colorPickerCallbacks} boundCallbackId={colorPickerCallbackId} onBind={(functionId) => onBindColorPicker?.(module.id, functionId)} onChange={(value) => onColorPickerChange?.(module.id, value)} onTrigger={(value, autoStart) => onColorPickerTrigger?.(module.id, value, autoStart)} />}
         </div>
       ) : definition.hasLed ? (
         <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>
