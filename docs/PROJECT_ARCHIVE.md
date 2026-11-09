@@ -2,6 +2,11 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Alignement documentaire avant publication Pages — 9 novembre 2026
+
+- Revue ciblée d’`AGENTS.md`, du README, de `docs/PROJECT_STATE.md`, du format workspace, du rapport LaTeX et de la documentation visuelle. Correction des anciennes descriptions borné/autonome, des callbacks live et du renouvellement de l’aléatoire ; clarification des contrats et des limites de la mini-carte. Aucun code applicatif ni capture modifié.
+- Vérifications : rapport PDF recompilé via `pnpm docs:ast`, 119 liens et ressources locaux des quatre pages visuelles vérifiés, aucun fichier manquant. Les 624 tests et le build frontend du changement précédent ne sont pas relancés pour ces seules modifications documentaires.
+
 ## Dashboard : contrats en panneaux dédiés — 9 novembre 2026
 
 - Les contrats quittent le panneau **Output** et deviennent des panneaux par module, placés au même niveau que les commentaires. Chaque panneau reprend le nom du module, la mention **Contrats** et liste chaque règle avec son nœud, son type et son libellé traduit.
