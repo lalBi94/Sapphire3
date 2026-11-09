@@ -2,6 +2,11 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Identité commune à la vitrine et à la documentation — 9 novembre 2026
+
+- Suppression des flèches diagonales décoratives de l'accueil. Polices et curseurs extraits de `home.css` vers `identity.css`, partagé par les cinq pages. Palette Sapphire et géométrie biseautée appliquées à la documentation, au modèle AST, à la galerie et à l'état du projet, sans modifier les captures ni les programmes exportés.
+- Conservation des fonctionnalités documentaires ; contraste des annotations sans repère amélioré, marqueurs agrandis à 28 px et tableaux défilables rendus focusables au clavier. Contrôles Chromium : Inter/Space Grotesk chargées, absence de débordement à 375 px, épinglage d'une annotation fonctionnel. Axe-core rejoué : plus de défaut de contraste ni de tableau inaccessible après stabilisation ; les marqueurs sur les captures présentent encore des limites de taille effective lorsqu'ils se chevauchent ou sont rognés au bord. Pas de certification WCAG exhaustive.
+
 ## Accueil vitrine séparé de la documentation — 9 novembre 2026
 
 - Nouvel accueil dans `abstract/visual/index.html` : accroche « Le code. Sous un autre angle. », GitHub et téléchargement via les releases, trois blocs inspectables, trois vues de captures existantes, accès aux dashboards et porte d'entrée vers la documentation. Illustration explicitement non exécutable ; pas de faux Run, de téléchargement automatique ni de requête GitHub au chargement. Pas d'asset Marathon/Bungie.

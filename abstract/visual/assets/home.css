@@ -1,25 +1,4 @@
 /* Accueil vitrine : géométrie Void/Acid et palette Sapphire, sans modifier la documentation. */
-@font-face {
-  font-family:Inter;
-  src:url('fonts/inter-latin.woff2') format('woff2');
-  font-weight:100 900;
-  font-display:swap;
-}
-
-@font-face {
-  font-family:Space;
-  src:url('fonts/space-grotesk-latin.woff2') format('woff2');
-  font-weight:300 700;
-  font-display:swap;
-}
-
-@font-face {
-  font-family:Mono;
-  src:url('fonts/jetbrains-mono-latin.woff2') format('woff2');
-  font-weight:100 800;
-  font-display:swap;
-}
-
 :root {
   --bg:#0e0e12;
   --surface:#19191f;
@@ -853,15 +832,6 @@ h2 span {
 .feedback.is-visible {
   opacity:1;
   transform:none;
-}
-
-@media(hover:hover) and (pointer:fine) {
-  body {
-    cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M4 3L21 14L13 16L9 24Z' fill='%23f5d547' stroke='%230e0e12' stroke-width='2'/%3E%3C/svg%3E") 4 3,auto;
-  }
-  a,button {
-    cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M5 11V5H11M17 5H23V11M23 17V23H17M11 23H5V17' fill='none' stroke='%23f5d547' stroke-width='2'/%3E%3Ccircle cx='14' cy='14' r='2' fill='%23c4b1ff'/%3E%3C/svg%3E") 14 14,pointer;
-  }
 }
 
 @media(min-width:1500px) {

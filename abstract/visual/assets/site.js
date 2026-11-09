@@ -11,6 +11,9 @@
   // Retourne les éléments correspondants sous forme de tableau.
   function selectAll(selector, root) { return Array.prototype.slice.call((root || document).querySelectorAll(selector)) }
 
+  // Rend les tableaux défilables au clavier sur les écrans étroits.
+  selectAll('table').forEach(function (table) { table.tabIndex = 0 })
+
   // Retrouve un rectangle d'annotation, sur la capture ou sur un nœud de l'arbre.
   function rectOf(scene, note) {
     var data = SHOTS[scene]
