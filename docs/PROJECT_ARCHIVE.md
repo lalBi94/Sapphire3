@@ -2,6 +2,17 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Distribution bêta 0.1.0-beta.8 et publication du site — 9 novembre 2026
+
+- `package.json` versionné `0.1.0-beta.8` ; sources poussées sur `master` (`bbcff80`), tag `v0.1.0-beta.8`, release **publiée en préversion** avec cinq assets. Notes : `docs/releases/v0.1.0-beta.8.md`.
+- Constructions : `pnpm dist:all` pour le ZIP Windows, les archives Linux x64/ARM64 et le bundle macOS universel, puis `node scripts/build-installer.mjs` avec Inno Setup 6.7.3. Le sidecar C++ a été reconstruit avec CMake, Zig et Ninja.
+- **Windows ZIP** : 7 057 332 octets, SHA-256 `87ccb62ac2ed1b0a118eee28c96a369c36c9a88e317a1d3d98f8ef045e62529e`. **Windows Setup** : 8 576 757 octets, SHA-256 `8bac285dcc35d9b6aeface39e90130b3437aa16a6f4817abbe981bd697dcd9b6`.
+- **Linux x64** : 10 518 344 octets, SHA-256 `98acb39402af026f866a7388ee073ccc7bc1c81cd174eb1a84efe68f4ca44d27`. **Linux ARM64** : 10 553 342 octets, SHA-256 `d95b6484be63903c251f3aadccbb105f3670300e5605dd3e380e6314976b6b3f`.
+- **macOS Universal** : 10 438 169 octets, SHA-256 `27009bc277ae28ad21bc4363f1d5dfdaec6e0c182ebd1ce0275b6cf339cfdca5`.
+- Vérifications : **624 tests Node/Python** et 3 tests du site réussis ; tests C++ du sidecar, IPC Discord et scénario sans Discord réussis ; build Vite réussi ; archives auditées (`VERSION.txt` = `0.1.0-beta.8`, licences et notices présentes, permissions Unix conservées, `dist/` sans sources maps ni fixtures). ZIP Windows extrait et lancé : fenêtre `Sapphire 3` répondante, sidecar `discord-presence` démarré depuis le paquet. Windows ZIP et installateur retéléchargés depuis GitHub avec SHA-256 identiques.
+- **Vitrine** : branche `gh-pages` poussée sur `a27c262` ; build GitHub Pages terminé sur ce commit. `https://lalbi94.github.io/Sapphire3/visual/` vérifié : sélecteur de langue, `site-i18n.js`, liens de téléchargement `v0.1.0-beta.8` et bouton de recherche statique présents ; la racine redirige vers `visual/`.
+- Limites : Linux et macOS compilés mais non exécutés ; installation/désinstallation Windows non rejouées ; Windows non signé et macOS non notarié ; pas de nouvelle campagne exhaustive des dialogues natifs ni de l'accessibilité.
+
 ## Vitrine multilingue — 9 novembre 2026
 
 - L'accueil vitrine est traduit en huit langues avec l'anglais par défaut : `assets/site-i18n.js` porte les dictionnaires et applique `data-i18n`, `data-i18n-html`, `data-i18n-aria` et `data-i18n-title`. La langue est mémorisée dans `localStorage` sous `sapphire3-site-language` et la direction passe à `rtl` pour l'arabe.
