@@ -142,6 +142,13 @@ button {
   border:1px solid var(--line);
 }
 
+.nav-actions {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-shrink:0;
+}
+
 .site-language {
   position:relative;
   display:inline-flex;
@@ -1206,7 +1213,6 @@ h2 span {
 @media(max-width:560px){
   .nav-shell{flex-wrap:wrap;gap:8px 10px;padding-block:10px;min-height:0}
   .nav-shell .brand{order:1}
-  .site-language{order:2}
-  .search-trigger{order:3}
-  .nav-shell nav{order:4;width:100%;justify-content:space-between;gap:12px}
+  .nav-actions{order:2}
+  .nav-shell nav{order:3;width:100%;justify-content:space-between;gap:12px}
 }
