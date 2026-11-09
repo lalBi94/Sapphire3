@@ -87,3 +87,13 @@ jobs:
             echo "::error::Dashboard showcase is stale. Run pnpm dashboards:build and commit the generated files."
             exit 1
           fi
+
+      - name: Verify public site
+        run: |
+          pnpm site:test
+          pnpm site:search
+          if [ -n "$(git status --porcelain -- abstract/visual/assets/search-index.js)" ]; then
+            git status --short -- abstract/visual/assets/search-index.js
+            echo "::error::Search index is stale. Run pnpm site:search and commit the generated file."
+            exit 1
+          fi

@@ -6,6 +6,8 @@ Application **desktop Windows, Linux et macOS** de programmation visuelle, en b�
 
 **Voir les exemples en ligne : [dashboards interactifs](https://lalbi94.github.io/Sapphire3/visual/dashboards.html)** — douze dashboards autonomes générés depuis les exemples locaux.
 
+**Site public : [accueil, téléchargement, dashboards et documentation](https://lalbi94.github.io/Sapphire3/visual/)** — vitrine séparée de la documentation détaillée, avec recherche locale et animations respectant la réduction du mouvement.
+
 ## Installation et démarrage
 
 Pour un poste Windows sans Node.js, utilisez l’**installateur** `Sapphire3-<version>-windows-setup.exe` (installation par utilisateur, sans droit administrateur) ou le **ZIP portable**. Les deux contiennent la même application ; l’installateur ajoute les raccourcis et la désinstallation. Tant qu’aucun certificat de signature n’est configuré, le paquet est explicitement non signé.

@@ -193,19 +193,7 @@
   window.addEventListener('resize', updateScroll)
   updateScroll()
 
-  // Apparition douce des sections et des vignettes, désactivée si le mouvement est réduit.
-  var revealTargets = selectAll('.page-home main > section, .doc-content > section, .gallery a')
-  if (!reduceMotion && 'IntersectionObserver' in window) {
-    revealTargets.forEach(function (element) { element.classList.add('reveal') })
-    var observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (!entry.isIntersecting) return
-        entry.target.classList.add('is-visible')
-        observer.unobserve(entry.target)
-      })
-    }, { rootMargin: '0px', threshold: 0 })
-    revealTargets.forEach(function (element) { observer.observe(element) })
-  }
+  // Les apparitions sont gérées par motion.js ; sans bibliothèque, tout reste visible.
 
   // Copie des blocs de code, avec retour visible.
   selectAll('pre').forEach(function (pre) {

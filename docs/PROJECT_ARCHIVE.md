@@ -2,6 +2,14 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Animations et recherche locale du site — 9 novembre 2026
+
+- Accueil enrichi avec GSAP/ScrollTrigger et SplitType : révélation du titre par lettres, entrée du HUD, tracés SVG progressifs, scènes de section et parallaxe légère du modèle. La documentation reçoit des révélations courtes, sans ScrollTrigger complexe. Lenis lisse le défilement sur les cinq pages.
+- Les bibliothèques sont copiées localement dans `abstract/visual/assets/vendor/` (GSAP 3.15.1 et ScrollTrigger, Lenis 1.3.27, SplitType 0.3.4), sans CDN. Les licences et notices sont fournies, y compris la licence standard GSAP distincte de MIT.
+- `motion.js` respecte `prefers-reduced-motion`, suspend l'horloge en arrière-plan, nettoie les scènes au départ et restaure le DOM. `search.js` ajoute une palette accessible (Ctrl/Cmd+K, flèches, Entrée, Échap), un classement maison tolérant aux accents et fautes simples, et un catalogue généré depuis les sections réelles par `pnpm site:search`.
+- Vérifications : `pnpm site:test` (classement, requêtes hostiles, liens et ancres) et `node --check` des scripts. Contrôles Chromium : GSAP/Lenis/SplitType chargés, titre accessible après découpage, barre de progression liée au scroll, recherche « debogage » et « classe », navigation clavier, aucun débordement à 375 px, aucune erreur console. Les captures existantes n'ont pas été modifiées.
+- Limite : les animations restent désactivées en mouvement réduit ; le rendu a été contrôlé dans Chromium, pas dans tous les navigateurs. La recherche ne fait pas de recherche sémantique ni distante.
+
 ## Identité commune à la vitrine et à la documentation — 9 novembre 2026
 
 - Suppression des flèches diagonales décoratives de l'accueil. Polices et curseurs extraits de `home.css` vers `identity.css`, partagé par les cinq pages. Palette Sapphire et géométrie biseautée appliquées à la documentation, au modèle AST, à la galerie et à l'état du projet, sans modifier les captures ni les programmes exportés.
