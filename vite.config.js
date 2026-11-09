@@ -13,6 +13,7 @@ const root = path.dirname(fileURLToPath(import.meta.url))
 const dashboardSpecs = new Map([
   ['virtual:dashboard-runtime', { entry: 'src/dashboard/runtimeEntry.js', name: 'SapphireDashboardRuntime' }],
   ['virtual:dashboard-client', { entry: 'src/dashboard/client.js', name: 'SapphireDashboardClient' }],
+  ['virtual:dashboard-live', { entry: 'src/services/live.worker.js', name: 'SapphireDashboardLive' }],
 ])
 
 // Polices embarquées dans l'export, chargées uniquement au moment de générer le dashboard.

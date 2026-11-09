@@ -105,6 +105,9 @@ export function dashboardLayoutStorageKey(layoutKey) {
 export function dashboardLabels(t) {
   return {
     run: t('nav.run'),
+    live: t('dashboard.live'),
+    liveHint: t('dashboard.liveHint'),
+    feedbackLive: t('dashboard.feedbackLive'),
     pause: t('simulation.pause'),
     resume: t('simulation.resume'),
     stop: t('simulation.stop'),
@@ -135,6 +138,7 @@ export function dashboardLabels(t) {
     error: t('exercise.error'),
     noOutput: t('simulation.noOutput'),
     step: t('flow.step'),
+    steps: t('simulation.steps'),
     on: t('dashboard.on'),
     off: t('dashboard.off'),
     inputPressed: t('inputButton.pressed'),

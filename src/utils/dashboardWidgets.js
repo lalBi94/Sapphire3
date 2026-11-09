@@ -4,7 +4,7 @@ import { ledGlobalName } from './logic/ledState.js'
 import { rgbLedGlobalName } from './logic/rgbLedState.js'
 import { barChartGlobalName } from './logic/barChartState.js'
 import { heatmapGlobalName } from './logic/heatmapState.js'
-import { inputButtonGlobalName, inputButtonCallbackId } from './logic/inputButtonState.js'
+import { inputButtonGlobalName, inputButtonCallbackId, inputButtonOnClickNodeId } from './logic/inputButtonState.js'
 
 export const dashboardWidgetTypes = Object.freeze(['screen', 'led', 'rgbLed', 'gauge', 'progress', 'barChart', 'xyPlot', 'oscilloscope', 'heatmap', 'toggleButton', 'holdButton', 'comment'])
 
@@ -61,6 +61,7 @@ export function dashboardWidgets(project, cards) {
           mode: module.inputButton?.mode === 'hold' ? 'hold' : 'toggle',
           globalNodeId: declaration?.id ?? null,
           callbackFunctionId: inputButtonCallbackId(project, module.id),
+          onClickNodeId: inputButtonOnClickNodeId(project, module.id),
         }
       }
       if (card.type === 'led') {

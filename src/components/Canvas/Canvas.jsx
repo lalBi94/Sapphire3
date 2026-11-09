@@ -34,6 +34,7 @@ import { collectInputButtonValues, inputButtonCallbackId, inputButtonOnClickNode
 import { buildDashboardDocument, dashboardDefaultLayout } from '../../utils/dashboardExport.js'
 import dashboardRuntimeSource from 'virtual:dashboard-runtime'
 import dashboardClientSource from 'virtual:dashboard-client'
+import dashboardLiveSource from 'virtual:dashboard-live'
 import { buildDiscordActivity } from '../../utils/discordPresence.js'
 import { layoutModules } from '../../utils/moduleLayout.js'
 import { buildDebugValues } from '../../utils/memorySpace.js'
@@ -977,6 +978,7 @@ export default function Canvas() {
         layoutKey: config.layoutKey,
         runtimeSource: dashboardRuntimeSource,
         clientSource: dashboardClientSource,
+        liveSource: dashboardLiveSource,
         labels: dashboardLabels(t),
         kindLabels,
         project,

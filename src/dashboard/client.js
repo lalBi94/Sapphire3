@@ -34,7 +34,7 @@ import katexSize3Regular from '../../node_modules/katex/dist/fonts/KaTeX_Size3-R
 import katexSize4Regular from '../../node_modules/katex/dist/fonts/KaTeX_Size4-Regular.woff2?inline'
 import katexTypewriterRegular from '../../node_modules/katex/dist/fonts/KaTeX_Typewriter-Regular.woff2?inline'
 import { parseMathText, renderMath } from '../utils/mathText.js'
-import { clampSimulationSpeed } from '../utils/simulationSpeed.js'
+import { clampSimulationSpeed, liveSpeedDefault, liveTickDelay } from '../utils/simulationSpeed.js'
 import { oscilloscopeColor } from '../utils/oscilloscopeColors.js'
 import {
   dashboardColumns,
@@ -169,6 +169,7 @@ function start(config, runtimeSource) {
   const statusLabel = document.querySelector('[data-status-label]')
   const progressFill = document.querySelector('[data-progress]')
   const progressTrack = document.querySelector('[data-progress-track]')
+  const liveButton = document.querySelector('[data-action="live"]')
   const runButton = document.querySelector('[data-action="run"]')
   const autonomousButton = document.querySelector('[data-action="autonomous"]')
   const runButtonLabel = document.querySelector('[data-run-label]')
@@ -207,12 +208,21 @@ function start(config, runtimeSource) {
     layout: readDashboardLayout(window.localStorage, storageKey, defaults, panels),
     mode: readMode(),
     speed: 1,
+    liveSpeed: liveSpeedDefault,
+    live: false,
+    steps: 0,
     language: initialLanguage,
     autonomous: false,
     inputs: Object.fromEntries(inputWidgets.filter((widget) => widget.globalNodeId).map((widget) => [widget.globalNodeId, Boolean(widget.pressed)])),
   }
   let worker = null
   let workerUrl = null
+  let liveWorker = null
+  let liveWorkerUrl = null
+  let liveWaiting = false
+  let livePendingInputs = null
+  let livePendingEvents = []
+  let liveTimer = 0
   let requestId = 0
   let animationFrame = 0
   let lastFrame = 0
@@ -345,7 +355,7 @@ function start(config, runtimeSource) {
           handleInputChange(widget, next)
           clearInputTimer(widget)
           if (next && widget?.callbackFunctionId) {
-            const timer = window.setInterval(() => runInputCallback(widget, true), 500)
+            const timer = window.setInterval(() => triggerInputCallback(widget, true), 500)
             inputRepeatTimers.set(widget.id, timer)
           }
         })
@@ -625,6 +635,11 @@ function start(config, runtimeSource) {
     if (speedSlider) speedSlider.setAttribute('aria-label', labels.speed ?? 'Speed')
     if (pauseButtonLabel) pauseButtonLabel.textContent = labels.pause ?? 'Pause'
     if (stopButtonLabel) stopButtonLabel.textContent = labels.stop ?? 'Stop'
+    if (liveButton) {
+      const span = liveButton.querySelector('span')
+      if (span) span.textContent = labels.live ?? 'Run live'
+      liveButton.title = labels.liveHint ?? 'Run live'
+    }
     autonomousButton.querySelector('span').textContent = labels.autonomous
     autonomousButton.title = labels.autonomousHint
     if (panelsButtonLabel) panelsButtonLabel.textContent = labels.panels ?? 'Panels'
@@ -708,21 +723,22 @@ function start(config, runtimeSource) {
   }
 
   // Peint la valeur et la portion remplie du curseur de vitesse.
-  function renderSpeed(speed) {
+  function renderSpeed(speed, live = state.live) {
     if (!speedSlider) return
     const maximum = Math.max(1, Number(speedSlider.max) || 100)
     const range = maximum - 1
     const progress = range > 0 ? ((speed - 1) / range) * 100 : 0
     speedSlider.style.setProperty('--db-speed-progress', `${progress}%`)
-    speedSlider.setAttribute('aria-valuetext', `×${speed}`)
-    if (speedValue) speedValue.textContent = `×${speed}`
+    const text = live ? String(speed) : `×${speed}`
+    speedSlider.setAttribute('aria-valuetext', text)
+    if (speedValue) speedValue.textContent = text
   }
 
   // Met le curseur de vitesse à jour.
   function applySpeed() {
-    const speed = clampSimulationSpeed(state.speed)
+    const speed = clampSimulationSpeed(state.live ? state.liveSpeed : state.speed)
     if (speedSlider) speedSlider.value = String(speed)
-    renderSpeed(speed)
+    renderSpeed(speed, state.live)
   }
 
   // Construit le menu de visibilité de tous les panneaux.
@@ -778,21 +794,25 @@ function start(config, runtimeSource) {
       error: labels.error ?? 'Error',
     }[state.status] ?? state.status
     status.dataset.kind = state.status
-    statusLabel.textContent = statusText
-    runButton.disabled = state.status === 'running' || state.status === 'preparing'
-    autonomousButton.disabled = state.status === 'running' || state.status === 'preparing' || state.status === 'paused'
+    status.dataset.live = String(Boolean(state.live))
+    statusLabel.textContent = state.live ? `${statusText} · ${state.steps} ${labels.steps ?? 'steps'}` : statusText
+    if (liveButton) liveButton.disabled = !config.liveWorkerSource || state.live
+    runButton.disabled = state.live ? state.status !== 'paused' : state.status === 'running' || state.status === 'preparing'
+    autonomousButton.disabled = state.live || state.status === 'running' || state.status === 'preparing' || state.status === 'paused'
     const runLabel = state.status === 'paused' ? (labels.resume ?? 'Resume') : (labels.run ?? 'Run')
     if (runButtonLabel) runButtonLabel.textContent = runLabel
     runButton.title = runLabel
     runButton.setAttribute('aria-label', runLabel)
     pauseButton.disabled = state.status !== 'running' && state.status !== 'preparing'
     stopButton.disabled = state.status === 'idle'
-    const total = Array.isArray(state.result?.trace) ? state.result.trace.length : 0
-    progressFill.style.width = total > 0 ? `${Math.min(100, ((state.index + 1) / total) * 100)}%` : '0%'
-    progressTrack.disabled = total === 0
+    const total = state.live ? 0 : Array.isArray(state.result?.trace) ? state.result.trace.length : 0
+    progressFill.style.width = state.live ? '0%' : total > 0 ? `${Math.min(100, ((state.index + 1) / total) * 100)}%` : '0%'
+    progressTrack.disabled = state.live || total === 0
     progressTrack.max = String(Math.max(0, total - 1))
-    progressTrack.value = String(state.index)
-    if (total > 0) {
+    progressTrack.value = String(state.live ? 0 : state.index)
+    if (state.live) {
+      progressTrack.setAttribute('aria-valuetext', `${state.steps} ${labels.steps ?? 'steps'}`)
+    } else if (total > 0) {
       progressTrack.setAttribute('aria-valuetext', formatTemplate(labels.step ?? 'Step {current} / {total}', { current: state.index + 1, total }))
     } else {
       progressTrack.removeAttribute('aria-valuetext')
@@ -1501,6 +1521,7 @@ function start(config, runtimeSource) {
 
   // Met la simulation en pause et revient au pas choisi sur la barre.
   function handleSeek(index) {
+    if (state.live) return
     state = dashboardExecutionReducer(state, { type: 'seek', index })
     cancelAnimation()
     renderControls()
@@ -1530,8 +1551,18 @@ function start(config, runtimeSource) {
     widget.pressed = next
     if (widget.globalNodeId) state.inputs = { ...state.inputs, [widget.globalNodeId]: next }
     renderStates()
+    if (state.live) {
+      if (widget.callbackFunctionId && trigger && widget.onClickNodeId) sendLiveEvents([{ nodeId: widget.onClickNodeId, value: next }])
+      else if (widget.globalNodeId) sendLiveInputs(state.inputs)
+      return
+    }
     if (widget.callbackFunctionId) {
-      if (trigger) runInputCallback(widget, next)
+      if (!trigger) return
+      if (config.liveWorkerSource && widget.onClickNodeId && startLiveDashboard()) {
+        sendLiveEvents([{ nodeId: widget.onClickNodeId, value: next }])
+        return
+      }
+      runInputCallback(widget, next)
       return
     }
     if (state.status === 'idle' && !state.result) return
@@ -1545,6 +1576,16 @@ function start(config, runtimeSource) {
     renderStates()
     announce(labels.feedbackStarted ?? 'Execution started.')
     runProgram(requestId)
+  }
+
+  // Déclenche la fonction liée dans le live actif, ou en one-shot borné hors live.
+  function triggerInputCallback(widget, pressed) {
+    if (!widget?.callbackFunctionId) return
+    if (state.live && widget.onClickNodeId) {
+      sendLiveEvents([{ nodeId: widget.onClickNodeId, value: Boolean(pressed) }])
+      return
+    }
+    runInputCallback(widget, pressed)
   }
 
   // Exécute la fonction liée au bouton avec l'état courant.
@@ -1564,6 +1605,14 @@ function start(config, runtimeSource) {
   // Lance une nouvelle session, ou reprend une session en pause.
   function handleRun() {
     callbackRequest = false
+    if (state.live) {
+      if (state.status !== 'paused') return
+      state = { ...state, status: 'running' }
+      renderControls()
+      scheduleLiveTick()
+      announce(labels.feedbackResumed ?? 'Execution resumed.')
+      return
+    }
     if (state.status === 'paused') {
       state = dashboardExecutionReducer(state, { type: 'resume' })
       renderControls()
@@ -1586,6 +1635,13 @@ function start(config, runtimeSource) {
 
   // Suspend l'animation et conserve l'état visible.
   function handlePause() {
+    if (state.live) {
+      state = { ...state, status: 'paused' }
+      cancelLiveTick()
+      renderControls()
+      announcePaused()
+      return
+    }
     state = dashboardExecutionReducer(state, { type: 'pause' })
     cancelAnimation()
     renderControls()
@@ -1594,6 +1650,7 @@ function start(config, runtimeSource) {
 
   // Démarre le même Run borné, mais la lecture boucle jusqu'à Pause ou Stop.
   function handleAutonomous() {
+    if (state.live) return
     if (state.status === 'running' || state.status === 'preparing' || state.status === 'paused') return
     callbackRequest = false
     clearInputTimers()
@@ -1611,6 +1668,10 @@ function start(config, runtimeSource) {
   // Arrête la session et revient à l'état initial des widgets.
   function handleStop() {
     callbackRequest = false
+    if (state.live) {
+      stopLiveDashboard()
+      return
+    }
     clearInputTimers()
     requestId += 1
     terminateWorker()
@@ -1620,6 +1681,12 @@ function start(config, runtimeSource) {
     renderControls()
     renderStates()
     announce(labels.feedbackStopped ?? 'Stopped — session reset.')
+  }
+
+  // Démarre le vrai Run live demandé explicitement.
+  function handleLive() {
+    if (state.live) return
+    startLiveDashboard()
   }
 
   // Lance le moteur réel dans un worker, ou sur le fil courant si le navigateur le refuse.
@@ -1766,6 +1833,180 @@ function start(config, runtimeSource) {
     }
   }
 
+  // Annule la reprise programmée du live.
+  function cancelLiveTick() {
+    if (!liveTimer) return
+    window.clearTimeout(liveTimer)
+    liveTimer = 0
+  }
+
+  // Termine le worker live et libère son URL blob.
+  function terminateLiveWorker() {
+    cancelLiveTick()
+    liveWaiting = false
+    livePendingInputs = null
+    livePendingEvents = []
+    if (liveWorker) {
+      liveWorker.terminate()
+      liveWorker = null
+    }
+    if (liveWorkerUrl) {
+      URL.revokeObjectURL(liveWorkerUrl)
+      liveWorkerUrl = null
+    }
+  }
+
+  // Envoie les entrées et événements en attente au worker live.
+  function flushLiveResponse() {
+    if (!liveWorker) return
+    const inputs = livePendingInputs ?? {}
+    const events = livePendingEvents
+    livePendingInputs = null
+    livePendingEvents = []
+    liveWaiting = false
+    liveWorker.postMessage({ type: 'response', inputs, events })
+  }
+
+  // Programme la tranche suivante selon la vitesse live.
+  function scheduleLiveTick() {
+    cancelLiveTick()
+    if (!state.live || state.status !== 'running' || !liveWorker || !liveWaiting) return
+    liveTimer = window.setTimeout(() => {
+      liveTimer = 0
+      if (!state.live || state.status !== 'running' || !liveWorker || !liveWaiting) return
+      liveWaiting = false
+      liveWorker.postMessage({ type: 'tick' })
+    }, liveTickDelay(state.liveSpeed))
+  }
+
+  // Installe une frame live dans l'état affiché, sans trace bornée.
+  function applyLiveFrame(frame) {
+    liveWaiting = true
+    const result = {
+      ok: true,
+      output: frame.output ?? [],
+      outputSteps: [],
+      trace: frame.currentNodeId ? [frame.currentNodeId] : [],
+      screens: frame.screens ?? {},
+      gauges: frame.gauges ?? {},
+      leds: frame.leds ?? {},
+      rgbLeds: frame.rgbLeds ?? {},
+      progresses: frame.progresses ?? {},
+      barCharts: frame.barCharts ?? {},
+      xyPlots: frame.xyPlots ?? {},
+      oscilloscopes: frame.oscilloscopes ?? {},
+      heatmaps: frame.heatmaps ?? {},
+    }
+    state = {
+      ...state,
+      live: true,
+      status: state.status === 'paused' ? 'paused' : 'running',
+      index: 0,
+      steps: Number(frame.steps) || 0,
+      result,
+      error: null,
+    }
+    renderControls()
+    renderStates()
+    if (livePendingInputs || livePendingEvents.length > 0) {
+      flushLiveResponse()
+      return
+    }
+    if (state.status === 'running') scheduleLiveTick()
+  }
+
+  // Traite les messages du worker live.
+  function handleLiveMessage(data) {
+    if (data.type === 'frame') {
+      applyLiveFrame(data.state ?? {})
+      return
+    }
+    if (data.type === 'done') {
+      const stopped = data.result?.stopped === true
+      terminateLiveWorker()
+      state = {
+        ...state,
+        live: false,
+        status: stopped ? 'stopped' : 'completed',
+        steps: Number(data.result?.steps) || state.steps,
+      }
+      renderControls()
+      renderStates()
+      applySpeed()
+      announce(stopped ? (labels.feedbackStopped ?? 'Stopped — session reset.') : (labels.completed ?? 'Completed'))
+      return
+    }
+    if (data.type === 'error') {
+      terminateLiveWorker()
+      state = { ...state, live: false, status: 'error', error: data.error?.code ?? 'SIMULATION_FAILED', result: null }
+      renderControls()
+      renderStates()
+      applySpeed()
+      announce(labels.error ?? 'Error')
+    }
+  }
+
+  // Démarre le vrai interpréteur coopératif dans un worker dédié.
+  function startLiveDashboard() {
+    if (!config.liveWorkerSource) return false
+    requestId += 1
+    terminateWorker()
+    cancelAnimation()
+    clearInputTimers()
+    terminateLiveWorker()
+    state = { ...state, ...dashboardExecutionInitial, live: true, steps: 0, status: 'preparing', result: null, error: null, autonomous: false }
+    renderControls()
+    renderStates()
+    applySpeed()
+    announce(labels.feedbackLive ?? 'Live execution started.')
+    try {
+      liveWorkerUrl = URL.createObjectURL(new Blob([config.liveWorkerSource], { type: 'text/javascript' }))
+      liveWorker = new Worker(liveWorkerUrl)
+      liveWorker.onmessage = (event) => handleLiveMessage(event.data ?? {})
+      liveWorker.onerror = (event) => {
+        event.preventDefault?.()
+        terminateLiveWorker()
+        state = { ...state, live: false, status: 'error', error: 'SIMULATION_FAILED', result: null }
+        renderControls()
+        renderStates()
+        announce(labels.error ?? 'Error')
+      }
+      liveWorker.postMessage({ type: 'start', project: config.project, inputs: state.inputs, sliceSteps: 400 })
+      return true
+    } catch {
+      terminateLiveWorker()
+      state = { ...state, live: false, status: 'error', error: 'SIMULATION_FAILED', result: null }
+      renderControls()
+      renderStates()
+      announce(labels.error ?? 'Error')
+      return false
+    }
+  }
+
+  // Arrête le live et revient à l'état initial des widgets.
+  function stopLiveDashboard() {
+    terminateLiveWorker()
+    state = { ...state, ...dashboardExecutionInitial, live: false, steps: 0 }
+    renderControls()
+    renderStates()
+    applySpeed()
+    announce(labels.feedbackStopped ?? 'Stopped — session reset.')
+  }
+
+  // Envoie les entrées historiques `isPress` au live.
+  function sendLiveInputs(inputs) {
+    if (!liveWorker) return
+    livePendingInputs = inputs
+    if (liveWaiting) flushLiveResponse()
+  }
+
+  // Envoie les événements onClick au live.
+  function sendLiveEvents(events) {
+    if (!liveWorker || !Array.isArray(events) || events.length === 0) return
+    livePendingEvents.push(...events)
+    if (liveWaiting) flushLiveResponse()
+  }
+
   // Capture un déplacement ou un redimensionnement, puis persiste la disposition.
   function bindPointer(handle, panelId, mode, ignoreButtons = false) {
     handle.addEventListener('pointerdown', (event) => {
@@ -1831,6 +2072,7 @@ function start(config, runtimeSource) {
   }
 
   progressTrack.addEventListener('input', () => handleSeek(progressTrack.value))
+  if (liveButton) liveButton.addEventListener('click', handleLive)
   runButton.addEventListener('click', handleRun)
   autonomousButton.addEventListener('click', handleAutonomous)
   pauseButton.addEventListener('click', handlePause)
@@ -1865,10 +2107,20 @@ function start(config, runtimeSource) {
   }
   if (speedSlider) {
     speedSlider.addEventListener('input', () => {
-      renderSpeed(clampSimulationSpeed(speedSlider.value))
+      const value = clampSimulationSpeed(speedSlider.value)
+      if (state.live) state.liveSpeed = value
+      renderSpeed(value, state.live)
     })
     speedSlider.addEventListener('change', () => {
-      state.speed = clampSimulationSpeed(speedSlider.value)
+      const value = clampSimulationSpeed(speedSlider.value)
+      if (state.live) {
+        state.liveSpeed = value
+        applySpeed()
+        announce(formatTemplate(labels.feedbackSpeed ?? 'Speed ×{speed}.', { speed: value }))
+        if (state.status === 'running') scheduleLiveTick()
+        return
+      }
+      state.speed = value
       applySpeed()
       announce(formatTemplate(labels.feedbackSpeed ?? 'Speed ×{speed}.', { speed: state.speed }))
       if (state.status === 'running') startAnimation()
@@ -1895,6 +2147,7 @@ function start(config, runtimeSource) {
     if (event.persisted) return
     requestId += 1
     terminateWorker()
+    terminateLiveWorker()
   })
 
   buildPanels()
@@ -1902,4 +2155,6 @@ function start(config, runtimeSource) {
   applyMode()
   applySpeed()
   applyLanguage()
+  renderControls()
+  renderStates()
 }

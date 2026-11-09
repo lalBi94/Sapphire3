@@ -360,6 +360,7 @@ test('dashboard : l’export produit un HTML unique, échappé, hors ligne et th
     layoutKey: 'layout-demo',
     runtimeSource: 'window.SapphireDashboardRuntime = { simulate: function () { return { ok: true, trace: [] } } };',
     clientSource: '/* dashboard client */',
+    liveSource: '/* dashboard live worker */',
     labels,
     kindLabels: { PrintStatement: 'Print' },
     project: workspace.project,
@@ -398,7 +399,9 @@ test('dashboard : l’export produit un HTML unique, échappé, hors ligne et th
   assert.match(html, /type="range"/)
   assert.match(html, /db-button__icon/)
   assert.match(html, /data-run-label/)
+  assert.match(html, /data-action="live"/)
   assert.match(html, /data-action="autonomous"/)
+  assert.match(html, /"liveWorkerSource":"\/\* dashboard live worker \*\/"/)
   assert.match(html, /data-feedback/)
   assert.match(html, /aria-live="polite"/)
   assert.match(html, /object-fit: cover/)

@@ -84,6 +84,7 @@ const palette = {
 
 const runtimeSource = await bundle('src/dashboard/runtimeEntry.js', 'SapphireDashboardRuntime')
 const clientSource = await bundle('src/dashboard/client.js', 'SapphireDashboardClient')
+const liveSource = await bundle('src/services/live.worker.js', 'SapphireDashboardLive')
 await mkdir(outputDirectory, { recursive: true })
 for (const file of await readdir(outputDirectory)) {
   if (file.endsWith('.html')) await rm(path.join(outputDirectory, file))
@@ -106,6 +107,7 @@ for (const entry of showcase) {
     layoutKey: `site-${entry.id}`,
     runtimeSource,
     clientSource,
+    liveSource,
     project: workspace.project,
     language: 'fr',
     fonts,

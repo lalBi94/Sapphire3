@@ -130,6 +130,7 @@ export function buildDashboardDocument({
   layoutKey = '',
   runtimeSource = '',
   clientSource = '',
+  liveSource = '',
   labels: providedLabels = {},
   kindLabels: providedKindLabels = {},
   project = null,
@@ -158,6 +159,7 @@ export function buildDashboardDocument({
     kindTranslations: dashboardKindTranslations,
     project,
     simulationBudget: dashboardSimulationBudget,
+    liveWorkerSource: liveSource,
     language,
   }
   return `<!doctype html>
@@ -180,7 +182,8 @@ export function buildDashboardDocument({
   </div>
   <div class="db-actions">
     <div class="db-controls" data-controls-group role="group" aria-label="${escapeDashboardHtml(labels.controls ?? 'Execution controls')}">
-      <button type="button" class="db-button db-button--primary" data-action="run">${dashboardIcons.run}<span data-run-label>${escapeDashboardHtml(labels.run ?? 'Run')}</span></button>
+      <button type="button" class="db-button db-button--primary" data-action="live" title="${escapeDashboardHtml(labels.liveHint ?? 'Run live')}">${dashboardIcons.run}<span>${escapeDashboardHtml(labels.live ?? 'Run live')}</span></button>
+      <button type="button" class="db-button" data-action="run">${dashboardIcons.run}<span data-run-label>${escapeDashboardHtml(labels.run ?? 'Run')}</span></button>
       <button type="button" class="db-button" data-action="autonomous" title="${escapeDashboardHtml(labels.autonomousHint)}">${dashboardIcons.run}<span>${escapeDashboardHtml(labels.autonomous)}</span></button>
       <button type="button" class="db-button" data-action="pause" disabled>${dashboardIcons.pause}<span>${escapeDashboardHtml(labels.pause ?? 'Pause')}</span></button>
       <button type="button" class="db-button" data-action="stop" disabled>${dashboardIcons.stop}<span>${escapeDashboardHtml(labels.stop ?? 'Stop')}</span></button>

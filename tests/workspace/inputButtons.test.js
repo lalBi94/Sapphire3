@@ -154,6 +154,7 @@ test('boutons d’entrée : dashboard, callback et relecture du workspace', () =
   assert.equal(buttonWidget.pressed, true)
   assert.equal(buttonWidget.globalNodeId, null)
   assert.ok(buttonWidget.callbackFunctionId)
+  assert.ok(buttonWidget.onClickNodeId)
   const workspace = deserializeWorkspace(JSON.stringify({
     application: 'Sapphire 3',
     workspaceVersion: workspaceFileVersion,

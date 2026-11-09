@@ -2,6 +2,15 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Dashboard : vrai Run live — 9 novembre 2026
+
+- Le dashboard exporté embarque désormais le worker live de l'application (`src/services/live.worker.js`) comme source autonome dans le JSON de configuration, en plus du runtime borné et du client.
+- Le bouton **Run live** démarre le vrai interpréteur coopératif, sans budget total, avec Pause/Reprise/Stop. Le Run borné et le mode **Run autonomous** restent disponibles ; les boutons de la barre changent de mode sans redémarrer une session live active.
+- Les frames live alimentent directement les écrans, jauges, LED, LED RVB, progressions, barres, XY plots, oscilloscopes et heatmaps. La barre de progression est désactivée en live et le statut affiche le nombre de pas.
+- Les callbacks `onClick(bool)` des boutons sont envoyés au worker live avec l'identifiant de la variable `onClick` ; le toggle répète toutes les 500 ms dans le live, le hold reste one-shot. Sans live actif, un clic de callback démarre le live automatiquement. Les anciens boutons `isPress` envoient leurs entrées au live.
+- Le curseur de vitesse du dashboard règle la cadence live de 1 à 100 en live, et la vitesse de lecture de la trace en borné. La source live est refusée proprement si le navigateur ne fournit pas `Worker` ou `Blob`.
+- Vérifications : **617 tests Node/Python réussis**, build Vite, `pnpm dashboards:build`. Contrôles navigateur sur les dashboards générés : Run live, pause/reprise/arrêt, toggle LED, hold one-shot, vitesse live, Run borné toujours fonctionnel, écrans animés en live, aucune erreur console. Limite : le dashboard n'a toujours pas les images, l'exercice, l'édition ni le debug de l'application.
+
 ## Vitesse du Run live — 9 novembre 2026
 
 - Le panneau Simulation affiche en live un curseur de vitesse de 1 à 100. La valeur est appliquée immédiatement au worker sans redémarrer la session.
