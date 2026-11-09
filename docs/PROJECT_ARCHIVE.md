@@ -13,7 +13,7 @@
 
 - Le bouton de recherche est désormais présent dans le HTML de chaque page au lieu d'être injecté après le chargement de `search-index.js`. La navbar ne se décale plus à l'arrivée sur une page, ni sur l'accueil ni sur les pages documentaires.
 - `search.js` réutilise le déclencheur statique `[data-search-trigger]` et ne crée un bouton que si une page n'en fournit pas.
-- Sur l'accueil, le sélecteur de langue, le bouton GitHub et la recherche sont regroupés dans `.nav-actions`, alignés à droite ; le repli mobile sur deux lignes est conservé.
+- Sur l'accueil, la recherche, le sélecteur de langue et le bouton GitHub sont regroupés dans `.nav-actions` dans cet ordre, alignés à droite ; le repli mobile sur deux lignes est conservé.
 - Vérifications : positions de l'en-tête identiques avec et sans scripts, un seul déclencheur par page, recherche fonctionnelle sur l'accueil et la documentation, rendu sans débordement de 375 px à 1400 px, `pnpm site:test` (3 tests), aucune erreur console.
 
 ## Téléchargements par système dans le hero — 9 novembre 2026
