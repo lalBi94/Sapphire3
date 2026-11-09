@@ -26,6 +26,7 @@ import {
   dashboardVisibleOutput,
 } from '../../src/utils/dashboardExecution.js'
 import { dashboardInitialStates, dashboardWidgets } from '../../src/utils/dashboardWidgets.js'
+import { buildDashboardModuleMap } from '../../src/utils/dashboardModuleMap.js'
 import { parseMathText, renderMath } from '../../src/utils/mathText.js'
 import { initialDocument, reduceDocument } from '../../src/utils/canvasDocument.js'
 import {
@@ -74,6 +75,7 @@ test('dashboard : l’exécution réelle alimente les états, la sortie et le n�
   assert.equal(current.step, 1)
   assert.equal(current.total, result.trace.length)
   assert.ok(current.kind)
+  assert.ok(current.moduleId)
   const last = dashboardCurrentNode(result, result.trace.length - 1, nodes)
   assert.equal(last.step, result.trace.length)
 })
@@ -365,6 +367,18 @@ test('dashboard : les thèmes de l’application sont embarqués et le thème é
   assert.match(html, /"themes":/)
   assert.match(html, /"themeId":"void"/)
   assert.match(html, /"themeNames":/)
+})
+
+test('dashboard : la mini-carte des modules est embarquée avec l’export', () => {
+  const moduleMap = buildDashboardModuleMap([
+    { id: 'app', name: 'App', kind: 'module' },
+    { id: 'rotor', name: 'Rotor', kind: 'class' },
+  ], [{ fromId: 'rotor', toId: 'app' }])
+  const html = buildDashboardDocument({ name: 'Map dashboard', language: 'en', moduleMap })
+  assert.match(html, /"moduleMap":/)
+  assert.match(html, /"boxes":/)
+  assert.match(html, /"rotor"/)
+  assert.match(html, /"kind":"class"/)
 })
 
 test('dashboard : l’export produit un HTML unique, échappé, hors ligne et thémé', () => {

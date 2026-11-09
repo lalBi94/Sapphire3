@@ -6,6 +6,8 @@ import { examples } from '../src/utils/examples.js'
 import { deserializeWorkspace } from '../src/utils/workspaceFile.js'
 import { dashboardWidgets, dashboardInitialStates } from '../src/utils/dashboardWidgets.js'
 import { buildDashboardDocument, dashboardDefaultLayout } from '../src/utils/dashboardExport.js'
+import { dashboardModuleMapFromCards } from '../src/utils/dashboardModuleMap.js'
+import { analyzeProgram, createContextIndex } from '../src/utils/logic/index.js'
 import { repositoryUrl } from '../src/utils/appInfo.js'
 import { simulateProgram } from '../src/utils/logic/simulation.js'
 import { dashboardSimulationBudget, dashboardPaletteFromTheme } from '../src/utils/dashboardConfig.js'
@@ -102,12 +104,15 @@ for (const entry of showcase) {
   const result = simulateProgram(workspace.project, { maxSteps: dashboardSimulationBudget })
   if (!result.ok) throw new Error(`${entry.id}: ${result.errorCode ?? 'Simulation failed'}`)
   const widgets = dashboardWidgets(workspace.project, workspace.presentation.cards)
+  const index = createContextIndex(workspace.project, analyzeProgram(workspace.project))
+  const moduleMap = dashboardModuleMapFromCards(workspace.presentation.cards, index)
   const html = buildDashboardDocument({
     name: entry.title,
     description: entry.description,
     palette,
     themes,
     themeId,
+    moduleMap,
     widgets,
     initialStates: dashboardInitialStates(widgets),
     layout: dashboardDefaultLayout(widgets),

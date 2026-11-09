@@ -151,6 +151,7 @@ export function dashboardNodeMap(project) {
     id: node.id,
     kind: node.kind,
     name: node.properties?.name ?? '',
+    moduleId: node.moduleId ?? '',
     module: modules.get(node.moduleId) ?? '',
   }]))
   return nodes
@@ -166,6 +167,7 @@ export function dashboardCurrentNode(result, index, nodes) {
     id,
     kind: node?.kind ?? '',
     name: node?.name ?? '',
+    moduleId: node?.moduleId ?? '',
     module: node?.module ?? '',
     step: position + 1,
     total: result.trace.length,

@@ -784,7 +784,23 @@ p, h1, h2, h3 { margin: 0; }
 .db-contracts ul { display: grid; gap: 4px; margin: 6px 0 0; padding: 0; list-style: none; }
 .db-contracts li { padding: 5px 6px; border: 1px solid var(--db-diagnostic); border-radius: var(--db-radius-small); color: var(--db-diagnostic); font-family: var(--db-mono); font-size: 10px; line-height: 1.45; }
 
-.db-execution { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.db-execution { display: flex; flex-direction: column; gap: 8px; width: 100%; height: 100%; min-height: 0; }
+.db-map {
+  flex: 1 1 auto;
+  min-height: 160px;
+  padding: 6px;
+  border: 1px solid var(--db-border);
+  border-radius: var(--db-radius-small);
+  background: color-mix(in srgb, var(--db-bg) 42%, transparent);
+}
+.db-map__svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.db-map__edge { fill: none; stroke: var(--db-border-hover); stroke-width: 1.4; }
+.db-map__arrow { fill: var(--db-border-hover); }
+.db-map__box rect { fill: var(--db-raised); stroke: var(--db-border); stroke-width: 1.2; }
+.db-map__box--class rect { stroke-dasharray: 4 3; }
+.db-map__box text { fill: var(--db-text-muted); font-family: var(--db-mono); font-size: 10px; }
+.db-map__box--active rect { fill: var(--db-primary-soft); stroke: var(--db-primary); stroke-width: 1.8; }
+.db-map__box--active text { fill: var(--db-primary); }
 .db-execution__step {
   color: var(--db-primary);
   font-family: var(--db-mono);
@@ -793,7 +809,7 @@ p, h1, h2, h3 { margin: 0; }
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-.db-execution__name { color: var(--db-text); font-family: var(--db-display); font-size: clamp(16px, 2.4vw, 22px); font-weight: 600; overflow-wrap: anywhere; }
+.db-execution__name { color: var(--db-text); font-family: var(--db-display); font-size: clamp(14px, 1.8vw, 18px); font-weight: 600; overflow-wrap: anywhere; }
 .db-execution__meta { display: flex; flex-wrap: wrap; gap: 5px 12px; color: var(--db-muted); font-family: var(--db-mono); font-size: 10px; }
 .db-execution__empty { color: var(--db-muted); font-family: var(--db-mono); font-size: 10px; }
 

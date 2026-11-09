@@ -198,7 +198,7 @@ function start(config, runtimeSource) {
   const panels = [
     ...(config.widgets ?? []).map((widget) => ({ id: widget.id, type: widget.type, name: widget.name, kind: labels[widget.type] ?? widget.type, widget })),
     { id: dashboardOutputPanelId, type: 'output', name: labels.output ?? 'Output', kind: labels.output ?? 'Output' },
-    { id: dashboardExecutionPanelId, type: 'execution', name: labels.currentExecution ?? 'Current execution', kind: labels.currentExecution ?? 'Current execution' },
+    { id: dashboardExecutionPanelId, type: 'execution', name: labels.moduleMap ?? labels.currentExecution ?? 'Modules & classes', kind: labels.moduleMap ?? labels.currentExecution ?? 'Modules & classes' },
   ]
   const exportedLayout = new Map((config.layout ?? []).map((entry) => [entry.id, entry]))
   for (const panel of panels) {
@@ -576,16 +576,101 @@ function start(config, runtimeSource) {
       ref.contractsList = contractsList
       return
     }
+    if (panel.type === 'execution') createExecutionContent(ref, body)
+  }
+
+  // Crée un élément SVG avec ses attributs.
+  function svgNode(name, attributes = {}) {
+    const element = document.createElementNS('http://www.w3.org/2000/svg', name)
+    for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, String(value))
+    return element
+  }
+
+  // Raccourcit un libellé pour une boîte compacte.
+  function shortLabel(value, maximum = 15) {
+    const text = String(value ?? '')
+    return text.length > maximum ? `${text.slice(0, maximum - 1)}…` : text
+  }
+
+  // Construit la mini-carte SVG des modules et de leurs dépendances.
+  function buildModuleMapSvg(map) {
+    const svg = svgNode('svg', {
+      class: 'db-map__svg',
+      viewBox: `0 0 ${map.width} ${map.height}`,
+      preserveAspectRatio: 'xMidYMid meet',
+      role: 'img',
+    })
+    svg.setAttribute('aria-label', labels.moduleMap ?? 'Modules & classes')
+    const defs = svgNode('defs')
+    const marker = svgNode('marker', {
+      id: 'db-map-arrow',
+      viewBox: '0 0 8 8',
+      refX: '7',
+      refY: '4',
+      markerWidth: '6',
+      markerHeight: '6',
+      orient: 'auto',
+    })
+    marker.append(svgNode('path', { class: 'db-map__arrow', d: 'M0 0 L8 4 L0 8 Z' }))
+    defs.append(marker)
+    svg.append(defs)
+    const names = new Map(map.boxes.map((box) => [box.id, box.name]))
+    for (const edge of map.edges ?? []) {
+      const path = svgNode('path', { class: 'db-map__edge', d: edge.path, 'marker-end': 'url(#db-map-arrow)' })
+      const title = svgNode('title')
+      title.textContent = `${names.get(edge.fromId) ?? edge.fromId} → ${names.get(edge.toId) ?? edge.toId}`
+      path.append(title)
+      svg.append(path)
+    }
+    const boxes = new Map()
+    const titles = new Map()
+    for (const box of map.boxes ?? []) {
+      const group = svgNode('g', {
+        class: `db-map__box${box.kind === 'class' ? ' db-map__box--class' : ''}`,
+        'data-module-id': box.id,
+      })
+      const title = svgNode('title')
+      title.textContent = `${box.kind === 'class' ? (labels.classLabel ?? 'Class') : (labels.moduleLabel ?? 'Module')}: ${box.name}`
+      const rect = svgNode('rect', { x: box.x, y: box.y, width: box.width, height: box.height, rx: '4' })
+      const text = svgNode('text', {
+        x: box.x + box.width / 2,
+        y: box.y + box.height / 2,
+        'text-anchor': 'middle',
+        'dominant-baseline': 'central',
+      })
+      text.textContent = shortLabel(box.name)
+      group.append(title, rect, text)
+      svg.append(group)
+      boxes.set(box.id, group)
+      titles.set(box.id, { element: title, kind: box.kind, name: box.name })
+    }
+    return { svg, boxes, titles }
+  }
+
+  // Prépare la mini-carte des modules puis le libellé du nœud courant.
+  function createExecutionContent(ref, body) {
     const wrapper = document.createElement('div')
     wrapper.className = 'db-execution'
+    const mapWrap = document.createElement('div')
+    mapWrap.className = 'db-map'
+    if (config.moduleMap?.boxes?.length > 0) {
+      const built = buildModuleMapSvg(config.moduleMap)
+      mapWrap.append(built.svg)
+      ref.mapSvg = built.svg
+      ref.mapBoxes = built.boxes
+      ref.mapTitles = built.titles
+    } else {
+      mapWrap.hidden = true
+    }
     const step = document.createElement('p')
     step.className = 'db-execution__step'
     const name = document.createElement('p')
     name.className = 'db-execution__name'
     const meta = document.createElement('p')
     meta.className = 'db-execution__meta'
-    wrapper.append(step, name, meta)
+    wrapper.append(mapWrap, step, name, meta)
     body.append(wrapper)
+    ref.mapWrap = mapWrap
     ref.step = step
     ref.name = name
     ref.meta = meta
@@ -655,6 +740,16 @@ function start(config, runtimeSource) {
     return fallback
   }
 
+  // Met à jour les libellés accessibles de la mini-carte après un changement de langue.
+  function updateModuleMapLabels() {
+    const ref = refs.get(dashboardExecutionPanelId)
+    if (!ref) return
+    if (ref.mapSvg) ref.mapSvg.setAttribute('aria-label', labels.moduleMap ?? 'Modules & classes')
+    for (const entry of ref.mapTitles?.values() ?? []) {
+      entry.element.textContent = `${entry.kind === 'class' ? (labels.classLabel ?? 'Class') : (labels.moduleLabel ?? 'Module')}: ${entry.name}`
+    }
+  }
+
   // Applique la langue choisie à tout le document sans recharger la page.
   function applyLanguage() {
     labels = catalogs[state.language] ?? config.labels ?? {}
@@ -666,6 +761,7 @@ function start(config, runtimeSource) {
     if (themeLabel) themeLabel.textContent = labels.theme ?? 'Theme'
     if (themeSelect) themeSelect.setAttribute('aria-label', labels.theme ?? 'Theme')
     renderThemeOptions()
+    updateModuleMapLabels()
     if (speedLabel) speedLabel.textContent = labels.speed ?? 'Speed'
     if (speedSlider) speedSlider.setAttribute('aria-label', labels.speed ?? 'Speed')
     if (pauseButtonLabel) pauseButtonLabel.textContent = labels.pause ?? 'Pause'
@@ -701,7 +797,7 @@ function start(config, runtimeSource) {
         panel.name = labels.output ?? 'Output'
         panel.kind = panel.name
       } else if (panel.type === 'execution') {
-        panel.name = labels.currentExecution ?? 'Current execution'
+        panel.name = labels.moduleMap ?? labels.currentExecution ?? 'Modules & classes'
         panel.kind = panel.name
       } else {
         panel.kind = labels[panel.type] ?? panel.type
@@ -1568,18 +1664,28 @@ function start(config, runtimeSource) {
     }))
   }
 
-  // Affiche le type, le nom, le module et le numéro d'étape du nœud courant.
+  // Met en avant la boîte du module ou de la classe en cours, ou son module appelant si le nœud est dans un widget caché.
+  function highlightModule(ref, moduleId) {
+    const target = ref.mapBoxes?.has(moduleId) ? moduleId : (config.moduleMap?.owners?.[moduleId] ?? '')
+    for (const [id, group] of ref.mapBoxes ?? []) {
+      group.classList.toggle('db-map__box--active', id === target)
+    }
+  }
+
+  // Affiche la mini-carte, le type, le nom, le module et le numéro d'étape du nœud courant.
   function renderExecution(ref) {
     if (state.status === 'preparing') {
       ref.step.textContent = labels.preparing ?? 'Preparing…'
       ref.name.textContent = labels.preparing ?? 'Preparing…'
       ref.meta.textContent = ''
+      highlightModule(ref, '')
       return
     }
     if (state.status === 'error' && state.error) {
       ref.step.textContent = labels.error ?? 'Error'
       ref.name.textContent = labels.error ?? 'Error'
       ref.meta.textContent = String(state.error)
+      highlightModule(ref, '')
       return
     }
     const node = dashboardCurrentNode(state.result, state.index, nodes)
@@ -1587,12 +1693,14 @@ function start(config, runtimeSource) {
       ref.step.textContent = labels.idle ?? 'Idle'
       ref.name.textContent = labels.notRunning ?? 'Not running'
       ref.meta.textContent = ''
+      highlightModule(ref, '')
       return
     }
     ref.step.textContent = formatTemplate(labels.step ?? 'Step {current} / {total}', { current: node.step, total: node.total })
     const kind = config.kindLabels?.[node.kind] ?? node.kind
     ref.name.textContent = node.name || kind || (labels.notRunning ?? 'Not running')
     ref.meta.textContent = [kind, node.module ? `${labels.module ?? 'Module'}: ${node.module}` : ''].filter(Boolean).join(' · ')
+    highlightModule(ref, node.moduleId)
   }
 
   // Affiche un retour bref et l'annonce aux technologies d'assistance.

@@ -32,6 +32,7 @@ import { dashboardLabels, dashboardPaletteFromTheme, dashboardSimulationBudget, 
 import { dashboardWidgets, dashboardInitialStates, dashboardWidgetTypes } from '../../utils/dashboardWidgets.js'
 import { collectInputButtonValues, inputButtonCallbackId, inputButtonOnClickNodeId } from '../../utils/logic/inputButtonState.js'
 import { buildDashboardDocument, dashboardDefaultLayout } from '../../utils/dashboardExport.js'
+import { dashboardModuleMapFromCards } from '../../utils/dashboardModuleMap.js'
 import dashboardRuntimeSource from 'virtual:dashboard-runtime'
 import dashboardClientSource from 'virtual:dashboard-client'
 import dashboardLiveSource from 'virtual:dashboard-live'
@@ -962,6 +963,7 @@ export default function Canvas() {
       const customPalette = dashboardPaletteFromTheme(config.palette)
       if (!selectedTheme && customPalette) themes.unshift({ id: '__custom', name: t('dashboard.customPalette'), palette: customPalette })
       const themeId = selectedTheme?.id ?? (customPalette ? '__custom' : (themes[0]?.id ?? ''))
+      const moduleMap = dashboardModuleMapFromCards(document.cards, document.index)
       const nextConfig = { ...config, palette }
       const result = await runSimulation(project, { maxSteps: dashboardSimulationBudget, inputs: collectInputButtonValues(project, document.cards) })
       if (!result.ok) {
@@ -981,6 +983,7 @@ export default function Canvas() {
         palette,
         themes,
         themeId,
+        moduleMap,
         widgets,
         initialStates: dashboardInitialStates(widgets),
         layout: dashboardDefaultLayout(widgets),

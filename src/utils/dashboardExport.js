@@ -34,7 +34,7 @@ const panelDefaults = Object.freeze({
   toggleButton: { w: 3, h: 5, span: 'half', group: 'indicator' },
   holdButton: { w: 3, h: 5, span: 'half', group: 'indicator' },
   output: { w: 6, h: 8, span: 'full', group: 'output' },
-  execution: { w: 6, h: 5, span: 'full', group: 'execution' },
+  execution: { w: 6, h: 9, span: 'full', group: 'execution' },
   comment: { w: 6, h: 4, span: 'full', group: 'comment' },
 })
 
@@ -135,6 +135,7 @@ export function buildDashboardDocument({
   palette = {},
   themes = [],
   themeId = '',
+  moduleMap = null,
   widgets = [],
   initialStates = {},
   layout = null,
@@ -178,6 +179,7 @@ export function buildDashboardDocument({
     themes: availableThemes,
     themeId: defaultThemeId,
     themeNames,
+    moduleMap,
     project,
     simulationBudget: dashboardSimulationBudget,
     liveWorkerSource: liveSource,

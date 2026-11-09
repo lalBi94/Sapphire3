@@ -2,6 +2,13 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Dashboard : mini-carte des modules et classes — 9 novembre 2026
+
+- Le panneau **Current execution** du dashboard exporté est remplacé par une mini-carte SVG des cartes Module/Class visibles : boîtes compactes, classes en trait discontinu, flèches de dépendance réelles et module actif surligné pendant Run live, borné et autonome. Le libellé du nœud courant, son type et son module restent affichés dessous.
+- Les positions sont calculées en colonnes selon les dépendances (`rankModules`) ; les liens invalides, les doublons et les cycles restent bornés. Les nœuds exécutés dans un module de widget caché (écran, jauge, etc.) mettent en avant leur module appelant quand il est visible.
+- La mini-carte est calculée à l'export (`dashboardModuleMapFromCards`) et embarquée dans la configuration du dashboard ; `pnpm dashboards:build` l'ajoute aux douze dashboards.
+- Vérifications : **622 tests Node/Python réussis** (+3 dans `tests/workspace/dashboardModuleMap.test.js`, +1 export), build Vite et `pnpm dashboards:build`. Contrôles navigateur : `orbitalTrails.html` affiche Math, Rotor (classe) et App avec deux flèches, App surligné pendant le live ; `buttonLed.html` affiche Input app et le surligne ; aucune erreur console. Limite : les modules des widgets cachés ne sont pas dessinés comme boîtes.
+
 ## Dashboard : thèmes complets de l'application — 9 novembre 2026
 
 - Le dashboard exporté embarque désormais les thèmes prédéfinis et personnalisés de l'application, chacun avec sa palette sombre et sa variante claire dérivée (`dashboardThemesCss`, `buildLightColors`). La palette exportée reste la secours portable.
