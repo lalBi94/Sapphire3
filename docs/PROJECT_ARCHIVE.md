@@ -2,6 +2,12 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Accueil vitrine séparé de la documentation — 9 novembre 2026
+
+- Nouvel accueil dans `abstract/visual/index.html` : accroche « Le code. Sous un autre angle. », GitHub et téléchargement via les releases, trois blocs inspectables, trois vues de captures existantes, accès aux dashboards et porte d'entrée vers la documentation. Illustration explicitement non exécutable ; pas de faux Run, de téléchargement automatique ni de requête GitHub au chargement. Pas d'asset Marathon/Bungie.
+- Ancienne présentation complète conservée dans `project.html` et navigation des pages documentaires mise à jour. CSS/JS propres à l'accueil ; polices Inter, Space Grotesk et JetBrains Mono copiées avec leurs licences OFL. Curseur SVG utilisant le mécanisme natif, uniquement sur pointeur fin ; clavier/tactile et réduction du mouvement conservés.
+- Vérifications : cinq pages et 138 liens locaux valides, syntaxe de `home.js` contrôlée, inspection de blocs et changement de capture vérifiés dans Chromium. Audit axe-core de l'accueil WCAG 2/2.1/2.2 A/AA : aucune violation détectée, desktop et iframe de 375 px sans débordement horizontal. Aucune erreur applicative observée pendant les interactions testées. Un audit de l'ancien contenu conservé dans `project.html` retrouve des défauts historiques des annotations (contraste et cibles) ; pas de refonte de la documentation dans cette demande. Aucun nouveau build applicatif ni nouvelle capture de l'application ; proposition non publiée.
+
 ## Alignement documentaire avant publication Pages — 9 novembre 2026
 
 - Revue ciblée d’`AGENTS.md`, du README, de `docs/PROJECT_STATE.md`, du format workspace, du rapport LaTeX et de la documentation visuelle. Correction des anciennes descriptions borné/autonome, des callbacks live et du renouvellement de l’aléatoire ; clarification des contrats et des limites de la mini-carte. Aucun code applicatif ni capture modifié.
