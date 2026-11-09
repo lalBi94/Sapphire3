@@ -11,11 +11,13 @@
     return fallback.replace(/\{(\w+)\}/g, (match, name) => (params && name in params ? String(params[name]) : match))
   }
 
-  const trigger = document.createElement('button')
-  trigger.type = 'button'
-  trigger.className = 'search-trigger'
-  trigger.innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><span></span><kbd>Ctrl K</kbd>'
-  header.append(trigger)
+  const trigger = header.querySelector('[data-search-trigger]') || document.createElement('button')
+  if (!trigger.isConnected) {
+    trigger.type = 'button'
+    trigger.className = 'search-trigger'
+    trigger.innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><span></span><kbd>Ctrl K</kbd>'
+    header.append(trigger)
+  }
 
   const dialog = document.createElement('dialog')
   dialog.className = 'site-search'

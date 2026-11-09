@@ -9,6 +9,12 @@
 - `home.js` utilise les clés `data-feedback-key` et réapplique l'inspection et la capture courantes au changement de langue. `search.js` traduit ses libellés et son compteur ; le catalogue indexé reste dans sa langue source. Les captures restent en anglais, et les pages `documentation.html`, `ast.html` et `project.html` restent en français.
 - Vérifications : `pnpm site:test` (3 tests), parcours des huit langues sans clé manquante (102 clés), persistance après rechargement, bascule RTL arabe, recherche et retours traduits, en-tête sans débordement à 375 px (espagnol, arabe, hindi), aucune erreur console. Aucune modification du code applicatif.
 
+## En-tête stable entre les pages — 9 novembre 2026
+
+- Le bouton de recherche est désormais présent dans le HTML de chaque page au lieu d'être injecté après le chargement de `search-index.js`. La navbar ne se décale plus à l'arrivée sur une page, ni sur l'accueil ni sur les pages documentaires.
+- `search.js` réutilise le déclencheur statique `[data-search-trigger]` et ne crée un bouton que si une page n'en fournit pas.
+- Vérifications : positions de l'en-tête identiques avec et sans scripts, un seul déclencheur par page, recherche fonctionnelle sur l'accueil et la documentation, rendu sans débordement à 760 px et 1400 px, `pnpm site:test` (3 tests), aucune erreur console.
+
 ## Téléchargements par système dans le hero — 9 novembre 2026
 
 - Le bouton unique est remplacé par trois accès : Windows, macOS et Linux. Les boutons restent sobres ; une ligne discrète sous le groupe indique Windows validé (pastille verte) et Linux/macOS à tester (pastille orange).
