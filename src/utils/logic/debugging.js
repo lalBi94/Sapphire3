@@ -42,7 +42,7 @@ export function createDebugSession(project, options = {}) {
   const reachability = analyzeReachability(project, analysis)
   const result = simulateProgram(project, { ...options, captureDebug: true })
   const frames = result.debugFrames ?? []
-  return { project, frames, cursor: 0, history: [], reachability, breakpoints, errorCode: frames.length ? null : result.errorCode, result }
+  return { project, frames, cursor: 0, history: [], reachability, breakpoints, errorCode: frames.length ? null : result.errorCode, result, diagnostics: analysis.diagnostics }
 }
 
 // Avance d'une instruction, reprend jusqu'au prochain point d'arrêt, termine le scope actif ou restaure un arrêt.

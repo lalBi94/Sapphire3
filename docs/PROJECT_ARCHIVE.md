@@ -2,6 +2,18 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Debug SDK — 11 novembre 2026
+
+- Nouveau package **`@sapphire3/debug`** dans `packages/debug/`, lié au workspace pnpm et construit par Vite en module ESM autonome. Il réutilise `createDebugSession()`, `moveDebugSession()`, `resolveDebugScreens()`, `debugTrace.js`, `simulation.js` et `reachability.js`, sans second interpréteur ni second AST.
+- Contrat : sessions fondées sur une trace enregistrée, explicitement distinctes d'un débogueur live. Aucune pause arbitraire, aucun breakpoint dynamique pendant un Run live, aucune modification de variable.
+- API : `createDebugSession`, `DebugSession`, `stepInto`, `stepNext`, `stepOut`, `stepOutScope`, `continue`, `restart`, `stepBack`, `setBreakpoints`, `addBreakpoint`, `removeBreakpoint`, `clearBreakpoints`, `getBreakpoints`, `state`, `getFrame`, `getScreens`, `getWidgets`, `getInstructionHistory`, `getProject`, `getReachability`, `getDiagnostics`, `exportTrace`, `on`, `off`, `listenerCount`, `dispose`.
+- `stepNext` et `stepOut` reconstruisent la profondeur réelle des appels depuis `scopeIds`, `callStack` et `localScopes` ; les lambdas et les méthodes de classe sont couvertes. Un point d'arrêt rencontré dans une plage sautée interrompt le saut. `stepBack` utilise l'historique de navigation, pas un rewind arbitraire.
+- Inspection : nœud, module, classe, fonction, pile d'appels, portées, globales, locales, paramètres, sorties, widgets, écrans à la demande et historique d'instructions borné. Le projet est copié et gelé ; les frames, variables et widgets sont gelés. `state()` reste JSON-sérialisable et ne recopie pas les pixels d'écran.
+- Événements : `created`, `position`, `stop`, `breakpoint`, `resume`, `error`, `finished`, `restart`, `breakpoints`, `disposed`, avec séquence, horodatage, abonnement/désabonnement et libération sans fuite. `onEvent` permet d'observer `created`.
+- Export : `sapphire3-debug-trace` version 1, frames bornées (`maxFrames` 1 à 10000, défaut 1000), sorties bornées, variables/widgets/écrans/projet/accessibilité/diagnostics opt-in, résumé `truncated`.
+- Documentation `docs/sdk/debug.md`, exemples `examples/debug/console-debugger.mjs`, `breakpoints-and-variables.mjs` et `project.mjs`, types `packages/debug/types/index.d.ts`.
+- Vérifications : **719 tests Node/Python réussis**, dont 16 tests Debug (15 tests de session et 1 test de packaging) couvrant appels imbriqués, récursion, classes et méthodes, boucles, Step Next/Into/Out, Step Back, fin de trace, erreurs runtime, breakpoints, événements, sessions multiples, disposition, inspection, fonction choisie avec arguments, tableaux, pointeurs, lambdas, widgets, écrans, export borné et `npm pack` dans un projet externe. Build Vite frontend réussi. Les tests existants `tests/logic/debugging.test.js` restent verts : le panneau Debug de l'IDE n'est pas modifié. Aucun push distant ni publication npm.
+
 ## Transpiler SDK — 11 novembre 2026
 
 - Nouveau package **`@sapphire3/Transpiler`** dans `packages/transpiler/`, lié au workspace pnpm et construit par Vite en module ESM autonome. Il réutilise `transpileProgram`, `transpileSelection`, `createGenerationContext` et l'analyse sémantique existante, sans second AST ni second analyseur.
