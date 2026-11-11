@@ -1,5 +1,5 @@
 import { createDiagnostic } from '../logic/diagnostics.js'
-import { child, createGenerationContext, generateSelection } from './context.js'
+import { child, createGenerationContext, generateSelection, generationMetadata } from './context.js'
 import { createNumericOperations, validateLiteral } from '../logic/numericConstants.js'
 import { primitiveDefinitions } from '../logic/primitives.js'
 import { diagnosticCodes } from '../logic/diagnostics.js'
@@ -346,7 +346,7 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
     return `function ${name}(${parameters.join(', ')}) ${prepared}`
   }
 
-  const preview = generateSelection(context, { functionCode, statementCode, expression, classCode })
+  const preview = generateSelection(context, { functionCode, statementCode, expression, classCode, constructorName: 'constructor' })
   if (preview) return preview
 
   const functions = []
@@ -414,5 +414,5 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
     '',
     'main();',
   ]
-  return { code: lines.join('\n'), diagnostics }
+  return { code: lines.join('\n'), diagnostics, metadata: generationMetadata(context, { selection, constructorName: 'constructor' }) }
 }

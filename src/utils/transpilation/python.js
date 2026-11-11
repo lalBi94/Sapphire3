@@ -1,6 +1,6 @@
 import { createDiagnostic } from '../logic/diagnostics.js'
 import { validateLiteral } from '../logic/numericConstants.js'
-import { child, createGenerationContext, generateSelection } from './context.js'
+import { child, createGenerationContext, generateSelection, generationMetadata } from './context.js'
 import { pythonRuntime, pythonRuntimeNames } from './pythonRuntime.js'
 import { getMathNative } from '../logic/mathNatives.js'
 import { moduleInitializationOrder } from '../logic/moduleInitialization.js'
@@ -344,7 +344,7 @@ export function generatePython(analysis, { selection = null } = {}) {
     }
     return null
   }
-  const preview = generateSelection(context, { functionCode, expression, classCode, statementCode: (node, level) => statementCode(node, level, enclosingLoop(node)) })
+  const preview = generateSelection(context, { functionCode, expression, classCode, constructorName: '__init__', statementCode: (node, level) => statementCode(node, level, enclosingLoop(node)) })
   if (preview) return preview
 
   const functions = []
@@ -370,5 +370,5 @@ export function generatePython(analysis, { selection = null } = {}) {
     ...(entryName ? [`    ${entryName}()`] : ['    pass']), '',
     'if __name__ == "__main__":', '    main()', '',
   ].join('\n')
-  return { code: diagnostics.length ? '' : code, diagnostics }
+  return { code: diagnostics.length ? '' : code, diagnostics, metadata: generationMetadata(context, { selection, constructorName: '__init__' }) }
 }

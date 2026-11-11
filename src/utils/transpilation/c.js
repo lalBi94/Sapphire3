@@ -1,6 +1,6 @@
 import { createDiagnostic } from '../logic/diagnostics.js'
 import { validateLiteral } from '../logic/numericConstants.js'
-import { child, createGenerationContext, generateSelection } from './context.js'
+import { child, createGenerationContext, generateSelection, generationMetadata } from './context.js'
 import { moduleInitializationOrder } from '../logic/moduleInitialization.js'
 
 const reservedWords = new Set([
@@ -704,5 +704,5 @@ export function generateC(analysis, { selection = null } = {}) {
     '}',
     '',
   ].join('\n')
-  return { code: diagnostics.length ? '' : code, diagnostics }
+  return { code: diagnostics.length ? '' : code, diagnostics, metadata: generationMetadata(context, { selection }) }
 }

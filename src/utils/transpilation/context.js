@@ -90,8 +90,38 @@ export function createGenerationContext(analysis, { selection = null, reservedWo
   return { analysis, ast, nodes, modules, parents, typeByNode, generatedNames, diagnostics, selection, reserveDeclaration, reserveSyntheticName, referenceName, memberName: identifier, classNames, classMembers, classMemberNames, entryName: entryPoints.length === 1 ? reserveDeclaration(entryPoints[0]) : null }
 }
 
+// Décrit les noms générés et le point d'entrée pour la traçabilité du SDK.
+export function generationMetadata(context, { selection = null, constructorName = null } = {}) {
+  const { nodes, modules, generatedNames, classNames, classMemberNames, entryName } = context
+  const declarations = []
+  for (const node of nodes.values()) {
+    const generatedName = generatedNames.get(node.sourceId)
+    if (!generatedName) continue
+    if (!['FunctionDeclaration', 'VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(node.kind)) continue
+    const module = modules.get(node.moduleId)
+    const isClassMember = module?.moduleKind === 'class' && module.body.some((entry) => entry.sourceId === node.sourceId)
+    const memberName = isClassMember ? classMemberNames.get(node.moduleId)?.get(node.properties?.name) : null
+    const resolvedName = isClassMember && node.properties?.constructor === true ? constructorName ?? memberName ?? generatedName : memberName ?? generatedName
+    declarations.push({
+      nodeId: node.sourceId,
+      moduleId: node.moduleId,
+      kind: node.kind,
+      name: node.properties?.name ?? null,
+      generatedName: resolvedName,
+      ...(isClassMember ? { classId: node.moduleId, className: classNames.get(node.moduleId) ?? null } : {}),
+    })
+  }
+  const entry = [...nodes.values()].find((node) => node.kind === 'FunctionDeclaration' && node.properties?.entryPoint === true)
+  return {
+    declarations,
+    classes: [...classNames].map(([classId, generatedName]) => ({ classId, generatedName })),
+    entryPoint: entry && entryName ? { nodeId: entry.sourceId, generatedName: entryName } : null,
+    selection: selection ? { kind: selection.kind, id: selection.id } : null,
+  }
+}
+
 // Valide et émet un extrait avec les mêmes callbacks que le programme complet.
-export function generateSelection(context, { functionCode, statementCode, expression, classCode = null }) {
+export function generateSelection(context, { functionCode, statementCode, expression, classCode = null, constructorName = null }) {
   const { selection, modules, nodes, analysis, diagnostics, reserveDeclaration } = context
   if (!selection) return null
   const selected = selection.kind === 'module' ? modules.get(selection.id) : nodes.get(selection.id)
@@ -118,5 +148,5 @@ export function generateSelection(context, { functionCode, statementCode, expres
   }
   const classSource = classSelection && classCode ? classCode(classSelection) : null
   const code = classSource ?? (selection.kind === 'module' ? selected.body.map(snippet).filter(Boolean).join('\n\n') : snippet(selected))
-  return { ok: diagnostics.length === 0, code: diagnostics.length ? '' : code, diagnostics }
+  return { ok: diagnostics.length === 0, code: diagnostics.length ? '' : code, diagnostics, metadata: generationMetadata(context, { selection, constructorName }) }
 }

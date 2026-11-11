@@ -33,6 +33,9 @@ importers:
       '@neutralinojs/neu':
         specifier: 11.8.0
         version: 11.8.0
+      '@sapphire3/Transpiler':
+        specifier: workspace:*
+        version: link:packages/transpiler
       '@sapphire3/core':
         specifier: workspace:*
         version: link:packages/core
@@ -56,6 +59,15 @@ importers:
         version: 8.3.5
 
   packages/runtime:
+    devDependencies:
+      '@sapphire3/core':
+        specifier: workspace:*
+        version: link:../core
+      vite:
+        specifier: 8.3.5
+        version: 8.3.5
+
+  packages/transpiler:
     devDependencies:
       '@sapphire3/core':
         specifier: workspace:*

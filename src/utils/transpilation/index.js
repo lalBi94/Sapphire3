@@ -257,7 +257,7 @@ export function transpileProgram(source, options = {}) {
   options.onProgress?.({ phase: 'generate', target, current: 1, total: 1 })
   const generated = backend(analysis)
   const diagnostics = [...analysis.diagnostics, ...generated.diagnostics]
-  return { ok: !hasBlockingDiagnostics(diagnostics), target, code: generated.code, diagnostics, analysis }
+  return { ok: !hasBlockingDiagnostics(diagnostics), target, code: generated.code, diagnostics, analysis, metadata: generated.metadata ?? null }
 }
 
 // Retourne les cibles effectivement installées pour alimenter l'interface sans dupliquer la liste.

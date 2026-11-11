@@ -2,6 +2,16 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Transpiler SDK — 11 novembre 2026
+
+- Nouveau package **`@sapphire3/Transpiler`** dans `packages/transpiler/`, lié au workspace pnpm et construit par Vite en module ESM autonome. Il réutilise `transpileProgram`, `transpileSelection`, `createGenerationContext` et l'analyse sémantique existante, sans second AST ni second analyseur.
+- API : `compile`, `compileModule`, `compileSelection`, `getTargets`, `getTargetCapabilities`. Les programmes complets sont autonomes ; les modules et sélections sont des extraits `standalone: false`. Les sélections de membres de classe exposent `expandedTo` lorsque le backend émet la classe complète.
+- Cibles : JavaScript et Python stables/opérationnelles ; C expérimental avec `operational: false` et capacités restreintes ; C++ et Java indisponibles. Les capacités couvrent primitives, chaînes, `char`, fonctions, contrôle, tableaux, pointeurs, références de fonction, lambdas, fermetures, `ForEach`, classes, génériques, `MathCall`, conversions, contrats et widgets.
+- Diagnostics : codes `TRANSPILE_*` conservés, enrichis de `nodeId`, `moduleId` et `field` au niveau supérieur. Les widgets et constructions non supportées restent bloqués sans génération silencieuse.
+- Traçabilité : fragments avec source et bornes, déclarations avec noms générés, classes, point d'entrée, helpers/dépendances et statut de cible. Les noms de constructeur sont adaptés à la cible (`constructor`, `__init__`).
+- Documentation `docs/sdk/transpiler.md`, exemples `examples/transpiler/javascript-class.mjs` et `python-class.mjs`, types `packages/transpiler/types/index.d.ts`.
+- Vérifications : **703 tests Node/Python réussis**, dont 7 tests Transpiler (cibles/capacités, compilation complète, classes/méthodes conformes, tableaux/pointeurs/lambdas, diagnostics/widgets/API, C expérimental, packaging). Build Vite frontend réussi. Build du package, `npm pack`, installation de l'archive dans un projet Node.js externe, compilation JavaScript/Python et métadonnées vérifiées. Les suites de transpilation existantes restent vertes : le panneau Transpile de l'application n'est pas modifié. Aucun push distant ni publication npm.
+
 ## Runtime SDK — 11 novembre 2026
 
 - Nouveau package **`@sapphire3/runtime`** dans `packages/runtime/`, lié au workspace pnpm et construit par Vite en module ESM avec un Worker isolé embarqué (`dist/assets/runtime.worker-*.js`). Le runtime réutilise directement `simulateProgram` et `runLiveProgram` ; aucun second interpréteur n'est créé.
