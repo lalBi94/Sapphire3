@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, BookmarkPlus, ChevronDown, ChevronRight, CircleDot, ChevronsDownUp, ChevronsUpDown, ClipboardPaste, Copy, CopyPlus, EyeOff, GitBranch, Lock, LockOpen, Network, Plus, Search, Trash2, X } from 'lucide-react'
+import { ArrowLeft, BookmarkPlus, ChevronDown, ChevronRight, CircleDot, ChevronsDownUp, ChevronsUpDown, ClipboardPaste, Copy, CopyPlus, EyeOff, GitBranch, Lock, LockOpen, Network, Plus, Scissors, Search, Trash2, X } from 'lucide-react'
 import { getAvailableActions, getNodeSchema } from '../../utils/logic/index.js'
 import { moduleTypes } from '../../utils/moduleTypes.js'
 import { scoreFuzzyMatch } from '../../utils/fuzzySearch.js'
@@ -33,7 +33,7 @@ function groupedActions(actions) {
 }
 
 // Propose le slot, puis la construction compatible et son formulaire latéral.
-export default function LogicContextMenu({ project, index, targetId, initialSlot, x, y, onInsert, onDelete, onDeleteModule, onHideCard, onLockCard, targetLocked = false, onExpansion, onOpenGraph, onCopy, onPaste, onDuplicate, hasClipboard, canToggleExpansion = false, showBookmark = false, canBookmark = false, onBookmark, onClose }) {
+export default function LogicContextMenu({ project, index, targetId, initialSlot, x, y, onInsert, onDelete, onDeleteModule, onHideCard, onLockCard, targetLocked = false, onExpansion, onOpenGraph, onCopy, onCut, onPaste, onDuplicate, hasClipboard, canToggleExpansion = false, showBookmark = false, canBookmark = false, onBookmark, onClose }) {
   const { t } = useTranslation()
   const [slotName, setSlotName] = useState(initialSlot ?? '')
   const [kind, setKind] = useState('')
@@ -255,7 +255,8 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
       </div>
       <div className="logic-context-menu__actions logic-context-menu__node-actions" role="menu" aria-label={t('canvas.nodeActions')}>
         <div className="logic-context-menu__title">{t('canvas.nodeActions')}</div>
-        {targetId.kind === 'node' && <button type="button" role="menuitem" onClick={() => onCopy(targetId)}><Copy className="menu-icon" size={16} aria-hidden="true" />{t('transfer.copy')}</button>}
+        {(targetId.kind === 'node' || targetId.kind === 'module') && <button type="button" role="menuitem" onClick={() => onCopy(targetId)}><Copy className="menu-icon" size={16} aria-hidden="true" />{t('transfer.copy')}</button>}
+        {(targetId.kind === 'node' || targetId.kind === 'module') && <button type="button" role="menuitem" onClick={() => onCut(targetId)}><Scissors className="menu-icon" size={16} aria-hidden="true" />{t('transfer.cut')}</button>}
         <button type="button" role="menuitem" disabled={!hasClipboard} title={t('transfer.pasteHint')} onClick={() => onPaste(effectiveTarget)}><ClipboardPaste className="menu-icon" size={16} aria-hidden="true" />{t('transfer.paste')}</button>
         {targetId.kind === 'node' && <button type="button" role="menuitem" disabled={!canDuplicate} title={t(canDuplicate ? 'transfer.duplicateHint' : 'transfer.duplicateUnavailable')} onClick={() => onDuplicate(targetId)}><CopyPlus className="menu-icon" size={16} aria-hidden="true" />{t('transfer.duplicate')}</button>}
         <button type="button" role="menuitem" onClick={() => onOpenGraph(targetId, 'dependencies')}><Network className="menu-icon" size={16} aria-hidden="true" />{t('graph.dependencies')}</button>

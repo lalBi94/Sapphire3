@@ -18,6 +18,7 @@ export const keybindCategories = Object.freeze([
       Object.freeze({ id: 'edit.undo', labelKey: 'nav.undo', defaultShortcut: 'Ctrl+Z' }),
       Object.freeze({ id: 'edit.redo', labelKey: 'nav.redo', defaultShortcut: 'Ctrl+Y' }),
       Object.freeze({ id: 'edit.copyNode', labelKey: 'transfer.copy', defaultShortcut: 'Ctrl+C' }),
+      Object.freeze({ id: 'edit.cutNode', labelKey: 'transfer.cut', defaultShortcut: 'Ctrl+X' }),
       Object.freeze({ id: 'edit.pasteNode', labelKey: 'transfer.paste', defaultShortcut: 'Ctrl+V' }),
       Object.freeze({ id: 'edit.search', labelKey: 'nav.search', defaultShortcut: 'Ctrl+F', allowInInput: true }),
     ]),

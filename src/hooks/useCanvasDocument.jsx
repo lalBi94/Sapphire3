@@ -12,7 +12,7 @@ import { createRgbLedModule, rgbLedDefaults } from '../utils/rgbLedNode.js'
 import { createInputButtonModule, inputButtonDefaults } from '../utils/inputButtonNode.js'
 import { createInputNumberModule, inputValueDefaults } from '../utils/inputNumberNode.js'
 import { createColorPickerModule } from '../utils/colorPickerNode.js'
-import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol, deleteSourceTargets, duplicateSourceTargets, moveSourceNodes, bindInputButtonCallback, bindInputNumberCallback, bindColorPickerCallback } from '../utils/logic/index.js'
+import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol, deleteSourceTargets, duplicateSourceTargets, moveSourceNodes, bindInputButtonCallback, bindInputNumberCallback, bindColorPickerCallback, captureSourceModule, pasteSourceModule } from '../utils/logic/index.js'
 import { initialDocument, reduceHistory } from '../utils/canvasDocument.js'
 
 // Évite deux cartes Module du même nom lors de l'insertion d'un favori.
@@ -229,6 +229,14 @@ export default function useCanvasDocument() {
     return prepared
   }
 
+  // Colle un module entier dans le workspace, avec une carte neuve et des identifiants neufs.
+  function pasteModule(clipboard, position) {
+    const idFactory = () => crypto.randomUUID()
+    const prepared = pasteSourceModule(document.project, clipboard, { idFactory, index: document.index })
+    if (prepared.ok) dispatch({ type: 'pasteModule', previousProject: document.project, prepared, clipboard, position, idFactory })
+    return prepared.ok ? { ...prepared, moduleId: prepared.module.id } : prepared
+  }
+
   // Déplace la source existante après une nouvelle validation du destinataire courant.
   function moveNode(id, receiver) {
     const prepared = moveSourceNode(document.project, id, receiver, { index: document.index })
@@ -424,5 +432,5 @@ export default function useCanvasDocument() {
     dispatch({ type: 'redo' })
   }
 
-  return { ...document, createCard, updateGeometry, updateInputButton, updateInputValue, bindInputButton, bindInputValue, updateColorPicker, bindColorPicker, arrangeModules, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, moveNode, moveNodes, duplicateNode, duplicateSelection, deleteNode, deleteModule, deleteSelection, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, previewSymbolRename, applySymbolRename, setExpandedNodes, setCardHidden, setCardLocked, setCardEmoji, setExercise, setDashboard, restoreStarter, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
+  return { ...document, createCard, updateGeometry, updateInputButton, updateInputValue, bindInputButton, bindInputValue, updateColorPicker, bindColorPicker, arrangeModules, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, pasteModule, moveNode, moveNodes, duplicateNode, duplicateSelection, deleteNode, deleteModule, deleteSelection, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, previewSymbolRename, applySymbolRename, setExpandedNodes, setCardHidden, setCardLocked, setCardEmoji, setExercise, setDashboard, restoreStarter, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
 }

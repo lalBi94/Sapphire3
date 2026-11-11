@@ -166,7 +166,7 @@ export default function Canvas() {
   const files = useWorkspaceFiles({ project: document.project, cards: document.cards, camera, selected, exercise: document.exercise, dashboard: document.dashboard, onReplace: handleReplaceWorkspace, onUpdateImage: document.updateImage })
   const exerciseState = useExercise({ project: document.project, exercise: document.exercise })
   const exerciseRevisionRef = useRef(null)
-  const transfers = useNodeTransfers({ project: document.project, index: document.index, selected, selectedNodeIds, readOnly: presentationMode, workspaceRef, onPaste: document.pasteNode, onMove: document.moveNodes, onDuplicate: document.duplicateNode, onTransferred: handleNodeTransferred })
+  const transfers = useNodeTransfers({ project: document.project, index: document.index, selected, selectedNodeIds, cards: document.cards, readOnly: presentationMode, workspaceRef, onPaste: document.pasteNode, onPasteModule: handlePasteModule, onCutNode: handleDeleteNode, onCutModule: handleDeleteModule, onMove: document.moveNodes, onDuplicate: document.duplicateNode, onTransferred: handleNodeTransferred })
 
   // Ouvre automatiquement le panneau pour un exercice chargé, sans le rouvrir après fermeture manuelle.
   useEffect(() => {
@@ -1265,6 +1265,12 @@ export default function Canvas() {
 
   // Montre la nouvelle position logique après collage, duplication ou déplacement validé.
   function handleNodeTransferred(result) {
+    if (result.moduleId) {
+      setSelection([{ kind: 'module', id: result.moduleId }])
+      setActiveCardId(result.moduleId)
+      handleCloseMenu(false)
+      return
+    }
     const moduleId = result.index.nodes.get(result.nodeId)?.moduleId
     const card = document.cards.find((entry) => entry.id === moduleId)
     const expanded = new Set(card?.expandedNodeIds ?? [])
@@ -1283,10 +1289,32 @@ export default function Canvas() {
     handleCloseMenu(false)
   }
 
+  // Colle un module entier au centre de la vue, puis le sélectionne.
+  function handlePasteModule(payload, position = null) {
+    const center = position ?? { x: camera.x, y: camera.y }
+    const result = document.pasteModule(payload, center)
+    if (result.ok) {
+      const moduleId = result.module.id
+      setSelection([{ kind: 'module', id: moduleId }])
+      setActiveCardId(moduleId)
+      setGrowthRequest((current) => ({ moduleId, revision: current.revision + 1, documentRevision: document.revision }))
+      handleCloseMenu(false)
+    }
+    return result
+  }
+
   // Referme le menu après une copie réussie, sans changer la source ni la sélection.
   function handleCopyNode(target) {
-    const result = transfers.copyNode(target)
+    const result = transfers.copyTarget(target)
     if (result.ok) handleCloseMenu(true)
+    return result
+  }
+
+  // Coupe la cible après une capture réussie ; la suppression passe par les actions existantes.
+  function handleCutTarget(target) {
+    const result = transfers.cutTarget(target)
+    if (result.ok) handleCloseMenu(true)
+    return result
   }
 
   // La suppression retire l'arborescence et sélectionne son parent logique.
@@ -1465,8 +1493,9 @@ export default function Canvas() {
     'workspace.save': { available: () => !files.busy && !files.pendingImport, run: files.handleSave },
     'edit.undo': { available: () => !presentationMode && document.canUndo, run: document.undo },
     'edit.redo': { available: () => !presentationMode && document.canRedo, run: document.redo },
-    'edit.copyNode': { available: () => !presentationMode && selected?.kind === 'node' && !window.getSelection()?.toString(), run: () => transfers.copyNode(selected) },
-    'edit.pasteNode': { available: () => !presentationMode && Boolean(selected && transfers.hasClipboard), run: () => transfers.pasteNode(selected) },
+    'edit.copyNode': { available: () => !presentationMode && (selected?.kind === 'node' || selected?.kind === 'module') && !window.getSelection()?.toString(), run: () => transfers.copyTarget(selected) },
+    'edit.cutNode': { available: () => !presentationMode && (selected?.kind === 'node' || selected?.kind === 'module') && !window.getSelection()?.toString(), run: () => transfers.cutTarget(selected) },
+    'edit.pasteNode': { available: () => !presentationMode, run: () => transfers.pasteTarget(selected) },
     'edit.search': { available: () => true, run: search.show },
     'navigation.center': { available: () => true, run: () => handleRecenter(getModulesBounds()) },
     'navigation.zoom100': { available: () => true, run: resetZoom },
@@ -1622,7 +1651,7 @@ export default function Canvas() {
       {nodeGraph && <NodeGraphPanel project={document.project} index={document.index} target={nodeGraph.target} mode={nodeGraph.mode} onSelect={handleSelect} onClose={() => setNodeGraph(null)} />}
       {!presentationMode && selected && !selectedScreen && <NodeProperties key={document.revision} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onPreviewSymbolRename={document.previewSymbolRename} onApplySymbolRename={document.applySymbolRename} onSelect={handleSelect} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onExport={document.exportFunction} onImport={document.importFunction} onRemoveImport={document.removeImport} onContracts={document.setNodeContracts} onClose={() => setSelection([])} onExportImage={handleExportNodeImage} onExportNodeJson={handleExportNodeJson} mutationError={document.mutationError} />}
       {!presentationMode && selectedScreenCard && selectedScreenModule && <ScreenProperties key={selectedScreenCard.id} card={selectedScreenCard} module={selectedScreenModule} state={screenStates[selectedScreenCard.id] ?? null} links={selectedScreenCallers} onRename={document.renameCard} onSelect={handleSelect} onClose={() => setSelection([])} />}
-      {!presentationMode && contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onHideCard={handleHideCard} onLockCard={handleToggleLock} targetLocked={isCardLocked(contextMenu.targetId?.id)} onExpansion={(id, expand) => { handleExpansion(id, expand); handleCloseMenu(true) }} canToggleExpansion={contextMenu.targetId?.kind === 'module' && (expandableIds.get(contextMenu.targetId.id)?.length ?? 0) > 0} onOpenGraph={handleOpenNodeGraph} onCopy={handleCopyNode} onPaste={transfers.pasteNode} onDuplicate={transfers.duplicateNode} hasClipboard={transfers.hasClipboard} showBookmark={bookmarkStatus(contextMenu.targetId).show} canBookmark={bookmarkStatus(contextMenu.targetId).can} onBookmark={handleBookmarkTarget} onClose={handleCloseMenu} />
+      {!presentationMode && contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onHideCard={handleHideCard} onLockCard={handleToggleLock} targetLocked={isCardLocked(contextMenu.targetId?.id)} onExpansion={(id, expand) => { handleExpansion(id, expand); handleCloseMenu(true) }} canToggleExpansion={contextMenu.targetId?.kind === 'module' && (expandableIds.get(contextMenu.targetId.id)?.length ?? 0) > 0} onOpenGraph={handleOpenNodeGraph} onCopy={handleCopyNode} onCut={handleCutTarget} onPaste={transfers.pasteTarget} onDuplicate={transfers.duplicateNode} hasClipboard={transfers.hasClipboard} showBookmark={bookmarkStatus(contextMenu.targetId).show} canBookmark={bookmarkStatus(contextMenu.targetId).can} onBookmark={handleBookmarkTarget} onClose={handleCloseMenu} />
         : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} onCreate={handleCreateModule} onClose={handleCloseMenu} anchored={contextMenu.anchored} commentId={contextMenu.targetId ? { id: contextMenu.targetId.id, type: contextMenu.targetId.kind } : null} onDeleteComment={handleDeleteComment} onHideCard={handleHideCard} onLockCard={handleToggleLock} commentLocked={isCardLocked(contextMenu.targetId?.id)} />)}
     </main>
     </div>

@@ -14,7 +14,7 @@
   "enableNativeAPI": true,
   "tokenSecurity": "one-time",
   "enableExtensions": false,
-  "nativeAllowList": ["os.showSaveDialog", "os.showOpenDialog", "os.showFolderDialog", "os.showMessageBox", "os.open", "os.spawnProcess", "os.updateSpawnedProcess", "os.getPath", "app.exit", "net.request", "window.isFullScreen", "window.setFullScreen", "window.exitFullScreen", "filesystem.readFile", "filesystem.readBinaryFile", "filesystem.readDirectory", "filesystem.writeFile", "filesystem.writeBinaryFile", "filesystem.appendBinaryFile", "filesystem.getStats", "filesystem.move", "filesystem.remove", "filesystem.createDirectory", "storage.setData", "storage.getData", "storage.getKeys"],
+  "nativeAllowList": ["os.showSaveDialog", "os.showOpenDialog", "os.showFolderDialog", "os.showMessageBox", "os.open", "os.spawnProcess", "os.updateSpawnedProcess", "os.getPath", "app.exit", "net.request", "window.isFullScreen", "window.setFullScreen", "window.exitFullScreen", "clipboard.readText", "clipboard.writeText", "clipboard.getFormat", "clipboard.clear", "filesystem.readFile", "filesystem.readBinaryFile", "filesystem.readDirectory", "filesystem.writeFile", "filesystem.writeBinaryFile", "filesystem.appendBinaryFile", "filesystem.getStats", "filesystem.move", "filesystem.remove", "filesystem.createDirectory", "storage.setData", "storage.getData", "storage.getKeys"],
   "dataLocation": "system",
   "storageLocation": "system",
   "logging": {

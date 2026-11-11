@@ -5,7 +5,7 @@ import { applyKeybind, clearKeybind, defaultKeybinds, findKeybindConflicts, keyb
 test('raccourcis : les valeurs par défaut sont normalisées, uniques et couvrent les actions attendues', () => {
   const expected = {
     'workspace.new': 'Ctrl+N', 'workspace.open': 'Ctrl+O', 'workspace.save': 'Ctrl+S',
-    'edit.undo': 'Ctrl+Z', 'edit.redo': 'Ctrl+Y', 'edit.copyNode': 'Ctrl+C', 'edit.pasteNode': 'Ctrl+V', 'edit.search': 'Ctrl+F',
+    'edit.undo': 'Ctrl+Z', 'edit.redo': 'Ctrl+Y', 'edit.copyNode': 'Ctrl+C', 'edit.cutNode': 'Ctrl+X', 'edit.pasteNode': 'Ctrl+V', 'edit.search': 'Ctrl+F',
     'navigation.center': 'Ctrl+Shift+F', 'navigation.zoom100': 'Ctrl+0', 'navigation.toggleMinimap': 'Ctrl+M',
     'execution.run': 'F5', 'execution.stop': 'Shift+F5', 'execution.debug': 'F6',
   }

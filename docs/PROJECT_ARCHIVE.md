@@ -2,6 +2,12 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Presse-papiers système et modules entiers — 11 novembre 2026
+
+- Ajout de **Ctrl+X** et extension de **Ctrl+C/Ctrl+V** aux modules logiques entiers. La capture est sérialisée dans un payload JSON marqué `sapphire3-clipboard` et écrite dans le presse-papiers système ; une copie locale reste disponible pour le collage immédiat. En desktop, la lecture/écriture passe par l'API native Neutralinojs `clipboard.readText`/`writeText` (cœur C++), ajoutée à `nativeAllowList` ; `navigator.clipboard` ne sert qu'au mode web de développement.
+- `captureSourceModule`/`pasteSourceModule` copient un module logique ou une classe entière sous de nouveaux identifiants, remappent les références internes, les exports et le `classId`, conservent les imports externes et refusent les modules de widgets (`TRANSFER_MODULE_UNSUPPORTED`). Les imports ou classes absents du workspace cible sont refusés (`TRANSFER_IMPORT_MISSING`, `TRANSFER_CLASS_MISSING`). Le collage crée une carte neuve au centre de la vue et reste annulable en une étape. Le menu logique expose **Copy**, **Cut** et **Paste**.
+- Vérifications : **648 tests Node/Python réussis**, dont quatre tests de transfert de module (payload, module importateur, classe, widget/import manquant), un test du reducer `pasteModule` avec annulation, et la mise à jour des raccourcis. Build Vite réussi ; dans le navigateur, Ctrl+C/Ctrl+V duplique un module, Ctrl+X le retire puis Ctrl+V le recolle, et le menu affiche Copy/Cut/Paste. Limite : le chemin presse-papiers natif Neutralinojs n'a pas été exercé dans la fenêtre desktop pendant cette vérification ; le mode web a utilisé le repli `navigator.clipboard` et le presse-papiers local.
+
 ## Modèles de workspace — 11 novembre 2026
 
 - Ajout du volet **Templates** dans la barre de navigation, à côté d'Examples. Cinq modèles locaux : **Vide** (aucune carte), **Entrée → sortie** (entrée entière liée à `onChange(int)` qui imprime), **Tableau de bord de widgets** (écran, jauge, progression, barres, LED et LED RVB animés), **Classe + instance** (classe `Counter` privée instanciée par `main`) et **Exercice** (fonction `sum` incomplète, point de départ et test `sum(2, 3) = 5`).

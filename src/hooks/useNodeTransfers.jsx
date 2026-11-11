@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react'
-import { captureSourceNode, moveSourceNodes } from '../utils/logic/index.js'
+import { useEffect, useRef, useState } from 'react'
+import { captureSourceModule, captureSourceNode, decodeClipboardPayload, encodeClipboardPayload, moveSourceNodes } from '../utils/logic/index.js'
+import { readSystemClipboard, writeSystemClipboard } from '../services/systemClipboard.js'
 import { useNotifications } from '../contexts/NotificationContext.jsx'
 import { useTranslation } from '../contexts/LanguageContext.jsx'
 import { failureLabel } from '../utils/translations.js'
@@ -15,14 +16,31 @@ function dropReceiver(element) {
   return module ? { kind: 'module', id: module.dataset.sourceModule } : null
 }
 
-// Gère le presse-papiers local et les gestes de transfert sans persistance ni API native.
-export default function useNodeTransfers({ project, index, selected, selectedNodeIds = [], readOnly = false, workspaceRef, onPaste, onMove, onDuplicate, onTransferred }) {
+// Gère le presse-papiers local, le presse-papiers système et les gestes de transfert.
+export default function useNodeTransfers({ project, index, selected, selectedNodeIds = [], cards = [], readOnly = false, workspaceRef, onPaste, onPasteModule, onCutNode, onCutModule, onMove, onDuplicate, onTransferred }) {
   const { notify } = useNotifications()
   const { t } = useTranslation()
   const [clipboard, setClipboard] = useState(null)
+  const [systemClipboardAvailable, setSystemClipboardAvailable] = useState(false)
   const [notice, setNotice] = useState(null)
   const [dropTarget, setDropTarget] = useState(null)
   const dragRef = useRef(null)
+
+  // Vérifie au montage et au retour de focus si le presse-papiers système contient une capture Sapphire.
+  useEffect(() => {
+    let cancelled = false
+    async function refresh() {
+      const text = await readSystemClipboard()
+      if (!cancelled) setSystemClipboardAvailable(Boolean(decodeClipboardPayload(text)))
+    }
+    void refresh()
+    const handleFocus = () => { void refresh() }
+    window.addEventListener('focus', handleFocus)
+    return () => {
+      cancelled = true
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [])
 
   // Évite de réannoncer et de rerendre le même résultat à chaque événement de survol.
   function showNotice(next) {
@@ -45,23 +63,58 @@ export default function useNodeTransfers({ project, index, selected, selectedNod
     return result
   }
 
-  // Capture une copie indépendante des modifications ultérieures de la source.
-  function copyNode(target) {
-    const result = captureSourceNode(project, target.id, { index })
+  // Capture un nœud ou un module et publie la capture dans le presse-papiers système.
+  function captureTarget(target, message) {
+    if (readOnly) return finish({ ok: false, code: 'TRANSFER_READ_ONLY' }, message)
+    let result
+    if (target?.kind === 'node') result = captureSourceNode(project, target.id, { index })
+    else if (target?.kind === 'module') {
+      const card = cards.find((entry) => entry.id === target.id) ?? null
+      result = captureSourceModule(project, target.id, { card })
+    } else result = { ok: false, code: 'TARGET_INVALID' }
     if (result.ok) {
-      setClipboard(result.clipboard)
+      const source = { kind: target.kind, payload: result.clipboard }
+      setClipboard(source)
+      setSystemClipboardAvailable(true)
+      const encoded = encodeClipboardPayload(target.kind, result.clipboard)
+      if (encoded) void writeSystemClipboard(encoded)
       setNotice(null)
     } else {
       showNotice({ error: result.code })
     }
-    publishResult(result, 'transfer.copied')
+    publishResult(result, message)
     return result
   }
 
-  // Colle en bas de l'unique slot compatible du destinataire sélectionné.
-  function pasteNode(receiver) {
-    if (!clipboard) return finish({ ok: false, code: 'TRANSFER_CLIPBOARD_EMPTY' })
-    return finish(onPaste(clipboard, receiver), 'transfer.pasted')
+  // Copie la cible sélectionnée dans le presse-papiers local et système.
+  function copyTarget(target) {
+    return captureTarget(target, 'transfer.copied')
+  }
+
+  // Coupe la cible : capture d'abord, suppression seulement si la capture a réussi.
+  function cutTarget(target) {
+    const result = captureTarget(target, 'transfer.cutDone')
+    if (!result.ok) return result
+    const removed = target.kind === 'module' ? onCutModule?.(target.id) : onCutNode?.(target.id)
+    return removed?.ok === false ? removed : { ...result, cut: true }
+  }
+
+  // Colle la capture locale ou, à défaut, une capture présente dans le presse-papiers système.
+  async function pasteTarget(receiver, position = null) {
+    let source = clipboard
+    const text = await readSystemClipboard()
+    const decoded = decodeClipboardPayload(text)
+    if (decoded) source = decoded
+    if (!source) return finish({ ok: false, code: 'TRANSFER_CLIPBOARD_EMPTY' })
+    if (source.kind === 'node') {
+      if (!receiver) return finish({ ok: false, code: 'TRANSFER_RECEIVER_MISSING' })
+      return finish(onPaste(source.payload, receiver), 'transfer.pasted')
+    }
+    if (source.kind === 'module') {
+      if (!onPasteModule) return finish({ ok: false, code: 'TRANSFER_MODULE_UNSUPPORTED' })
+      return finish(onPasteModule(source.payload, position), 'transfer.pasted')
+    }
+    return finish({ ok: false, code: 'TRANSFER_CLIPBOARD_INVALID' })
   }
 
   // Duplique dans la liste parente ; la validation métier reste celle du moteur pur.
@@ -129,12 +182,28 @@ export default function useNodeTransfers({ project, index, selected, selectedNod
     setNotice((current) => current?.transient ? null : current)
   }
 
-  // Efface le presse-papiers lors du remplacement explicite du workspace.
+  // Efface le presse-papiers local lors du remplacement explicite du workspace.
   function reset() {
     setClipboard(null)
     setNotice(null)
     handleDragEnd()
   }
 
-  return { hasClipboard: Boolean(clipboard), notice, dropTarget, copyNode, pasteNode, duplicateNode, reset, dismiss: () => setNotice(null), handleDragStart, handleDragOver, handleDrop, handleDragEnd }
+  return {
+    hasClipboard: Boolean(clipboard) || systemClipboardAvailable,
+    notice,
+    dropTarget,
+    copyNode: copyTarget,
+    pasteNode: pasteTarget,
+    copyTarget,
+    cutTarget,
+    pasteTarget,
+    duplicateNode,
+    reset,
+    dismiss: () => setNotice(null),
+    handleDragStart,
+    handleDragOver,
+    handleDrop,
+    handleDragEnd,
+  }
 }

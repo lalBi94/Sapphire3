@@ -32,6 +32,8 @@ export { getModuleRootSymbols, getModuleFunctions, getImportCandidates, getUnuse
 export { bindInputButtonCallback, isInputButtonCallbackType, isInputButtonNoop } from './inputButtonBinding.js'
 export { bindInputNumberCallback, isInputNumberCallbackType, isInputNumberNoop, inputValueCallbackType } from './inputNumberBinding.js'
 export { bindColorPickerCallback, isColorPickerCallbackType, isColorPickerNoop } from './colorPickerBinding.js'
+export { captureSourceModule, pasteSourceModule } from './moduleTransfer.js'
+export { clipboardMarker, clipboardPayloadVersion, encodeClipboardPayload, decodeClipboardPayload } from './clipboardPayload.js'
 
 // Retrouve une construction à partir de son identifiant graphique/source stable.
 export function findAstNode(ast, sourceId) {

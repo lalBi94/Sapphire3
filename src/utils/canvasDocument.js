@@ -1,5 +1,5 @@
 import { logicalCardTypes, moduleCardTypes, moduleTypes } from './moduleTypes.js'
-import { createProject, createModule, moduleKinds, analyzeProgram, createContextIndex, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol, deleteSourceTargets, duplicateSourceTargets, moveSourceNodes, bindInputButtonCallback, bindInputNumberCallback, bindColorPickerCallback } from './logic/index.js'
+import { createProject, createModule, moduleKinds, analyzeProgram, createContextIndex, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol, deleteSourceTargets, duplicateSourceTargets, moveSourceNodes, bindInputButtonCallback, bindInputNumberCallback, bindColorPickerCallback, pasteSourceModule } from './logic/index.js'
 import { defaultDashboardConfig } from './dashboardConfig.js'
 
 // Recalcule les dérivés uniquement quand la source logique change.
@@ -99,6 +99,26 @@ export function reduceDocument(state, action) {
     const card = action.card
     if (state.cards.some((entry) => entry.id === card.id)) return state
     return withSource({ ...state, cards: [...state.cards, card] }, { ...state.project, modules: [...state.project.modules, action.colorPicker.module], nodes: [...state.project.nodes, ...action.colorPicker.nodes] })
+  }
+  // Un module entier copié arrive avec ses nœuds et une carte neuve.
+  if (action.type === 'pasteModule') {
+    const result = state.project === action.previousProject ? action.prepared : pasteSourceModule(state.project, action.clipboard, { idFactory: action.idFactory, index: state.index })
+    if (!result.ok) return { ...state, mutationError: result.code }
+    const type = result.module.kind === 'class' ? 'class' : 'module'
+    const definition = moduleTypes[type]
+    const center = action.position ?? { x: 200, y: 200 }
+    const card = {
+      id: result.module.id,
+      type,
+      name: result.module.name,
+      x: Math.round(center.x - definition.width / 2),
+      y: Math.round(center.y - definition.height / 2),
+      width: result.sourceCard?.width ?? definition.width,
+      height: result.sourceCard?.height ?? definition.height,
+      expandedNodeIds: [],
+      ...(result.sourceCard?.emoji ? { emoji: result.sourceCard.emoji } : {}),
+    }
+    return withSource({ ...state, cards: [...state.cards, card] }, result.project, result.analysis, result.index)
   }
   // Une LED RVB reprend la même carte logique, avec trois canaux au lieu d'un booléen.
   if (action.type === 'createRgbLed') {
