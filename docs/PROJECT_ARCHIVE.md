@@ -2,6 +2,20 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Graph SDK — 11 novembre 2026
+
+- Nouveau package **`@sapphire3/graph`** dans `packages/graph/`, lié au workspace pnpm et construit par Vite en module ESM autonome. Il réutilise `nodeGraphs.js`, `moduleLinks.js`, `reachability.js`, l'analyse sémantique du Core et `flowGraph.js`, sans second AST ni second analyseur.
+- API : `getDependencyGraph`, `getControlFlowGraph`, `getCallGraph`, `getAstGraph`, `getFlowGraph`, `analyzeGraph`, `exportGraph`, `GraphError`, `GRAPH_ERROR_CODES`.
+- Dependency Graph : modules et classes, déclarations, paramètres, lambdas, imports/exports déclarés et réellement utilisés, appels directs et indirects, lectures, écritures, types et références non résolues. Les dépendances ciblées délèguent au graphe IDE existant.
+- CFG : entrée/sortie, instructions, conditions, boucles, `break`, `continue`, `return`, blocs accessibles/inaccessibles, arêtes `next`/`true`/`false`/`return`/`break`/`continue`, cible fonction ou module.
+- Call Graph : fonctions, méthodes de classe, constructeurs, lambdas, appels directs agrégés, appels indirects via variables/paramètres de type fonction et cibles non résolues explicitement marquées. Aucune cible dynamique inventée.
+- AST Graph : projet, modules, hiérarchie parent/enfant avec `slot`/index, types sémantiques, annotations déclarées, imports/exports et références symboliques distinctes des relations `contains`.
+- Flow Graph : `buildFlowGraph` exposé sous la structure commune, avec positions, dimensions, appels directs et drapeaux `entry`/`recursive`.
+- Analyses : DFS/BFS déterministes, direction `out`/`in`/`both`, filtrage par nature d'arête, cycles, composantes fortement connexes, tri topologique, chemins bornés, dépendances directes, inverses et transitives.
+- Exports : JSON, Graphviz DOT et Mermaid, avec échappement des identifiants et labels, identifiants Mermaid sûrs, styles des entrées/sorties/incertitudes et aucune bibliothèque de rendu.
+- Documentation `docs/sdk/graph.md`, exemples `examples/graph/analyze-project.mjs` et `examples/graph/export-formats.mjs`, types `packages/graph/types/index.d.ts`.
+- Vérifications : **743 tests Node/Python réussis**, dont 13 tests Graph (12 tests de session et 1 test de packaging) couvrant imports/exports, cycles de modules et d'appels, dépendances ciblées, compatibilité IDE, conditions, boucles imbriquées, `break`/`continue`/`return`, code inaccessible, récursion, classes et méthodes, appels indirects et lambdas, AST/types, DFS/BFS, topologie, composantes fortement connexes, chemins, dépendances transitives, exports échappés, déterminisme, programmes incomplets et `npm pack` dans un projet externe. Build Vite frontend réussi. Aucun push distant ni publication npm.
+
 ## Project SDK — 11 novembre 2026
 
 - Nouveau package **`@sapphire3/project`** dans `packages/project/`, lié au workspace pnpm et construit par Vite en module ESM autonome avec le Core SDK embarqué. Il réutilise `@sapphire3/core`, `workspaceFile.js`, `workspaceArchive.js`, `embeddedImage.js`, `moduleTypes.js` et le format workspace version 3, sans second analyseur ni nouveau `.sp3`.
