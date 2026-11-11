@@ -29,7 +29,7 @@
 | Panneau de propriétés d'un nœud | 0 |
 | Recherche de blocs (`Ctrl+F`) | 0 |
 | Menu d'actions d'un nœud | 0 |
-| Menu de création catégorisé (3 colonnes, recherche) | 0 |
+| Menu de création catégorisé (4 colonnes avec plugins, sous-catégories pliables, recherche) | 0 |
 | Panneau de simulation | 0 |
 | Panneau de debug | 0 |
 | Panneau d'exercice | 0 |

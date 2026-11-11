@@ -42,12 +42,42 @@ function pluginIcon(name) {
   return Puzzle
 }
 
+// Rassemble les clés des groupes et sous-groupes pliables d'une catégorie.
+function collectGroupKeys(category) {
+  const keys = []
+  const visit = (group, prefix) => {
+    const key = `${prefix}.${group.id}`
+    keys.push(key)
+    for (const child of group.groups ?? []) visit(child, key)
+  }
+  for (const group of category.groups ?? []) visit(group, category.id)
+  return keys
+}
+
+// Filtre un groupe et ses sous-groupes ; un libellé trouvé conserve ses enfants.
+function filterWidgetGroup(group, term, categoryLabel, t, force = false) {
+  const labelMatches = Boolean(term) && normalizeSearchText(t(group.labelKey)).includes(term)
+  const keepAll = force || labelMatches
+  if (Array.isArray(group.groups)) {
+    const groups = group.groups
+      .map((child) => filterWidgetGroup(child, term, categoryLabel, t, keepAll))
+      .filter((child) => child.types.length > 0)
+    return { ...group, groups, types: groups.flatMap((child) => child.types) }
+  }
+  const types = (group.types ?? []).filter((type) => {
+    if (!term || keepAll) return true
+    const haystack = [t(moduleTypes[type].actionKey), type, categoryLabel].map(normalizeSearchText).join(' ')
+    return haystack.includes(term)
+  })
+  return { ...group, types }
+}
+
 // Propose les créations disponibles et gère la fermeture ainsi que le focus clavier.
 export default function CanvasContextMenu({ x, y, onCreate, onCreatePluginWidget, pluginWidgets = [], onClose, commentId = null, onDeleteComment, onHideCard, onLockCard, commentLocked = false, anchored = false }) {
   const menuRef = useRef(null)
   const searchRef = useRef(null)
   const [term, setTerm] = useState('')
-  const [collapsedGroups, setCollapsedGroups] = useState(() => new Set())
+  const [collapsedGroups, setCollapsedGroups] = useState(() => new Set(cardCategories.flatMap(collectGroupKeys)))
   const { t } = useTranslation()
 
   useEffect(() => {
@@ -75,14 +105,11 @@ export default function CanvasContextMenu({ x, y, onCreate, onCreatePluginWidget
   })
   const staticCategories = commentId ? [] : cardCategories.map((category) => {
     const grouped = Array.isArray(category.groups)
-    const groups = (grouped ? category.groups : [{ id: category.id, labelKey: category.labelKey, types: category.types }]).map((group) => ({
-      ...group,
-      types: group.types.filter((type) => {
-        if (!normalizedTerm) return true
-        const haystack = [t(moduleTypes[type].actionKey), type, t(category.labelKey), t(group.labelKey)].map(normalizeSearchText).join(' ')
-        return haystack.includes(normalizedTerm)
-      }),
-    })).filter((group) => group.types.length > 0)
+    const categoryLabel = t(category.labelKey)
+    const categoryMatches = Boolean(normalizedTerm) && normalizeSearchText(categoryLabel).includes(normalizedTerm)
+    const groups = (grouped ? category.groups : [{ id: category.id, labelKey: category.labelKey, types: category.types }])
+      .map((group) => filterWidgetGroup(group, normalizedTerm, categoryLabel, t, categoryMatches))
+      .filter((group) => group.types.length > 0)
     return { ...category, grouped, groups }
   }).filter((category) => category.groups.length > 0)
   const categories = pluginActions.length > 0
@@ -115,6 +142,31 @@ export default function CanvasContextMenu({ x, y, onCreate, onCreatePluginWidget
       <Icon className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />
       {entry.widget.name}
     </button>
+  }
+
+  // Affiche un groupe de widgets, avec ses éventuels sous-groupes.
+  function renderWidgetGroup(group, category, depth = 0, prefix = category.id) {
+    if (!category.grouped) return group.types.map(renderAction)
+    const groupKey = `${prefix}.${group.id}`
+    const groupCollapsed = !normalizedTerm && collapsedGroups.has(groupKey)
+    const nested = Array.isArray(group.groups) && group.groups.length > 0
+    return <div className={`canvas-context-menu__subgroup${depth > 0 ? ' canvas-context-menu__subgroup--nested' : ''}`} role="group" aria-label={t(group.labelKey)} key={group.id}>
+      <button
+        type="button"
+        role="menuitem"
+        className="canvas-context-menu__subgroup-title"
+        data-group-toggle
+        aria-expanded={!groupCollapsed}
+        title={t(groupCollapsed ? 'menu.groupExpand' : 'menu.groupCollapse')}
+        onClick={() => toggleGroup(groupKey)}
+      >
+        {groupCollapsed ? <ChevronRight size={12} strokeWidth={2} aria-hidden="true" /> : <ChevronDown size={12} strokeWidth={2} aria-hidden="true" />}
+        {t(group.labelKey)}
+      </button>
+      {!groupCollapsed && (nested
+        ? group.groups.map((child) => renderWidgetGroup(child, category, depth + 1, groupKey))
+        : group.types.map(renderAction))}
+    </div>
   }
 
   // Permet de parcourir les actions sans déplacer le canvas.
@@ -180,26 +232,7 @@ export default function CanvasContextMenu({ x, y, onCreate, onCreatePluginWidget
               <p className="canvas-context-menu__group-title" aria-hidden="true">{t(category.labelKey)}</p>
               {category.pluginActions
                 ? category.pluginActions.map(renderPluginAction)
-                : category.groups.map((group) => {
-                if (!category.grouped) return group.types.map(renderAction)
-                const groupKey = `${category.id}.${group.id}`
-                const groupCollapsed = !normalizedTerm && collapsedGroups.has(groupKey)
-                return <div className="canvas-context-menu__subgroup" role="group" aria-label={t(group.labelKey)} key={group.id}>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="canvas-context-menu__subgroup-title"
-                    data-group-toggle
-                    aria-expanded={!groupCollapsed}
-                    title={t(groupCollapsed ? 'menu.groupExpand' : 'menu.groupCollapse')}
-                    onClick={() => toggleGroup(groupKey)}
-                  >
-                    {groupCollapsed ? <ChevronRight size={12} strokeWidth={2} aria-hidden="true" /> : <ChevronDown size={12} strokeWidth={2} aria-hidden="true" />}
-                    {t(group.labelKey)}
-                  </button>
-                  {!groupCollapsed && group.types.map(renderAction)}
-                </div>
-              })}
+                : category.groups.map((group) => renderWidgetGroup(group, category))}
             </div>)}
           </div>}
       </>}

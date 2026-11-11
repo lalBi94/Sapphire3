@@ -167,6 +167,24 @@
   padding-inline-start: 24px;
 }
 
+/* Sous-sous-catégories : décalage supplémentaire pour garder la hiérarchie lisible. */
+.canvas-context-menu__subgroup--nested {
+  margin-inline-start: 8px;
+  padding-inline-start: 4px;
+  border-inline-start: 1px solid var(--color-border);
+}
+
+.canvas-context-menu__subgroup--nested .canvas-context-menu__subgroup-title {
+  padding-inline-start: 16px;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.canvas-context-menu__subgroup--nested > button:not(.canvas-context-menu__subgroup-title) {
+  padding-inline-start: 28px;
+}
+
 .canvas-context-menu__empty {
   margin: 0;
   padding: 8px;

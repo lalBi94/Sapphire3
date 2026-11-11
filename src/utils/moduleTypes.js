@@ -27,18 +27,32 @@ export const moduleTypes = {
 
 export const minimumModuleSize = { width: 180, height: 120 }
 
+// Rassemble les types d'un groupe, y compris ceux de ses sous-groupes.
+function groupTypes(group) {
+  return Array.isArray(group.groups) ? group.groups.flatMap(groupTypes) : group.types
+}
+
 // Sous-catégories pliables des widgets, dans l'ordre d'affichage.
 const widgetCardGroups = [
   { id: 'displays', labelKey: 'canvas.createCategory.widgetsDisplays', types: ['screen', 'gauge', 'progress'] },
   { id: 'charts', labelKey: 'canvas.createCategory.widgetsCharts', types: ['barChart', 'xyPlot', 'oscilloscope', 'heatmap'] },
   { id: 'indicators', labelKey: 'canvas.createCategory.widgetsIndicators', types: ['led', 'rgbLed'] },
-  { id: 'inputs', labelKey: 'canvas.createCategory.widgetsInputs', types: ['toggleButton', 'holdButton', 'numberInput', 'floatInput', 'stringInput', 'rgbPicker', 'rgbaPicker'] },
+  {
+    id: 'inputs',
+    labelKey: 'canvas.createCategory.widgetsInputs',
+    groups: [
+      { id: 'buttons', labelKey: 'canvas.createCategory.widgetsInputsButtons', types: ['toggleButton', 'holdButton'] },
+      { id: 'numbers', labelKey: 'canvas.createCategory.widgetsInputsNumbers', types: ['numberInput', 'floatInput'] },
+      { id: 'text', labelKey: 'canvas.createCategory.widgetsInputsText', types: ['stringInput'] },
+      { id: 'colors', labelKey: 'canvas.createCategory.widgetsInputsColors', types: ['rgbPicker', 'rgbaPicker'] },
+    ],
+  },
 ]
 
 // Catégories stables du menu de création, dans l'ordre d'affichage.
 export const cardCategories = [
   { id: 'programming', labelKey: 'canvas.createCategory.programming', types: [moduleKinds.module, moduleKinds.class] },
-  { id: 'widgets', labelKey: 'canvas.createCategory.widgets', types: widgetCardGroups.flatMap((group) => group.types), groups: widgetCardGroups },
+  { id: 'widgets', labelKey: 'canvas.createCategory.widgets', types: widgetCardGroups.flatMap(groupTypes), groups: widgetCardGroups },
   { id: 'annotations', labelKey: 'canvas.createCategory.annotations', types: ['comment', 'image'] },
 ]
 
