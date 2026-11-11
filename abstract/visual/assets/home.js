@@ -15,6 +15,16 @@ function announce(message) {
   feedbackTimer = setTimeout(() => feedback.classList.remove('is-visible'), 3500)
 }
 
+// Duplique la bande de preuves pour une boucle continue, sans doublon vocal.
+const proofTrack = document.querySelector('[data-proof-track]')
+const proofGroup = proofTrack?.querySelector('.proof-strip__group')
+if (proofTrack && proofGroup && !proofTrack.dataset.cloned) {
+  const clone = proofGroup.cloneNode(true)
+  clone.setAttribute('aria-hidden', 'true')
+  proofTrack.append(clone)
+  proofTrack.dataset.cloned = 'true'
+}
+
 const nodes = {
   function: {
     typeKey: 'inspect.type.function',
