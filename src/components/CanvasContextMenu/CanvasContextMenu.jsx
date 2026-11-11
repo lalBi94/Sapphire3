@@ -151,12 +151,13 @@ export default function CanvasContextMenu({ x, y, onCreate, onCreatePluginWidget
   const menuTop = anchored ? y : commentId ? `min(${y}px, max(8px, calc(100% - 280px)))` : y
   const menuMaxHeight = anchored || !commentId ? `calc(100% - ${y + 8}px)` : 'calc(100% - 16px)'
   const columns = !commentId
-  const menuWidth = columns ? 620 : 184
+  const hasPluginColumn = columns && pluginActions.length > 0
+  const menuWidth = columns ? (hasPluginColumn ? 800 : 620) : 184
 
   return (
     <div
       ref={menuRef}
-      className={`canvas-context-menu${columns ? ' canvas-context-menu--columns' : ''}`}
+      className={`canvas-context-menu${columns ? ' canvas-context-menu--columns' : ''}${hasPluginColumn ? ' canvas-context-menu--plugins' : ''}`}
       data-canvas-ui
       data-canvas-scroll
       style={{ left: `min(${x}px, max(8px, calc(100% - ${menuWidth + 8}px)))`, top: menuTop, maxHeight: menuMaxHeight }}
@@ -174,7 +175,7 @@ export default function CanvasContextMenu({ x, y, onCreate, onCreatePluginWidget
         </div>
         {categories.length === 0
           ? <p className="canvas-context-menu__empty">{t('canvas.createNone', { term })}</p>
-          : <div role="menu" className="canvas-context-menu__columns" aria-label={t('canvas.addMenu')}>
+          : <div role="menu" className={`canvas-context-menu__columns${hasPluginColumn ? ' canvas-context-menu__columns--plugins' : ''}`} aria-label={t('canvas.addMenu')}>
             {categories.map((category) => <div className="canvas-context-menu__group" role="group" aria-label={t(category.labelKey)} key={category.id}>
               <p className="canvas-context-menu__group-title" aria-hidden="true">{t(category.labelKey)}</p>
               {category.pluginActions

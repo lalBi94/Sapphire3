@@ -93,9 +93,13 @@
   display: none;
 }
 
-/* Catégories du menu : trois colonnes sur une ligne, titres discrets. */
+/* Catégories du menu : trois colonnes sur une ligne, quatre avec les plugins. */
 .canvas-context-menu--columns {
   width: min(620px, calc(100% - 16px));
+}
+
+.canvas-context-menu--columns.canvas-context-menu--plugins {
+  width: min(800px, calc(100% - 16px));
 }
 
 .canvas-context-menu__columns {
@@ -103,6 +107,10 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: start;
   gap: var(--space-small);
+}
+
+.canvas-context-menu__columns--plugins {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .canvas-context-menu__columns > .canvas-context-menu__group + .canvas-context-menu__group {
@@ -168,9 +176,10 @@
   overflow-wrap: anywhere;
 }
 
-/* Fenêtre étroite : les trois catégories repassent en colonne unique. */
+/* Fenêtre étroite : les catégories repassent en colonne unique. */
 @media (max-width: 680px) {
-  .canvas-context-menu--columns {
+  .canvas-context-menu--columns,
+  .canvas-context-menu--columns.canvas-context-menu--plugins {
     width: min(360px, calc(100% - 16px));
   }
 
