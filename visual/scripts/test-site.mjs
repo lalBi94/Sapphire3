@@ -38,7 +38,7 @@ test('recherche : tous les termes, bornage et requêtes hostiles sans interprét
 })
 
 test('site : liens, scripts et ancres de recherche pointent vers des fichiers réels', () => {
-  for (const page of ['index', 'documentation', 'ast', 'project', 'dashboards']) {
+  for (const page of ['index', 'documentation', 'ast', 'transpilation', 'project', 'dashboards']) {
     const html = readFileSync(path.join(root, `${page}.html`), 'utf8')
     assert.ok(html.includes('assets/motion.js'))
     assert.ok(html.includes('assets/search.js'))

@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Transpilation — Sapphire 3</title>
+  <meta name="description" content="Périmètre de transpilation de Sapphire 3 : ce que JavaScript, Python et le backend C expérimental acceptent, comment les fonctions et opérations SP3 sont reliées, et ce qui est refusé.">
+  <link rel="stylesheet" href="assets/identity.css?v=2">
+  <link rel="stylesheet" href="assets/site.css?v=2">
+  <link rel="stylesheet" href="assets/vendor/lenis.css">
+  <link rel="stylesheet" href="assets/experience.css">
+  <script src="assets/vendor/gsap.min.js" defer></script>
+  <script src="assets/vendor/ScrollTrigger.min.js" defer></script>
+  <script src="assets/vendor/lenis.min.js" defer></script>
+  <script src="assets/vendor/split-type.min.js" defer></script>
+  <script src="assets/search-core.js" defer></script>
+  <script src="assets/search-index.js" defer></script>
+  <script src="assets/search.js" defer></script>
+  <script src="assets/motion.js" defer></script>
+</head>
+<body class="page page-ast">
+  <a class="skip-link" href="#contenu">Aller au contenu</a>
+  <header class="site-header">
+    <p class="mark"><img class="mark-logo" src="assets/sapphire3-logo.webp" alt="" width="28" height="28"><span class="mark-word">Sapphire<span>3</span></span></p>
+    <span class="header-status"><span aria-hidden="true"></span>Transpilation</span>
+    <nav aria-label="Navigation du site">
+      <a href="index.html">Accueil</a>
+      <a href="project.html">État du projet</a>
+      <a href="documentation.html">Documentation visuelle</a>
+      <a href="ast.html">Le modèle AST</a>
+      <a href="transpilation.html" aria-current="page">Transpilation</a>
+      <a href="dashboards.html">Dashboards</a>
+    </nav>
+    <button class="search-trigger" type="button" data-search-trigger aria-label="Rechercher dans le site (Ctrl ou Commande K)"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><span>Rechercher</span><kbd>Ctrl K</kbd></button>
+  </header>
+
+  <main id="contenu">
+    <section class="page-intro">
+      <p class="kicker">Documentation · cibles</p>
+      <h1>Ce que Sapphire 3 traduit, cible par cible</h1>
+      <p class="lede">
+        Le même modèle logique alimente trois backends&nbsp;: JavaScript, Python et un C expérimental.
+        Cette page dit exactement ce que chacun accepte, comment les fonctions et opérations SP3 sont
+        reliées à leurs équivalents, et ce qui est refusé avant toute émission de code.
+      </p>
+      <ul class="meta-chips">
+        <li>3 cibles</li>
+        <li>Matrice de périmètre</li>
+        <li>Refus explicites</li>
+        <li data-reading-time>Lecture rapide</li>
+      </ul>
+      <div class="notes-soft">
+        <p style="margin-bottom:6px"><b>Documents liés</b></p>
+        <ul style="margin-bottom:0">
+          <li><a href="ast.html#execution">Le modèle AST — simulation, débogage et transpilation</a> pour les contrats du moteur.</li>
+          <li><a href="project.html#etat">L’état du projet</a> pour les limites générales et les plateformes.</li>
+          <li>Dans le dépôt&nbsp;: <code>docs/TRANSPILATION.md</code> pour la version détaillée et <code>docs/LOGIC_API.md</code> pour les contrats du moteur.</li>
+        </ul>
+      </div>
+      <ol class="toc">
+        <li><a href="#chaine">1 · Chaîne commune</a></li>
+        <li><a href="#matrice">2 · Matrice de périmètre</a></li>
+        <li><a href="#javascript">3 · JavaScript</a></li>
+        <li><a href="#python">4 · Python</a></li>
+        <li><a href="#c">5 · C expérimental</a></li>
+        <li><a href="#operations">6 · Fonctions et opérations</a></li>
+        <li><a href="#refus">7 · Refus et limites</a></li>
+      </ol>
+    </section>
+
+    <div class="doc-layout">
+      <aside class="doc-rail" aria-label="Sommaire de la page"></aside>
+      <div class="doc-content">
+        <section id="chaine">
+          <h2>1 · Chaîne commune</h2>
+          <p>
+            La transpilation n’est jamais automatique. Le document source, l’AST, les portées, les types et les
+            diagnostics restent indépendants du langage cible. Une action explicite lance la chaîne suivante.
+          </p>
+          <ol>
+            <li><code>analyzeProgram()</code> construit l’AST, les symboles, les types et les diagnostics.</li>
+            <li>Les gardes globales refusent les projets contenant une carte widget ou d’entrée, quelle que soit la cible.</li>
+            <li><code>createGenerationContext()</code> réserve les noms, résout les imports et les références, prépare les classes et le point d’entrée.</li>
+            <li>Le backend choisi émet un fichier ou un extrait, avec ses propres helpers.</li>
+            <li>Les diagnostics du backend sont fusionnés avec ceux de l’analyse&nbsp;; une erreur bloquante rend le résultat <code>ok: false</code>.</li>
+          </ol>
+          <p>
+            Un programme complet exige exactement un point d’entrée sans paramètre. Un aperçu de sélection
+            (<code>transpileSelection</code>) n’exige pas de point d’entrée et ne produit jamais un fichier autonome.
+            Les contrats attachés aux variables, constantes et paramètres sont vérifiés par le simulateur et le
+            Run live&nbsp;; ils ne sont pas émis dans le code généré.
+          </p>
+        </section>
+
+        <section id="matrice">
+          <h2>2 · Matrice de périmètre</h2>
+          <p>
+            «&nbsp;Partiel&nbsp;» signifie que la construction est acceptée, mais que certaines opérations du
+            registre natif n’ont pas encore d’émission. Une construction absente est refusée avec un diagnostic
+            stable, jamais traduite approximativement.
+          </p>
+          <table>
+            <thead><tr><th>Construction SP3</th><th>JavaScript</th><th>Python</th><th>C expérimental</th></tr></thead>
+            <tbody>
+              <tr><td>Primitifs numériques et booléen</td><td>Oui</td><td>Oui</td><td>Oui</td></tr>
+              <tr><td><code>string</code></td><td>Oui</td><td>Oui</td><td>Oui, en <code>const char *</code> UTF-8</td></tr>
+              <tr><td><code>char</code></td><td>Oui</td><td>Oui</td><td>Non</td></tr>
+              <tr><td>Fonctions, paramètres, retours</td><td>Oui</td><td>Oui</td><td>Oui</td></tr>
+              <tr><td>Variables et constantes</td><td>Oui</td><td>Oui</td><td>Oui, avec initialiseur obligatoire</td></tr>
+              <tr><td>Blocs, <code>if</code>, <code>while</code>, <code>for</code>, <code>break</code>, <code>continue</code></td><td>Oui</td><td>Oui</td><td>Oui</td></tr>
+              <tr><td><code>Print</code></td><td>Oui</td><td>Oui</td><td>Oui, sauf pointeur</td></tr>
+              <tr><td>Tableaux</td><td>Oui</td><td>Oui</td><td>Non</td></tr>
+              <tr><td>Pointeurs <code>&amp;</code> / <code>*</code></td><td>Oui, par cellules</td><td>Oui, par cellules</td><td>Oui, pointeurs natifs</td></tr>
+              <tr><td>Références de fonction</td><td>Oui</td><td>Oui</td><td>Oui, fonctions nommées</td></tr>
+              <tr><td>Lambdas et fermetures</td><td>Oui</td><td>Oui</td><td>Lambdas sans capture</td></tr>
+              <tr><td><code>ForEach</code></td><td>Oui</td><td>Oui</td><td>Non</td></tr>
+              <tr><td>Classes, <code>new</code>, <code>this</code>, membres</td><td>Oui</td><td>Oui</td><td>Non</td></tr>
+              <tr><td>Génériques</td><td>Oui, fonction ordinaire</td><td>Oui, fonction ordinaire</td><td>Non</td></tr>
+              <tr><td><code>MathCall</code></td><td>Partiel</td><td>Partiel</td><td>Non</td></tr>
+              <tr><td>Conversions explicites</td><td>Oui</td><td>Oui</td><td>Non</td></tr>
+              <tr><td>Contrats</td><td>Non émis</td><td>Non émis</td><td>Non émis</td></tr>
+              <tr><td>Cartes widget et entrées</td><td>Refusées</td><td>Refusées</td><td>Refusées</td></tr>
+            </tbody>
+          </table>
+          <p>
+            Les opérations <code>arrayFill</code>, <code>arrayConvolve</code> et <code>arrayLookup</code> ne sont
+            pas encore transpilées vers JavaScript/Python. Les opérations d’écran sont hors sujet&nbsp;: toute carte
+            Screen rend le projet non transpilable.
+          </p>
+        </section>
+
+        <section id="javascript">
+          <h2>3 · JavaScript</h2>
+          <p>
+            Cible active, fichier <code>.js</code> unique sans <code>import</code> ni <code>export</code>. Les noms
+            de modules et de fonctions deviennent des identifiants stables, par exemple <code>Library_square</code>.
+          </p>
+          <table>
+            <thead><tr><th>Élément SP3</th><th>Émission JavaScript</th></tr></thead>
+            <tbody>
+              <tr><td><code>Print</code></td><td><code>console.log(sapphireFormat(valeur))</code></td></tr>
+              <tr><td>Nombres</td><td><code>sapphireNumeric</code>, <code>sapphireChecked</code>&nbsp;; entiers en <code>BigInt</code> interne</td></tr>
+              <tr><td>Tableaux</td><td>tableaux JavaScript, <code>sapphireArray</code>, <code>sapphireElement</code>, <code>sapphireWrite</code></td></tr>
+              <tr><td>Pointeurs</td><td>jeton d’adresse, <code>sapphirePointer</code>, <code>sapphireDeref</code>, <code>sapphireDerefWrite</code></td></tr>
+              <tr><td><code>ForEach</code></td><td><code>sapphireForEach(copie, callback)</code></td></tr>
+              <tr><td>Références et lambdas</td><td>valeur de fonction, fonction fléchée</td></tr>
+              <tr><td>Classes</td><td><code>class</code>, <code>constructor</code>, champs par instance, méthodes&nbsp;; <code>sapphireMember</code> lie les méthodes</td></tr>
+              <tr><td><code>Print</code> d’une classe</td><td><code>sapphireFormat</code> produit <code>ClassName { champ: valeur }</code></td></tr>
+              <tr><td><code>MathCall</code></td><td><code>Math.*</code>, <code>sapphireInteger*</code>, <code>sapphireArray*</code>, <code>sapphireString*</code></td></tr>
+              <tr><td>Chaînes et <code>char</code></td><td>chaînes JavaScript&nbsp;; <code>Array.from</code> pour les scalaires Unicode</td></tr>
+              <tr><td>Génériques</td><td>une seule fonction ordinaire, sans spécialisation</td></tr>
+            </tbody>
+          </table>
+          <div class="notes-soft">
+            <p style="margin-bottom:6px"><b>Refus principaux</b></p>
+            <p style="margin-bottom:0">Cartes widget, <code>arrayFill</code>, <code>arrayConvolve</code>, <code>arrayLookup</code>, et les expressions ou instructions qu’un backend ne sait pas encore émettre (<code>TRANSPILE_EXPRESSION_UNSUPPORTED</code>, <code>TRANSPILE_STATEMENT_UNSUPPORTED</code>, <code>TRANSPILE_LITERAL_UNSUPPORTED</code>).</p>
+          </div>
+        </section>
+
+        <section id="python">
+          <h2>4 · Python</h2>
+          <p>
+            Cible active, fichier <code>.py</code> unique avec un runtime Python embarqué. Les globales affectées
+            sont déclarées avec <code>global</code> dans les fonctions qui les modifient.
+          </p>
+          <table>
+            <thead><tr><th>Élément SP3</th><th>Émission Python</th></tr></thead>
+            <tbody>
+              <tr><td><code>Print</code></td><td><code>print(sapphireFormat(valeur))</code></td></tr>
+              <tr><td>Nombres</td><td><code>sapphireBinary</code>, <code>sapphireUnary</code>, <code>sapphireCheck</code></td></tr>
+              <tr><td>Tableaux</td><td>listes Python, <code>sapphireArray</code>, <code>sapphireElement</code>, <code>sapphireWrite</code></td></tr>
+              <tr><td>Pointeurs</td><td>cellule à un élément et <code>_SapphirePointer</code></td></tr>
+              <tr><td><code>ForEach</code></td><td><code>sapphireForEach(liste, callback)</code> avec copie</td></tr>
+              <tr><td>Références et lambdas</td><td>callable Python, <code>lambda</code></td></tr>
+              <tr><td>Classes</td><td><code>class</code>, <code>__init__</code>, méthodes, <code>self</code>&nbsp;; <code>sapphireMember</code></td></tr>
+              <tr><td><code>Print</code> d’une classe</td><td><code>sapphireFormat</code> produit <code>ClassName { champ: valeur }</code></td></tr>
+              <tr><td><code>MathCall</code></td><td><code>math.*</code>, <code>sapphireClamp</code>, <code>sapphireSign</code>, <code>sapphireArray*</code>, <code>sapphireString*</code></td></tr>
+              <tr><td>Conversions</td><td><code>sapphireCast</code></td></tr>
+              <tr><td>Chaînes et <code>char</code></td><td><code>str</code> Python, indexation par scalaires Unicode</td></tr>
+              <tr><td>Génériques</td><td>une seule fonction ordinaire, sans spécialisation</td></tr>
+            </tbody>
+          </table>
+          <div class="notes-soft">
+            <p style="margin-bottom:6px"><b>Refus principaux</b></p>
+            <p style="margin-bottom:0">Cartes widget, <code>arrayFill</code>, <code>arrayConvolve</code>, <code>arrayLookup</code>, et les textes Unicode contenant un surrogate isolé (<code>TRANSPILE_PYTHON_STRING_UNSUPPORTED</code>).</p>
+          </div>
+        </section>
+
+        <section id="c">
+          <h2>5 · C expérimental</h2>
+          <p>
+            Cible active mais volontairement restreinte&nbsp;: fichier <code>.c</code> C11 unique. Les helpers
+            flottants utilisent <code>&lt;math.h&gt;</code>&nbsp;; compiler avec <code>cc -std=c11 … -lm</code> sur
+            les plateformes qui séparent la bibliothèque mathématique.
+          </p>
+          <table>
+            <thead><tr><th>Élément SP3</th><th>Émission C</th></tr></thead>
+            <tbody>
+              <tr><td>Types</td><td><code>int16_t</code>, <code>uint16_t</code>, <code>int32_t</code>, <code>uint32_t</code>, <code>float</code>, <code>double</code>, <code>const char *</code>, <code>bool</code></td></tr>
+              <tr><td>Fonctions</td><td><code>Module_fonction</code>, prototypes avant les définitions</td></tr>
+              <tr><td><code>Print</code></td><td><code>sapphire_print_*</code> pour chaque type primitif</td></tr>
+              <tr><td>Entiers</td><td><code>sapphire_i*</code> et <code>sapphire_u*</code>&nbsp;: bornes et division par zéro</td></tr>
+              <tr><td>Flottants</td><td><code>sapphire_f32_*</code> et <code>sapphire_f64_*</code>&nbsp;: infinis, sous-flux et division par zéro</td></tr>
+              <tr><td>Flottants imprimés</td><td>représentation décimale courte qui round-trip, notation fixe entre <code>1e-6</code> et <code>1e21</code></td></tr>
+              <tr><td>Pointeurs</td><td><code>&amp;variable</code>, <code>&amp;paramètre</code>, <code>*p</code>&nbsp;; adresse d’une constante refusée</td></tr>
+              <tr><td>Références de fonction</td><td>pointeurs de fonction typés (<code>typedef</code>), paramètres, variables et retours</td></tr>
+              <tr><td>Lambdas</td><td>fonction statique générée, utilisée comme pointeur de fonction&nbsp;; capture refusée</td></tr>
+              <tr><td>Chaînes</td><td><code>const char *</code> UTF-8, égalité par <code>strcmp</code>&nbsp;; NUL et surrogates isolés refusés</td></tr>
+              <tr><td>Globales</td><td><code>static T nom;</code>, initialisées dans <code>main()</code> dans l’ordre topologique</td></tr>
+              <tr><td>Point d’entrée</td><td><code>Module_&lt;entrée&gt;()</code> appelé depuis le <code>main</code> C</td></tr>
+            </tbody>
+          </table>
+          <p>
+            Refus explicites avec <code>TRANSPILE_C_UNSUPPORTED</code>&nbsp;: tableaux, classes, lambdas
+            capturantes et fermetures, <code>ForEach</code>, <code>MathCall</code>, conversions explicites,
+            <code>char</code>, variables sans initialiseur et adresse d’une constante. Les pointeurs de fonction
+            nommés et les lambdas sans capture sont acceptés&nbsp;; <code>Print</code> d’un pointeur de fonction
+            reste refusé. Le backend vérifie ces limites avant d’émettre le fichier.
+          </p>
+          <div class="notes-soft">
+            <p style="margin-bottom:6px"><b>Limites connues du C</b></p>
+            <ul style="margin-bottom:0">
+              <li>Les globales non encore initialisées valent zéro avant leur affectation.</li>
+              <li>Un pointeur vers une variable locale ne doit pas survivre à sa fonction.</li>
+              <li>Les flottants de magnitude extrême peuvent différer du format JavaScript.</li>
+              <li>C++ et Java restent indisponibles.</li>
+            </ul>
+          </div>
+        </section>
+
+        <section id="operations">
+          <h2>6 · Fonctions et opérations</h2>
+          <p>
+            Un module n’est pas émis comme un objet d’exécution&nbsp;: ses fonctions deviennent des fonctions du
+            langage cible, préfixées par le nom du module. Un import ne produit ni <code>import</code> JavaScript,
+            ni <code>import</code> Python, ni inclusion C&nbsp;: la référence importée est résolue vers le nom généré
+            de la fonction exportée. Le fichier reste autonome.
+          </p>
+          <p>
+            Une fonction ordinaire est émise une seule fois, avec ses paramètres concrets. Les génériques ne créent
+            pas de copie&nbsp;: JavaScript/Python émettent la même fonction ordinaire et la simulation applique les
+            types inférés. C refuse les types génériques. Les références de fonction sont des valeurs de première
+            classe en JavaScript et Python&nbsp;; C accepte les fonctions nommées via des pointeurs typés et lève les
+            lambdas sans capture en fonctions statiques. Une lambda qui capture une variable locale ou un paramètre
+            reste refusée, faute d’environnement de fermeture.
+          </p>
+          <p>
+            Le registre <code>src/utils/logic/mathNatives.js</code> est le catalogue unique des opérations natives
+            SP3&nbsp;: identifiant stable, catégorie, signature et groupe d’interface. Les backends ne recréent pas
+            ce catalogue&nbsp;; ils fournissent chacun une table de correspondance par identifiant&nbsp;:
+            <code>nativeJavaScript</code>, <code>nativePython</code>, et le backend C refuse actuellement toutes les
+            <code>MathCall</code>. Une opération présente dans le registre mais absente de la table du backend produit
+            un diagnostic stable (<code>TRANSPILE_EXPRESSION_UNSUPPORTED</code> en JavaScript/Python,
+            <code>TRANSPILE_C_UNSUPPORTED</code> en C).
+          </p>
+          <div class="notes-soft">
+            <p style="margin-bottom:6px"><b>Ajouter une opération</b></p>
+            <ol style="margin-bottom:0">
+              <li>L’ajouter au registre <code>mathNatives.js</code> avec sa signature et son groupe.</li>
+              <li>Ajouter son émission dans <code>nativeJavaScript</code> et/ou <code>nativePython</code>.</li>
+              <li>Si la cible C doit la porter, ajouter un helper et une émission C&nbsp;; sinon la laisser refusée.</li>
+              <li>Ajouter un test qui compare la simulation et le code généré.</li>
+            </ol>
+          </div>
+        </section>
+
+        <section id="refus">
+          <h2>7 · Refus et limites</h2>
+          <p>
+            Les refus sont des diagnostics stables, pas des traductions approximatives. Le projet reste inspectable
+            et modifiable&nbsp;; seule la génération est bloquée.
+          </p>
+          <table>
+            <thead><tr><th>Code</th><th>Signification</th></tr></thead>
+            <tbody>
+              <tr><td><code>TRANSPILE_TARGET_UNSUPPORTED</code></td><td>Cible inconnue ou non installée</td></tr>
+              <tr><td><code>TRANSPILE_ENTRY_POINT_REQUIRED</code>, <code>TRANSPILE_ENTRY_POINT_INPUTS</code>, <code>TRANSPILE_ENTRY_POINT_DUPLICATE</code></td><td>Point d’entrée absent, paramétré ou multiple</td></tr>
+              <tr><td><code>TRANSPILE_REFERENCE_UNRESOLVED</code></td><td>Référence non résolue</td></tr>
+              <tr><td><code>TRANSPILE_SCREEN_UNSUPPORTED</code>, <code>TRANSPILE_GAUGE_UNSUPPORTED</code>, <code>TRANSPILE_PROGRESS_UNSUPPORTED</code>, <code>TRANSPILE_BAR_CHART_UNSUPPORTED</code>, <code>TRANSPILE_XY_PLOT_UNSUPPORTED</code>, <code>TRANSPILE_OSCILLOSCOPE_UNSUPPORTED</code>, <code>TRANSPILE_HEATMAP_UNSUPPORTED</code>, <code>TRANSPILE_LED_UNSUPPORTED</code>, <code>TRANSPILE_RGB_LED_UNSUPPORTED</code></td><td>Carte graphique non transpilable</td></tr>
+              <tr><td><code>TRANSPILE_INPUT_BUTTON_UNSUPPORTED</code>, <code>TRANSPILE_INPUT_NUMBER_UNSUPPORTED</code>, <code>TRANSPILE_INPUT_STRING_UNSUPPORTED</code>, <code>TRANSPILE_RGB_PICKER_UNSUPPORTED</code>, <code>TRANSPILE_RGBA_PICKER_UNSUPPORTED</code></td><td>Entrée ou sélecteur non transpilable</td></tr>
+              <tr><td><code>TRANSPILE_C_UNSUPPORTED</code></td><td>Construction hors du sous-ensemble C expérimental</td></tr>
+              <tr><td><code>TRANSPILE_EXPRESSION_UNSUPPORTED</code>, <code>TRANSPILE_STATEMENT_UNSUPPORTED</code>, <code>TRANSPILE_LITERAL_UNSUPPORTED</code></td><td>Trou de couverture d’un backend JavaScript/Python</td></tr>
+            </tbody>
+          </table>
+          <p>
+            La suite de tests compile et exécute les fichiers C générés avec <code>cc -std=c11</code>. Les exemples
+            Fibonacci, Recursion, Imports, Pointers, Higher-order et Calculus produisent la même sortie que le
+            simulateur en C. Les tests couvrent aussi les lambdas sans capture et le refus des lambdas capturantes.
+            JavaScript et Python couvrent en plus les tableaux, les lambdas, <code>ForEach</code>, les classes et les
+            opérations natives prises en charge.
+          </p>
+        </section>
+      </div>
+    </div>
+
+    <footer class="site-footer">
+      <p>Sapphire 3 — périmètre de transpilation. Cette page décrit les backends actuels&nbsp;: JavaScript, Python et
+      C expérimental. Pour les contrats détaillés du moteur, voir <a href="ast.html">le modèle AST</a>.</p>
+    </footer>
+  </main>
+
+  <script src="assets/site.js?v=5"></script>
+</body>
+</html>

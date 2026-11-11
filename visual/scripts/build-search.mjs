@@ -6,7 +6,7 @@ import path from 'node:path'
 const root = fileURLToPath(new URL('../', import.meta.url))
 const pages = [
   ['index.html', 'Application'], ['documentation.html', 'Documentation'],
-  ['ast.html', 'Modèle AST'], ['dashboards.html', 'Démos'], ['project.html', 'Projet'],
+  ['ast.html', 'Modèle AST'], ['transpilation.html', 'Transpilation'], ['dashboards.html', 'Démos'], ['project.html', 'Projet'],
 ]
 const keywords = {
   projet: 'ouvrir exemple imports canvas navigation demarrer',
@@ -18,6 +18,7 @@ const keywords = {
   executer: 'run live simulation pause stop output sortie vitesse executer',
   exporter: 'transpilation javascript python code copier exporter',
   apparence: 'theme clair sombre palette langue apparence',
+  plugins: 'plugin plugins extension widget operation native composite sp3plugin configuration',
   simulation: 'simulation run live pause stop debug debogage breakpoint point arret memoire trace',
   fichier: 'sauvegarde enregistrer autosauvegarde workspace recuperation fichier dossier zip images',
   types: 'classes lambdas fermeture pointeurs generiques tableaux types stricts',
@@ -25,6 +26,13 @@ const keywords = {
   constructions: 'fonction variable constante boucle condition print lambda pointeurs generiques',
   portees: 'public private classe classe this constructeur import export',
   execution: 'simulation contrats print live debug',
+  transpilation: 'javascript python c transpilation cible backend code export fonctions operations',
+  chaine: 'analyse ast portee types diagnostics backend selection point entree contrats',
+  matrice: 'perimetre support accepte refuse javascript python c tableaux classes lambdas foreach',
+  javascript: 'javascript backend class bigint pointeurs tableaux foreach lambdas math natives',
+  python: 'python backend class init self pointeurs listes foreach lambdas math natives',
+  operations: 'mathnatives registre operations natives correspondance ajouter backend',
+  refus: 'refus diagnostics codes limites transpilation cible',
   limites: 'restrictions compatibilite limitations',
 }
 
