@@ -28,6 +28,7 @@
       <a href="project.html" aria-current="page">État du projet</a>
       <a href="documentation.html">Documentation visuelle</a>
       <a href="ast.html">Le modèle AST</a>
+      <a href="transpilation.html">Transpilation</a>
       <a href="dashboards.html">Dashboards</a>
     </nav>
     <button class="search-trigger" type="button" data-search-trigger aria-label="Rechercher dans le site (Ctrl ou Commande K)"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><span>Rechercher</span><kbd>Ctrl K</kbd></button>
@@ -88,7 +89,8 @@
           <p>
             Canvas navigable, zoom sémantique et cartes Module, Class, notes et images. Les classes proposent
             des membres public/private, un constructeur, des instances avec <code>new</code>, <code>this</code>
-            et des types de classe. Pas d'héritage ni de polymorphisme ; les classes ne sont pas encore transpilées.
+            et des types de classe. Pas d'héritage ni de polymorphisme&nbsp;; les classes sont transpilées en
+            JavaScript et Python, et refusées par le C expérimental.
             Le langage couvre les fonctions et
             types déclarés à la racine d'un module, conditions, boucles, <code>ForEach</code>, affectations, appels,
             tableaux, typage statique strict, références de fonction, pointeurs avec adresse, déréférencement et
@@ -97,7 +99,7 @@
             (maths, texte et tableaux), formules KaTeX dans les notes et références intermodules avec flèches
             courbes. La simulation s'exécute hors du fil React : <b>Run live</b> par défaut, avec entrées appliquées
             entre deux frames et Pause/Stop, ou <b>Run borné</b> pour précalculer une trace finie. Le debug et la
-            transpilation JavaScript/Python restent bornés, avec progression et annulation ; le debug ajoute points
+            transpilation JavaScript/Python/C expérimental restent bornés, avec progression et annulation ; le debug ajoute points
             d'arrêt, mémoire abstraite et valeurs au survol. Run propose aussi une simulation graphique simplifiée. L'interface offre aussi les graphes de contrôle et de dépendances, les
             cartes Screen/Gauge/ProgressBar/BarChart/LED avec lecture synchronisée à 24 fps,
             XY plot (Mafs), oscilloscope multicanal (uPlot), les grilles Heatmap
@@ -117,8 +119,12 @@
           <h3>Ce qui ne l'est pas encore</h3>
           <p>
             Aucun lancement de simulation sans action explicite&nbsp;; seule la lecture d'une séquence d'écran sans
-            cycle peut relancer la simulation pour renouveler ses images. Les cibles C/C++/Java sont présentes mais
-            désactivées. Les classes fonctionnent sans héritage ni polymorphisme. Les lambdas ont un corps expression unique et ne sont pas
+            cycle peut relancer la simulation pour renouveler ses images. La cible <b>C</b> est expérimentale et
+            volontairement restreinte aux primitives, booléens, chaînes, fonctions, contrôle, pointeurs et
+            <code>Print</code>&nbsp;; tableaux, classes, lambdas, <code>ForEach</code>, opérations natives et
+            conversions y sont refusés. C++ et Java restent indisponibles. Le détail est sur
+            <a href="transpilation.html">la page Transpilation</a>. Les classes fonctionnent sans héritage ni
+            polymorphisme. Les lambdas ont un corps expression unique et ne sont pas
             génériques&nbsp;; leurs paramètres ne sont pas adressés par <code>&amp;</code>. Les sauvegardes de secours
             ne tournent que lors d'un enregistrement direct. Les mutations structurelles du document gardent une
             analyse synchrone, même si les calculs lourds explicites passent par un Web Worker. Le rendu de monnaie
@@ -211,7 +217,7 @@
     </section>
 
     <section id="par-ou-commencer">
-      <h2>Quatre lectures possibles</h2>
+      <h2>Cinq lectures possibles</h2>
       <div class="grid">
         <div class="card">
           <h3><a href="documentation.html">Documentation visuelle</a></h3>
@@ -224,6 +230,11 @@
           <p>Ce que le moteur stocke vraiment&nbsp;: la source JSON v1, les trois relations indépendantes, les
           vingt-huit constructions et leurs slots, le typage strict, les portées, les diagnostics, puis la route
           vers l'analyse, la simulation et la transpilation.</p>
+        </div>
+        <div class="card">
+          <h3><a href="transpilation.html">Transpilation</a></h3>
+          <p>Le périmètre exact de JavaScript, Python et du C expérimental&nbsp;: constructions acceptées,
+          correspondances des fonctions et opérations SP3, refus explicites et limites connues.</p>
         </div>
         <div class="card">
           <h3><a href="dashboards.html">Dashboards exportés</a></h3>

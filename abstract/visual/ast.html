@@ -28,6 +28,7 @@
       <a href="project.html">État du projet</a>
       <a href="documentation.html">Documentation visuelle</a>
       <a href="ast.html" aria-current="page">Le modèle AST</a>
+      <a href="transpilation.html">Transpilation</a>
       <a href="dashboards.html">Dashboards</a>
     </nav>
     <button class="search-trigger" type="button" data-search-trigger aria-label="Rechercher dans le site (Ctrl ou Commande K)"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><span>Rechercher</span><kbd>Ctrl K</kbd></button>
@@ -53,6 +54,7 @@
         <ul style="margin-bottom:0">
           <li><a href="../ARCHITECTURE_AST.pdf"><code>ARCHITECTURE_AST.pdf</code></a> — le document technique complet, huit sections, généré depuis le LaTeX.</li>
           <li><a href="../ARCHITECTURE_AST.tex"><code>ARCHITECTURE_AST.tex</code></a> — la source LaTeX de ce document, relisible et modifiable telle quelle.</li>
+          <li><a href="transpilation.html">Transpilation</a> — le périmètre exact de JavaScript, Python et du C expérimental.</li>
           <li>Dans le dépôt&nbsp;: <code>docs/LOGIC_API.md</code> (contrats du moteur), <code>docs/WORKSPACE_FILES.md</code> (enveloppe <code>.sp3</code>), <code>src/utils/logic/</code> (l'implémentation).</li>
         </ul>
       </div>
@@ -389,7 +391,7 @@
         <code>{kind:'function', parameters, returnType}</code> et le <b>tableau générique</b> en retour.
         <code>&amp;</code> prend l'adresse d'une valeur stockable&nbsp;; <code>*</code> relit la valeur pointée et
         peut servir de cible d'affectation, la simulation écrivant alors dans l'emplacement d'origine&nbsp;; les
-        pointeurs sont transpilés en JavaScript et Python. Une fonction nommée est une valeur de première classe&nbsp;:
+        pointeurs sont transpilés en JavaScript, Python et C expérimental. Une fonction nommée est une valeur de première classe&nbsp;:
         une <code>Reference</code> vers une fonction porte sa signature et peut être stockée, transmise puis
         appelée. Une <b>lambda</b> anonyme (<code>LambdaExpression</code>) possède des paramètres typés et une
         expression de résultat, capture lexicalement les variables visibles et peut être stockée, passée en
@@ -563,16 +565,19 @@
         <div class="card">
           <h3>Transpiler</h3>
           <p><code>transpileProgram(project, { target })</code>&nbsp;: réutilise <code>analyzeProgram()</code> puis
-          délègue à un backend enregistré. JavaScript et Python sont opérationnels&nbsp;; C/C++ et Java sont
-          désactivés. Les déclarations de modules et de fonctions sont écrites avant <code>main()</code>,
-          l'initialisation globale y est exécutée, puis le point d'entrée désigné est appelé. Le backend exige
-          exactement un point d'entrée, ne modifie jamais la source et refuse avec des diagnostics stables plutôt
-          que d'émettre du code incertain.</p>
+          délègue à un backend enregistré. JavaScript, Python et un C expérimental sont opérationnels&nbsp;; C++ et
+          Java restent indisponibles. Le C est volontairement restreint aux primitives, booléens, chaînes, fonctions,
+          contrôle, pointeurs et <code>Print</code>&nbsp;; tableaux, classes, lambdas, <code>ForEach</code>,
+          opérations natives et conversions y sont refusés. Les déclarations de modules et de fonctions sont écrites
+          avant <code>main()</code>, l'initialisation globale y est exécutée, puis le point d'entrée désigné est
+          appelé. Le backend exige exactement un point d'entrée, ne modifie jamais la source et refuse avec des
+          diagnostics stables plutôt que d'émettre du code incertain. Le détail par cible est sur
+          <a href="transpilation.html">la page Transpilation</a>.</p>
         </div>
       </div>
       <p>
-        Un même calcul arithmétique sert les deux chemins&nbsp;: les opérations numériques embarquées dans le code
-        généré proviennent de la même fabrique que celles du simulateur — BigInt pour les entiers, arrondi binaire32,
+        Un même calcul arithmétique sert les chemins de génération&nbsp;: les opérations numériques embarquées dans le
+        code généré proviennent de la même fabrique que celles du simulateur — BigInt pour les entiers, arrondi binaire32,
         conversions, dépassements, sous-flux et division par zéro identiques. Le fichier produit n'embarque pas les
         budgets du simulateur et n'est jamais exécuté automatiquement par l'application.
       </p>
@@ -582,7 +587,8 @@
         désigne une opération du registre pur <code>mathNatives.js</code> — mathématiques, texte et longueur de
         tableau — typée sans conversion implicite. La simulation les exécute localement, avec des codes stables pour un
         résultat non fini ou des bornes Unicode dépassées. JavaScript et Python les transpilent avec l'équivalent natif
-        le plus direct et de petits helpers lorsque la sémantique SP3 l'exige. Aucun effet système, aucun réseau.
+        le plus direct et de petits helpers lorsque la sémantique SP3 l'exige&nbsp;; le C expérimental les refuse
+        encore. Aucun effet système, aucun réseau.
       </p>
     </section>
 

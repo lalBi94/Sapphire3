@@ -32,7 +32,7 @@ exactes et tableaux génériques), classes et lambdas/fermetures — et la séri
 S'y ajoutent, sur action explicite, la \textbf{simulation locale} déterministe,
 le \textbf{débogage pas à pas} avec points d'arrêt et mémoire pédagogique, les
 \textbf{contrats}, l'\textbf{analyse de graphes}, la \textbf{simulation
-graphique simplifiée} et la \textbf{transpilation} JavaScript/Python. Une
+graphique simplifiée} et la \textbf{transpilation} JavaScript, Python et C expérimental. Une
 \textbf{Discord Rich Presence} optionnelle est fournie par un sidecar C++20 local
 relié à l'IPC Discord ; elle ne fait pas partie du moteur pur et ne publie que
 des libellés génériques et des compteurs. Les
@@ -90,7 +90,7 @@ $\longrightarrow$
 \smallskip
 \fbox{\parbox{147mm}{\centering Services dérivés, sur action explicite :
 simulation locale, débogage, contrats, graphes d'analyse,
-transpilation JavaScript et Python.}}
+transpilation JavaScript, Python et C expérimental.}}
 
 \smallskip
 \fbox{\parbox{147mm}{\centering Diagnostics structurés à chaque passe ;
@@ -128,7 +128,7 @@ Ces fichiers sont dans \code{src/utils/logic/} ; l'API publique est
 \code{index.js}. \code{analyzeProgram(source)} renvoie \code{source},
 \code{ast}, \code{semantic}, \code{diagnostics} et \code{canGenerate}, sans
 modifier la source. Les backends vivent dans \code{src/utils/transpilation/} ;
-JavaScript et Python sont actifs, C, C++ et Java indisponibles.
+JavaScript, Python et C expérimental sont actifs ; C++ et Java indisponibles.
 
 \section*{4. Structures et invariants}
 \begin{itemize}
@@ -247,7 +247,7 @@ génériques avancés et des lambdas/fermetures, des bornes et arrondis numériq
 de la sérialisation JSON et des migrations de workspace, de la simulation
 (tableaux, contrats, fonction choisie, \code{ForEach} et opérations natives
 compris), du débogage pas à pas (points d'arrêt et mémoire), de l'accessibilité,
-des graphes de dépendances et de flot, de la transpilation JavaScript et Python,
+des graphes de dépendances et de flot, de la transpilation JavaScript, Python et C expérimental,
 des transferts de sous-arbres, des exports/imports, des sauvegardes de secours,
 de la détection des déclarations inutilisées, des notifications par mascotte,
 de l'aimantation des modules et de la vitesse de simulation.
@@ -294,12 +294,33 @@ avec points d'arrêt visuels et sauts qui s'y arrêtent, mémoire pédagogique
 (code, globales, pile d'appels) et simulation graphique simplifiée des fonctions
 atteignables et de leurs appels directs, sans persistance ni appels indirects.
 
-La transpilation délègue à des backends enregistrés : JavaScript et Python sont
-actifs, C, C++ et Java indisponibles. Ils couvrent tableaux, références de
-fonction, lambdas et fermetures, \code{ForEach} par recopie, opérations natives
-et pointeurs par cellules/jetons d'adresse. Les diagnostics bloquants empêchent
-toute génération ; un point d'entrée paramétré est refusé. Le code produit n'est
-jamais exécuté automatiquement.
+La transpilation délègue à des backends enregistrés : JavaScript, Python et un C expérimental sont actifs ; C++ et Java restent indisponibles. Tous consomment le même AST analysé et résolvent les noms, imports et références via le contexte commun ; aucun ne réinterprète la source. Les diagnostics bloquants empêchent toute génération et le code produit n'est jamais exécuté automatiquement.
+
+\subsection*{7.1 Périmètre par cible}
+\begin{center}
+\small
+\begin{tabular}{@{}p{48mm}p{31mm}p{31mm}p{40mm}@{}}
+\textbf{Construction} & \textbf{JavaScript} & \textbf{Python} & \textbf{C expérimental}\\
+\hline
+Primitifs numériques, booléen & oui & oui & oui\\
+\code{string} & oui & oui & \code{const char *} UTF-8\\
+\code{char} & oui & oui & non\\
+Tableaux & oui & oui & non\\
+Pointeurs \code{\&}/\code{*} & cellules & cellules & natifs\\
+Références de fonction, lambdas & oui & oui & non\\
+\code{ForEach} & oui & oui & non\\
+Classes, \code{new}, \code{this} & oui & oui & non\\
+Génériques & fonction ordinaire & fonction ordinaire & non\\
+\code{MathCall} & partiel & partiel & non\\
+Conversions explicites & oui & oui & non\\
+Contrats & non émis & non émis & non émis\\
+Widgets et entrées & refusés & refusés & refusés\\
+\end{tabular}
+\end{center}
+
+JavaScript et Python émettent les tableaux, références de fonction, lambdas, \code{ForEach} (copie), classes et opérations natives prises en charge. Les génériques ne créent pas de copie : une seule fonction ordinaire est émise, avec les types concrets inférés. Le C accepte les primitives numériques, les booléens, les chaînes, les fonctions, le contrôle, les pointeurs et \code{Print} ; il refuse les tableaux, classes, lambdas, \code{ForEach}, \code{MathCall}, conversions explicites, \code{char}, variables sans initialiseur et adresse d'une constante avec \code{TRANSPILE\_C\_UNSUPPORTED}. Les contrats restent propres au simulateur et au Run live.
+
+Le registre \code{mathNatives.js} est le catalogue unique des opérations SP3 ; chaque backend fournit une table de correspondance par identifiant et refuse explicitement une opération absente. Une fonction ordinaire est émise une seule fois et les imports sont résolus vers le nom généré de la fonction exportée, sans inclusion ni import runtime.
 
 \section*{8. Évolution sans couplage prématuré}
 La simulation, le débogage et la transpilation consomment déjà l'AST et les
@@ -396,7 +417,7 @@ méthodes et \code{MemberExpression} accède aux membres. Le type
 \code{\{kind:'class', classId\}} est annotable sur variables, constantes,
 paramètres et retours. Les accès privés sont vérifiés ; les méthodes extraites
 conservent leur instance. Une classe et ses consommateurs partagent les flèches
-de dépendance des modules. La transpilation des classes est refusée explicitement.
+de dépendance des modules. La transpilation des classes est assurée en JavaScript et Python ; le C expérimental les refuse.
 
 \textbf{Limites assumées :} pas de sous-modules, héritage, polymorphisme, réexports ni
 résolution de fichiers ; un tableau porte un élément primitif unique, sans
@@ -407,8 +428,7 @@ génériques et leurs paramètres ne sont pas adressés par \code{\&}. Les
 sauvegardes de secours ne tournent que lors d'un enregistrement direct ; la
 simulation graphique ne trace pas les appels indirects via une variable de type
 fonction. Les dépassements constants sont diagnostiqués ; les valeurs reçues à
-l'exécution ne sont pas bornées globalement par l'analyse. Les cibles C, C++ et
-Java sont annoncées mais indisponibles. Les futurs backends devront appliquer les
+l'exécution ne sont pas bornées globalement par l'analyse. La cible C est expérimentale et volontairement restreinte ; C++ et Java sont indisponibles. Les futurs backends devront appliquer les
 mêmes opérations contrôlées, sans rebouclage. L'API complète et les conventions
 de slots sont décrites dans \code{docs/LOGIC\_API.md}.
 \end{document}

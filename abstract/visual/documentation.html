@@ -28,6 +28,7 @@
       <a href="project.html">État du projet</a>
       <a href="documentation.html" aria-current="page">Documentation visuelle</a>
       <a href="ast.html">Le modèle AST</a>
+      <a href="transpilation.html">Transpilation</a>
       <a href="dashboards.html">Dashboards</a>
     </nav>
     <button class="search-trigger" type="button" data-search-trigger aria-label="Rechercher dans le site (Ctrl ou Commande K)"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><span>Rechercher</span><kbd>Ctrl K</kbd></button>
@@ -189,13 +190,15 @@
         <section id="exporter">
           <h2>8 — Exporter</h2>
           <p>
-            <b>Transpile</b> propose JavaScript et Python. Le panneau montre le code généré, avec les boutons
-            <b>Copy</b> et <b>Export</b>. Le code est produit depuis le même modèle logique, pas depuis une capture du
-            canvas.
+            <b>Transpile</b> propose JavaScript, Python et un C expérimental. Le panneau montre le code généré, avec
+            les boutons <b>Copy</b> et <b>Export</b>. Le code est produit depuis le même modèle logique, pas depuis une
+            capture du canvas. Le C reste volontairement restreint&nbsp;: tableaux, classes, lambdas,
+            <code>ForEach</code>, opérations natives et conversions y sont refusés. Le détail par cible est sur
+            <a href="transpilation.html">la page Transpilation</a>.
           </p>
           <figure class="shot shot--medium">
             <div class="shot-frame"><img src="assets/shots/transpile.png" alt="Panneau de transpilation avec le code JavaScript généré depuis le projet visuel." width="900" height="725" loading="lazy"></div>
-            <figcaption><b>JavaScript généré.</b> Les constructions prises en charge sont traduites ; les widgets graphiques et les classes restent hors périmètre.</figcaption>
+            <figcaption><b>JavaScript généré.</b> Les constructions prises en charge sont traduites&nbsp;; les widgets graphiques restent hors périmètre. Les classes sont désormais transpilées en JavaScript et Python.</figcaption>
           </figure>
         </section>
 
