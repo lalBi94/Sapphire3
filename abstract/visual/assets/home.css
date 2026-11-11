@@ -663,6 +663,7 @@ i {
 .proof-strip__group {
   display:flex;
   flex:0 0 auto;
+  align-items:center;
   min-width:100vw;
   padding:0 clamp(16px, 4.5vw, 64px);
   gap:15px;
@@ -672,12 +673,14 @@ i {
 .proof-strip p {
   flex:1 1 0;
   min-width:180px;
+  min-height:58px;
   font:600 10px var(--mono);
   letter-spacing:.7px;
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:14px;
+  gap:10px;
+  text-align:center;
 }
 
 .proof-strip p+p {
@@ -688,9 +691,11 @@ i {
   border-left:1px solid #0e0e1233;
 }
 
-.proof-strip p span {
-  font-size:22px;
-  font-weight:400;
+.proof-strip__icon {
+  width:16px;
+  height:16px;
+  flex:0 0 auto;
+  display:block;
 }
 
 @keyframes proof-strip-marquee {
@@ -1132,9 +1137,9 @@ h2 span {
     gap:18px;
   }
   .proof-strip p {
-    justify-content:flex-start;
+    justify-content:center;
     font-size:8px;
-    gap:10px;
+    gap:8px;
   }
   .proof-strip p+p {
     border-left:1px solid #0e0e1233;
