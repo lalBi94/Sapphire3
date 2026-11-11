@@ -121,9 +121,9 @@
             Aucun lancement de simulation sans action explicite&nbsp;; seule la lecture d'une séquence d'écran sans
             cycle peut relancer la simulation pour renouveler ses images. La cible <b>C</b> est expérimentale et
             volontairement restreinte aux primitives, booléens, chaînes, fonctions, contrôle, pointeurs,
-            pointeurs de fonction nommés et <code>Print</code>&nbsp;; tableaux, classes, lambdas,
-            <code>ForEach</code>, opérations natives et conversions y sont refusés. C++ et Java restent
-            indisponibles. Le détail est sur <a href="transpilation.html">la page Transpilation</a>. Les classes fonctionnent sans héritage ni
+            pointeurs de fonction nommés, lambdas sans capture et <code>Print</code>&nbsp;; tableaux, classes,
+            lambdas capturantes, <code>ForEach</code>, opérations natives et conversions y sont refusés. C++ et
+            Java restent indisponibles. Le détail est sur <a href="transpilation.html">la page Transpilation</a>. Les classes fonctionnent sans héritage ni
             polymorphisme. Les lambdas ont un corps expression unique et ne sont pas
             génériques&nbsp;; leurs paramètres ne sont pas adressés par <code>&amp;</code>. Les sauvegardes de secours
             ne tournent que lors d'un enregistrement direct. Les mutations structurelles du document gardent une

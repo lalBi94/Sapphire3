@@ -567,8 +567,8 @@
           <p><code>transpileProgram(project, { target })</code>&nbsp;: réutilise <code>analyzeProgram()</code> puis
           délègue à un backend enregistré. JavaScript, Python et un C expérimental sont opérationnels&nbsp;; C++ et
           Java restent indisponibles. Le C est volontairement restreint aux primitives, booléens, chaînes, fonctions,
-          contrôle, pointeurs, pointeurs de fonction nommés et <code>Print</code>&nbsp;; tableaux, classes, lambdas,
-          <code>ForEach</code>, opérations natives et conversions y sont refusés. Les déclarations de modules et de fonctions sont écrites
+          contrôle, pointeurs, pointeurs de fonction nommés, lambdas sans capture et <code>Print</code>&nbsp;; tableaux,
+          classes, lambdas capturantes, <code>ForEach</code>, opérations natives et conversions y sont refusés. Les déclarations de modules et de fonctions sont écrites
           avant <code>main()</code>, l'initialisation globale y est exécutée, puis le point d'entrée désigné est
           appelé. Le backend exige exactement un point d'entrée, ne modifie jamais la source et refuse avec des
           diagnostics stables plutôt que d'émettre du code incertain. Le détail par cible est sur

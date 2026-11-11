@@ -73,6 +73,33 @@ function isPrintableCType(type) {
   return type?.kind === 'primitive' && supportedPrimitives.has(type.name)
 }
 
+// Liste les variables extérieures capturées par une lambda ; les globales, imports et fonctions sont exclus.
+function lambdaCaptures(analysis, lambda) {
+  const contexts = analysis.semantic.index.contexts
+  const referenceSymbols = analysis.semantic.index.referenceSymbols
+  const nodes = analysis.semantic.index.nodes
+  const captures = new Set()
+  const pending = [lambda.children?.body].filter(Boolean)
+  while (pending.length) {
+    const node = pending.pop()
+    if (!node || node.kind === 'LambdaExpression') continue
+    if (node.kind === 'Reference') {
+      const symbol = referenceSymbols.get(node.sourceId)
+      if (!symbol) continue
+      if (symbol.importedFrom || symbol.kind === 'FunctionDeclaration') continue
+      const context = contexts.get(symbol.nodeId)
+      if (!context) {
+        captures.add(symbol.name ?? symbol.nodeId)
+        continue
+      }
+      if (context.isModuleRoot || context.functionId === lambda.sourceId) continue
+      captures.add(symbol.name ?? nodes.get(symbol.nodeId)?.properties?.name ?? symbol.nodeId)
+    }
+    pending.push(...Object.values(node.children ?? {}).flat().filter((value) => value && typeof value === 'object'))
+  }
+  return [...captures]
+}
+
 // Refuse explicitement les constructions hors du sous-ensemble C, avant toute émission.
 function cSupportDiagnostics(analysis, selection) {
   const diagnostics = []
@@ -111,7 +138,6 @@ function cSupportDiagnostics(analysis, selection) {
   }
 
   const unsupported = {
-    LambdaExpression: 'les lambdas',
     ForEachStatement: 'ForEach',
     MathCall: 'les opérations natives',
     CastExpression: 'les conversions explicites',
@@ -142,6 +168,10 @@ function cSupportDiagnostics(analysis, selection) {
     if (node.kind === 'PrintStatement') {
       const valueType = typeByNode.get(child(node, 'value')?.sourceId)
       if (!isPrintableCType(valueType)) report('ce type dans Print', node)
+    }
+    if (node.kind === 'LambdaExpression') {
+      const captures = lambdaCaptures(analysis, node)
+      if (captures.length > 0) report(`une lambda qui capture ${captures.join(', ')}`, node)
     }
     if (node.kind === 'CallExpression') {
       const callee = child(node, 'callee')
@@ -368,7 +398,9 @@ export function generateC(analysis, { selection = null } = {}) {
   const { ast, nodes, diagnostics, typeByNode, generatedNames, reserveDeclaration, reserveSyntheticName, referenceName, entryName } = context
   const functionTypedefs = new Map()
   const resolvingTypedefs = new Set()
+  const lambdaFunctions = []
   let functionTypedefCounter = 0
+  let lambdaCounter = 0
 
   function typeKey(type) {
     if (!type) return 'null'
@@ -400,6 +432,24 @@ export function generateC(analysis, { selection = null } = {}) {
   function codeType(type) {
     if (type?.kind === 'function') return functionTypedef(type)
     return cType(type)
+  }
+
+  // Émet une fonction statique pour une lambda sans capture et retourne son nom.
+  function lambdaFunction(node) {
+    const type = typeOf(node)
+    const returnType = codeType(type?.returnType ?? node.properties?.type)
+    const parameterTypes = (node.children.parameters ?? []).map((parameter) => codeType(typeOf(parameter)))
+    if (!returnType || parameterTypes.some((parameter) => !parameter)) {
+      diagnostics.push(createDiagnostic('TRANSPILE_C_UNSUPPORTED', 'Cette lambda n’est pas prise en charge par le backend C.', node.location))
+      return '0'
+    }
+    const name = reserveSyntheticName(`sapphire_lambda_${lambdaCounter++}`)
+    const parameters = (node.children.parameters ?? []).map((parameter, index) => `${parameterTypes[index]} ${reserveDeclaration(parameter)}`)
+    const body = expression(child(node, 'body'))
+    const signature = `static ${returnType} ${name}(${parameters.length ? parameters.join(', ') : 'void'})`
+    const statement = isVoid(type?.returnType) ? `${body};` : `return ${body};`
+    lambdaFunctions.push({ signature, source: `${signature} {\n  ${statement}\n}` })
+    return name
   }
 
   function typeOf(node) {
@@ -492,6 +542,7 @@ export function generateC(analysis, { selection = null } = {}) {
     if (!node) return '0'
     if (node.kind === 'Literal') return literalCode(node)
     if (node.kind === 'Reference') return referenceName(node)
+    if (node.kind === 'LambdaExpression') return lambdaFunction(node)
     if (node.kind === 'BinaryExpression') return binaryCode(node)
     if (node.kind === 'UnaryExpression') return unaryCode(node)
     if (node.kind === 'CallExpression') return `${expression(child(node, 'callee'))}(${(node.children.arguments ?? []).map(expression).join(', ')})`
@@ -624,6 +675,8 @@ export function generateC(analysis, { selection = null } = {}) {
   }
 
   const typedefs = [...functionTypedefs.values()].map(({ name, returnType, parameters }) => `typedef ${returnType} (*${name})(${parameters.length ? parameters.join(', ') : 'void'});`)
+  const lambdaPrototypes = lambdaFunctions.map(({ signature }) => `${signature};`)
+  const lambdaSources = lambdaFunctions.map(({ source }) => source)
   const code = [
     '// Generated by Sapphire 3. Do not edit this file.',
     '#include <stdint.h>',
@@ -639,8 +692,10 @@ export function generateC(analysis, { selection = null } = {}) {
     ...globalDeclarations,
     '',
     ...prototypes,
+    ...lambdaPrototypes,
     '',
     ...functions,
+    ...lambdaSources,
     '',
     'int main(void) {',
     ...globalInitializers,

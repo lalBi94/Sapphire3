@@ -240,7 +240,7 @@ Entiers signés/non signés de 16/32 bits, flottants IEEE 754 de 32/64 bits ;
 sont numériques explicites, avec troncature ou arrondi et contrôle des bornes.
 
 \textbf{Vérifications exécutées :} \code{pnpm test}, runner natif Node :
-\textbf{508 tests réussis, 0 échec}. Couverture de la construction de l'AST,
+\textbf{676 tests réussis, 0 échec}. Couverture de la construction de l'AST,
 des portées et références, du typage et des tableaux, des pointeurs et de
 l'écriture à travers eux, des types fonction et références de fonction, des
 génériques avancés et des lambdas/fermetures, des bornes et arrondis numériques,
@@ -308,7 +308,7 @@ Primitifs numériques, booléen & oui & oui & oui\\
 Tableaux & oui & oui & non\\
 Pointeurs \code{\&}/\code{*} & cellules & cellules & natifs\\
 Références de fonction & oui & oui & pointeurs nommés\\
-Lambdas et fermetures & oui & oui & non\\
+Lambdas et fermetures & oui & oui & sans capture\\
 \code{ForEach} & oui & oui & non\\
 Classes, \code{new}, \code{this} & oui & oui & non\\
 Génériques & fonction ordinaire & fonction ordinaire & non\\
@@ -319,9 +319,9 @@ Widgets et entrées & refusés & refusés & refusés\\
 \end{tabular}
 \end{center}
 
-JavaScript et Python émettent les tableaux, références de fonction, lambdas, \code{ForEach} (copie), classes et opérations natives prises en charge. Les génériques ne créent pas de copie : une seule fonction ordinaire est émise, avec les types concrets inférés. Le C accepte les primitives numériques, les booléens, les chaînes, les fonctions, le contrôle, les pointeurs, les pointeurs de fonction nommés et \code{Print} ; il refuse les tableaux, classes, lambdas et fermetures, \code{ForEach}, \code{MathCall}, conversions explicites, \code{char}, variables sans initialiseur et adresse d'une constante avec \code{TRANSPILE\_C\_UNSUPPORTED}. Les contrats restent propres au simulateur et au Run live.
+JavaScript et Python émettent les tableaux, références de fonction, lambdas, \code{ForEach} (copie), classes et opérations natives prises en charge. Les génériques ne créent pas de copie : une seule fonction ordinaire est émise, avec les types concrets inférés. Le C accepte les primitives numériques, les booléens, les chaînes, les fonctions, le contrôle, les pointeurs, les pointeurs de fonction nommés, les lambdas sans capture et \code{Print} ; il refuse les tableaux, classes, lambdas capturantes et fermetures, \code{ForEach}, \code{MathCall}, conversions explicites, \code{char}, variables sans initialiseur et adresse d'une constante avec \code{TRANSPILE\_C\_UNSUPPORTED}. Les contrats restent propres au simulateur et au Run live.
 
-Le registre \code{mathNatives.js} est le catalogue unique des opérations SP3 ; chaque backend fournit une table de correspondance par identifiant et refuse explicitement une opération absente. Une fonction ordinaire est émise une seule fois et les imports sont résolus vers le nom généré de la fonction exportée, sans inclusion ni import runtime. En C, une référence de fonction nommée devient un pointeur typé par un \code{typedef} ; les paramètres, variables, retours et appels via une référence nommée sont émis, tandis qu'une lambda ou une fermeture reste refusée.
+Le registre \code{mathNatives.js} est le catalogue unique des opérations SP3 ; chaque backend fournit une table de correspondance par identifiant et refuse explicitement une opération absente. Une fonction ordinaire est émise une seule fois et les imports sont résolus vers le nom généré de la fonction exportée, sans inclusion ni import runtime. En C, une référence de fonction nommée devient un pointeur typé par un \code{typedef} ; les paramètres, variables, retours et appels via une référence nommée sont émis. Une lambda sans capture est levée en fonction statique et utilisée comme pointeur de fonction ; une lambda qui capture une variable locale ou un paramètre est refusée.
 
 \section*{8. Évolution sans couplage prématuré}
 La simulation, le débogage et la transpilation consomment déjà l'AST et les
