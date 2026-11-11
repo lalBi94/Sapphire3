@@ -226,13 +226,16 @@ test('aperçu : pas de point d’entrée exigé, sous-arbre incomplet refusé, a
   assert.equal(transpileSelection(project, { kind: 'node', id: 'return' }).code, 'return;')
 })
 
-test('langages : une seule cible active et quatre langages futurs explicitement indisponibles', () => {
+test('langages : JavaScript, Python et C sont actifs, C++ et Java restent indisponibles', () => {
   assert.deepEqual(transpilationLanguages.filter(({ available }) => available).map(({ id }) => id), getTranspilationTargets())
-  assert.deepEqual(transpilationLanguages.filter(({ available }) => !available).map(({ name }) => name), ['C', 'C++', 'Java'])
-  for (const target of ['c', 'cpp', 'java', 'constructor']) {
+  assert.deepEqual(transpilationLanguages.filter(({ available }) => !available).map(({ name }) => name), ['C++', 'Java'])
+  for (const target of ['cpp', 'java', 'constructor']) {
     assert.equal(transpileSelection(simpleProgram(), { kind: 'node', id: 'literal' }, { target }).ok, false)
   }
-  // Python est désormais disponible ; un programme valide retourne ok:true.
+  // Python et C sont disponibles ; un programme valide retourne ok:true.
   const pyResult = transpileSelection(simpleProgram(), { kind: 'node', id: 'literal' }, { target: 'python' })
   assert.equal(pyResult.ok, true)
+  const cResult = transpileSelection(simpleProgram(), { kind: 'node', id: 'literal' }, { target: 'c' })
+  assert.equal(cResult.ok, true)
+  assert.equal(cResult.code, '"hello"')
 })

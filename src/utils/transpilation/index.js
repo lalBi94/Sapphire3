@@ -2,8 +2,9 @@ import { analyzeProgram } from '../logic/analysis.js'
 import { hasBlockingDiagnostics } from '../logic/diagnostics.js'
 import { generateJavaScript } from './javascript.js'
 import { generatePython } from './python.js'
+import { generateC } from './c.js'
 
-const backends = Object.freeze({ javascript: generateJavaScript, python: generatePython })
+const backends = Object.freeze({ javascript: generateJavaScript, python: generatePython, c: generateC })
 export { transpilationLanguages } from './languages.js'
 
 // Un écran SP3 dépend de l'interface et ne possède aucune cible portable.
