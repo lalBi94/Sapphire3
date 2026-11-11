@@ -107,6 +107,7 @@ export function dashboardStatesAt(result, index, initial = {}) {
     xyPlots: initial.xyPlots ?? {},
     oscilloscopes: initial.oscilloscopes ?? {},
     heatmaps: initial.heatmaps ?? {},
+    variables: initial.variables ?? {},
   }
   if (!result) return fallback
   const traceLength = Array.isArray(result.trace) ? result.trace.length : 0
@@ -132,6 +133,7 @@ export function dashboardStatesAt(result, index, initial = {}) {
     xyPlots: atEnd ? result.xyPlots ?? fallback.xyPlots : frameAtIndex(frames.xyPlots, index, fallback.xyPlots),
     oscilloscopes: atEnd ? result.oscilloscopes ?? fallback.oscilloscopes : frameAtIndex(frames.oscilloscopes, index, fallback.oscilloscopes),
     heatmaps: atEnd ? result.heatmaps ?? fallback.heatmaps : frameAtIndex(frames.heatmaps, index, fallback.heatmaps),
+    variables: frameAtIndex(result.variableFrames, index, atEnd ? result.variables ?? fallback.variables : fallback.variables),
   }
 }
 

@@ -44,6 +44,14 @@ compatible (par exemple l'initialiseur d'une variable booléenne) et choisir
 **Value between bounds**. Le nœud se déplie en un `and` de deux comparaisons
 avec quatre trous à remplir.
 
+## Dashboard exporté
+
+Les widgets de plugin visibles et leurs définitions sont embarqués dans
+`dashboard.html`. Une entrée liée à une variable est mise à jour depuis le Run
+borné ou le live ; une sortie liée à une fonction déclenche le callback. Les
+opérations natives de plugin sont revalidées par le runtime du dashboard. Un
+widget dont le plugin est absent reste un panneau de diagnostic.
+
 ## Limites
 
 - Aucun code React ou JavaScript tiers n'est exécuté.

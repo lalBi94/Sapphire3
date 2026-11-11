@@ -130,7 +130,7 @@ export default function Canvas() {
   const { language, t } = useTranslation()
   const { presetThemes, customThemes, setTheme, setThemeMode } = useTheme()
   const { notify, clear: clearNotifications } = useNotifications()
-  const { activeWidgets, runtimeVersion } = usePlugins()
+  const { activePlugins, activeWidgets, runtimeVersion } = usePlugins()
   const document = useCanvasDocument()
   const liveSession = useLiveSession()
   const search = useNodeSearch()
@@ -364,7 +364,7 @@ export default function Canvas() {
   // Une carte masquée reste dans le document et le fichier ; elle n'est simplement pas montée.
   const visibleCards = useMemo(() => document.cards.filter((card) => !card.hidden), [document.cards])
   // Compte les widgets exportables sans relire toute la source à chaque rendu.
-  const dashboardWidgetCount = useMemo(() => document.cards.filter((card) => !card.hidden && dashboardWidgetTypes.includes(card.type) && document.index.modules.has(card.id)).length, [document.cards, document.index])
+  const dashboardWidgetCount = useMemo(() => document.cards.filter((card) => !card.hidden && dashboardWidgetTypes.includes(card.type) && (card.type === 'pluginWidget' || document.index.modules.has(card.id))).length, [document.cards, document.index])
   // Le zoom sémantique retire d'abord les annotations, puis remplace les instructions par les fonctions.
   const semanticLevel = useMemo(() => semanticZoomLevel(zoom), [zoom])
   const semanticCards = useMemo(() => semanticLevel === 'detail' ? visibleCards : visibleCards.filter((card) => !['comment', 'image'].includes(card.type)), [visibleCards, semanticLevel])
@@ -1209,7 +1209,11 @@ export default function Canvas() {
     try {
       const project = document.project
       const cards = document.cards
-      const widgets = [...dashboardWidgets(project, cards), ...dashboardContractPanels(project)]
+      const widgets = [...dashboardWidgets(project, cards, { pluginWidgets: activeWidgets }), ...dashboardContractPanels(project)]
+      const pluginVariableNames = [...new Set(widgets
+        .filter((widget) => widget.type === 'pluginWidget')
+        .flatMap((widget) => Object.values(widget.bindings?.inputs ?? {}))
+        .filter((name) => typeof name === 'string' && name.length > 0))]
       const config = {
         ...(document.dashboard ?? defaultDashboardConfig()),
         layoutKey: document.dashboard?.layoutKey || crypto.randomUUID(),
@@ -1228,7 +1232,7 @@ export default function Canvas() {
       const themeId = selectedTheme?.id ?? (customPalette ? '__custom' : (themes[0]?.id ?? ''))
       const moduleMap = dashboardModuleMapFromCards(document.cards, document.index)
       const nextConfig = { ...config, palette }
-      const result = await runSimulation(project, { maxSteps: dashboardSimulationBudget, inputs: collectInputButtonValues(project, document.cards) })
+      const result = await runSimulation(project, { maxSteps: dashboardSimulationBudget, inputs: collectInputButtonValues(project, document.cards), ...(pluginVariableNames.length > 0 ? { capturePluginVariables: pluginVariableNames } : {}) })
       if (!result.ok) {
         notify({ type: 'error', message: t('dashboard.preflightFailed', { code: result.errorCode ?? 'SIMULATION_FAILED' }), duration: 0 })
         return
@@ -1257,6 +1261,7 @@ export default function Canvas() {
         labels: dashboardLabels(t),
         kindLabels,
         project,
+        plugins: activePlugins,
         language,
         fonts,
         branding,

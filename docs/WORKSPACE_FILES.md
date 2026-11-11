@@ -98,6 +98,11 @@ Les plugins installés et leurs préférences sont hors du workspace, dans la
 préférence locale `sapphire-plugins`. Un workspace ne déclenche jamais
 l'installation automatique d'un plugin.
 
+Le dashboard exporté embarque les widgets `pluginWidget` visibles, leurs
+définitions, les manifestes de plugins actifs et les liaisons d'entrée/sortie.
+Les opérations natives de plugin sont revalidées dans le runtime borné et le
+worker live. Un widget dont le plugin est absent reste un panneau de diagnostic.
+
 ## Images
 
 - À l'import d'une image dans un workspace associé à un dossier, le fichier est copié dans `images/` sous un nom sûr et unique (`blackhole.png`, `blackhole-2.png`…), puis la carte reçoit `imageRef`. La limite par image est de 20 Mio.

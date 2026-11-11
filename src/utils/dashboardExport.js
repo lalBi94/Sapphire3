@@ -42,6 +42,7 @@ const panelDefaults = Object.freeze({
   execution: { w: 6, h: 9, span: 'full', group: 'execution' },
   contracts: { w: 6, h: 5, span: 'full', group: 'comment' },
   comment: { w: 6, h: 4, span: 'full', group: 'comment' },
+  pluginWidget: { w: 6, h: 6, span: 'full', group: 'display' },
 })
 
 // Ordre initial des groupes : affichages, tracés, indicateurs, sortie, exécution, commentaires.
@@ -152,6 +153,7 @@ export function buildDashboardDocument({
   labels: providedLabels = {},
   kindLabels: providedKindLabels = {},
   project = null,
+  plugins = [],
   language = 'en',
   fonts = {},
   branding = {},
@@ -187,6 +189,7 @@ export function buildDashboardDocument({
     themeNames,
     moduleMap,
     project,
+    plugins: Array.isArray(plugins) ? plugins : [],
     simulationBudget: dashboardSimulationBudget,
     liveWorkerSource: liveSource,
     language,

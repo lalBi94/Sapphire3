@@ -34,6 +34,7 @@ import katexSize3Regular from '../../node_modules/katex/dist/fonts/KaTeX_Size3-R
 import katexSize4Regular from '../../node_modules/katex/dist/fonts/KaTeX_Size4-Regular.woff2?inline'
 import katexTypewriterRegular from '../../node_modules/katex/dist/fonts/KaTeX_Typewriter-Regular.woff2?inline'
 import { parseMathText, renderMath } from '../utils/mathText.js'
+import { formatPluginText, resolvePluginSource } from '../utils/pluginWidgetView.js'
 import { clampSimulationSpeed, liveSpeedDefault, liveTickDelay } from '../utils/simulationSpeed.js'
 import { contractLabel } from '../utils/logic/contracts.js'
 import { oscilloscopeColor } from '../utils/oscilloscopeColors.js'
@@ -215,6 +216,10 @@ function start(config, runtimeSource) {
   const storageKey = dashboardLayoutStorageKey(config.layoutKey)
   const refs = new Map()
   const inputWidgets = (config.widgets ?? []).filter((widget) => widget.type === 'toggleButton' || widget.type === 'holdButton')
+  const pluginVariableNames = [...new Set((config.widgets ?? [])
+    .filter((widget) => widget.type === 'pluginWidget')
+    .flatMap((widget) => Object.values(widget.bindings?.inputs ?? {}))
+    .filter((name) => typeof name === 'string' && name.length > 0))]
   let state = {
     ...dashboardExecutionInitial,
     layout: readDashboardLayout(window.localStorage, storageKey, defaults, panels),
@@ -280,7 +285,7 @@ function start(config, runtimeSource) {
       header.append(handle, titles, hide)
 
       const body = document.createElement('div')
-      body.className = `db-panel__body${panel.type === 'output' || panel.type === 'execution' || panel.type === 'contracts' ? ' db-panel__body--stretch' : ''}`
+      body.className = `db-panel__body${panel.type === 'output' || panel.type === 'execution' || panel.type === 'contracts' || panel.type === 'pluginWidget' ? ' db-panel__body--stretch' : ''}`
       const resize = document.createElement('button')
       resize.type = 'button'
       resize.className = 'db-panel__resize'
@@ -309,6 +314,10 @@ function start(config, runtimeSource) {
   // Prépare le contenu propre à chaque type de panneau.
   function createContent(ref) {
     const { panel, body } = ref
+    if (panel.type === 'pluginWidget') {
+      createPluginWidgetContent(ref)
+      return
+    }
     if (panel.type === 'screen') {
       const wrapper = document.createElement('div')
       wrapper.className = 'db-screen'
@@ -1303,7 +1312,9 @@ function start(config, runtimeSource) {
 
   // Rend le widget correspondant à son état courant.
   function renderWidget(ref, widget, states) {
-    if (widget.type === 'screen') {
+    if (widget.type === 'pluginWidget') {
+      renderPluginWidget(ref, widget, states)
+    } else if (widget.type === 'screen') {
       renderScreen(ref, widget, states.screens?.[widget.id])
     } else if (widget.type === 'led') {
       const value = Boolean(states.leds?.[widget.id]?.value)
@@ -1356,6 +1367,233 @@ function start(config, runtimeSource) {
     } else if (widget.type === 'contracts') {
       renderContractsWidget(ref)
     }
+  }
+
+  // Formate une valeur de widget de plugin sans conversion implicite.
+  function pluginDisplayValue(value, precision) {
+    if (value === null || value === undefined) return '—'
+    if (typeof value === 'number' && Number.isInteger(precision)) return value.toFixed(precision)
+    if (typeof value === 'number' && Number.isFinite(value)) return String(Number(value.toFixed(3)))
+    return String(value)
+  }
+
+  // Lit une variable liée dans les frames de variables du dashboard.
+  function pluginVariableValue(states, name) {
+    const variables = states?.variables
+    if (!variables) return undefined
+    if (Array.isArray(variables)) {
+      const entry = variables.find((variable) => variable?.name === name)
+      return entry?.raw ?? entry?.value
+    }
+    return typeof variables === 'object' ? variables[name] : undefined
+  }
+
+  // Construit les entrées d'un widget de plugin depuis ses liaisons et les variables courantes.
+  function pluginInputs(widget, states) {
+    const inputs = {}
+    for (const port of widget.definition?.inputs ?? []) {
+      const name = widget.bindings?.inputs?.[port.id]
+      if (!name) continue
+      const value = pluginVariableValue(states, name)
+      if (value !== undefined) inputs[port.id] = value
+    }
+    return inputs
+  }
+
+  // Prépare le contexte de rendu commun aux nœuds déclaratifs du widget.
+  function pluginContext(widget, states) {
+    return {
+      instance: { properties: widget.properties ?? {}, state: widget.state ?? {} },
+      inputs: pluginInputs(widget, states),
+    }
+  }
+
+  // Crée le contenu déclaratif d'un widget de plugin, ou son diagnostic de dépendance manquante.
+  function createPluginWidgetContent(ref) {
+    const widget = ref.panel.widget
+    const wrapper = document.createElement('div')
+    wrapper.className = 'db-plugin-widget'
+    const scope = { wrapper, refs: [], widget, lastStates: { variables: {} } }
+    ref.pluginWidget = scope
+    if (!widget?.definition) {
+      wrapper.classList.add('db-plugin-widget--missing')
+      const head = document.createElement('div')
+      head.className = 'db-plugin-widget__missing-head'
+      const title = document.createElement('strong')
+      title.textContent = labels.pluginWidgetMissing ?? 'Plugin widget unavailable'
+      head.append(title)
+      const hint = document.createElement('p')
+      hint.textContent = labels.pluginWidgetMissingHint ?? 'The workspace data is preserved.'
+      const code = document.createElement('code')
+      code.textContent = `${widget?.pluginId ?? '?'}/${widget?.widgetId ?? '?'}`
+      wrapper.append(head, hint, code)
+      ref.body.append(wrapper)
+      return
+    }
+    const interactions = new Map((widget.definition.interactions ?? []).map((interaction) => [interaction.id, interaction]))
+
+    // Construit un nœud du renderer et conserve les références nécessaires aux mises à jour.
+    function createNode(node) {
+      if (!node || typeof node !== 'object') return null
+      if (node.kind === 'stack' || node.kind === 'row') {
+        const element = document.createElement('div')
+        element.className = node.kind === 'stack' ? 'db-plugin-widget__stack' : 'db-plugin-widget__row'
+        for (const child of node.children ?? []) {
+          const rendered = createNode(child)
+          if (rendered) element.append(rendered)
+        }
+        return element
+      }
+      if (node.kind === 'text') {
+        const element = document.createElement('p')
+        element.className = 'db-plugin-widget__text'
+        scope.refs.push({ kind: 'text', node, element })
+        return element
+      }
+      if (node.kind === 'divider') {
+        const element = document.createElement('hr')
+        element.className = 'db-plugin-widget__divider'
+        return element
+      }
+      if (node.kind === 'spacer') {
+        const element = document.createElement('span')
+        element.className = 'db-plugin-widget__spacer'
+        element.setAttribute('aria-hidden', 'true')
+        return element
+      }
+      if (node.kind === 'value') {
+        const element = document.createElement('div')
+        element.className = 'db-plugin-widget__value'
+        const label = document.createElement('span')
+        label.className = 'db-plugin-widget__label'
+        const number = document.createElement('strong')
+        number.className = 'db-plugin-widget__number'
+        element.append(label, number)
+        scope.refs.push({ kind: 'value', node, element, label, number })
+        return element
+      }
+      if (node.kind === 'bar') {
+        const element = document.createElement('div')
+        element.className = 'db-plugin-widget__bar'
+        const label = document.createElement('span')
+        label.className = 'db-plugin-widget__label'
+        const track = document.createElement('span')
+        track.className = 'db-plugin-widget__bar-track'
+        track.setAttribute('role', 'meter')
+        const fill = document.createElement('span')
+        fill.className = 'db-plugin-widget__bar-fill'
+        track.append(fill)
+        element.append(label, track)
+        scope.refs.push({ kind: 'bar', node, element, label, track, fill })
+        return element
+      }
+      if (node.kind === 'led') {
+        const element = document.createElement('div')
+        element.className = 'db-plugin-widget__led-row'
+        const dot = document.createElement('span')
+        dot.className = 'db-plugin-widget__led'
+        const label = document.createElement('span')
+        label.className = 'db-plugin-widget__label'
+        element.append(dot, label)
+        scope.refs.push({ kind: 'led', node, element, dot, label })
+        return element
+      }
+      if (node.kind === 'input' || node.kind === 'button') {
+        const interaction = interactions.get(node.interaction)
+        if (!interaction) return null
+        if (node.kind === 'button') {
+          const button = document.createElement('button')
+          button.type = 'button'
+          button.className = 'db-plugin-widget__button'
+          button.textContent = interaction.label
+          button.addEventListener('click', () => {
+            const key = interaction.stateKey ?? interaction.id
+            widget.state = { ...(widget.state ?? {}), [key]: interaction.value ?? true }
+            triggerPluginOutput(widget, interaction.output, interaction.value ?? true)
+            renderPluginWidget(ref, widget, scope.lastStates)
+          })
+          return button
+        }
+        const element = document.createElement('label')
+        element.className = 'db-plugin-widget__slider'
+        const label = document.createElement('span')
+        label.className = 'db-plugin-widget__label'
+        const output = document.createElement('output')
+        label.append(document.createTextNode(interaction.label), output)
+        const input = document.createElement('input')
+        input.type = 'range'
+        input.min = String(interaction.min)
+        input.max = String(interaction.max)
+        input.step = String(interaction.step)
+        const key = interaction.stateKey ?? interaction.id
+        input.value = String(Number(widget.state?.[key] ?? interaction.min ?? 0))
+        output.textContent = pluginDisplayValue(Number(input.value), interaction.step < 1 ? 2 : 0)
+        input.addEventListener('input', () => {
+          const value = Number(input.value)
+          widget.state = { ...(widget.state ?? {}), [key]: value }
+          output.textContent = pluginDisplayValue(value, interaction.step < 1 ? 2 : 0)
+          triggerPluginOutput(widget, interaction.output, value)
+          renderPluginWidget(ref, widget, scope.lastStates)
+        })
+        element.append(label, input)
+        scope.refs.push({ kind: 'input', node, element, input, output, interaction, key })
+        return element
+      }
+      return null
+    }
+
+    const renderer = createNode(widget.definition.renderer)
+    if (renderer) wrapper.append(renderer)
+    ref.body.append(wrapper)
+  }
+
+  // Met à jour les nœuds dynamiques d'un widget de plugin sans reconstruire ses contrôles.
+  function renderPluginWidget(ref, widget, states) {
+    const scope = ref.pluginWidget
+    if (!scope || !widget?.definition) return
+    scope.lastStates = states
+    const context = pluginContext(widget, states)
+    for (const entry of scope.refs) {
+      const node = entry.node
+      if (entry.kind === 'text') {
+        entry.element.textContent = formatPluginText(node.text, context)
+      } else if (entry.kind === 'value') {
+        const value = resolvePluginSource(node.source, context)
+        entry.label.textContent = node.label ? formatPluginText(node.label, context) : ''
+        entry.number.textContent = `${pluginDisplayValue(value, node.precision)}${node.suffix ? ` ${formatPluginText(node.suffix, context)}` : ''}`
+      } else if (entry.kind === 'bar') {
+        const value = Number(resolvePluginSource(node.source, context))
+        const minimum = Number.isFinite(node.min) ? node.min : 0
+        const maximum = Number.isFinite(node.max) && node.max > minimum ? node.max : 100
+        const percent = Number.isFinite(value) ? Math.max(0, Math.min(100, ((value - minimum) / (maximum - minimum)) * 100)) : 0
+        entry.label.textContent = node.label ? formatPluginText(node.label, context) : ''
+        entry.fill.style.width = `${percent}%`
+        entry.track.setAttribute('aria-valuemin', String(minimum))
+        entry.track.setAttribute('aria-valuemax', String(maximum))
+        entry.track.setAttribute('aria-valuenow', String(Number.isFinite(value) ? value : minimum))
+      } else if (entry.kind === 'led') {
+        const value = resolvePluginSource(node.source, context)
+        const active = typeof value === 'boolean' ? value : Number(value) > 0
+        entry.dot.classList.toggle('db-plugin-widget__led--on', active)
+        entry.label.textContent = node.label ? formatPluginText(node.label, context) : ''
+      } else if (entry.kind === 'input') {
+        const value = Number(widget.state?.[entry.key] ?? entry.interaction.min ?? 0)
+        if (document.activeElement !== entry.input) entry.input.value = String(value)
+        entry.output.textContent = pluginDisplayValue(value, entry.interaction.step < 1 ? 2 : 0)
+      }
+    }
+  }
+
+  // Déclenche une sortie de widget de plugin vers sa fonction liée.
+  function triggerPluginOutput(widget, outputId, value) {
+    if (!outputId) return
+    const functionId = widget.bindings?.outputs?.[outputId]
+    if (!functionId) return
+    if (state.live) {
+      sendLiveEvents([{ functionId, value }])
+      return
+    }
+    runInputCallback({ callbackFunctionId: functionId }, value)
   }
 
   // Prépare la carte d'un oscilloscope : commandes de l'instrument autour du graphique.
@@ -2264,6 +2502,8 @@ function start(config, runtimeSource) {
     const simulationOptions = {
       maxSteps: config.simulationBudget,
       inputs: state.inputs,
+      plugins: config.plugins ?? [],
+      ...(pluginVariableNames.length > 0 ? { capturePluginVariables: pluginVariableNames } : {}),
       ...(options.functionId ? { functionId: options.functionId, args: options.args ?? [] } : {}),
     }
     if (typeof Worker !== 'undefined' && typeof Blob !== 'undefined' && runtimeSource) {
@@ -2465,6 +2705,7 @@ function start(config, runtimeSource) {
       xyPlots: frame.xyPlots ?? {},
       oscilloscopes: frame.oscilloscopes ?? {},
       heatmaps: frame.heatmaps ?? {},
+      variables: frame.variables ?? [],
     }
     state = {
       ...state,
@@ -2540,7 +2781,7 @@ function start(config, runtimeSource) {
         renderStates()
         announce(labels.error ?? 'Error')
       }
-      liveWorker.postMessage({ type: 'start', project: config.project, inputs: state.inputs, sliceSteps: 400 })
+      liveWorker.postMessage({ type: 'start', project: config.project, inputs: state.inputs, sliceSteps: 400, plugins: config.plugins ?? [] })
       return true
     } catch {
       terminateLiveWorker()

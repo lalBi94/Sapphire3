@@ -1,4 +1,7 @@
 import { createWidgetInstance, sanitizeWidgetProperties, sanitizeWidgetState } from '../../../packages/plugin-sdk/src/index.js'
+import { formatPluginText, resolvePluginSource } from '../pluginWidgetView.js'
+
+export { formatPluginText, resolvePluginSource } from '../pluginWidgetView.js'
 
 // Construit une carte persistable pour un widget de plugin actif.
 export function createPluginWidgetCard(entry, position, name = null) {
@@ -80,30 +83,5 @@ export function collectPluginVariables({ liveVariables = [], debugFrame = null, 
     if (seen.has(key)) return false
     seen.add(key)
     return true
-  })
-}
-
-// Résout une valeur de rendu depuis l'état, les propriétés ou une entrée liée.
-export function resolvePluginSource(source, { widget, card, instance, inputs }) {
-  if (typeof source !== 'string') return null
-  const separator = source.indexOf('.')
-  if (separator <= 0) return null
-  const scope = source.slice(0, separator)
-  const id = source.slice(separator + 1)
-  if (scope === 'state') return instance.state[id] ?? null
-  if (scope === 'property') return instance.properties[id] ?? null
-  if (scope === 'input') {
-    if (Object.hasOwn(inputs, id)) return inputs[id]
-    return instance.state[id] ?? null
-  }
-  return null
-}
-
-// Remplace les jetons `{property.x}`, `{state.x}` et `{input.x}` sans interpréter de HTML.
-export function formatPluginText(template, context) {
-  if (typeof template !== 'string') return ''
-  return template.replace(/\{(property|state|input)\.([A-Za-z0-9._-]+)\}/g, (match, scope, id) => {
-    const value = resolvePluginSource(`${scope}.${id}`, context)
-    return value === null || value === undefined ? match : String(value)
   })
 }

@@ -8,7 +8,7 @@ import { inputButtonGlobalName, inputButtonCallbackId, inputButtonOnClickNodeId 
 import { inputNumberCallbackId, inputNumberOnChangeNodeId } from './logic/inputNumberState.js'
 import { colorPickerCallbackId, colorPickerOnChangeNodeId, normalizeColorValue } from './logic/colorPickerState.js'
 
-export const dashboardWidgetTypes = Object.freeze(['screen', 'led', 'rgbLed', 'gauge', 'progress', 'barChart', 'xyPlot', 'oscilloscope', 'heatmap', 'toggleButton', 'holdButton', 'numberInput', 'floatInput', 'stringInput', 'rgbPicker', 'rgbaPicker', 'comment'])
+export const dashboardWidgetTypes = Object.freeze(['screen', 'led', 'rgbLed', 'gauge', 'progress', 'barChart', 'xyPlot', 'oscilloscope', 'heatmap', 'toggleButton', 'holdButton', 'numberInput', 'floatInput', 'stringInput', 'rgbPicker', 'rgbaPicker', 'comment', 'pluginWidget'])
 
 // Retrouve la déclaration globale interne à un widget.
 function globalDeclaration(project, moduleId, name) {
@@ -33,18 +33,47 @@ function barChartSize(project, moduleId, index) {
   return Number.isInteger(count) && count > 0 ? count : 12
 }
 
+// Copie les données sérialisables d'une carte sans partager ses objets mutables.
+function cloneCardData(value, fallback) {
+  try {
+    return value && typeof value === 'object' ? JSON.parse(JSON.stringify(value)) : fallback
+  } catch {
+    return fallback
+  }
+}
+
 // Construit la liste ordonnée des widgets visibles, avec leurs options d'affichage.
-export function dashboardWidgets(project, cards) {
+export function dashboardWidgets(project, cards, options = {}) {
   const modules = new Map((project?.modules ?? []).map((module) => [module.id, module]))
+  const pluginWidgets = new Map((options.pluginWidgets ?? []).map((entry) => [`${entry.pluginId}/${entry.widget.id}`, entry]))
   return (cards ?? [])
     .filter((card) => card && !card.hidden && dashboardWidgetTypes.includes(card.type))
-    .filter((card) => card.type === 'comment' || modules.has(card.id))
+    .filter((card) => card.type === 'comment' || card.type === 'pluginWidget' || modules.has(card.id))
     .sort((left, right) => (left.y ?? 0) - (right.y ?? 0) || (left.x ?? 0) - (right.x ?? 0) || String(left.name).localeCompare(String(right.name)))
     .map((card) => {
       const module = modules.get(card.id)
       const base = { id: card.id, type: card.type, name: card.name || module?.name || card.type }
       if (card.type === 'comment') {
         return { ...base, text: typeof card.text === 'string' ? card.text : '' }
+      }
+      if (card.type === 'pluginWidget') {
+        const entry = pluginWidgets.get(`${card.pluginId}/${card.widgetId}`) ?? null
+        return {
+          ...base,
+          name: card.name || entry?.widget.name || card.pluginId,
+          pluginId: card.pluginId,
+          widgetId: card.widgetId,
+          pluginVersion: entry?.pluginVersion ?? card.pluginVersion ?? null,
+          pluginName: entry?.pluginName ?? null,
+          definition: entry?.widget ?? null,
+          properties: cloneCardData(card.properties, {}),
+          state: cloneCardData(card.state, {}),
+          bindings: {
+            inputs: cloneCardData(card.bindings?.inputs, {}),
+            outputs: cloneCardData(card.bindings?.outputs, {}),
+          },
+          missing: !entry,
+        }
       }
       if (card.type === 'screen') {
         return { ...base, width: module.screen?.width ?? 15, height: module.screen?.height ?? 9 }
@@ -116,7 +145,7 @@ export function dashboardWidgets(project, cards) {
 
 // Produit les états affichés avant le premier Run, sans simulation ni effet de bord.
 export function dashboardInitialStates(widgets) {
-  const states = { screens: {}, gauges: {}, leds: {}, rgbLeds: {}, progresses: {}, barCharts: {}, xyPlots: {}, oscilloscopes: {}, heatmaps: {} }
+  const states = { screens: {}, gauges: {}, leds: {}, rgbLeds: {}, progresses: {}, barCharts: {}, xyPlots: {}, oscilloscopes: {}, heatmaps: {}, variables: {} }
   for (const widget of widgets ?? []) {
     if (widget.type === 'screen') {
       states.screens[widget.id] = { width: widget.width, height: widget.height, pixels: new Array(widget.width * widget.height * 4).fill(0) }

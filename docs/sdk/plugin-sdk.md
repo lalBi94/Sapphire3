@@ -360,6 +360,17 @@ Cette frontière n'est pas un sandbox JavaScript généraliste. Elle est plus
 - Une désinstallation ne détruit pas les cartes ; elles deviennent des
   diagnostics de dépendance manquante.
 
+## Dashboard exporté
+
+Les widgets de plugin sont intégrés au dashboard web autonome :
+
+- le renderer déclaratif est reproduit en DOM natif dans `src/dashboard/client.js` ;
+- les widgets actifs et leurs définitions sont embarqués dans le JSON du dashboard ;
+- les opérations natives de plugin sont transmises au runtime borné et au worker live, puis revalidées avant exécution ;
+- les entrées liées à une variable utilisent les frames de variables capturées pendant le Run borné et les frames du live ;
+- les sorties liées à une fonction `(T) -> void` déclenchent le callback dans le run borné ou le live ;
+- un widget dont le plugin est absent reste visible sous forme de panneau de diagnostic, sans perte de données.
+
 ## Tests
 
 ```sh
@@ -378,6 +389,7 @@ Les tests couvrent :
 - typage, simulation, transpilation JavaScript/Python et refus C ;
 - backend manquant et manifeste invalide ;
 - composite natif et insertion atomique ;
+- dashboard exporté : widgets de plugin, définitions embarquées, variables capturées et runtime borné/live ;
 - build, `npm pack` et utilisation depuis un projet externe.
 
 ## Exemples
@@ -387,7 +399,7 @@ Les tests couvrent :
 - `examples/plugins/clamp.sp3plugin` : opération native `CLAMP` typée, pure,
   avec validation et émetteurs JavaScript/Python.
 - `examples/plugins/between.sp3plugin` : composite « valeur comprise entre deux
-  bornes » avec trois trous après insertion.
+  bornes » avec quatre trous après insertion.
 - `examples/plugins/build-examples.mjs` : génère les trois fichiers avec le SDK.
 
 ## Limites de la première version
@@ -399,6 +411,4 @@ Les tests couvrent :
 - Les sorties de widget appellent une fonction `(T) -> void` ; les callbacks
   multiples ou les événements riches ne sont pas disponibles.
 - Les nœuds composites sont de niveau A uniquement.
-- Le dashboard web exporté n'embarque pas encore le registre de plugins ; les
-  opérations natives de plugin y restent donc hors de la première version.
 - Aucun marketplace, backend distant ou publication npm.

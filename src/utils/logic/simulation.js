@@ -20,8 +20,11 @@ function simulationError(code, message) {
 }
 
 // Exécute le sous-ensemble déterministe du langage sans accéder au DOM ni au système.
-export function simulateProgram(project, { maxSteps = 10000, captureDebug = false, functionId = null, args = [], inputs = {}, onProgress = null } = {}) {
+export function simulateProgram(project, { maxSteps = 10000, captureDebug = false, functionId = null, args = [], inputs = {}, capturePluginVariables = [], onProgress = null } = {}) {
   if (!Number.isSafeInteger(maxSteps) || maxSteps < 1 || maxSteps > 100000) return { ok: false, output: [], trace: [], errorCode: 'SIMULATION_BUDGET_INVALID', error: 'The step budget must be an integer between 1 and 100000.' }
+  const pluginVariableNames = Array.isArray(capturePluginVariables)
+    ? [...new Set(capturePluginVariables.filter((name) => typeof name === 'string' && name.length > 0))].slice(0, 64)
+    : []
   const analysis = analyzeProgram(project)
   if (!analysis.canGenerate) return { ok: false, output: [], trace: [], errorCode: 'SIMULATION_DIAGNOSTICS', error: 'The program has blocking diagnostics.', diagnostics: analysis.diagnostics }
   const nodes = new Map(project.nodes.map((node) => [node.id, node]))
@@ -75,6 +78,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   // Grilles thermiques : instantanés par pas uniquement, jamais par image d'écran.
   const heatmapReader = (project.modules ?? []).some((module) => module.heatmap) ? createHeatmapStateReader(project) : null
   const heatmapFrames = []
+  const variableFrames = []
   const screenFrames = []
   // États de jauge et de LED alignés sur les images d'écran, pour les animer au même rythme.
   const screenFrameGauges = []
@@ -141,6 +145,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     if (xyPlotReader && xyPlotFrames.length < maximumGaugeFrames) xyPlotFrames.push(xyPlotReader(global.values))
     if (oscilloscopeReader && oscilloscopeFrames.length < maximumGaugeFrames) oscilloscopeFrames.push(oscilloscopeReader(global.values))
     if (heatmapReader && heatmapFrames.length < maximumGaugeFrames) heatmapFrames.push(heatmapReader(global.values))
+    if (pluginVariableNames.length > 0 && variableFrames.length < maximumGaugeFrames) variableFrames.push(collectNamedVariables(pluginVariableNames))
     return node
   }
 
@@ -428,6 +433,22 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
     return String(value)
   }
 
+  // Capture uniquement les variables demandées par les widgets de plugin du dashboard.
+  function collectNamedVariables(names) {
+    const values = {}
+    const add = (scope) => {
+      if (!scope) return
+      for (const [id, value] of scope.values) {
+        const name = nodes.get(id)?.properties?.name
+        if (!names.includes(name)) continue
+        values[name] = value === uninitialized ? null : serializableValue(value)
+      }
+    }
+    add(global)
+    if (functionScope && functionScope !== global) add(functionScope)
+    return values
+  }
+
   // Vérifie chaque contrat sur l'état courant ; une violation n'est signalée qu'une fois par valeur observée.
   function checkContracts(environment) {
     if (contracts.length === 0) return
@@ -697,6 +718,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       oscilloscopes: oscilloscopeReader ? oscilloscopeReader(global.values) : {},
       heatmaps: heatmapReader ? heatmapReader(global.values) : {},
       ...(heatmapReader ? { heatmapFrames } : {}),
+      ...(variableFrames.length ? { variableFrames } : {}),
       contracts: { total: contracts.reduce((count, entry) => count + entry.entries.length, 0), observations: contractObservations, violations: contractViolations },
       ...(debug ? { debugFrames: debug.frames } : {}),
       ...(screenReader ? { screenFrames } : {}),
@@ -718,7 +740,7 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
   } catch (error) {
     const errorCode = error?.code ?? 'SIMULATION_FAILED'
     debug?.record(lastInstructionId, lastEnvironment, lastScopes, 'error', errorCode)
-    return { ok: false, output, outputSteps, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, screens: screenReader ? screenReader(global.values) : {}, gauges: gaugeReader ? gaugeReader(global.values) : {}, leds: ledReader ? ledReader(global.values) : {}, rgbLeds: rgbLedReader ? rgbLedReader(global.values) : {}, progresses: progressReader ? progressReader(global.values) : {}, barCharts: barChartReader ? barChartReader(global.values) : {}, xyPlots: xyPlotReader ? xyPlotReader(global.values) : {}, oscilloscopes: oscilloscopeReader ? oscilloscopeReader(global.values) : {}, heatmaps: heatmapReader ? heatmapReader(global.values) : {}, ...(heatmapReader ? { heatmapFrames } : {}), ...(debug ? { debugFrames: debug.frames } : {}), ...(screenReader ? { screenFrames } : {}), ...(screenFrameGauges.length ? { screenFrameGauges } : {}), ...(screenFrameLeds.length ? { screenFrameLeds } : {}), ...(screenFrameRgbLeds.length ? { screenFrameRgbLeds } : {}), ...(screenFrameProgresses.length ? { screenFrameProgresses } : {}), ...(screenFrameBarCharts.length ? { screenFrameBarCharts } : {}), ...(screenFrameXyPlots.length ? { screenFrameXyPlots } : {}), ...(screenFrameOscilloscopes.length ? { screenFrameOscilloscopes } : {}), ...(gaugeReader ? { gaugeFrames } : {}), ...(ledReader ? { ledFrames } : {}), ...(rgbLedReader ? { rgbLedFrames } : {}), ...(progressReader ? { progressFrames } : {}), ...(barChartReader ? { barChartFrames } : {}), ...(xyPlotReader ? { xyPlotFrames } : {}), ...(oscilloscopeReader ? { oscilloscopeFrames } : {}) }
+    return { ok: false, output, outputSteps, trace, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.', steps, screens: screenReader ? screenReader(global.values) : {}, gauges: gaugeReader ? gaugeReader(global.values) : {}, leds: ledReader ? ledReader(global.values) : {}, rgbLeds: rgbLedReader ? rgbLedReader(global.values) : {}, progresses: progressReader ? progressReader(global.values) : {}, barCharts: barChartReader ? barChartReader(global.values) : {}, xyPlots: xyPlotReader ? xyPlotReader(global.values) : {}, oscilloscopes: oscilloscopeReader ? oscilloscopeReader(global.values) : {}, heatmaps: heatmapReader ? heatmapReader(global.values) : {}, ...(heatmapReader ? { heatmapFrames } : {}), ...(variableFrames.length ? { variableFrames } : {}), ...(debug ? { debugFrames: debug.frames } : {}), ...(screenReader ? { screenFrames } : {}), ...(screenFrameGauges.length ? { screenFrameGauges } : {}), ...(screenFrameLeds.length ? { screenFrameLeds } : {}), ...(screenFrameRgbLeds.length ? { screenFrameRgbLeds } : {}), ...(screenFrameProgresses.length ? { screenFrameProgresses } : {}), ...(screenFrameBarCharts.length ? { screenFrameBarCharts } : {}), ...(screenFrameXyPlots.length ? { screenFrameXyPlots } : {}), ...(screenFrameOscilloscopes.length ? { screenFrameOscilloscopes } : {}), ...(gaugeReader ? { gaugeFrames } : {}), ...(ledReader ? { ledFrames } : {}), ...(rgbLedReader ? { rgbLedFrames } : {}), ...(progressReader ? { progressFrames } : {}), ...(barChartReader ? { barChartFrames } : {}), ...(xyPlotReader ? { xyPlotFrames } : {}), ...(oscilloscopeReader ? { oscilloscopeFrames } : {}) }
   }
 }
 

@@ -62,7 +62,8 @@ console.log(stringifyPluginDocument(plugin))
 
 - **Widgets** : rendu déclaratif sûr, propriétés configurables, état persistant,
   ports d'entrée typés liés à une variable, sorties typées liées à une fonction
-  `(T) -> void`, slider et bouton.
+  `(T) -> void`, slider et bouton. Les widgets et les opérations natives de
+  plugin sont aussi embarqués dans le dashboard web exporté.
 - **Opérations natives** : signature typée, pureté/effets, validation,
   implémentation par expression sûre, émetteurs JavaScript/Python optionnels,
   refus explicite si un backend manque.
