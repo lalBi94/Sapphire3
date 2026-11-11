@@ -36,6 +36,9 @@ importers:
       '@sapphire3/core':
         specifier: workspace:*
         version: link:packages/core
+      '@sapphire3/runtime':
+        specifier: workspace:*
+        version: link:packages/runtime
       '@vitejs/plugin-react':
         specifier: 6.1.2
         version: 6.1.2(vite@8.3.5)
@@ -48,6 +51,15 @@ importers:
 
   packages/core:
     devDependencies:
+      vite:
+        specifier: 8.3.5
+        version: 8.3.5
+
+  packages/runtime:
+    devDependencies:
+      '@sapphire3/core':
+        specifier: workspace:*
+        version: link:../core
       vite:
         specifier: 8.3.5
         version: 8.3.5

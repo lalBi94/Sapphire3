@@ -2,6 +2,17 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Runtime SDK — 11 novembre 2026
+
+- Nouveau package **`@sapphire3/runtime`** dans `packages/runtime/`, lié au workspace pnpm et construit par Vite en module ESM avec un Worker isolé embarqué (`dist/assets/runtime.worker-*.js`). Le runtime réutilise directement `simulateProgram` et `runLiveProgram` ; aucun second interpréteur n'est créé.
+- Chargement : projet logique JSON v1, workspace `.sp3` versions 1 à 3 via le lecteur validé de l'application, chaîne JSON, `Uint8Array`/`ArrayBuffer`, `Blob`/`Response` via `loadProject`. Les diagnostics bloquants empêchent `createRuntime` et sont conservés dans `RuntimeError.diagnostics`.
+- Exécution bornée : point d'entrée ou fonction choisie par identifiant/nom, arguments typés validés par le moteur, valeur de retour publique, sorties, diagnostics, trace, variables, contrats, états de widgets et séquences de frames. Budget de 1 à 100000 pas.
+- Live : `startLive`, frames coopératives, `pause`, `resume`, `stop`, `sendInputs`, `sendEvents`, capture optionnelle des frames. Les entrées et événements sont appliqués entre deux frames ; l'arrêt prend effet à la frame suivante. `dispose` libère la session et le worker.
+- Événements : `status`, `frame`, `output`, `progress`, `error`, `done`. Widgets exposés en données (écrans, jauges, LED, RGB LED, progression, barres, XY plot, oscilloscope, heatmap), sans rendu React.
+- Erreurs : `RuntimeError` avec `code`, `diagnostics`, `details`, `toJSON()`, codes stables et codes moteur conservés. Isolation `inline` par défaut ; `worker` disponible lorsque `Worker` existe ou via `workerFactory`. Les simulations bornées inline ne sont pas interruptibles au milieu d'un pas ; le Worker permet une terminaison immédiate.
+- Documentation `docs/sdk/runtime.md`, exemples `examples/runtime/node-run.mjs` et `examples/runtime/browser.html`, types `packages/runtime/types/index.d.ts`.
+- Vérifications : **696 tests Node/Python réussis**, dont 13 tests runtime (chargement projet/workspace, point d'entrée, fonctions/arguments/retour, classes, budgets/annulation, widgets bornés, live pause/reprise/arrêt, événements d'entrée, sessions indépendantes, erreurs/dispose/worker indisponible, exemple local, packaging). Build Vite frontend réussi. Build du package, `npm pack`, installation de l'archive dans un projet Node.js externe, présence du Worker et exécution vérifiées. Aucun push distant ni publication npm.
+
 ## SDK Core — 11 novembre 2026
 
 - Nouveau package **`@sapphire3/core`** dans `packages/core/`, lié au workspace pnpm (`packages/*`, dépendance racine `workspace:*`). Le SDK réutilise directement `src/utils/logic/` et Vite le construit en un unique module ESM autonome dans `packages/core/dist/index.js` ; il n'embarque ni React, ni DOM, ni Neutralinojs.

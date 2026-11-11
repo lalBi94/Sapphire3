@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sapphire 3 Runtime — navigateur</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 2rem; background: #141414; color: #f4f4f4; }
+      pre { padding: 1rem; background: #1f1f1f; border: 1px solid #3a3a3a; overflow: auto; }
+    </style>
+  </head>
+  <body>
+    <h1>Sapphire 3 Runtime</h1>
+    <p>Exécution bornée directe dans le navigateur, sans IDE.</p>
+    <pre id="output">Exécution…</pre>
+    <script type="module">
+      import { createRuntime } from '../../packages/runtime/dist/index.js'
+
+      // Projet logique minimal : main() affiche 42.
+      const project = {
+        formatVersion: 1,
+        id: 'browser-example',
+        modules: [{ id: 'app', name: 'App', kind: 'module', rootNodeIds: ['main'], imports: [], exports: [] }],
+        nodes: [
+          { id: 'main', moduleId: 'app', kind: 'FunctionDeclaration', properties: { name: 'main', type: { kind: 'primitive', name: 'void' }, entryPoint: true }, children: { parameters: [], body: 'body' }, references: {} },
+          { id: 'body', moduleId: 'app', kind: 'Block', properties: {}, children: { statements: ['print'] }, references: {} },
+          { id: 'print', moduleId: 'app', kind: 'PrintStatement', properties: {}, children: { value: 'literal' }, references: {} },
+          { id: 'literal', moduleId: 'app', kind: 'Literal', properties: { type: { kind: 'primitive', name: 'int' }, value: 42 }, children: {}, references: {} },
+        ],
+      }
+
+      const runtime = createRuntime(project)
+      const result = await runtime.run()
+      document.querySelector('#output').textContent = JSON.stringify({
+        ok: result.ok,
+        output: result.output,
+        steps: result.steps,
+        diagnostics: result.diagnostics.length,
+      }, null, 2)
+      runtime.dispose()
+    </script>
+  </body>
+</html>
