@@ -2,6 +2,17 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Project SDK — 11 novembre 2026
+
+- Nouveau package **`@sapphire3/project`** dans `packages/project/`, lié au workspace pnpm et construit par Vite en module ESM autonome avec le Core SDK embarqué. Il réutilise `@sapphire3/core`, `workspaceFile.js`, `workspaceArchive.js`, `embeddedImage.js`, `moduleTypes.js` et le format workspace version 3, sans second analyseur ni nouveau `.sp3`.
+- API : `createWorkspace`, `loadWorkspace`, `loadProject`, `serializeWorkspace`, `serializeProject`, `validateWorkspace`, `validateProject`, `ProjectWorkspace`, `createWorkspaceBuilder`, `buildWorkspaceArchive`, `readWorkspaceArchive`, `loadWorkspaceArchive`, `createMemoryStorage`, `loadWorkspaceFromStorage`, `saveWorkspaceToStorage`, `loadWorkspaceBundle`, `saveWorkspaceBundle`, `exportWorkspaceArchiveToStorage`, `loadWorkspaceArchiveFromStorage`.
+- Workspace : modules/classes avec cartes, positions, dimensions, emoji, `hidden`/`locked`, commentaires, images Data URL ou `images/`, imports/exports, fonctions, méthodes, constructeurs, variables, constantes, nœuds, exercice, dashboard et métadonnées inconnues conservées. Le projet logique reste distinct du workspace complet.
+- Mutations atomiques : ajout/suppression/renommage/déplacement de modules, création et modification de nœuds, nettoyage des `expandedNodeIds` et de la sélection, suppression de modules avec leurs nœuds et leur carte. Les échecs conservent l'instantané d'origine et portent un `object` stable.
+- Validation : structure du workspace via le lecteur existant, sémantique via `@sapphire3/core`, diagnostics séparés et associés aux objets. Le builder valide la structure et la sémantique par défaut, avec `requireValidProgram: false` pour conserver un programme incomplet.
+- Images et archives : promotion des Data URL en `images/`, ressources binaires, archives ZIP à store avec `workspace.sp3`, images liées et fichiers annexes, refus des chemins absolus/remontées/doublons, `PROJECT_IMAGE_MISSING` explicite. Adaptateurs de stockage `readText`/`writeText`/`readBinary`/`writeBinary` sans système de fichiers imposé ; `createMemoryStorage` pour les tests et agents.
+- Documentation `docs/sdk/project.md`, exemples `examples/project/generate-workspace.mjs` et `modify-workspace.mjs`, types `packages/project/types/index.d.ts`.
+- Vérifications : **730 tests Node/Python réussis**, dont 11 tests Project (10 tests de session et 1 test de packaging) couvrant création, cartes, classes, fonctions, imports/exports, builder, round-trip, métadonnées inconnues, exercice/dashboard, migrations versions 1 et 2, structures corrompues, images, archives ZIP, fichiers annexes, adaptateurs de stockage, ouverture par `deserializeWorkspace`/`reduceDocument`, erreurs typées et atomicité, ainsi que `npm pack` dans un projet externe. Build Vite frontend réussi. Aucun push distant ni publication npm.
+
 ## Debug SDK — 11 novembre 2026
 
 - Nouveau package **`@sapphire3/debug`** dans `packages/debug/`, lié au workspace pnpm et construit par Vite en module ESM autonome. Il réutilise `createDebugSession()`, `moveDebugSession()`, `resolveDebugScreens()`, `debugTrace.js`, `simulation.js` et `reachability.js`, sans second interpréteur ni second AST.

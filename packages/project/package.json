@@ -1,0 +1,46 @@
+{
+  "name": "@sapphire3/project",
+  "version": "0.1.0",
+  "description": "Headless SDK for creating, loading, validating, modifying and exporting complete Sapphire 3 workspaces.",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20.19"
+  },
+  "files": [
+    "dist",
+    "types",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "vite build",
+    "test": "node --test ../../tests/project/*.test.js",
+    "pack": "npm run build && node scripts/pack.mjs"
+  },
+  "devDependencies": {
+    "@sapphire3/core": "workspace:*",
+    "vite": "8.3.5"
+  },
+  "keywords": [
+    "sapphire",
+    "sapphire3",
+    "project",
+    "workspace",
+    "sdk",
+    "builder"
+  ]
+}

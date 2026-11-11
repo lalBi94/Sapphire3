@@ -42,6 +42,9 @@ importers:
       '@sapphire3/debug':
         specifier: workspace:*
         version: link:packages/debug
+      '@sapphire3/project':
+        specifier: workspace:*
+        version: link:packages/project
       '@sapphire3/runtime':
         specifier: workspace:*
         version: link:packages/runtime
@@ -62,6 +65,15 @@ importers:
         version: 8.3.5
 
   packages/debug:
+    devDependencies:
+      '@sapphire3/core':
+        specifier: workspace:*
+        version: link:../core
+      vite:
+        specifier: 8.3.5
+        version: 8.3.5
+
+  packages/project:
     devDependencies:
       '@sapphire3/core':
         specifier: workspace:*
