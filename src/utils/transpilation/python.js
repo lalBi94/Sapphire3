@@ -50,8 +50,8 @@ const nativePython = Object.freeze({
 
 // Émet Python 3 depuis l'AST typé commun, sans réexécuter ni réinterpréter la source.
 export function generatePython(analysis, { selection = null } = {}) {
-  const context = createGenerationContext(analysis, { selection, reservedWords, runtimeNames: pythonRuntimeNames })
-  const { ast, nodes, parents, typeByNode, diagnostics, reserveDeclaration, referenceName, entryName } = context
+  const context = createGenerationContext(analysis, { selection, reservedWords, runtimeNames: pythonRuntimeNames, reservedMemberNames: ['__init__', '__sapphire_class__', '__sapphire_fields__', '__dict__', '__class__', '__slots__'] })
+  const { ast, nodes, parents, typeByNode, diagnostics, reserveDeclaration, referenceName, memberName, classNames, classMembers, classMemberNames, entryName } = context
   const referenceSymbols = analysis.semantic.index.referenceSymbols
   const symbolByNode = analysis.semantic.index.symbolByNode
   // Les variables dont l'adresse est prise vivent dans une cellule mutable.
@@ -63,7 +63,7 @@ export function generatePython(analysis, { selection = null } = {}) {
     const symbol = referenceSymbols.get(operand.sourceId)
     if (symbol) cellSymbols.add(symbol.id)
   }
-  const globals = ast.modules.flatMap((module) => module.body).filter((node) => ['VariableDeclaration', 'ConstantDeclaration'].includes(node.kind))
+  const globals = ast.modules.filter((module) => module.moduleKind !== 'class').flatMap((module) => module.body).filter((node) => ['VariableDeclaration', 'ConstantDeclaration'].includes(node.kind))
   const globalIds = new Set(globals.map((node) => node.sourceId))
   const globalEntries = globals.map((node) => ({ node, name: reserveDeclaration(node), cell: cellSymbols.has(symbolByNode.get(node.sourceId)?.id) }))
   const isCell = (node) => cellSymbols.has(symbolByNode.get(node.sourceId)?.id)
@@ -72,6 +72,91 @@ export function generatePython(analysis, { selection = null } = {}) {
     const symbol = referenceSymbols.get(node?.sourceId)
     const name = referenceName(node)
     return symbol && cellSymbols.has(symbol.id) ? `${name}[0]` : name
+  }
+
+  // Liste les champs et méthodes d'une classe dans l'ordre d'initialisation du simulateur.
+  function classFields(members) {
+    const fields = []
+    for (const scope of ['public', 'private']) {
+      for (const [name, id] of members?.[scope] ?? []) {
+        const node = nodes.get(id)
+        if (node?.kind === 'VariableDeclaration' || node?.kind === 'ConstantDeclaration') fields.push({ name, node })
+      }
+    }
+    return fields
+  }
+
+  function classMethods(members) {
+    const methods = []
+    for (const scope of ['public', 'private']) {
+      for (const [name, id] of members?.[scope] ?? []) {
+        const node = nodes.get(id)
+        if (node?.kind === 'FunctionDeclaration' && node.properties.constructor !== true) methods.push({ name, node })
+      }
+    }
+    return methods
+  }
+
+  // Retrouve le nom généré d'un membre dans sa classe, ou un nom sûr hors classe.
+  function memberNameFor(classId, name) {
+    return classMemberNames.get(classId)?.get(name) ?? memberName(name)
+  }
+
+  function memberNameOf(node, name) {
+    const objectType = typeByNode.get(child(node, 'object')?.sourceId)
+    return memberNameFor(objectType?.kind === 'class' ? objectType.classId : null, name)
+  }
+
+  // Émet une instanciation avec les initialiseurs de champs évalués dans la portée appelante.
+  function newExpressionCode(node) {
+    const classId = node.properties?.classId
+    const className = classNames.get(classId)
+    if (!className) {
+      diagnostics.push(createDiagnostic('TRANSPILE_EXPRESSION_UNSUPPORTED', 'Classe inconnue pour cette instanciation.', node.location))
+      return 'None'
+    }
+    const fields = classFields(classMembers.get(classId))
+    const initializers = fields.map((field) => child(field.node, 'initializer') ? expression(child(field.node, 'initializer')) : 'sapphireUninitialized')
+    const args = (node.children.arguments ?? []).map(expression)
+    return `${className}(${[...initializers, ...args].join(', ')})`
+  }
+
+  // Enveloppe les paramètres adressés dans une cellule Python, au début d'une méthode.
+  function cellWrapping(parameters) {
+    return parameters.map((parameter) => {
+      if (!isCell(parameter)) return null
+      const name = reserveDeclaration(parameter)
+      return `        ${name} = [${name}]`
+    }).filter(Boolean)
+  }
+
+  // Émet une classe Python avec ses champs, son constructeur et ses méthodes.
+  function classCode(module) {
+    const className = classNames.get(module.sourceId)
+    const members = classMembers.get(module.sourceId)
+    const fields = classFields(members)
+    const methods = classMethods(members)
+    const constructor = members?.constructor ? nodes.get(members.constructor) : null
+    const fieldParameters = fields.map((field, index) => `__sp3_field_${index}`)
+    const constructorParameters = constructor ? (constructor.children.parameters ?? []).map(reserveDeclaration) : []
+    const signature = ['self', ...fieldParameters, ...constructorParameters]
+    const lines = [`class ${className}:`, `    def __init__(${signature.join(', ')}):`, `        self.__sapphire_class__ = ${JSON.stringify(module.name || 'class')}`, `        self.__sapphire_fields__ = { ${fields.map((field) => `${JSON.stringify(memberNameFor(module.sourceId, field.name))}: ${JSON.stringify(field.name)}`).join(', ')} }`]
+    fields.forEach((field, index) => lines.push(`        self.${memberNameFor(module.sourceId, field.name)} = ${fieldParameters[index]}`))
+    if (constructor) {
+      const names = writtenGlobals(constructor)
+      if (names.length) lines.push(`        global ${names.join(', ')}`)
+      lines.push(...cellWrapping(constructor.children.parameters ?? []))
+      lines.push(...block(child(constructor, 'body'), 2).split('\n'))
+    }
+    for (const method of methods) {
+      const parameters = (method.node.children.parameters ?? []).map(reserveDeclaration)
+      const names = writtenGlobals(method.node)
+      lines.push('', `    def ${memberNameFor(module.sourceId, method.name)}(self${parameters.length ? `, ${parameters.join(', ')}` : ''}):`)
+      if (names.length) lines.push(`        global ${names.join(', ')}`)
+      lines.push(...cellWrapping(method.node.children.parameters ?? []))
+      lines.push(...block(child(method.node, 'body'), 2).split('\n'))
+    }
+    return lines.join('\n')
   }
 
   // Convertit les seules valeurs déjà validées par le moteur, notamment l'arrondi direct des float.
@@ -151,6 +236,9 @@ export function generatePython(analysis, { selection = null } = {}) {
       return `([${initializer ? expression(initializer) : 'sapphireUninitialized'}] * ${size})`
     }
     if (node.kind === 'ArrayAccess') return `sapphireElement(${expression(child(node, 'array'))}, ${expression(child(node, 'index'))})`
+    if (node.kind === 'NewExpression') return newExpressionCode(node)
+    if (node.kind === 'ThisExpression') return 'self'
+    if (node.kind === 'MemberExpression') return `sapphireMember(${expression(child(node, 'object'))}, ${JSON.stringify(memberNameOf(node, node.properties?.name))})`
     if (node.kind === 'MathCall') {
       const definition = getMathNative(node.properties?.name)
       const emitter = definition ? nativePython[definition.id] : null
@@ -194,6 +282,7 @@ export function generatePython(analysis, { selection = null } = {}) {
     if (node.kind === 'AssignmentStatement') {
       const target = child(node, 'target')
       const value = expression(child(node, 'value'))
+      if (target?.kind === 'MemberExpression') return `${indent}${expression(child(target, 'object'))}.${memberNameOf(target, target.properties?.name)} = ${value}`
       if (target?.kind === 'UnaryExpression' && target.properties.operator === '*') return `${indent}sapphireDerefWrite(${expression(child(target, 'operand'))}, ${value})`
       if (target?.kind === 'ArrayAccess') return `${indent}sapphireWrite(${expression(child(target, 'array'))}, ${expression(child(target, 'index'))}, ${value})`
       return `${indent}${referenceCode(target)} = ${value}`
@@ -255,14 +344,16 @@ export function generatePython(analysis, { selection = null } = {}) {
     }
     return null
   }
-  const preview = generateSelection(context, { functionCode, expression, statementCode: (node, level) => statementCode(node, level, enclosingLoop(node)) })
+  const preview = generateSelection(context, { functionCode, expression, classCode, statementCode: (node, level) => statementCode(node, level, enclosingLoop(node)) })
   if (preview) return preview
 
   const functions = []
+  const classes = []
   const initializers = []
   const modulesById = new Map(ast.modules.map((module) => [module.sourceId, module]))
-  const orderedModules = moduleInitializationOrder(analysis.source, analysis).map((module) => modulesById.get(module.id)).filter(Boolean)
-  for (const module of ast.modules) if (!orderedModules.includes(module)) orderedModules.push(module)
+  const orderedModules = moduleInitializationOrder(analysis.source, analysis).map((module) => modulesById.get(module.id)).filter((module) => module && module.moduleKind !== 'class')
+  for (const module of ast.modules) if (module.moduleKind !== 'class' && !orderedModules.includes(module)) orderedModules.push(module)
+  for (const module of ast.modules) if (module.moduleKind === 'class') classes.push(classCode(module))
   for (const module of orderedModules) for (const node of module.body) {
     if (node.kind === 'FunctionDeclaration') functions.push(functionCode(node))
     else {
@@ -273,7 +364,7 @@ export function generatePython(analysis, { selection = null } = {}) {
   const globalNames = globalEntries.map((entry) => entry.name)
   const code = [
     '# Généré par Sapphire 3. Ne pas modifier ce fichier.', pythonRuntime(),
-    ...globalEntries.map(({ name, cell }) => `${name} = ${cell ? '[sapphireUninitialized]' : 'sapphireUninitialized'}`), '', ...functions, '',
+    ...globalEntries.map(({ name, cell }) => `${name} = ${cell ? '[sapphireUninitialized]' : 'sapphireUninitialized'}`), '', ...classes, '', ...functions, '',
     'def main():', ...(globalNames.length ? [`    global ${globalNames.join(', ')}`] : []),
     ...globalEntries.map(({ name, cell }) => `    ${name} = ${cell ? '[sapphireUninitialized]' : 'sapphireUninitialized'}`), ...initializers,
     ...(entryName ? [`    ${entryName}()`] : ['    pass']), '',

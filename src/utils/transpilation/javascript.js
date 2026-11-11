@@ -57,8 +57,8 @@ const nativeJavaScript = Object.freeze({
 
 // Produit le code JavaScript d'un programme Sapphire déjà analysé.
 export function generateJavaScript(analysis, { selection = null } = {}) {
-  const context = createGenerationContext(analysis, { selection, reservedWords, allowDollar: true, runtimeNames: ['sapphireNumeric', 'sapphireChecked', 'sapphireRead', 'sapphireUninitialized', 'sapphireArray', 'sapphireElement', 'sapphireWrite', 'sapphirePointer', 'sapphireElementPointer', 'sapphireDeref', 'sapphireDerefWrite', 'sapphirePointerEqual', 'sapphireForEach', 'sapphireFinite', 'sapphireIntegerAbs', 'sapphireIntegerMin', 'sapphireIntegerMax', 'sapphireClamp', 'sapphireSign', 'sapphireGcd', 'sapphireRandomInt', 'sapphireLerp', 'sapphireCharAt', 'sapphireSubstring', 'sapphireArraySlice', 'sapphireArrayIndexOf', 'sapphireStringIndexOf', 'console', 'Math', 'Number', 'BigInt', 'Object', 'Error', 'Array'] })
-  const { ast, nodes, diagnostics, typeByNode, generatedNames, reserveDeclaration, reserveSyntheticName, referenceName, entryName } = context
+  const context = createGenerationContext(analysis, { selection, reservedWords, allowDollar: true, reservedMemberNames: ['constructor', '__proto__'], runtimeNames: ['sapphireNumeric', 'sapphireChecked', 'sapphireRead', 'sapphireUninitialized', 'sapphireArray', 'sapphireElement', 'sapphireWrite', 'sapphirePointer', 'sapphireElementPointer', 'sapphireDeref', 'sapphireDerefWrite', 'sapphirePointerEqual', 'sapphireForEach', 'sapphireFinite', 'sapphireIntegerAbs', 'sapphireIntegerMin', 'sapphireIntegerMax', 'sapphireClamp', 'sapphireSign', 'sapphireGcd', 'sapphireRandomInt', 'sapphireLerp', 'sapphireCharAt', 'sapphireSubstring', 'sapphireArraySlice', 'sapphireArrayIndexOf', 'sapphireStringIndexOf', 'sapphireClassTag', 'sapphireFieldNames', 'sapphireMember', 'sapphireFormat', 'console', 'Math', 'Number', 'BigInt', 'Object', 'Error', 'Array', 'Symbol', 'Set', 'String'] })
+  const { ast, nodes, diagnostics, typeByNode, generatedNames, reserveDeclaration, reserveSyntheticName, referenceName, memberName, classNames, classMembers, classMemberNames, entryName } = context
   const referenceSymbols = analysis.semantic.index.referenceSymbols
   const symbolByNode = analysis.semantic.index.symbolByNode
   // Repère les variables et paramètres dont l'adresse est prise, pour leur donner une identité stable.
@@ -76,6 +76,98 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
     const symbol = symbolByNode.get(node.sourceId)
     if (!symbol || !addressedSymbols.has(symbol.id)) continue
     addressTokens.set(symbol.id, reserveSyntheticName(`sapphireAddress_${reserveDeclaration(node)}`))
+  }
+
+  // Liste les champs et méthodes d'une classe dans l'ordre d'initialisation du simulateur.
+  function classFields(members) {
+    const fields = []
+    for (const scope of ['public', 'private']) {
+      for (const [name, id] of members?.[scope] ?? []) {
+        const node = nodes.get(id)
+        if (node?.kind === 'VariableDeclaration' || node?.kind === 'ConstantDeclaration') fields.push({ name, node })
+      }
+    }
+    return fields
+  }
+
+  function classMethods(members) {
+    const methods = []
+    for (const scope of ['public', 'private']) {
+      for (const [name, id] of members?.[scope] ?? []) {
+        const node = nodes.get(id)
+        if (node?.kind === 'FunctionDeclaration' && node.properties.constructor !== true) methods.push({ name, node })
+      }
+    }
+    return methods
+  }
+
+  // Retrouve le nom généré d'un membre dans sa classe, ou un nom sûr hors classe.
+  function memberNameFor(classId, name) {
+    return classMemberNames.get(classId)?.get(name) ?? memberName(name)
+  }
+
+  function memberNameOf(node, name) {
+    const objectType = typeByNode.get(child(node, 'object')?.sourceId)
+    return memberNameFor(objectType?.kind === 'class' ? objectType.classId : null, name)
+  }
+
+  // Émet une instanciation avec les initialiseurs de champs évalués dans la portée appelante.
+  function newExpressionCode(node) {
+    const classId = node.properties?.classId
+    const className = classNames.get(classId)
+    if (!className) {
+      diagnostics.push(createDiagnostic('TRANSPILE_EXPRESSION_UNSUPPORTED', 'Classe inconnue pour cette instanciation.', node.location))
+      return 'undefined'
+    }
+    const fields = classFields(classMembers.get(classId))
+    const initializers = fields.map((field) => child(field.node, 'initializer') ? expression(child(field.node, 'initializer')) : 'sapphireUninitialized')
+    const args = (node.children.arguments ?? []).map(expression)
+    return `new ${className}(${[...initializers, ...args].join(', ')})`
+  }
+
+  // Émet une classe JavaScript avec ses champs, son constructeur et ses méthodes.
+  function classCode(module) {
+    const className = classNames.get(module.sourceId)
+    const members = classMembers.get(module.sourceId)
+    const fields = classFields(members)
+    const methods = classMethods(members)
+    const constructor = members?.constructor ? nodes.get(members.constructor) : null
+    const fieldParameters = fields.map((field, index) => `__sp3_field_${index}`)
+    const constructorParameters = constructor ? (constructor.children.parameters ?? []).map(reserveDeclaration) : []
+    const lines = [`class ${className} {`, `  constructor(${[...fieldParameters, ...constructorParameters].join(', ')}) {`]
+    lines.push(`    Object.defineProperty(this, sapphireClassTag, { value: ${JSON.stringify(module.name || 'class')} });`)
+    lines.push(`    Object.defineProperty(this, sapphireFieldNames, { value: { ${fields.map((field) => `${JSON.stringify(memberNameFor(module.sourceId, field.name))}: ${JSON.stringify(field.name)}`).join(', ')} } });`)
+    fields.forEach((field, index) => lines.push(`    this.${memberNameFor(module.sourceId, field.name)} = ${fieldParameters[index]};`))
+    if (constructor) {
+      lines.push(...parameterTokens(constructor.children.parameters ?? []))
+      for (const statement of child(constructor, 'body')?.children?.statements ?? []) {
+        const code = statementCode(statement, 2)
+        if (code) lines.push(code)
+      }
+    }
+    lines.push('  }')
+    for (const method of methods) {
+      const parameters = (method.node.children.parameters ?? []).map(reserveDeclaration)
+      lines.push(`  ${memberNameFor(module.sourceId, method.name)}(${parameters.join(', ')}) {`)
+      lines.push(...parameterTokens(method.node.children.parameters ?? []))
+      for (const statement of child(method.node, 'body')?.children?.statements ?? []) {
+        const code = statementCode(statement, 2)
+        if (code) lines.push(code)
+      }
+      lines.push('  }')
+    }
+    lines.push('}')
+    for (const method of methods) lines.push(`${className}.prototype.${memberNameFor(module.sourceId, method.name)}.__sapphireMethod = true;`)
+    return lines.join('\n')
+  }
+
+  // Déclare les jetons d'adresse des paramètres d'une méthode ou d'un constructeur.
+  function parameterTokens(parameters) {
+    return parameters.map((parameter) => {
+      const symbol = symbolByNode.get(parameter.sourceId)
+      const token = symbol ? addressTokens.get(symbol.id) : null
+      return token ? `    const ${token} = {};` : null
+    }).filter(Boolean)
   }
 
   // Génère une expression en conservant la structure et les opérateurs de l'AST.
@@ -154,6 +246,9 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
     if (node.kind === 'ArrayAccess') {
       return `sapphireElement(${expression(child(node, 'array'))}, ${expression(child(node, 'index'))})`
     }
+    if (node.kind === 'NewExpression') return newExpressionCode(node)
+    if (node.kind === 'ThisExpression') return 'this'
+    if (node.kind === 'MemberExpression') return `sapphireMember(${expression(child(node, 'object'))}, ${JSON.stringify(memberNameOf(node, node.properties?.name))})`
     if (node.kind === 'MathCall') {
       const definition = getMathNative(node.properties?.name)
       const emitter = definition ? nativeJavaScript[definition.id] : null
@@ -200,11 +295,12 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
     if (node.kind === 'AssignmentStatement') {
       const target = child(node, 'target')
       const value = expression(child(node, 'value'))
+      if (target?.kind === 'MemberExpression') return `${indent}(${expression(child(target, 'object'))}).${memberNameOf(target, target.properties?.name)} = ${value};`
       if (target?.kind === 'UnaryExpression' && target.properties.operator === '*') return `${indent}sapphireDerefWrite(${expression(child(target, 'operand'))}, ${value});`
       if (target?.kind === 'ArrayAccess') return `${indent}sapphireWrite(${expression(child(target, 'array'))}, ${expression(child(target, 'index'))}, ${value});`
       return `${indent}${referenceName(target)} = ${value};`
     }
-    if (node.kind === 'PrintStatement') return `${indent}console.log(String(${expression(child(node, 'value'))}));`
+    if (node.kind === 'PrintStatement') return `${indent}console.log(sapphireFormat(${expression(child(node, 'value'))}));`
     // ForEach parcourt une copie du tableau pour figer les éléments visités.
     if (node.kind === 'ForEachStatement') return `${indent}sapphireForEach(${expression(child(node, 'array'))}, ${expression(child(node, 'callback'))});`
     if (node.kind === 'ReturnStatement') {
@@ -250,15 +346,17 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
     return `function ${name}(${parameters.join(', ')}) ${prepared}`
   }
 
-  const preview = generateSelection(context, { functionCode, statementCode, expression })
+  const preview = generateSelection(context, { functionCode, statementCode, expression, classCode })
   if (preview) return preview
 
   const functions = []
+  const classes = []
   const globalDeclarations = []
   const globalInitializers = []
   const modulesById = new Map(ast.modules.map((module) => [module.sourceId, module]))
-  const orderedModules = moduleInitializationOrder(analysis.source, analysis).map((module) => modulesById.get(module.id)).filter(Boolean)
-  for (const module of ast.modules) if (!orderedModules.includes(module)) orderedModules.push(module)
+  const orderedModules = moduleInitializationOrder(analysis.source, analysis).map((module) => modulesById.get(module.id)).filter((module) => module && module.moduleKind !== 'class')
+  for (const module of ast.modules) if (module.moduleKind !== 'class' && !orderedModules.includes(module)) orderedModules.push(module)
+  for (const module of ast.modules) if (module.moduleKind === 'class') classes.push(classCode(module))
   for (const module of orderedModules) {
     for (const node of module.body) {
       if (node.kind === 'FunctionDeclaration') functions.push(functionCode(node))
@@ -276,7 +374,11 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
     '// Generated by Sapphire 3. Do not edit this file.',
     `const sapphireNumeric = (${createNumericOperations.toString()})(name => (${JSON.stringify(primitiveDefinitions)})[name], ${JSON.stringify(diagnosticCodes)});`,
     'const sapphireUninitialized = Symbol("uninitialized");',
+    'const sapphireClassTag = Symbol("class");',
+    'const sapphireFieldNames = Symbol("fields");',
     'function sapphireRead(value) { if (value === sapphireUninitialized) throw new Error("SIMULATION_UNINITIALIZED"); return value; }',
+    'function sapphireMember(object, name) { if (!object || typeof object !== "object" || !(name in object)) throw new Error("SIMULATION_MEMBER"); const value = object[name]; if (value === sapphireUninitialized) throw new Error("SIMULATION_UNINITIALIZED"); return value && value.__sapphireMethod === true ? value.bind(object) : value; }',
+    'function sapphireFormat(value, seen = new Set()) { if (value && typeof value === "object" && value[sapphireClassTag] !== undefined) { const className = value[sapphireClassTag]; if (seen.has(value)) return `${className} { . }`; const next = new Set(seen).add(value); const names = value[sapphireFieldNames] ?? {}; const fields = Object.entries(value).map(([name, fieldValue]) => `${names[name] ?? name}: ${sapphireFormat(fieldValue, next)}`).join(", "); return `${className} { ${fields} }`; } if (Array.isArray(value)) return `[${value.map((entry) => sapphireFormat(entry, seen)).join(", ")}]`; if (value === undefined) return "undefined"; if (typeof value === "boolean") return value ? "true" : "false"; if (value === sapphireUninitialized) return "uninitialized"; if (value && value.__sapphirePointer === true) return value.label; return String(value); }',
     'function sapphireChecked(result) { if (result.code) throw new Error(result.code); return result.value; }',
     'function sapphireArray(length) { if (typeof length !== "number" && typeof length !== "bigint" || !Number.isInteger(Number(length)) || Number(length) < 0) throw new Error("SIMULATION_ARRAY_BOUNDS"); return Number(length); }',
     'function sapphireElement(array, index) { if (!Array.isArray(array)) throw new Error("SIMULATION_REFERENCE"); if (index < 0 || index >= array.length) throw new Error("SIMULATION_ARRAY_BOUNDS"); const value = array[index]; if (value === sapphireUninitialized) throw new Error("SIMULATION_UNINITIALIZED"); return value; }',
@@ -302,6 +404,7 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
     'function sapphireArrayIndexOf(value, search) { if (!Array.isArray(value)) throw new Error("SIMULATION_REFERENCE"); return BigInt(value.indexOf(search)); }',
     'function sapphireStringIndexOf(value, search) { const index = value.indexOf(search); return index < 0 ? -1n : BigInt(Array.from(value.slice(0, index)).length); }',
     ...globalDeclarations,
+    ...classes,
     ...functions,
     '',
     'function main() {',

@@ -8,7 +8,7 @@ export function child(node, name) {
 }
 
 // Prépare les données sémantiques et noms stables communs aux émetteurs, sans seconde analyse.
-export function createGenerationContext(analysis, { selection = null, reservedWords, runtimeNames, allowDollar = false }) {
+export function createGenerationContext(analysis, { selection = null, reservedWords, runtimeNames, allowDollar = false, reservedMemberNames = [] }) {
   const diagnostics = []
   const { ast, semantic } = analysis
   const { nodes, symbolByNode, referenceSymbols } = semantic.index
@@ -56,6 +56,25 @@ export function createGenerationContext(analysis, { selection = null, reservedWo
   }
   for (const node of nodes.values()) if (getNodeSchema(node.kind)?.named) reserveDeclaration(node)
 
+  // Noms de classe et de membres : stables, uniques dans leur portée et indépendants du langage cible.
+  const classMembers = analysis.semantic.index?.classMembers ?? new Map()
+  const classMemberNames = new Map()
+  for (const [classId, members] of classMembers) {
+    const names = new Map()
+    const used = new Set(reservedMemberNames)
+    for (const scope of ['public', 'private']) {
+      for (const name of members[scope].keys()) {
+        let candidate = identifier(name)
+        while (used.has(candidate)) candidate = `_${candidate}`
+        used.add(candidate)
+        names.set(name, candidate)
+      }
+    }
+    classMemberNames.set(classId, names)
+  }
+  const classNames = new Map()
+  for (const module of ast.modules) if (module.moduleKind === 'class') classNames.set(module.sourceId, reserveSyntheticName(module.name || module.sourceId))
+
   // Utilise la résolution déjà validée plutôt que de réinterpréter les noms source.
   function referenceName(node) {
     const symbol = referenceSymbols.get(node?.sourceId)
@@ -68,17 +87,19 @@ export function createGenerationContext(analysis, { selection = null, reservedWo
     return target ? reserveDeclaration(target) : identifier(symbol.name)
   }
 
-  return { analysis, ast, nodes, modules, parents, typeByNode, generatedNames, diagnostics, selection, reserveDeclaration, reserveSyntheticName, referenceName, entryName: entryPoints.length === 1 ? reserveDeclaration(entryPoints[0]) : null }
+  return { analysis, ast, nodes, modules, parents, typeByNode, generatedNames, diagnostics, selection, reserveDeclaration, reserveSyntheticName, referenceName, memberName: identifier, classNames, classMembers, classMemberNames, entryName: entryPoints.length === 1 ? reserveDeclaration(entryPoints[0]) : null }
 }
 
 // Valide et émet un extrait avec les mêmes callbacks que le programme complet.
-export function generateSelection(context, { functionCode, statementCode, expression }) {
+export function generateSelection(context, { functionCode, statementCode, expression, classCode = null }) {
   const { selection, modules, nodes, analysis, diagnostics, reserveDeclaration } = context
   if (!selection) return null
   const selected = selection.kind === 'module' ? modules.get(selection.id) : nodes.get(selection.id)
   if (!selected) return { ok: false, code: '', diagnostics: [{ code: 'TARGET_MISSING' }] }
+  const selectedModule = selection.kind === 'module' ? selected : modules.get(selected.moduleId)
+  const classSelection = selectedModule?.moduleKind === 'class' ? selectedModule : null
   const subtree = new Set()
-  const pending = selection.kind === 'module' ? [...selected.body] : [selected]
+  const pending = classSelection ? [...classSelection.body] : selection.kind === 'module' ? [...selected.body] : [selected]
   while (pending.length) {
     const node = pending.pop()
     if (!node || subtree.has(node.sourceId)) continue
@@ -95,6 +116,7 @@ export function generateSelection(context, { functionCode, statementCode, expres
     if (node.kind === 'TypeDeclaration') return ''
     return getNodeSchema(node.kind)?.category === 'expression' ? expression(node) : statementCode(node, 0)
   }
-  const code = selection.kind === 'module' ? selected.body.map(snippet).filter(Boolean).join('\n\n') : snippet(selected)
+  const classSource = classSelection && classCode ? classCode(classSelection) : null
+  const code = classSource ?? (selection.kind === 'module' ? selected.body.map(snippet).filter(Boolean).join('\n\n') : snippet(selected))
   return { ok: diagnostics.length === 0, code: diagnostics.length ? '' : code, diagnostics }
 }

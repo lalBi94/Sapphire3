@@ -3,7 +3,7 @@ import { diagnosticCodes } from '../logic/diagnostics.js'
 
 export const pythonRuntimeNames = [
   '_sapphireMath', '_sapphireStruct', '_sapphireRandom', '_sapphireTypes', '_sapphireCodes',
-  'sapphireUninitialized', 'sapphireRead', 'sapphireCheck', 'sapphireBinary',
+  'sapphireUninitialized', 'sapphireRead', 'sapphireMember', 'sapphireCheck', 'sapphireBinary',
   'sapphireUnary', 'sapphireCast', 'sapphireFormat', 'sapphireQuotient',
   'sapphireArray', 'sapphireElement', 'sapphireWrite', '_SapphirePointer',
   'sapphirePointer', 'sapphireElementPointer', 'sapphireDeref', 'sapphireDerefWrite', 'sapphirePointerEqual', 'sapphireForEach',
@@ -12,6 +12,7 @@ export const pythonRuntimeNames = [
   'sapphireCharAt', 'sapphireSubstring', 'sapphireLog', 'sapphireSqrt',
   'sapphirePow', 'sapphireFloor', 'sapphireCeil', 'sapphireRound',
   'print', 'object', 'isinstance', 'bool', 'int', 'float', 'str', 'repr', 'abs', 'len', 'min', 'max', 'RuntimeError', 'OverflowError', 'ValueError',
+  'getattr', 'hasattr', 'vars', 'id', 'set',
 ]
 
 // Embarque uniquement l'adaptation runtime Python, alimentée par les bornes/codes du moteur commun.
@@ -31,6 +32,15 @@ def sapphireRead(value):
     if value is sapphireUninitialized:
         raise RuntimeError("SIMULATION_UNINITIALIZED")
     return value
+
+# Refuse un membre absent ou lu avant initialisation.
+def sapphireMember(value, name):
+    if not hasattr(value, name):
+        raise RuntimeError("SIMULATION_MEMBER")
+    result = getattr(value, name)
+    if result is sapphireUninitialized:
+        raise RuntimeError("SIMULATION_UNINITIALIZED")
+    return result
 
 # Applique les mêmes bornes, arrondis binaire32 et refus de sous-flux que Sapphire.
 def sapphireCheck(value, type_name, nonzero=False):
@@ -239,9 +249,18 @@ def sapphireRound(value):
     return float(_sapphireMath.floor(value + 0.5))
 
 # Conserve les sorties scalaires Sapphire : booléens minuscules, zéros, tableaux et notation décimale.
-def sapphireFormat(value):
+def sapphireFormat(value, seen=None):
+    if seen is None: seen = set()
+    class_name = getattr(value, "__sapphire_class__", None)
+    if class_name is not None:
+        if id(value) in seen: return str(class_name) + " { . }"
+        seen.add(id(value))
+        field_names = getattr(value, "__sapphire_fields__", {})
+        fields = ", ".join(field_names.get(name, name) + ": " + sapphireFormat(field, seen) for name, field in vars(value).items() if name not in ("__sapphire_class__", "__sapphire_fields__"))
+        return str(class_name) + " { " + fields + " }"
     if isinstance(value, bool): return "true" if value else "false"
-    if isinstance(value, list): return "[" + ", ".join(sapphireFormat(element) for element in value) + "]"
+    if isinstance(value, list): return "[" + ", ".join(sapphireFormat(element, seen) for element in value) + "]"
+    if value is sapphireUninitialized: return "uninitialized"
     if not isinstance(value, float): return str(value)
     if value == 0: return "0"
     text = repr(value)

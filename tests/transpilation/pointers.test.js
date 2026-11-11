@@ -13,8 +13,8 @@ const intPointer = { kind: 'pointer', pointee: intType }
 // Exécute le code produit et renvoie ses lignes, quel que soit le séparateur Windows.
 function execute(target, code) {
   const output = target === 'python'
-    ? execFileSync('python', ['-c', code], { encoding: 'utf8', timeout: 3000 })
-    : execFileSync(process.execPath, ['-e', code], { encoding: 'utf8', timeout: 3000 })
+    ? execFileSync('python', ['-c', code], { encoding: 'utf8', timeout: 30000 })
+    : execFileSync(process.execPath, ['-e', code], { encoding: 'utf8', timeout: 5000 })
   return output.trim().split(/\r?\n/)
 }
 

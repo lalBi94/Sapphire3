@@ -1,8 +1,28 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import { analyzeProgram, createModule, createNode, createProject, duplicateSourceTargets, simulateProgram } from '../../src/utils/logic/index.js'
 import { transpileProgram } from '../../src/utils/transpilation/index.js'
 import { deserializeWorkspace, serializeWorkspace } from '../../src/utils/workspaceFile.js'
+
+// Exécute le fichier généré dans la cible demandée, avec un délai borné.
+function runGenerated(code, target) {
+  return target === 'python'
+    ? execFileSync('python', ['-c', code], { encoding: 'utf8', timeout: 30000, env: { ...process.env, PYTHONIOENCODING: 'utf-8' } })
+    : execFileSync(process.execPath, ['-e', code], { encoding: 'utf8', timeout: 5000 })
+}
+
+// Compare la sortie des deux transpileurs à celle du simulateur.
+function compareClassExecution(project) {
+  const simulation = simulateProgram(project)
+  assert.equal(simulation.ok, true, simulation.errorCode)
+  for (const target of ['javascript', 'python']) {
+    const generated = transpileProgram(project, { target })
+    assert.equal(generated.ok, true, JSON.stringify(generated.diagnostics))
+    const output = runGenerated(generated.code, target).trim()
+    assert.deepEqual(output ? output.split(/\r?\n/) : [], simulation.output, target)
+  }
+}
 
 const intType = { kind: 'primitive', name: 'int' }
 const voidType = { kind: 'primitive', name: 'void' }
@@ -92,6 +112,7 @@ test('classes : instanciation, constructeur, attributs, méthodes et this', () =
   const result = simulateProgram(counterProject())
   assert.equal(result.ok, true, result.errorCode)
   assert.deepEqual(result.output, ['6', '42'])
+  compareClassExecution(counterProject())
 })
 
 test('classes : une lecture d’attribut non initialisé échoue sans imprimer un symbole interne', () => {
@@ -103,6 +124,25 @@ test('classes : une lecture d’attribut non initialisé échoue sans imprimer u
   assert.equal(result.ok, false)
   assert.equal(result.errorCode, 'SIMULATION_UNINITIALIZED')
   assert.deepEqual(result.output, ['6'])
+})
+
+test('classes : un champ non initialisé échoue aussi dans le code généré', () => {
+  const project = counterProject()
+  project.nodes.find((node) => node.id === 'secretField').children.initializer = null
+  project.nodes = project.nodes.filter((node) => node.id !== 'secretValue')
+  for (const target of ['javascript', 'python']) {
+    const generated = transpileProgram(project, { target })
+    assert.equal(generated.ok, true, JSON.stringify(generated.diagnostics))
+    assert.throws(() => runGenerated(generated.code, target), (error) => error.stderr.includes('SIMULATION_UNINITIALIZED'), target)
+  }
+})
+
+test('classes : Print d’une instance suit le format du simulateur', () => {
+  const project = counterProject()
+  project.nodes.find((node) => node.id === 'mainBody').children.statements.splice(2, 0, 'printObject')
+  add(project, 'app', 'printObject', 'PrintStatement', {}, { value: 'counterObject' })
+  reference(project, 'app', 'counterObject', 'counterDecl')
+  compareClassExecution(project)
 })
 
 test('classes : le récepteur et la méthode sont évalués avant les arguments', () => {
@@ -133,6 +173,7 @@ test('classes : ForEach conserve this sur une méthode passée comme callback', 
   const result = simulateProgram(project)
   assert.equal(result.ok, true, result.errorCode)
   assert.deepEqual(result.output, ['8', '42'])
+  compareClassExecution(project)
 })
 
 test('classes : une méthode liée stockée dans un attribut fonction reste appelable', () => {
@@ -149,6 +190,7 @@ test('classes : une méthode liée stockée dans un attribut fonction reste appe
   const result = simulateProgram(project)
   assert.equal(result.ok, true, result.errorCode)
   assert.deepEqual(result.output, ['6', '42'])
+  compareClassExecution(project)
 })
 
 test('classes : le workspace conserve les scopes, les instances et les types de classe', () => {
@@ -188,10 +230,8 @@ test('classes : dupliquer une classe remappe son propre type de retour', () => {
   assert.equal(project.nodes.find((node) => node.id === 'self').properties.type.classId, 'counter')
 })
 
-test('classes : la transpilation reste refusée tant que la cible ne porte pas les instances', () => {
-  const result = transpileProgram(counterProject())
-  assert.equal(result.ok, false)
-  assert.equal(result.code, 'TRANSPILE_CLASS_UNSUPPORTED')
+test('classes : la transpilation JavaScript et Python porte les instances', () => {
+  compareClassExecution(counterProject())
 })
 
 test('classes : un membre privé reste inaccessible hors de la classe', () => {

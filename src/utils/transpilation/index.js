@@ -210,26 +210,9 @@ function colorPickerFailure(source, target, analysis = null, channels = 3) {
   }
 }
 
-// Une classe reste locale au moteur tant que les backends ne génèrent pas sa sémantique d'instance.
-function hasClass(source) {
-  return Array.isArray(source?.modules) && source.modules.some((module) => module?.kind === 'class')
-}
-
-// Produit le refus stable opposé à toute transpilation contenant une classe.
-function classFailure(source, target, analysis = null) {
-  return {
-    ok: false,
-    target,
-    code: 'TRANSPILE_CLASS_UNSUPPORTED',
-    diagnostics: [{ code: 'TRANSPILE_CLASS_UNSUPPORTED', severity: 'error', message: 'Une classe rend le programme non transpilable pour cette cible.', location: { projectId: source?.id ?? null, moduleId: null, nodeId: null, field: null } }],
-    ...(analysis ? { analysis } : {}),
-  }
-}
-
 // Produit un extrait de consultation avec les mêmes noms et règles que le fichier complet.
 export function transpileSelection(source, selection, { target = 'javascript', analysis = analyzeProgram(source) } = {}) {
   if (!Object.hasOwn(backends, target)) return { ok: false, code: '', diagnostics: [{ code: 'TRANSPILE_TARGET_UNSUPPORTED' }] }
-  if (hasClass(source)) return classFailure(source, target, analysis)
   if (hasScreen(source)) return screenFailure(source, target, analysis)
   if (hasGauge(source)) return gaugeFailure(source, target, analysis)
   if (hasProgress(source)) return progressFailure(source, target, analysis)
@@ -255,7 +238,6 @@ export function transpileProgram(source, options = {}) {
   if (!backend) {
     return { ok: false, target, code: '', diagnostics: [{ code: 'TRANSPILE_TARGET_UNSUPPORTED', severity: 'error', message: `Cible non prise en charge : ${target}.`, location: { projectId: source?.id ?? null, moduleId: null, nodeId: null, field: null } }], analysis }
   }
-  if (hasClass(source)) return classFailure(source, target, analysis)
   if (hasScreen(source)) return screenFailure(source, target, analysis)
   if (hasGauge(source)) return gaugeFailure(source, target, analysis)
   if (hasProgress(source)) return progressFailure(source, target, analysis)

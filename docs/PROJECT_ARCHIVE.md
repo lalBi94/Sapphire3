@@ -2,6 +2,15 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Transpilation des classes — 11 novembre 2026
+
+- Les backends **JavaScript** et **Python** génèrent désormais les modules `kind: 'class'`. Une classe devient une `class` JavaScript ou Python avec ses champs par instance, son constructeur et ses méthodes ; `this` devient `this` en JavaScript et `self` en Python. Les modules de classe ne sont plus initialisés comme des modules ordinaires : leurs champs ne deviennent pas des globales.
+- Les initialiseurs de champs sont passés au constructeur comme paramètres techniques, ce qui les évalue dans la portée du `new`, comme le simulateur. Les champs sans initialiseur conservent `sapphireUninitialized` et une lecture échoue avec `SIMULATION_UNINITIALIZED`.
+- Les méthodes sont marquées côté JavaScript pour que `sapphireMember` renvoie une méthode liée lorsqu'elle est utilisée comme valeur (callback `ForEach`, attribut fonction). Python utilise naturellement ses méthodes liées. Les noms de classes et de membres sont normalisés et réservés par langue ; les collisions internes à une classe sont désambiguïsées.
+- `sapphireFormat` formate les instances comme le simulateur (`ClassName { champ: valeur }`), y compris les tableaux et les champs imbriqués. La visibilité public/private reste une règle d'analyse : le code généré utilise des propriétés ordinaires et ne crée pas de barrière runtime.
+- Les sélections de module ou de membre de classe produisent la définition complète de la classe ; les autres sélections gardent leur comportement.
+- Vérifications : **665 tests Node/Python réussis**, dont 13 tests de classes (instanciation, constructeur, champs, méthodes, `this`, lecture non initialisée, callback `ForEach`, méthode liée stockée, `Print` d'une instance, sélection de classe). La suite utilise `--test-concurrency=4` pour éviter la saturation des processus Python pendant les tests de transpilation. Build Vite réussi. Les fichiers générés pour le modèle **Classe + instance** s'exécutent avec Node et Python et produisent la même sortie que le simulateur.
+
 ## Aide contextuelle — 11 novembre 2026
 
 - Un bouton **?** est ajouté dans l'en-tête de chaque carte et dans le panneau des propriétés d'une opération ; le formulaire d'insertion d'une construction affiche le même bouton. Il ouvre un panneau local ancré avec le titre du sujet, un résumé traduit et un lien **Ouvrir la documentation en ligne**.
