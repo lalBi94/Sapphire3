@@ -127,6 +127,7 @@ Un audit daté et reproductible est décrit dans `docs/ACCESSIBILITY.md` : axe-c
 ## Documentation
 
 - `docs/LOGIC_API.md` : contrats du moteur, types, génériques, lambdas, simulation et transpilation.
+- `docs/TRANSPILATION.md` : périmètre exact de chaque cible, correspondances des fonctions et opérations SP3, codes de refus et limites.
 - `docs/WORKSPACE_FILES.md` : dossier de workspace, document interne versionné, images liées, récupération, sauvegardes et export ZIP.
 - `docs/EXERCISES.md` : mode exercice, manifeste, tests et limites.
 - `docs/ACCESSIBILITY.md` : audit, corrections et limites d'accessibilité.

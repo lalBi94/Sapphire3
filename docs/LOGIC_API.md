@@ -407,6 +407,8 @@ Le budget accepte un entier de 1 à 100 000 ; même un `for` sans condition ni c
 
 ## Transpilation
 
+Le périmètre exact de chaque cible, les correspondances des fonctions et opérations SP3 et les codes de refus sont décrits dans `docs/TRANSPILATION.md`. Cette section conserve les contrats du moteur et les détails d'émission.
+
 `transpileProgram(project, {target: 'javascript'})` réutilise `analyzeProgram()` puis délègue la génération à un backend enregistré. La première cible est JavaScript, produite dans un fichier unique sans `import` ni `export`. Les déclarations de modules et de fonctions sont écrites avant `main()`, l'initialisation globale est exécutée dans `main()` dans le **même ordre topologique** que la simulation (ordre source en cas de cycle), puis le point d'entrée Sapphire marqué `properties.entryPoint: true` est appelé. Le backend exige exactement un point d'entrée et renvoie des diagnostics stables sans modifier la source.
 
 Le backend JavaScript couvre le sous-ensemble des constructions du schéma logique : déclarations, fonctions, lambdas, paramètres, blocs, retours, affichage via `console.log`, conditions, boucles, affectations, appels, opérateurs, littéraux, références, conversions numériques, **tableaux** (littéral, création bornée, lecture et écriture d'élément) et **`ForEachStatement`**. Les lectures d'éléments passent par `sapphireElement` (bornes et case jamais remplie), les écritures par `sapphireWrite` et les tailles par `sapphireArray` ; le runtime embarque ces helpers. Le backend Python émet les mêmes constructions avec `sapphireArray`/`sapphireElement`/`sapphireWrite`. Une lambda devient une fonction fléchée en JavaScript et une `lambda` Python, capturant nativement son environnement.
