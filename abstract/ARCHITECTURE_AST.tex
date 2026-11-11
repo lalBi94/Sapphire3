@@ -307,7 +307,8 @@ Primitifs numériques, booléen & oui & oui & oui\\
 \code{char} & oui & oui & non\\
 Tableaux & oui & oui & non\\
 Pointeurs \code{\&}/\code{*} & cellules & cellules & natifs\\
-Références de fonction, lambdas & oui & oui & non\\
+Références de fonction & oui & oui & pointeurs nommés\\
+Lambdas et fermetures & oui & oui & non\\
 \code{ForEach} & oui & oui & non\\
 Classes, \code{new}, \code{this} & oui & oui & non\\
 Génériques & fonction ordinaire & fonction ordinaire & non\\
@@ -318,9 +319,9 @@ Widgets et entrées & refusés & refusés & refusés\\
 \end{tabular}
 \end{center}
 
-JavaScript et Python émettent les tableaux, références de fonction, lambdas, \code{ForEach} (copie), classes et opérations natives prises en charge. Les génériques ne créent pas de copie : une seule fonction ordinaire est émise, avec les types concrets inférés. Le C accepte les primitives numériques, les booléens, les chaînes, les fonctions, le contrôle, les pointeurs et \code{Print} ; il refuse les tableaux, classes, lambdas, \code{ForEach}, \code{MathCall}, conversions explicites, \code{char}, variables sans initialiseur et adresse d'une constante avec \code{TRANSPILE\_C\_UNSUPPORTED}. Les contrats restent propres au simulateur et au Run live.
+JavaScript et Python émettent les tableaux, références de fonction, lambdas, \code{ForEach} (copie), classes et opérations natives prises en charge. Les génériques ne créent pas de copie : une seule fonction ordinaire est émise, avec les types concrets inférés. Le C accepte les primitives numériques, les booléens, les chaînes, les fonctions, le contrôle, les pointeurs, les pointeurs de fonction nommés et \code{Print} ; il refuse les tableaux, classes, lambdas et fermetures, \code{ForEach}, \code{MathCall}, conversions explicites, \code{char}, variables sans initialiseur et adresse d'une constante avec \code{TRANSPILE\_C\_UNSUPPORTED}. Les contrats restent propres au simulateur et au Run live.
 
-Le registre \code{mathNatives.js} est le catalogue unique des opérations SP3 ; chaque backend fournit une table de correspondance par identifiant et refuse explicitement une opération absente. Une fonction ordinaire est émise une seule fois et les imports sont résolus vers le nom généré de la fonction exportée, sans inclusion ni import runtime.
+Le registre \code{mathNatives.js} est le catalogue unique des opérations SP3 ; chaque backend fournit une table de correspondance par identifiant et refuse explicitement une opération absente. Une fonction ordinaire est émise une seule fois et les imports sont résolus vers le nom généré de la fonction exportée, sans inclusion ni import runtime. En C, une référence de fonction nommée devient un pointeur typé par un \code{typedef} ; les paramètres, variables, retours et appels via une référence nommée sont émis, tandis qu'une lambda ou une fermeture reste refusée.
 
 \section*{8. Évolution sans couplage prématuré}
 La simulation, le débogage et la transpilation consomment déjà l'AST et les

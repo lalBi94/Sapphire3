@@ -27,7 +27,7 @@ Un programme complet exige exactement un point d'entrée sans paramètre. Un ape
 | `Print` | Oui | Oui | Oui, sauf pointeur |
 | Tableaux | Oui | Oui | Non |
 | Pointeurs `&` / `*` | Oui, par cellules | Oui, par cellules | Oui, pointeurs natifs |
-| Références de fonction | Oui | Oui | Non |
+| Références de fonction | Oui | Oui | Oui, fonctions nommées |
 | Lambdas et fermetures | Oui | Oui | Non |
 | `ForEach` | Oui | Oui | Non |
 | Classes, `new`, `this`, membres | Oui | Oui | Non |
@@ -55,7 +55,7 @@ Un module n'est pas émis comme un objet d'exécution : ses fonctions deviennent
 
 Une fonction ordinaire est émise une seule fois, avec ses paramètres concrets. Les génériques ne créent pas de copie : JavaScript/Python émettent la même fonction ordinaire et la simulation applique les types inférés. C refuse les types génériques.
 
-Les références de fonction sont des valeurs de première classe en JavaScript et Python. C ne les accepte pas : seuls les appels directs à une fonction nommée sont émis.
+Les références de fonction sont des valeurs de première classe en JavaScript et Python. C accepte les références de fonction **nommées** via des pointeurs de fonction typés (`typedef`), en paramètre, variable ou retour ; les lambdas et fermetures restent refusées.
 
 Le point d'entrée est appelé à la fin de l'initialisation globale, dans le `main` généré. Les méthodes de classe restent dans leur classe en JavaScript/Python ; C refuse les classes.
 
@@ -129,14 +129,15 @@ Cible active mais volontairement restreinte, fichier `.c` C11 unique. Les helper
 | Entiers | `sapphire_iadd/isub/imul/idiv/imod` et `sapphire_uadd/usub/umul/udiv/umod`, bornes et division par zéro |
 | Flottants | `sapphire_f32_add/sub/mul/div` et `sapphire_f64_add/sub/mul/div`, infinis, sous-flux et division par zéro |
 | Flottants imprimés | représentation décimale courte qui round-trip, notation fixe entre `1e-6` et `1e21` |
-| Pointeurs | `&variable`, `&paramètre`, `*p` ; adresse d'une constante refusée |
+| Pointeurs | `&variable`, `&paramètre`, `*p` ; adresse d’une constante refusée |
+| Références de fonction | pointeurs de fonction typés (`typedef`), paramètres, variables et retours |
 | Chaînes | `const char *` UTF-8, égalité par `strcmp` ; NUL et surrogates isolés refusés |
 | `Print` d'un pointeur | Refusé |
 | Globales | `static T nom;`, initialisées dans `main()` dans l'ordre topologique |
 | Point d'entrée | `Module_<entrée>()` appelé depuis le `main` C |
 | Contrats | Non émis |
 
-Refus explicites avec `TRANSPILE_C_UNSUPPORTED` : tableaux, classes, lambdas, références de fonction, `ForEach`, `MathCall`, conversions explicites, `char`, variables sans initialiseur et adresse d'une constante. Le backend vérifie ces limites avant d'émettre le fichier.
+Refus explicites avec `TRANSPILE_C_UNSUPPORTED` : tableaux, classes, lambdas et fermetures, `ForEach`, `MathCall`, conversions explicites, `char`, variables sans initialiseur et adresse d’une constante. Le backend vérifie ces limites avant d’émettre le fichier. Les pointeurs de fonction nommés sont acceptés ; `Print` d’un pointeur de fonction reste refusé.
 
 Limites connues du C : les globales non encore initialisées valent zéro avant leur affectation ; un pointeur vers une variable locale ne doit pas survivre à sa fonction ; les flottants de magnitude extrême peuvent différer du format JavaScript. C++ et Java restent indisponibles.
 
@@ -175,6 +176,6 @@ Les fonctions ordinaires suivent le même principe : le contexte commun réserve
 
 ## Vérifications
 
-La suite `pnpm test` couvre les trois backends. Les tests C compilent le fichier généré avec `cc -std=c11` et l'exécutent ; ils vérifient les primitives et `Print`, les fonctions et le contrôle, les pointeurs, le débordement contrôlé, les refus explicites et la sélection. Les exemples **Fibonacci**, **Recursion**, **Imports**, **Pointers** et **Calculus** produisent la même sortie que le simulateur en C. JavaScript et Python couvrent en plus les tableaux, les lambdas, `ForEach`, les classes et les opérations natives prises en charge.
+La suite `pnpm test` couvre les trois backends. Les tests C compilent le fichier généré avec `cc -std=c11` et l'exécutent ; ils vérifient les primitives et `Print`, les fonctions et le contrôle, les pointeurs, les pointeurs de fonction nommés, le débordement contrôlé, les refus explicites et la sélection. Les exemples **Fibonacci**, **Recursion**, **Imports**, **Pointers**, **Higher-order** et **Calculus** produisent la même sortie que le simulateur en C. JavaScript et Python couvrent en plus les tableaux, les lambdas, `ForEach`, les classes et les opérations natives prises en charge.
 
 `pnpm build` vérifie la compilation du frontend. La cible C n'est pas compilée par l'application elle-même : l'export produit un fichier `.c` que l'utilisateur compile avec son outil C.

@@ -111,7 +111,7 @@
               <tr><td><code>Print</code></td><td>Oui</td><td>Oui</td><td>Oui, sauf pointeur</td></tr>
               <tr><td>Tableaux</td><td>Oui</td><td>Oui</td><td>Non</td></tr>
               <tr><td>Pointeurs <code>&amp;</code> / <code>*</code></td><td>Oui, par cellules</td><td>Oui, par cellules</td><td>Oui, pointeurs natifs</td></tr>
-              <tr><td>Références de fonction</td><td>Oui</td><td>Oui</td><td>Non</td></tr>
+              <tr><td>Références de fonction</td><td>Oui</td><td>Oui</td><td>Oui, fonctions nommées</td></tr>
               <tr><td>Lambdas et fermetures</td><td>Oui</td><td>Oui</td><td>Non</td></tr>
               <tr><td><code>ForEach</code></td><td>Oui</td><td>Oui</td><td>Non</td></tr>
               <tr><td>Classes, <code>new</code>, <code>this</code>, membres</td><td>Oui</td><td>Oui</td><td>Non</td></tr>
@@ -203,16 +203,18 @@
               <tr><td>Flottants</td><td><code>sapphire_f32_*</code> et <code>sapphire_f64_*</code>&nbsp;: infinis, sous-flux et division par zéro</td></tr>
               <tr><td>Flottants imprimés</td><td>représentation décimale courte qui round-trip, notation fixe entre <code>1e-6</code> et <code>1e21</code></td></tr>
               <tr><td>Pointeurs</td><td><code>&amp;variable</code>, <code>&amp;paramètre</code>, <code>*p</code>&nbsp;; adresse d’une constante refusée</td></tr>
+              <tr><td>Références de fonction</td><td>pointeurs de fonction typés (<code>typedef</code>), paramètres, variables et retours</td></tr>
               <tr><td>Chaînes</td><td><code>const char *</code> UTF-8, égalité par <code>strcmp</code>&nbsp;; NUL et surrogates isolés refusés</td></tr>
               <tr><td>Globales</td><td><code>static T nom;</code>, initialisées dans <code>main()</code> dans l’ordre topologique</td></tr>
               <tr><td>Point d’entrée</td><td><code>Module_&lt;entrée&gt;()</code> appelé depuis le <code>main</code> C</td></tr>
             </tbody>
           </table>
           <p>
-            Refus explicites avec <code>TRANSPILE_C_UNSUPPORTED</code>&nbsp;: tableaux, classes, lambdas,
-            références de fonction, <code>ForEach</code>, <code>MathCall</code>, conversions explicites,
-            <code>char</code>, variables sans initialiseur et adresse d’une constante. Le backend vérifie ces
-            limites avant d’émettre le fichier.
+            Refus explicites avec <code>TRANSPILE_C_UNSUPPORTED</code>&nbsp;: tableaux, classes, lambdas et
+            fermetures, <code>ForEach</code>, <code>MathCall</code>, conversions explicites, <code>char</code>,
+            variables sans initialiseur et adresse d’une constante. Les pointeurs de fonction nommés sont acceptés&nbsp;;
+            <code>Print</code> d’un pointeur de fonction reste refusé. Le backend vérifie ces limites avant d’émettre
+            le fichier.
           </p>
           <div class="notes-soft">
             <p style="margin-bottom:6px"><b>Limites connues du C</b></p>
@@ -237,7 +239,8 @@
             Une fonction ordinaire est émise une seule fois, avec ses paramètres concrets. Les génériques ne créent
             pas de copie&nbsp;: JavaScript/Python émettent la même fonction ordinaire et la simulation applique les
             types inférés. C refuse les types génériques. Les références de fonction sont des valeurs de première
-            classe en JavaScript et Python&nbsp;; C ne les accepte pas.
+            classe en JavaScript et Python&nbsp;; C accepte les fonctions nommées via des pointeurs typés, mais refuse
+            les lambdas et fermetures.
           </p>
           <p>
             Le registre <code>src/utils/logic/mathNatives.js</code> est le catalogue unique des opérations natives
@@ -279,9 +282,9 @@
           </table>
           <p>
             La suite de tests compile et exécute les fichiers C générés avec <code>cc -std=c11</code>. Les exemples
-            Fibonacci, Recursion, Imports, Pointers et Calculus produisent la même sortie que le simulateur en C.
-            JavaScript et Python couvrent en plus les tableaux, les lambdas, <code>ForEach</code>, les classes et les
-            opérations natives prises en charge.
+            Fibonacci, Recursion, Imports, Pointers, Higher-order et Calculus produisent la même sortie que le
+            simulateur en C. JavaScript et Python couvrent en plus les tableaux, les lambdas, <code>ForEach</code>, les
+            classes et les opérations natives prises en charge.
           </p>
         </section>
       </div>

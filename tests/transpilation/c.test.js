@@ -7,6 +7,8 @@ import { join } from 'node:path'
 import { simulateProgram } from '../../src/utils/logic/index.js'
 import { transpileProgram, transpileSelection } from '../../src/utils/transpilation/index.js'
 import { workspaceTemplates } from '../../src/utils/workspaceTemplates.js'
+import { examples } from '../../src/utils/examples.js'
+import { deserializeWorkspace } from '../../src/utils/workspaceFile.js'
 import { booleanType, debugFixture, intType, node, program, root, stringType } from '../logic/fixtures.js'
 
 const compiler = process.env.CC || 'cc'
@@ -15,6 +17,7 @@ const shortIntType = { kind: 'primitive', name: 'short int' }
 const uintType = { kind: 'primitive', name: 'uint' }
 const floatType = { kind: 'primitive', name: 'float' }
 const doubleType = { kind: 'primitive', name: 'double' }
+const intFunctionType = { kind: 'function', parameters: [intType], returnType: intType }
 
 // Compile puis exécute le fichier C généré, avec un délai borné.
 function runC(code) {
@@ -114,6 +117,59 @@ test('C : pointeurs et écriture à travers un déréférencement', () => {
   node(source, 'm', 'two', 'Literal', { type: intType, value: 2 })
   node(source, 'm', 'print', 'PrintStatement', {}, { value: 'xRead' })
   node(source, 'm', 'xRead', 'Reference', {}, {}, { target: { kind: 'node', nodeId: 'x' } })
+  compareExecution(source)
+})
+
+test('C : pointeurs de fonction nommés avec l’exemple Higher-order', () => {
+  const workspace = deserializeWorkspace(JSON.stringify(examples.find((example) => example.id === 'higherOrder').build()))
+  compareExecution(workspace.project)
+})
+
+test('C : variable de type fonction et retour de pointeur de fonction', () => {
+  const source = entryProject()
+  source.nodes.find((entry) => entry.id === 'body').children.statements = ['fDecl', 'printOne', 'f2Decl', 'printTwo', 'printThree']
+  root(source, 'm', 'double', 'FunctionDeclaration', { name: 'double', type: intType }, { parameters: ['doubleParam'], body: 'doubleBody' })
+  node(source, 'm', 'doubleParam', 'Parameter', { name: 'value', type: intType })
+  node(source, 'm', 'doubleBody', 'Block', {}, { statements: ['doubleReturn'] })
+  node(source, 'm', 'doubleReturn', 'ReturnStatement', {}, { argument: 'doubleProduct' })
+  node(source, 'm', 'doubleProduct', 'BinaryExpression', { operator: '*' }, { left: 'doubleValue', right: 'two' })
+  node(source, 'm', 'doubleValue', 'Reference', {}, {}, { target: { kind: 'name', name: 'value' } })
+  node(source, 'm', 'two', 'Literal', { type: intType, value: 2 })
+
+  root(source, 'm', 'apply', 'FunctionDeclaration', { name: 'apply', type: intType }, { parameters: ['applyParam', 'applyTransform'], body: 'applyBody' })
+  node(source, 'm', 'applyParam', 'Parameter', { name: 'value', type: intType })
+  node(source, 'm', 'applyTransform', 'Parameter', { name: 'transform', type: intFunctionType })
+  node(source, 'm', 'applyBody', 'Block', {}, { statements: ['applyReturn'] })
+  node(source, 'm', 'applyReturn', 'ReturnStatement', {}, { argument: 'applyCall' })
+  node(source, 'm', 'applyCall', 'CallExpression', {}, { callee: 'applyTransformRef', arguments: ['applyValueRef'] })
+  node(source, 'm', 'applyTransformRef', 'Reference', {}, {}, { target: { kind: 'name', name: 'transform' } })
+  node(source, 'm', 'applyValueRef', 'Reference', {}, {}, { target: { kind: 'name', name: 'value' } })
+
+  root(source, 'm', 'choose', 'FunctionDeclaration', { name: 'choose', type: intFunctionType }, { parameters: [], body: 'chooseBody' })
+  node(source, 'm', 'chooseBody', 'Block', {}, { statements: ['chooseReturn'] })
+  node(source, 'm', 'chooseReturn', 'ReturnStatement', {}, { argument: 'chooseDoubleRef' })
+  node(source, 'm', 'chooseDoubleRef', 'Reference', {}, {}, { target: { kind: 'name', name: 'double' } })
+
+  node(source, 'm', 'fDecl', 'VariableDeclaration', { name: 'f', type: intFunctionType }, { initializer: 'doubleRef' })
+  node(source, 'm', 'doubleRef', 'Reference', {}, {}, { target: { kind: 'name', name: 'double' } })
+  node(source, 'm', 'printOne', 'PrintStatement', {}, { value: 'applyCallOne' })
+  node(source, 'm', 'applyCallOne', 'CallExpression', {}, { callee: 'applyRefOne', arguments: ['twentyOne', 'fRef'] })
+  node(source, 'm', 'applyRefOne', 'Reference', {}, {}, { target: { kind: 'name', name: 'apply' } })
+  node(source, 'm', 'twentyOne', 'Literal', { type: intType, value: 21 })
+  node(source, 'm', 'fRef', 'Reference', {}, {}, { target: { kind: 'name', name: 'f' } })
+  node(source, 'm', 'f2Decl', 'VariableDeclaration', { name: 'f2', type: intFunctionType }, { initializer: 'chooseCall' })
+  node(source, 'm', 'chooseCall', 'CallExpression', {}, { callee: 'chooseRef', arguments: [] })
+  node(source, 'm', 'chooseRef', 'Reference', {}, {}, { target: { kind: 'name', name: 'choose' } })
+  node(source, 'm', 'printTwo', 'PrintStatement', {}, { value: 'applyCallTwo' })
+  node(source, 'm', 'applyCallTwo', 'CallExpression', {}, { callee: 'applyRefTwo', arguments: ['twentyOneTwo', 'f2Ref'] })
+  node(source, 'm', 'applyRefTwo', 'Reference', {}, {}, { target: { kind: 'name', name: 'apply' } })
+  node(source, 'm', 'twentyOneTwo', 'Literal', { type: intType, value: 21 })
+  node(source, 'm', 'f2Ref', 'Reference', {}, {}, { target: { kind: 'name', name: 'f2' } })
+  node(source, 'm', 'printThree', 'PrintStatement', {}, { value: 'chooseImmediate' })
+  node(source, 'm', 'chooseImmediate', 'CallExpression', {}, { callee: 'chooseImmediateCall', arguments: ['twentyOneThree'] })
+  node(source, 'm', 'chooseImmediateCall', 'CallExpression', {}, { callee: 'chooseImmediateRef', arguments: [] })
+  node(source, 'm', 'chooseImmediateRef', 'Reference', {}, {}, { target: { kind: 'name', name: 'choose' } })
+  node(source, 'm', 'twentyOneThree', 'Literal', { type: intType, value: 21 })
   compareExecution(source)
 })
 

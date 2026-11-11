@@ -52,10 +52,15 @@ function cType(type) {
 }
 
 // Vérifie qu'un type peut apparaître dans une déclaration, un paramètre ou un retour C.
-function isSupportedCType(type) {
-  if (!type) return false
+function isSupportedCType(type, depth = 0) {
+  if (!type || depth > 20) return false
   if (type.kind === 'primitive') return supportedPrimitives.has(type.name)
   if (type.kind === 'pointer') return type.pointee?.kind === 'primitive' && supportedPrimitives.has(type.pointee.name)
+  if (type.kind === 'function') {
+    return Array.isArray(type.parameters) &&
+      type.parameters.every((parameter) => !isVoid(parameter) && isSupportedCType(parameter, depth + 1)) &&
+      (isVoid(type.returnType) || isSupportedCType(type.returnType, depth + 1))
+  }
   return false
 }
 
@@ -138,7 +143,10 @@ function cSupportDiagnostics(analysis, selection) {
       const valueType = typeByNode.get(child(node, 'value')?.sourceId)
       if (!isPrintableCType(valueType)) report('ce type dans Print', node)
     }
-    if (node.kind === 'CallExpression' && child(node, 'callee')?.kind !== 'Reference') report('les appels indirects', node)
+    if (node.kind === 'CallExpression') {
+      const callee = child(node, 'callee')
+      if (callee?.kind !== 'Reference' && typeByNode.get(callee?.sourceId)?.kind !== 'function') report('les appels indirects', node)
+    }
     if (node.kind === 'UnaryExpression' && node.properties?.operator === '&') {
       const operand = child(node, 'operand')
       if (operand?.kind === 'Reference' && referenceSymbols.get(operand.sourceId)?.kind === 'ConstantDeclaration') report('l’adresse d’une constante', node)
@@ -357,7 +365,42 @@ export function generateC(analysis, { selection = null } = {}) {
   const support = cSupportDiagnostics(analysis, selection)
   if (support.length) return { ok: false, code: '', diagnostics: support }
   const context = createGenerationContext(analysis, { selection, reservedWords, runtimeNames })
-  const { ast, nodes, diagnostics, typeByNode, generatedNames, reserveDeclaration, referenceName, entryName } = context
+  const { ast, nodes, diagnostics, typeByNode, generatedNames, reserveDeclaration, reserveSyntheticName, referenceName, entryName } = context
+  const functionTypedefs = new Map()
+  const resolvingTypedefs = new Set()
+  let functionTypedefCounter = 0
+
+  function typeKey(type) {
+    if (!type) return 'null'
+    if (type.kind === 'primitive') return `p:${type.name}`
+    if (type.kind === 'pointer') return `ptr:${typeKey(type.pointee)}`
+    if (type.kind === 'function') return `fn:${type.parameters.map(typeKey).join(',')}->${typeKey(type.returnType)}`
+    return `${type.kind}:${type.name ?? type.classId ?? ''}`
+  }
+
+  // Émet un typedef pour une signature de fonction C et retourne son nom.
+  function functionTypedef(type) {
+    const key = typeKey(type)
+    const existing = functionTypedefs.get(key)
+    if (existing) return existing.name
+    if (resolvingTypedefs.has(key)) return 'sapphire_fn_invalid'
+    resolvingTypedefs.add(key)
+    const returnType = codeType(type.returnType)
+    const parameters = type.parameters.map(codeType)
+    if (!returnType || parameters.some((parameter) => !parameter)) {
+      resolvingTypedefs.delete(key)
+      return 'sapphire_fn_invalid'
+    }
+    const name = reserveSyntheticName(`sapphire_fn_${functionTypedefCounter++}`)
+    functionTypedefs.set(key, { name, returnType, parameters })
+    resolvingTypedefs.delete(key)
+    return name
+  }
+
+  function codeType(type) {
+    if (type?.kind === 'function') return functionTypedef(type)
+    return cType(type)
+  }
 
   function typeOf(node) {
     return typeByNode.get(node?.sourceId) ?? node?.properties?.type ?? null
@@ -457,7 +500,7 @@ export function generateC(analysis, { selection = null } = {}) {
   }
 
   function declaration(node, indent, inline = false) {
-    const type = cType(typeOf(node))
+    const type = codeType(typeOf(node))
     const name = reserveDeclaration(node)
     const initializer = child(node, 'initializer')
     if (!type || !initializer) {
@@ -540,9 +583,9 @@ export function generateC(analysis, { selection = null } = {}) {
   }
 
   function signature(node) {
-    const returnType = cType(typeOf(node)?.kind === 'function' ? typeOf(node).returnType : node.properties?.type)
+    const returnType = codeType(typeOf(node)?.kind === 'function' ? typeOf(node).returnType : node.properties?.type)
     const name = generatedNames.get(node.sourceId) ?? reserveDeclaration(node)
-    const parameters = (node.children.parameters ?? []).map((parameter) => `${cType(typeOf(parameter))} ${reserveDeclaration(parameter)}`)
+    const parameters = (node.children.parameters ?? []).map((parameter) => `${codeType(typeOf(parameter))} ${reserveDeclaration(parameter)}`)
     return `static ${returnType} ${name}(${parameters.length ? parameters.join(', ') : 'void'})`
   }
 
@@ -569,7 +612,7 @@ export function generateC(analysis, { selection = null } = {}) {
         prototypes.push(`${signature(node)};`)
         functions.push(functionCode(node))
       } else if (node.kind === 'VariableDeclaration' || node.kind === 'ConstantDeclaration') {
-        const type = cType(typeOf(node))
+        const type = codeType(typeOf(node))
         const name = reserveDeclaration(node)
         globalDeclarations.push(`static ${type} ${name};`)
         globalInitializers.push(`  ${name} = ${expression(child(node, 'initializer'))};`)
@@ -580,6 +623,7 @@ export function generateC(analysis, { selection = null } = {}) {
     }
   }
 
+  const typedefs = [...functionTypedefs.values()].map(({ name, returnType, parameters }) => `typedef ${returnType} (*${name})(${parameters.length ? parameters.join(', ') : 'void'});`)
   const code = [
     '// Generated by Sapphire 3. Do not edit this file.',
     '#include <stdint.h>',
@@ -591,6 +635,7 @@ export function generateC(analysis, { selection = null } = {}) {
     '#include <math.h>',
     '',
     cRuntime(),
+    ...typedefs,
     ...globalDeclarations,
     '',
     ...prototypes,
