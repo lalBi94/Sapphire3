@@ -499,7 +499,7 @@ export default function Canvas() {
     document.setExpandedNodes(moduleId, [...expanded])
     // Le résultat recherché doit être visible même si sa carte montrait son aperçu graphique.
     if (!moduleCardTypes.includes(card.type) && logicalCardTypes.includes(card.type)) {
-      document.updateGeometry(moduleId, { [`${card.type}View`]: 'code' })
+      document.updateCardView(moduleId, { [`${card.type}View`]: 'code' })
     }
     handleSelect({ kind: 'node', id: nodeId })
     // Une recherche doit révéler les instructions même si la vue était sémantiquement repliée.
@@ -1390,6 +1390,7 @@ export default function Canvas() {
       if (card && !card.locked) origins.set(id, { x: card.x, y: card.y, width: card.width, height: card.height })
     }
     groupMoveRef.current = origins.size > 0 ? { id: moduleId, origins } : null
+    if (origins.size > 0) document.beginHistoryGesture()
     updateAlignmentGuides({ vertical: [], horizontal: [] })
   }
 
@@ -1421,13 +1422,17 @@ export default function Canvas() {
       dy += snapped.y - moving.y
       guides = snapped.guides
     }
+    const keyboardGesture = !groupOrigins
+    if (keyboardGesture) document.beginHistoryGesture()
     for (const [id, start] of group) document.updateGeometry(id, { x: start.x + dx, y: start.y + dy })
+    if (keyboardGesture) document.endHistoryGesture()
     updateAlignmentGuides(guides)
   }
 
   // Termine le geste groupé ; le prochain clic repart des positions courantes.
   function handleModuleMoveEnd() {
     groupMoveRef.current = null
+    document.endHistoryGesture()
     updateAlignmentGuides({ vertical: [], horizontal: [] })
   }
 
@@ -1467,7 +1472,9 @@ export default function Canvas() {
   // Rouvre d'un coup toutes les cartes rangées hors du canvas.
   function handleShowAllHidden() {
     if (hiddenCards.length === 0) return
+    document.beginHistoryGesture()
     for (const card of hiddenCards) document.setCardHidden(card.id, false)
+    document.endHistoryGesture()
     notify({ type: 'hidden_cards_restored', message: t('notification.cardsRestored', { count: hiddenCards.length }), duration: 4000 })
   }
 
@@ -1543,34 +1550,34 @@ export default function Canvas() {
         onOpenActions={(event) => handleOpenActions(event, { kind: logicalCardTypes.includes(card.type) ? 'module' : card.type, id: card.id })}
         selected={selectedIds.has(card.id)}
         onSelect={(event) => handleSelect(logicalCardTypes.includes(card.type) ? { kind: 'module', id: card.id } : null, { additive: event.ctrlKey || event.metaKey || event.shiftKey })}
-        onResize={(id, width, height) => document.updateGeometry(id, { width, height })}
+        onResize={(id, width, height, options) => document.updateGeometry(id, { width, height }, options)} onResizeStart={() => document.beginHistoryGesture()} onResizeEnd={() => document.endHistoryGesture()}
         onMove={handleModuleMove} onMoveStart={handleModuleMoveStart} onMoveEnd={handleModuleMoveEnd}
-        onScreenViewChange={(id, screenView) => document.updateGeometry(id, { screenView })}
+        onScreenViewChange={(id, screenView) => document.updateCardView(id, { screenView })}
         onScreenSequenceEnd={handleScreenSequenceEnd}
-        onGaugeViewChange={(id, gaugeView) => document.updateGeometry(id, { gaugeView })}
-        onProgressViewChange={(id, progressView) => document.updateGeometry(id, { progressView })}
-        onBarChartViewChange={(id, barChartView) => document.updateGeometry(id, { barChartView })}
-        onXyPlotViewChange={(id, xyPlotView) => document.updateGeometry(id, { xyPlotView })}
-        onOscilloscopeViewChange={(id, oscilloscopeView) => document.updateGeometry(id, { oscilloscopeView })}
-        onHeatmapViewChange={(id, heatmapView) => document.updateGeometry(id, { heatmapView })}
+        onGaugeViewChange={(id, gaugeView) => document.updateCardView(id, { gaugeView })}
+        onProgressViewChange={(id, progressView) => document.updateCardView(id, { progressView })}
+        onBarChartViewChange={(id, barChartView) => document.updateCardView(id, { barChartView })}
+        onXyPlotViewChange={(id, xyPlotView) => document.updateCardView(id, { xyPlotView })}
+        onOscilloscopeViewChange={(id, oscilloscopeView) => document.updateCardView(id, { oscilloscopeView })}
+        onHeatmapViewChange={(id, heatmapView) => document.updateCardView(id, { heatmapView })}
         heatmapDimensions={document.index.modules.get(card.id)?.heatmap}
         heatmapState={heatmapStates[card.id] ?? null}
-        onLedViewChange={(id, ledView) => document.updateGeometry(id, { ledView })}
-        onRgbLedViewChange={(id, rgbLedView) => document.updateGeometry(id, { rgbLedView })}
-        onInputButtonViewChange={(id, inputButtonView) => document.updateGeometry(id, { inputButtonView })}
+        onLedViewChange={(id, ledView) => document.updateCardView(id, { ledView })}
+        onRgbLedViewChange={(id, rgbLedView) => document.updateCardView(id, { rgbLedView })}
+        onInputButtonViewChange={(id, inputButtonView) => document.updateCardView(id, { inputButtonView })}
         onInputChange={handleInputChange}
         onInputTrigger={handleInputTrigger}
         inputButtonCallbacks={inputButtonCallbacks}
         inputButtonCallbackId={inputButtonBindings.get(card.id) ?? null}
         inputButtonCallbackSupported={inputButtonCallbackSupport.get(card.id) !== false}
         onBindInputClick={(id, functionId) => document.bindInputButton(id, functionId)}
-        onInputValueViewChange={(id, inputNumberView) => document.updateGeometry(id, { inputNumberView })}
+        onInputValueViewChange={(id, inputNumberView) => document.updateCardView(id, { inputNumberView })}
         onInputValueChange={handleInputValueChange}
         onInputValueTrigger={handleInputValueTrigger}
         inputValueCallbacks={inputValueCallbacks}
         inputValueCallbackId={inputValueBindings.get(card.id) ?? null}
         onBindInputValue={(id, functionId) => document.bindInputValue(id, functionId)}
-        onColorPickerViewChange={(id, colorPickerView) => document.updateGeometry(id, { colorPickerView })}
+        onColorPickerViewChange={(id, colorPickerView) => document.updateCardView(id, { colorPickerView })}
         onColorPickerChange={handleColorPickerChange}
         onColorPickerTrigger={handleColorPickerTrigger}
         colorPickerCallbacks={colorPickerCallbacks}
@@ -1601,7 +1608,7 @@ export default function Canvas() {
         rgbLedFrames={screenPlayback ? simulationResult.screenFrameRgbLeds ?? null : null}
         rgbLedPlaying={screenPlayback && Boolean(execution?.running)}
         readOnly={presentationMode}
-        onRename={document.renameCard} onTextChange={document.updateComment} onImageChange={document.updateImage} onEmojiChange={document.setCardEmoji}
+        onRename={document.renameCard} onTextChange={document.updateComment} onImageChange={document.updateImage} onEmojiChange={document.setCardEmoji} onAnnotationStart={() => document.beginHistoryGesture()} onAnnotationEnd={() => document.endHistoryGesture()}
         onToggleLock={handleToggleLock}
         pure={moduleCardTypes.includes(card.type) && pureIds.modules.has(card.id)}
         pulse={activeModuleId === card.id && executionStep !== null ? executionStep + 1 : null}

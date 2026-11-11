@@ -135,7 +135,7 @@ function ModuleEmoji({ emoji, onChange }) {
 }
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onImageFile, onEmojiChange, imageSource = null, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, progressState = null, progressFrames = null, progressPlaying = false, onProgressViewChange, barChartState = null, barChartFrames = null, barChartPlaying = false, onBarChartViewChange, xyPlotState = null, xyPlotFrames = null, xyPlotPlaying = false, onXyPlotViewChange, oscilloscopeState = null, oscilloscopeFrames = null, oscilloscopePlaying = false, onOscilloscopeViewChange, heatmapState = null, heatmapDimensions, onHeatmapViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, rgbLedState = null, rgbLedFrames = null, rgbLedPlaying = false, onRgbLedViewChange, onInputButtonViewChange, onInputChange, inputButtonCallbacks = [], inputButtonCallbackId = null, inputButtonCallbackSupported = true, onBindInputClick, onInputTrigger, onInputValueViewChange, onInputValueChange, onInputValueTrigger, inputValueCallbacks = [], inputValueCallbackId = null, onBindInputValue, onColorPickerViewChange, onColorPickerChange, onColorPickerTrigger, colorPickerCallbacks = [], colorPickerCallbackId = null, onBindColorPicker, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onResizeStart, onResizeEnd, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onImageFile, onEmojiChange, onAnnotationStart, onAnnotationEnd, imageSource = null, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, progressState = null, progressFrames = null, progressPlaying = false, onProgressViewChange, barChartState = null, barChartFrames = null, barChartPlaying = false, onBarChartViewChange, xyPlotState = null, xyPlotFrames = null, xyPlotPlaying = false, onXyPlotViewChange, oscilloscopeState = null, oscilloscopeFrames = null, oscilloscopePlaying = false, onOscilloscopeViewChange, heatmapState = null, heatmapDimensions, onHeatmapViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, rgbLedState = null, rgbLedFrames = null, rgbLedPlaying = false, onRgbLedViewChange, onInputButtonViewChange, onInputChange, inputButtonCallbacks = [], inputButtonCallbackId = null, inputButtonCallbackSupported = true, onBindInputClick, onInputTrigger, onInputValueViewChange, onInputValueChange, onInputValueTrigger, inputValueCallbacks = [], inputValueCallbackId = null, onBindInputValue, onColorPickerViewChange, onColorPickerChange, onColorPickerTrigger, colorPickerCallbacks = [], colorPickerCallbackId = null, onBindColorPicker, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -167,11 +167,11 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
     const content = contentRef.current
     const width = Math.max(module.width, 520, Math.ceil(content.scrollWidth + 2))
     if (width > module.width) {
-      onResize(module.id, width, module.height)
+      onResize(module.id, width, module.height, { history: false })
       return
     }
     const height = Math.max(module.height, Math.ceil(content.scrollHeight + 42))
-    if (height > module.height) onResize(module.id, width, height)
+    if (height > module.height) onResize(module.id, width, height, { history: false })
   }, [fitRequest, semanticLevel, children, module.id, module.width, module.height, onResize])
 
   const definition = moduleTypes[module.type]
@@ -280,7 +280,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
     const contentHeight = module.width / ratio
     const height = Math.max(minimumModuleSize.height, Math.ceil(contentHeight + 40))
     if (!Number.isFinite(height) || Math.abs(module.height - height) < 1) return
-    onResize(module.id, module.width, height)
+    onResize(module.id, module.width, height, { history: false })
   }
 
   // Capture l'en-tête et mémorise la position ainsi que le zoom au début du geste.
@@ -344,6 +344,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
       height: module.height,
       zoom,
     }
+    onResizeStart?.()
   }
 
   // Convertit le déplacement écran en dimensions du monde, avec un minimum lisible.
@@ -363,6 +364,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId)
     }
+    onResizeEnd?.()
   }
 
   // Rend les dimensions ajustables au clavier depuis la poignée.
@@ -703,7 +705,8 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
             placeholder={t('canvas.notePlaceholder')}
             value={module.text ?? ''}
             onChange={(event) => onTextChange(module.id, event.target.value)}
-            onBlur={() => setEditingComment(false)}
+            onFocus={() => onAnnotationStart?.()}
+            onBlur={() => { onAnnotationEnd?.(); setEditingComment(false) }}
             spellCheck={false}
             autoFocus
           />
@@ -745,7 +748,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onMove, o
           </span>
           <label className="canvas-module__caption">
             <span className="canvas-module__caption-label">{t('canvas.imageCaption')}</span>
-            <textarea aria-label={t('canvas.imageCaption')} value={module.caption ?? ''} placeholder={t('canvas.imageCaptionPlaceholder')} onChange={(event) => onImageChange(module.id, { caption: event.target.value })} />
+            <textarea aria-label={t('canvas.imageCaption')} value={module.caption ?? ''} placeholder={t('canvas.imageCaptionPlaceholder')} onChange={(event) => onImageChange(module.id, { caption: event.target.value })} onFocus={() => onAnnotationStart?.()} onBlur={() => onAnnotationEnd?.()} />
           </label>
           <input ref={imageInputRef} className="canvas-module__image-input" type="file" accept="image/*" onChange={handleImageChange} />
         </div>

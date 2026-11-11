@@ -2,6 +2,12 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Undo/redo des gestes et annotations — 11 novembre 2026
+
+- L'historique accepte désormais les modifications de présentation : déplacements et redimensionnements, textes de Comment et légendes d'Image, masquage, verrouillage, emoji et disposition automatique. Les gestes continus utilisent un point de contrôle (`historyStart`/`historyEnd`) : un déplacement ou redimensionnement groupé crée une seule étape, une saisie d'annotation une seule étape par session de champ. Un geste sans changement ne crée aucune étape.
+- Les bascules de vue, le pliage, les valeurs runtime des entrées et color pickers restent hors historique. `updateCardView` dispatche une géométrie non enregistrée, et les actions de présentation runtime n'ont pas le drapeau `history`. Le redimensionnement automatique d'une image ou du contenu ne crée pas d'étape.
+- Vérifications : **655 tests Node/Python réussis**, dont sept tests dédiés à l'historique (geste groupé, geste vide, texte groupé, présentation annulable, vues hors historique, disposition/suppression, undo pendant un geste). Build Vite réussi ; dans le navigateur, un déplacement et un redimensionnement clavier sont annulés par Ctrl+Z, et une saisie de Comment revient au texte précédent puis à la suppression de la carte. Limite : les réglages d'exercice et de dashboard restent hors de cette étape.
+
 ## Presse-papiers système et modules entiers — 11 novembre 2026
 
 - Ajout de **Ctrl+X** et extension de **Ctrl+C/Ctrl+V** aux modules logiques entiers. La capture est sérialisée dans un payload JSON marqué `sapphire3-clipboard` et écrite dans le presse-papiers système ; une copie locale reste disponible pour le collage immédiat. En desktop, la lecture/écriture passe par l'API native Neutralinojs `clipboard.readText`/`writeText` (cœur C++), ajoutée à `nativeAllowList` ; `navigator.clipboard` ne sert qu'au mode web de développement.

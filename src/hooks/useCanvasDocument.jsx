@@ -26,7 +26,7 @@ function uniqueModuleName(names, base) {
 
 // Expose les éditions de document ; sélection et navigation restent dans les composants UI.
 export default function useCanvasDocument() {
-  const [history, dispatch] = useReducer(reduceHistory, undefined, () => ({ past: [], present: initialDocument(), future: [] }))
+  const [history, dispatch] = useReducer(reduceHistory, undefined, () => ({ past: [], present: initialDocument(), future: [], checkpoint: null }))
   const document = history.present
 
   // Produit l'identifiant une seule fois dans le handler, jamais dans un rendu ou un reducer.
@@ -137,8 +137,23 @@ export default function useCanvasDocument() {
   }
 
   // Modifie la présentation sans réanalyser le programme.
-  function updateGeometry(id, patch) {
-    dispatch({ type: 'geometry', id, patch })
+  function updateGeometry(id, patch, options = {}) {
+    dispatch({ type: 'geometry', id, patch, history: options.history !== false })
+  }
+
+  // Bascule une vue de carte sans créer d'étape undo : c'est une action de navigation.
+  function updateCardView(id, patch) {
+    dispatch({ type: 'geometry', id, patch, history: false })
+  }
+
+  // Démarre un geste continu (déplacement, redimensionnement, saisie d'annotation).
+  function beginHistoryGesture() {
+    dispatch({ type: 'historyStart' })
+  }
+
+  // Termine le geste courant et crée une seule étape s'il a modifié le document.
+  function endHistoryGesture() {
+    dispatch({ type: 'historyEnd' })
   }
 
   // Met à jour l'état visuel d'un bouton d'entrée sans toucher à la source logique.
@@ -388,17 +403,17 @@ export default function useCanvasDocument() {
 
   // Masque ou réaffiche une carte : portée purement visuelle, la source et l'historique restent intacts.
   function setCardHidden(id, hidden) {
-    dispatch({ type: 'presentation', id, patch: { hidden } })
+    dispatch({ type: 'presentation', id, patch: { hidden }, history: true })
   }
 
   // Verrouille ou déverrouille une carte : empêche son déplacement et son redimensionnement, sans toucher à la source.
   function setCardLocked(id, locked) {
-    dispatch({ type: 'presentation', id, patch: { locked } })
+    dispatch({ type: 'presentation', id, patch: { locked }, history: true })
   }
 
   // Pose ou retire l'emoji de présentation d'une carte, sans toucher à la source logique.
   function setCardEmoji(id, emoji) {
-    dispatch({ type: 'presentation', id, patch: { emoji } })
+    dispatch({ type: 'presentation', id, patch: { emoji }, history: true })
   }
 
   // Met à jour le manifeste d'exercice sans créer d'étape undo ni réanalyser le programme.
@@ -432,5 +447,5 @@ export default function useCanvasDocument() {
     dispatch({ type: 'redo' })
   }
 
-  return { ...document, createCard, updateGeometry, updateInputButton, updateInputValue, bindInputButton, bindInputValue, updateColorPicker, bindColorPicker, arrangeModules, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, pasteModule, moveNode, moveNodes, duplicateNode, duplicateSelection, deleteNode, deleteModule, deleteSelection, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, previewSymbolRename, applySymbolRename, setExpandedNodes, setCardHidden, setCardLocked, setCardEmoji, setExercise, setDashboard, restoreStarter, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0, canRedo: history.future.length > 0 }
+  return { ...document, createCard, updateGeometry, updateCardView, beginHistoryGesture, endHistoryGesture, updateInputButton, updateInputValue, bindInputButton, bindInputValue, updateColorPicker, bindColorPicker, arrangeModules, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, pasteModule, moveNode, moveNodes, duplicateNode, duplicateSelection, deleteNode, deleteModule, deleteSelection, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, previewSymbolRename, applySymbolRename, setExpandedNodes, setCardHidden, setCardLocked, setCardEmoji, setExercise, setDashboard, restoreStarter, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0 || Boolean(history.checkpoint && history.checkpoint.present !== history.present), canRedo: history.future.length > 0 }
 }

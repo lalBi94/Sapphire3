@@ -44,15 +44,15 @@ test('undo/redo : révisions monotones pour réinitialiser les interactions rest
   assert.equal(history.present.project.modules[0].name, 'Renamed')
 })
 
-test('une édition de présentation après undo invalide redo sans multiplier les étapes de glisser', () => {
+test('une édition de présentation après undo invalide redo ; gestes et textes créent une étape', () => {
   for (const type of ['geometry', 'text', 'presentation']) {
-    let history = { past: [], present: initialDocument(), future: [] }
+    let history = { past: [], present: initialDocument(), future: [], checkpoint: null }
     history = reduceHistory(history, { type: 'createCard', card: card('m') })
     history = reduceHistory(history, { type: 'rename', id: 'm', name: 'Renamed' })
     history = reduceHistory(history, { type: 'undo' })
     history = reduceHistory(history, { type, id: 'm', patch: { x: 12 } })
     assert.equal(history.future.length, 0)
-    assert.equal(history.past.length, 1)
+    assert.equal(history.past.length, type === 'presentation' ? 1 : 2)
     assert.equal(history.present.cards[0].x, 12)
   }
 })
@@ -186,7 +186,7 @@ test('nouveau document : un workspace vierge remplace le document par un état v
   assert.equal(filled.past.length, 0, 'le nouveau document repart sans historique')
 })
 
-test('verrouillage de carte : drapeau de présentation, sans étape d’historique et écrit seulement quand il est vrai', () => {
+test('verrouillage de carte : drapeau de présentation, étape d’historique et écrit seulement quand il est vrai', () => {
   const camera = { x: 0, y: 0, zoomLevel: 0 }
   const document = reduceDocument(initialDocument(), { type: 'createCard', card: card('module') })
   const written = (value) => JSON.parse(serializeWorkspace(document.project, value === undefined ? [card('module')] : [{ ...card('module'), locked: value }], camera))
@@ -197,9 +197,11 @@ test('verrouillage de carte : drapeau de présentation, sans étape d’historiq
   const invalid = written(true)
   invalid.presentation.cards[0].locked = 'yes'
   assert.throws(() => deserializeWorkspace(JSON.stringify(invalid)), { message: 'Invalid card lock.' })
-  const history = reduceHistory({ past: [], present: document, future: [] }, { type: 'presentation', id: 'module', patch: { locked: true } })
+  let history = reduceHistory({ past: [], present: document, future: [], checkpoint: null }, { type: 'presentation', id: 'module', patch: { locked: true }, history: true })
   assert.equal(history.present.cards[0].locked, true)
-  assert.equal(history.past.length, 0, 'le verrou est une présentation, pas une étape d’historique')
+  assert.equal(history.past.length, 1, 'le verrou est une présentation annulable')
+  history = reduceHistory(history, { type: 'undo' })
+  assert.equal(history.present.cards[0].locked, undefined)
 })
 
 test('favori inséré : nouveau module, une seule étape undo/redo, source rejouable', () => {

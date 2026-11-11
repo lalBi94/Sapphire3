@@ -223,27 +223,51 @@ export function reduceDocument(state, action) {
   return state
 }
 
+// Indique si une action mérite une nouvelle étape d'historique.
+function recordsHistory(action) {
+  if (action.history === true) return true
+  if (action.history === false) return false
+  if (['geometry', 'text', 'layout'].includes(action.type)) return true
+  if (['presentation', 'exercise', 'dashboard'].includes(action.type)) return false
+  return true
+}
+
+// Termine un geste en cours : une étape seulement si le document a réellement changé.
+function finalizeHistoryCheckpoint(state) {
+  if (!state.checkpoint) return state
+  if (state.checkpoint.present === state.present) return { ...state, checkpoint: null }
+  return { past: [...state.past, state.checkpoint.present], present: state.present, future: [], checkpoint: null }
+}
+
 // Invalide la branche redo dès une édition et remet les interactions à neuf après restauration.
 export function reduceHistory(state, action) {
   if (action.type === 'replaceWorkspace') {
-    return { past: [], present: reduceDocument(state.present, action), future: [] }
+    return { past: [], present: reduceDocument(state.present, action), future: [], checkpoint: null }
   }
   if (action.type === 'restoreStarter') {
-    return { past: [], present: reduceDocument(state.present, action), future: [] }
+    return { past: [], present: reduceDocument(state.present, action), future: [], checkpoint: null }
   }
+  if (action.type === 'historyStart') {
+    const next = finalizeHistoryCheckpoint(state)
+    return { ...next, checkpoint: { present: next.present } }
+  }
+  if (action.type === 'historyEnd') return finalizeHistoryCheckpoint(state)
   if (action.type === 'undo') {
-    if (state.past.length === 0) return state
-    const previous = state.past[state.past.length - 1]
-    return { past: state.past.slice(0, -1), present: { ...previous, revision: state.present.revision + 1 }, future: [state.present, ...state.future] }
+    const next = finalizeHistoryCheckpoint(state)
+    if (next.past.length === 0) return next
+    const previous = next.past[next.past.length - 1]
+    return { past: next.past.slice(0, -1), present: { ...previous, revision: next.present.revision + 1 }, future: [next.present, ...next.future], checkpoint: null }
   }
   if (action.type === 'redo') {
-    if (state.future.length === 0) return state
-    const next = state.future[0]
-    return { past: [...state.past, state.present], present: { ...next, revision: state.present.revision + 1 }, future: state.future.slice(1) }
+    const next = finalizeHistoryCheckpoint(state)
+    if (next.future.length === 0) return next
+    const following = next.future[0]
+    return { past: [...next.past, next.present], present: { ...following, revision: next.present.revision + 1 }, future: next.future.slice(1), checkpoint: null }
   }
   const next = reduceDocument(state.present, action)
   if (next === state.present) return state
+  if (state.checkpoint) return { ...state, present: next, future: [] }
   if (['pasteNode', 'moveNode', 'moveNodes', 'duplicateNode'].includes(action.type) && next.project === state.present.project) return { ...state, present: next }
-  if (['geometry', 'text', 'presentation', 'layout', 'exercise', 'dashboard'].includes(action.type)) return { ...state, present: next, future: [] }
-  return { past: [...state.past, state.present], present: next, future: [] }
+  if (!recordsHistory(action)) return { ...state, present: next, future: [] }
+  return { past: [...state.past, state.present], present: next, future: [], checkpoint: null }
 }
