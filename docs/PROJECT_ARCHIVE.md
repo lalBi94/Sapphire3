@@ -2,6 +2,12 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Modèles de workspace — 11 novembre 2026
+
+- Ajout du volet **Templates** dans la barre de navigation, à côté d'Examples. Cinq modèles locaux : **Vide** (aucune carte), **Entrée → sortie** (entrée entière liée à `onChange(int)` qui imprime), **Tableau de bord de widgets** (écran, jauge, progression, barres, LED et LED RVB animés), **Classe + instance** (classe `Counter` privée instanciée par `main`) et **Exercice** (fonction `sum` incomplète, point de départ et test `sum(2, 3) = 5`).
+- Chaque modèle s'ouvre après la confirmation de remplacement, sans dossier associé ni réseau. `src/utils/workspaceTemplates.js` construit les projets, cartes, commentaires et le manifeste d'exercice ; `useWorkspaceFiles` prépare le workspace comme pour un exemple, et la barre expose les libellés traduits dans les huit langues.
+- Vérifications : **643 tests Node/Python réussis**, dont six tests dédiés aux modèles (catalogue, sérialisation/relecture, absence de diagnostics, entrée liée, dashboard borné sous 10 000 pas, classe privée et manifeste d'exercice). Build Vite réussi ; ouverture des cinq modèles vérifiée dans le navigateur, entrée → sortie imprime `8` en live, dashboard animé, classe imprime `3`, exercice avec panneau et test. Aucune erreur console.
+
 ## Sélecteurs RGB et RGBA — 10 novembre 2026
 
 - Ajout des cartes **RGB picker** et **RGBA picker** dans **Widgets → Entrées**, adossées à un module caché ordinaire. Le module déclare `RGB_PICKER_SP3_GLOBAL_ONCHANGE_<n>` ou `RGBA_PICKER_SP3_GLOBAL_ONCHANGE_<n>` de type `(int[]) -> void`, initialisée à la fonction vide correspondante. Le binding n'accepte qu'une fonction `(int[]) -> void` et crée l'import/export automatique.

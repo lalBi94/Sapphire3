@@ -12,6 +12,7 @@ import { useTranslation } from '../contexts/LanguageContext.jsx'
 import { useNotifications } from '../contexts/NotificationContext.jsx'
 import { readPreference, writePreference, hydratePreferences } from '../services/preferences.js'
 import { examples } from '../utils/examples.js'
+import { workspaceTemplates } from '../utils/workspaceTemplates.js'
 import { failureLabel } from '../utils/translations.js'
 import { bytesToDataUrl, dataUrlToBytes, dataUrlMimeType, imageExtension } from '../utils/embeddedImage.js'
 import { defaultDashboardConfig } from '../utils/dashboardConfig.js'
@@ -464,6 +465,19 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, ex
     }
   }
 
+  // Prépare un modèle de workspace local puis attend la confirmation avant remplacement.
+  function handleOpenTemplate(templateId) {
+    if (operation.current || pendingImport) return
+    const template = workspaceTemplates.find((entry) => entry.id === templateId)
+    if (!template) return
+    try {
+      const text = JSON.stringify(template.build())
+      setPendingImport({ workspace: deserializeWorkspace(text), folder: null, text, detail: t(template.labelKey) })
+    } catch (failure) {
+      publishError({ prefix: 'errors.couldNotOpen', failure })
+    }
+  }
+
   // Remplace le document seulement à la demande explicite de l'utilisateur.
   async function handleConfirmImport() {
     if (!pendingImport) return
@@ -639,7 +653,7 @@ export default function useWorkspaceFiles({ project, cards, camera, selected, ex
   return {
     busy, pendingImport, pendingNew, recentWorkspaces, currentFolder, imageSources, imageSourceFor,
     handleImageFile, handleSave, saveWorkspaceAs, exportWorkspaceArchive, saveSolution, exportText, exportBinary,
-    handleOpenWorkspace, handleOpenRecent, handleImport, handleOpenExample, handleConfirmImport, handleCancelImport,
+    handleOpenWorkspace, handleOpenRecent, handleImport, handleOpenExample, handleOpenTemplate, handleConfirmImport, handleCancelImport,
     handleNew, handleConfirmNew, handleCancelNew,
   }
 }

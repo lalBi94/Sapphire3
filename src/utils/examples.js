@@ -24,8 +24,8 @@ const intArrayType = { kind: 'array', elementType: intType }
 const intPointerType = { kind: 'pointer', pointee: intType }
 
 // Construit une source logique par petits appels, avec un module courant pour limiter le bruit.
-function builder() {
-  const project = createProject('example')
+export function builder(projectId = 'example') {
+  const project = createProject(projectId)
   let current = null
   const useModule = (id, name) => { const module = createModule(id, name); project.modules.push(module); current = module; return module }
   const make = (id, kind, properties = {}, children = {}, references = {}) => { project.nodes.push(createNode(id, current.id, kind, { properties, children, references })); return id }
@@ -119,7 +119,7 @@ function note(id, name, text, x, y, width = 400, height = 240) {
 }
 
 // Ajoute une carte lisible par module et les annotations Comment, sans dépendre de React ni du canvas.
-function workspace(project, notes = []) {
+export function workspace(project, notes = []) {
   const definition = moduleTypes.module
   const cards = project.modules.map((module, position) => module.screen
     ? { id: module.id, type: 'screen', name: module.name, x: (position % 3) * 600, y: Math.floor(position / 3) * 520, width: moduleTypes.screen.width, height: moduleTypes.screen.height, screenWidth: module.screen.width, screenHeight: module.screen.height, expandedNodeIds: [] }

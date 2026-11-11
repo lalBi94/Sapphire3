@@ -1,10 +1,11 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { Bug, Bookmark, BookmarkPlus, ChevronDown, Clock3, Code2, Download, Eye, EyeOff, FileInput, FileOutput, FilePlus, FolderOpen, GraduationCap, LayoutGrid, Library, Maximize2, Palette, PanelsTopLeft, Pause, Play, Power, RefreshCw, Save, SaveAll, Search, Settings2, Square, Trash2, VectorSquare } from 'lucide-react'
+import { Bug, Bookmark, BookmarkPlus, ChevronDown, Clock3, Code2, Download, Eye, EyeOff, FileInput, FileOutput, FilePlus, FolderOpen, GraduationCap, LayoutGrid, LayoutTemplate, Library, Maximize2, Palette, PanelsTopLeft, Pause, Play, Power, RefreshCw, Save, SaveAll, Search, Settings2, Square, Trash2, VectorSquare } from 'lucide-react'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
 import WindowMenu from '../WindowMenu/WindowMenu.jsx'
 import { supportedLanguages } from '../../utils/translations.js'
 import { exampleCategories, exampleSubcategories, examples } from '../../utils/examples.js'
+import { workspaceTemplates } from '../../utils/workspaceTemplates.js'
 import { searchExamples } from '../../utils/exampleSearch.js'
 import { transpilationLanguages } from '../../utils/transpilation/index.js'
 import { describeBookmark } from '../../utils/logic/index.js'
@@ -36,7 +37,7 @@ function ReplaceConfirmation({ titleKey, bodyKey, detail, confirmKey, onConfirm,
 }
 
 // Réserve les menus futurs et expose les opérations de fichier sans connaître le canvas ni les API natives.
-export default function ProjectNavigation({ busy, pendingImport, pendingNew, recentWorkspaces, onSave, onSaveWorkspaceAs, onExportArchive, onExportSvg, onOpenWorkspace, onOpenRecent, onImport, onOpenExample, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, onArrangeModules, distorted, onToggleDistortion, minimapVisible = true, onToggleMinimap, magnetEnabled = true, onToggleMagnet, fullScreen = false, onToggleFullScreen, gridVisible = true, onToggleGrid, hudVisible = true, onToggleHud, hiddenCards = [], onShowCard, onShowAllHidden, presentation = false, onTogglePresentation, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunLive, onRunSimulation, onRunGraphical, onDebugSp3, onTranspile, onCheckTranspile, selectedFunction = null, onOpenFunction, simulationRunning = false, simulationPaused = false, onPauseSimulation, onResumeSimulation, onStopSimulation, onOpenRepository, onOpenSettings, onQuit, updateAvailable = false, updateVersion = '', updateManual = false, onInstallUpdate, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark, onOpenBookmarks, exercise = null, onOpenExercise, onCreateExercise, onCheckExercise }) {
+export default function ProjectNavigation({ busy, pendingImport, pendingNew, recentWorkspaces, onSave, onSaveWorkspaceAs, onExportArchive, onExportSvg, onOpenWorkspace, onOpenRecent, onImport, onOpenExample, onOpenTemplate, onConfirmImport, onCancelImport, onNew, onConfirmNew, onCancelNew, canUndo, canRedo, onUndo, onRedo, onZoomIn, onZoomOut, onZoom100, onCenter, onArrangeModules, distorted, onToggleDistortion, minimapVisible = true, onToggleMinimap, magnetEnabled = true, onToggleMagnet, fullScreen = false, onToggleFullScreen, gridVisible = true, onToggleGrid, hudVisible = true, onToggleHud, hiddenCards = [], onShowCard, onShowAllHidden, presentation = false, onTogglePresentation, hasSelection, onOpenSelectionMenu, onOpenSearch, onRunLive, onRunSimulation, onRunGraphical, onDebugSp3, onTranspile, onCheckTranspile, selectedFunction = null, onOpenFunction, simulationRunning = false, simulationPaused = false, onPauseSimulation, onResumeSimulation, onStopSimulation, onOpenRepository, onOpenSettings, onQuit, updateAvailable = false, updateVersion = '', updateManual = false, onInstallUpdate, bookmarks = [], modules = [], canBookmark = false, onSaveBookmark, onInsertBookmark, onDeleteBookmark, onOpenBookmarks, exercise = null, onOpenExercise, onCreateExercise, onCheckExercise }) {
   const navigationRef = useRef(null)
   const [insertingId, setInsertingId] = useState(null)
   const [exampleQuery, setExampleQuery] = useState('')
@@ -307,6 +308,16 @@ export default function ProjectNavigation({ busy, pendingImport, pendingNew, rec
                 </div>
               </details>
             })}
+        </div>
+      </details>
+      <details name="workspace-menu" onToggle={handleToggle}>
+        <summary><LayoutTemplate size={13} aria-hidden="true" />{t('nav.templates')}<ChevronDown size={12} aria-hidden="true" /></summary>
+        <div className="project-navigation__menu project-navigation__templates-menu">
+          <p className="project-navigation__section">{t('templates.section')}</p>
+          {workspaceTemplates.map((template) => <button type="button" key={template.id} className="project-navigation__template" onClick={() => { closeMenus(); onOpenTemplate(template.id) }}>
+            <span className="project-navigation__template-label">{t(template.labelKey)}</span>
+            <span className="project-navigation__template-description">{t(template.descriptionKey)}</span>
+          </button>)}
         </div>
       </details>
       <details name="workspace-menu" onToggle={handleToggle}>
