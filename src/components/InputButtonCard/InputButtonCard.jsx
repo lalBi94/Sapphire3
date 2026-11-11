@@ -91,19 +91,22 @@ export default function InputButtonCard({ card, onChange, onTrigger, callbacks =
       <span className="input-button-card__name">{callbackSupported ? 'onClick' : 'isPress'}</span>
       <span className="input-button-card__state">{pressed ? t('inputButton.pressed') : t('inputButton.released')}</span>
     </button>
-    {callbackSupported ? <label className="input-button-card__binding">
-      <span>{t('inputButton.callback')}</span>
-      <select
-        value={boundCallbackId ?? ''}
-        disabled={callbacks.length === 0 && !boundCallbackId}
-        onPointerDown={(event) => event.stopPropagation()}
-        onChange={(event) => onBind?.(event.target.value || null)}
-      >
-        <option value="">{t('inputButton.noCallback')}</option>
-        {callbacks.map((callback) => <option key={callback.nodeId} value={callback.nodeId}>{callback.moduleName ? `${callback.moduleName} · ${callback.name}` : callback.name}</option>)}
-        {missingCallback && <option value={boundCallbackId}>{t('inputButton.missingCallback')}</option>}
-      </select>
-    </label> : null}
+    {callbackSupported ? <details className="input-button-card__configuration">
+      <summary>{t('card.configuration')}</summary>
+      <label className="input-button-card__binding">
+        <span>{t('inputButton.callback')}</span>
+        <select
+          value={boundCallbackId ?? ''}
+          disabled={callbacks.length === 0 && !boundCallbackId}
+          onPointerDown={(event) => event.stopPropagation()}
+          onChange={(event) => onBind?.(event.target.value || null)}
+        >
+          <option value="">{t('inputButton.noCallback')}</option>
+          {callbacks.map((callback) => <option key={callback.nodeId} value={callback.nodeId}>{callback.moduleName ? `${callback.moduleName} · ${callback.name}` : callback.name}</option>)}
+          {missingCallback && <option value={boundCallbackId}>{t('inputButton.missingCallback')}</option>}
+        </select>
+      </label>
+    </details> : null}
     <p className="input-button-card__hint">{callbackSupported ? t(hold ? 'inputButton.holdHint' : 'inputButton.toggleHint') : t('inputButton.legacyHint')}</p>
   </div>
 }

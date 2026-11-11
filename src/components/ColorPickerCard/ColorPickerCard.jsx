@@ -317,19 +317,22 @@ export default function ColorPickerCard({ card, channels = 3, onChange, onTrigge
         onClick={() => commit(channels === 4 ? [...preset, currentRef.current[3]] : preset)}
       />)}
     </div>
-    <label className="color-picker-card__binding">
-      <span>{t('inputValue.callback')}</span>
-      <select
-        value={boundCallbackId ?? ''}
-        disabled={callbacks.length === 0 && !boundCallbackId}
-        onPointerDown={(event) => event.stopPropagation()}
-        onChange={(event) => onBind?.(event.target.value || null)}
-      >
-        <option value="">{t('inputValue.noCallback')}</option>
-        {callbacks.map((callback) => <option key={callback.nodeId} value={callback.nodeId}>{callback.moduleName ? `${callback.moduleName} · ${callback.name}` : callback.name}</option>)}
-        {missingCallback && <option value={boundCallbackId}>{t('inputValue.missingCallback')}</option>}
-      </select>
-    </label>
+    <details className="color-picker-card__configuration">
+      <summary>{t('card.configuration')}</summary>
+      <label className="color-picker-card__binding">
+        <span>{t('inputValue.callback')}</span>
+        <select
+          value={boundCallbackId ?? ''}
+          disabled={callbacks.length === 0 && !boundCallbackId}
+          onPointerDown={(event) => event.stopPropagation()}
+          onChange={(event) => onBind?.(event.target.value || null)}
+        >
+          <option value="">{t('inputValue.noCallback')}</option>
+          {callbacks.map((callback) => <option key={callback.nodeId} value={callback.nodeId}>{callback.moduleName ? `${callback.moduleName} · ${callback.name}` : callback.name}</option>)}
+          {missingCallback && <option value={boundCallbackId}>{t('inputValue.missingCallback')}</option>}
+        </select>
+      </label>
+    </details>
     <p className="color-picker-card__hint">{t('colorPicker.hint', { count: channels })}</p>
   </div>
 }

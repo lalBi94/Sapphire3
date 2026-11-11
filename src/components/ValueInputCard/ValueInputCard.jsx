@@ -147,19 +147,22 @@ export default function ValueInputCard({ card, valueType = 'int', onChange, onTr
         >+</button>
       </div>
     )}
-    <label className="value-input-card__binding">
-      <span>{t('inputValue.callback')}</span>
-      <select
-        value={boundCallbackId ?? ''}
-        disabled={matchingCallbacks.length === 0 && !boundCallbackId}
-        onPointerDown={(event) => event.stopPropagation()}
-        onChange={(event) => onBind?.(event.target.value || null)}
-      >
-        <option value="">{t('inputValue.noCallback')}</option>
-        {matchingCallbacks.map((callback) => <option key={callback.nodeId} value={callback.nodeId}>{callback.moduleName ? `${callback.moduleName} · ${callback.name}` : callback.name}</option>)}
-        {missingCallback && <option value={boundCallbackId}>{t('inputValue.missingCallback')}</option>}
-      </select>
-    </label>
+    <details className="value-input-card__configuration">
+      <summary>{t('card.configuration')}</summary>
+      <label className="value-input-card__binding">
+        <span>{t('inputValue.callback')}</span>
+        <select
+          value={boundCallbackId ?? ''}
+          disabled={matchingCallbacks.length === 0 && !boundCallbackId}
+          onPointerDown={(event) => event.stopPropagation()}
+          onChange={(event) => onBind?.(event.target.value || null)}
+        >
+          <option value="">{t('inputValue.noCallback')}</option>
+          {matchingCallbacks.map((callback) => <option key={callback.nodeId} value={callback.nodeId}>{callback.moduleName ? `${callback.moduleName} · ${callback.name}` : callback.name}</option>)}
+          {missingCallback && <option value={boundCallbackId}>{t('inputValue.missingCallback')}</option>}
+        </select>
+      </label>
+    </details>
     <p className="value-input-card__hint" id={hintId}>{t('inputValue.hint')}</p>
   </div>
 }

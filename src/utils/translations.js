@@ -769,6 +769,7 @@ const messages = {
   'card.rgbPicker': ['RGB picker', 'Sélecteur RGB', 'RGB 选择器', 'Selector RGB', 'منتقي RGB', 'RGB ピッカー', 'RGB चयनकर्ता', 'Выбор цвета RGB'],
   'card.rgbaPicker': ['RGBA picker', 'Sélecteur RGBA', 'RGBA 选择器', 'Selector RGBA', 'منتقي RGBA', 'RGBA ピッカー', 'RGBA चयनकर्ता', 'Выбор цвета RGBA'],
   'card.rgbLed': ['RGB LED', 'LED RGB', 'RGB LED', 'LED RGB', 'LED RGB', 'RGB LED', 'RGB LED', 'RGB-индикатор'],
+  'card.configuration': ['Configuration', 'Configuration', '配置', 'Configuración', 'الإعدادات', '設定', 'कॉन्फ़िगरेशन', 'Настройки'],
   'led.on': ['{name} is on', '{name} est allumée', '{name} 已点亮', '{name} está encendida', '{name} مضاءة', '{name} は点灯中', '{name} जल रही है', '{name} включён'],
   'led.off': ['{name} is off', '{name} est éteinte', '{name} 已熄灭', '{name} está apagada', '{name} مطفأة', '{name} は消灯中', '{name} बंद है', '{name} выключен'],
   'rgbLed.color': ['{name}: red {red}, green {green}, blue {blue}', '{name} : rouge {red}, vert {green}, bleu {blue}', '{name}：红 {red}，绿 {green}，蓝 {blue}', '{name}: rojo {red}, verde {green}, azul {blue}', '{name}: أحمر {red}، أخضر {green}، أزرق {blue}', '{name}: 赤 {red}、緑 {green}、青 {blue}', '{name}: लाल {red}, हरा {green}, नीला {blue}', '{name}: красный {red}, зелёный {green}, синий {blue}'],
