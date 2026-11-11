@@ -302,7 +302,9 @@ i {
 .download__button--primary { background:var(--primary); color:var(--bg); border-color:var(--primary); }
 .download__button--primary:hover { background:#ffe777; }
 .download__button--primary .download__caret { color:#4d4213; }
+.download__label { display:inline-flex; align-items:center; gap:8px; min-width:0; }
 .download__name { white-space:nowrap; }
+.download__os-icon { width:16px; height:16px; flex:0 0 auto; display:block; }
 .download__caret { margin-left:2px; color:var(--muted); font-size:12px; }
 .download-status { display:flex; flex-wrap:wrap; gap:6px 16px; margin:0 0 12px; color:var(--muted); font:8px var(--mono); letter-spacing:.04em; }
 .download-status span { display:inline-flex; align-items:center; gap:6px; }
