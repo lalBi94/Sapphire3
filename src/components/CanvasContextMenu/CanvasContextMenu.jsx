@@ -73,7 +73,7 @@ function filterWidgetGroup(group, term, categoryLabel, t, force = false) {
 }
 
 // Propose les créations disponibles et gère la fermeture ainsi que le focus clavier.
-export default function CanvasContextMenu({ x, y, onCreate, onCreatePluginWidget, pluginWidgets = [], onClose, commentId = null, onDeleteComment, onHideCard, onLockCard, commentLocked = false, anchored = false }) {
+export default function CanvasContextMenu({ x, y, placement = 'below', onCreate, onCreatePluginWidget, pluginWidgets = [], onClose, commentId = null, onDeleteComment, onHideCard, onLockCard, commentLocked = false, anchored = false }) {
   const menuRef = useRef(null)
   const searchRef = useRef(null)
   const [term, setTerm] = useState('')
@@ -200,8 +200,10 @@ export default function CanvasContextMenu({ x, y, onCreate, onCreatePluginWidget
     buttons[(index + direction + buttons.length) % buttons.length].focus()
   }
 
-  const menuTop = anchored ? y : commentId ? `min(${y}px, max(8px, calc(100% - 280px)))` : y
-  const menuMaxHeight = anchored || !commentId ? `calc(100% - ${y + 8}px)` : 'calc(100% - 16px)'
+  const opensAbove = !anchored && !commentId && placement === 'above'
+  const menuTop = opensAbove ? undefined : anchored ? y : commentId ? `min(${y}px, max(8px, calc(100% - 280px)))` : y
+  const menuBottom = opensAbove ? `calc(100% - ${y}px)` : undefined
+  const menuMaxHeight = opensAbove ? `calc(${y}px - 8px)` : anchored || !commentId ? `calc(100% - ${y + 8}px)` : 'calc(100% - 16px)'
   const columns = !commentId
   const hasPluginColumn = columns && pluginActions.length > 0
   const menuWidth = columns ? (hasPluginColumn ? 800 : 620) : 184
@@ -212,7 +214,12 @@ export default function CanvasContextMenu({ x, y, onCreate, onCreatePluginWidget
       className={`canvas-context-menu${columns ? ' canvas-context-menu--columns' : ''}${hasPluginColumn ? ' canvas-context-menu--plugins' : ''}`}
       data-canvas-ui
       data-canvas-scroll
-      style={{ left: `min(${x}px, max(8px, calc(100% - ${menuWidth + 8}px)))`, top: menuTop, maxHeight: menuMaxHeight }}
+      style={{
+        left: `min(${x}px, max(8px, calc(100% - ${menuWidth + 8}px)))`,
+        top: menuBottom ? 'auto' : menuTop,
+        bottom: menuBottom,
+        maxHeight: menuMaxHeight,
+      }}
       onPointerDown={(event) => event.stopPropagation()}
       onKeyDown={handleKeyDown}
     >
