@@ -6,7 +6,10 @@
   "type": "module",
   "packageManager": "pnpm@11.5.0",
   "scripts": {
-    "test": "node --test --test-concurrency=4 tests/logic/*.test.js tests/workspace/*.test.js tests/transpilation/*.test.js",
+    "test": "node --test --test-concurrency=4 tests/logic/*.test.js tests/workspace/*.test.js tests/transpilation/*.test.js tests/sdk/*.test.js",
+    "sdk:build": "pnpm --filter @sapphire3/core build",
+    "sdk:test": "node --test tests/sdk/*.test.js",
+    "sdk:pack": "pnpm --filter @sapphire3/core run pack",
     "docs:ast": "powershell -NoProfile -File scripts/build-ast-doc.ps1",
     "dashboards:build": "node scripts/build-dashboard-showcase.mjs",
     "site:search": "node abstract/visual/scripts/build-search.mjs",
@@ -38,6 +41,7 @@
   },
   "devDependencies": {
     "@neutralinojs/neu": "11.8.0",
+    "@sapphire3/core": "workspace:*",
     "@vitejs/plugin-react": "6.1.2",
     "axe-core": "4.10.2",
     "vite": "8.3.5"

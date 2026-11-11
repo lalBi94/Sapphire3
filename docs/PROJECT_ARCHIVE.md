@@ -2,6 +2,15 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## SDK Core — 11 novembre 2026
+
+- Nouveau package **`@sapphire3/core`** dans `packages/core/`, lié au workspace pnpm (`packages/*`, dépendance racine `workspace:*`). Le SDK réutilise directement `src/utils/logic/` et Vite le construit en un unique module ESM autonome dans `packages/core/dist/index.js` ; il n'embarque ni React, ni DOM, ni Neutralinojs.
+- API publique explicite : création de projets, modules, classes, fonctions et nœuds déclaratifs (`drafts`, `types`, `createNodeBundle`, `addModule`, `addClass`, `addFunction`, `addVariable`, `addConstant`, `addMethod`, `addConstructor`) ; mutations atomiques (insertion, mise à jour, suppression, déplacement, duplication, réordonnancement, renommage sémantique, exports/imports, contrats) ; analyse publique sérialisable (AST, portées, symboles, références, types, génériques, lambdas, classes et membres) ; validation ; inspection ; sérialisation logique JSON v1. Les `Map` internes et l'index d'analyse ne sont pas exposés.
+- Classes : `analysis.classMembers`, `getModuleInfo(...).members`/`constructor`, `listClassMembers`, `addClassMember`, `addMethod` et `addConstructor` couvrent champs, constantes, constructeur, méthodes, `this`, `new` et visibilité `public`/`private`.
+- Erreurs : `SapphireError` avec `code`, `diagnostics`, `details` et `toJSON()`, helpers `assertResult`/`assertValid`, codes SDK stables et codes moteur conservés. Versionnement documenté par `SDK_API_VERSION = 1` et SemVer.
+- Documentation `docs/sdk/core.md`, exemples `examples/sdk/create-and-analyze.mjs` et `examples/sdk/modify-program.mjs`, types `packages/core/types/index.d.ts`.
+- Vérifications : **683 tests Node/Python réussis**, dont 7 tests SDK (création/analyse/symboles, renommage/suppression/duplication, classes et transpilation JavaScript/Python, imports/exports, sérialisation/erreurs, version du package, packaging). Build Vite frontend réussi. Build du package, `npm pack`, installation de l'archive dans un projet Node.js externe et analyse d'un programme avec diagnostics vérifiés. Aucun push distant ni publication npm.
+
 ## Transpilation C expérimentale — 11 novembre 2026
 
 - Un backend **C** expérimental est ajouté dans `src/utils/transpilation/c.js` et enregistré dans `transpilationLanguages` et `backends`. La cible est volontairement restreinte : primitives numériques, booléens, chaînes, fonctions, paramètres, blocs, conditions, boucles, `break`/`continue`, affectations, opérateurs, littéraux, références, appels, `Print`, pointeurs `&`/`*` et lambdas sans capture. Les tableaux, classes, lambdas capturantes, `ForEach`, `MathCall`, conversions explicites, `char`, variables sans initialiseur et adresse d'une constante sont refusés avec `TRANSPILE_C_UNSUPPORTED` avant émission.
