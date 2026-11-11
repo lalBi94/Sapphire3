@@ -2,6 +2,13 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Aide contextuelle — 11 novembre 2026
+
+- Un bouton **?** est ajouté dans l'en-tête de chaque carte et dans le panneau des propriétés d'une opération ; le formulaire d'insertion d'une construction affiche le même bouton. Il ouvre un panneau local ancré avec le titre du sujet, un résumé traduit et un lien **Ouvrir la documentation en ligne**.
+- Le mapping pur `src/utils/helpLinks.js` relie chaque carte à sa page du wiki (Interface, Langage, Widgets, Concepts) et chaque construction aux sections `Langage#constructions`, `#types`, `#règles-dexpression`, `#classes`, `#lambdas-et-fermetures` ou `#opérations-natives`. Les liens passent par `openExternal`, donc par le navigateur système en desktop et `window.open` en développement web.
+- Le panneau se ferme par Échap, clic extérieur ou bouton de fermeture, rend le focus au déclencheur et capture ses événements pour ne pas déplacer le canvas ni fermer le menu d'insertion. Le menu logique ignore les clics dans `[data-help-panel]`.
+- Vérifications : **663 tests Node/Python réussis**, dont 3 tests dédiés au mapping et aux libellés. Build Vite réussi. Contrôles navigateur : 13 boutons d'aide sur l'exemple **Input console** ; la carte Toggle button ouvre « Widgets#boutons-dentrée » ; la variable `pulses` ouvre « Langage#constructions » ; le formulaire Variable du menu logique ouvre la même page ; le lien est transmis à `window.open` ; Échap et le clic extérieur ferment le panneau ; aucune erreur console.
+
 ## Palette de commandes — 11 novembre 2026
 
 - **Ctrl+K** ouvre une palette de commandes qui complète **Rechercher un bloc** sans le remplacer. Elle regroupe la création de toutes les cartes, les exemples locaux, les modèles de workspace, le Run live, le Run borné, le debug, l'arrêt, l'enregistrement, l'enregistrement sous, l'export ZIP/SVG/dashboard, les thèmes prédéfinis et personnalisés, l'apparence sombre/claire et l'ouverture de la recherche de blocs. Les commandes sont construites depuis les handlers existants, sans dupliquer leur logique métier ; la création place la carte au centre de la vue.

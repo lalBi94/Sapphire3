@@ -2,7 +2,9 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Activity, AudioWaveform, Blend, Bot, Box, Braces, Bug, ChartColumn, ChartLine, ChevronsDownUp, ChevronsUpDown, Clock, Cloud, Code2, Cog, Compass, Cpu, Database, FileCode, Flag, FlaskConical, Folder, Gauge, GitBranch, Globe, Hash, KeyRound, Lightbulb, Lock, Monitor, MousePointerClick, Network, Palette, Puzzle, Repeat, Rocket, Server, Shield, Smile, Sparkles, Target, Terminal, Wrench, Zap } from 'lucide-react'
 import { minimumModuleSize, moduleTypes } from '../../utils/moduleTypes.js'
+import { cardHelpTopic } from '../../utils/helpLinks.js'
 import NodeMenuButton from '../NodeMenuButton/NodeMenuButton.jsx'
+import HelpButton from '../HelpButton/HelpButton.jsx'
 import ScreenCanvas from '../ScreenCanvas/ScreenCanvas.jsx'
 import GaugeCard from '../GaugeCard/GaugeCard.jsx'
 import ProgressCard from '../ProgressCard/ProgressCard.jsx'
@@ -139,6 +141,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onResizeS
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
+  const helpTopic = cardHelpTopic(module.type)
   const [editingComment, setEditingComment] = useState(false)
   const [draftName, setDraftName] = useState('')
   const [isImageDragOver, setIsImageDragOver] = useState(false)
@@ -598,6 +601,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onResizeS
         >
           {expansionState === 'collapse' ? <ChevronsDownUp size={14} strokeWidth={2} aria-hidden="true" /> : <ChevronsUpDown size={14} strokeWidth={2} aria-hidden="true" />}
         </button>}
+        <HelpButton title={t(helpTopic.titleKey)} summary={t(helpTopic.summaryKey)} url={helpTopic.url} />
       </header>
       {definition.hasInputButton ? (
         <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>

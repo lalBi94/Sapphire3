@@ -7,7 +7,7 @@ import { snapPanelToArea } from '../../utils/panelSnap.js'
 import './FloatingPanel.css'
 
 // Partage les gestes et le cadre des fenêtres de propriétés et d'analyse.
-export default function FloatingPanel({ title, label, onClose, className = '', info = '', children }) {
+export default function FloatingPanel({ title, label, onClose, className = '', info = '', help = null, children }) {
   const [geometry, setGeometry] = useState(null)
   const [collapsed, setCollapsed] = useState(false)
   const gestureRef = useRef(null)
@@ -104,6 +104,7 @@ export default function FloatingPanel({ title, label, onClose, className = '', i
     <header className="floating-panel__header" role="group" tabIndex={0} aria-label={t('details.move')} title={t('details.moveHint')} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} onLostPointerCapture={end} onKeyDown={keyDown}>
       <h2>{title}</h2>
       {info && <InfoHint text={info} />}
+      {help}
       <button type="button" className="floating-panel__collapse" aria-expanded={!collapsed} aria-label={t(collapsed ? 'panel.expand' : 'panel.collapse')} title={t(collapsed ? 'panel.expand' : 'panel.collapse')} onClick={toggleCollapsed}>{collapsed ? <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" /> : <ChevronUp size={16} strokeWidth={1.75} aria-hidden="true" />}</button>
       <button type="button" aria-label={t('panel.close')} onClick={onClose}><X size={18} strokeWidth={1.75} aria-hidden="true" /></button>
     </header>

@@ -13,6 +13,8 @@ import NodeCodePreview from './NodeCodePreview.jsx'
 import FloatingPanel from '../FloatingPanel/FloatingPanel.jsx'
 import DeleteAction from '../DeleteAction/DeleteAction.jsx'
 import InfoHint from '../InfoHint/InfoHint.jsx'
+import HelpButton from '../HelpButton/HelpButton.jsx'
+import { moduleHelpTopic, nodeHelpTopic } from '../../utils/helpLinks.js'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './NodeProperties.css'
 
@@ -123,6 +125,7 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
   }
 
   const title = selected.kind === 'module' ? (record?.kind === 'class' ? t('card.class') : t('details.module')) : record ? kindLabel(record.kind, t) : t('details.block')
+  const helpTopic = record ? (selected.kind === 'module' ? moduleHelpTopic(record) : nodeHelpTopic(record)) : null
   const trail = selected.kind === 'node' ? nodeTrail(index, selected.id, t) : []
 
   // Copie un rapport texte regroupant version, cible sélectionnée et diagnostics pour le signalement.
@@ -165,7 +168,7 @@ export default function NodeProperties({ selected, project, index, onConfigure, 
     if (record && selected.kind === 'node') onExportNodeJson(record.id)
   }
 
-  return <FloatingPanel className="node-properties" title={title} label={t('details.title')} onClose={onClose}>
+  return <FloatingPanel className="node-properties" title={title} label={t('details.title')} onClose={onClose} help={helpTopic && <HelpButton title={selected.kind === 'module' ? t(helpTopic.titleKey) : title} summary={t(helpTopic.summaryKey)} url={helpTopic.url} />}>
     {trail.length > 1 && <nav className="node-properties__breadcrumb" aria-label={t('details.breadcrumb')}>
       {trail.map((label, position) => <Fragment key={position}>
         {position > 0 && <ChevronRight size={12} strokeWidth={2} aria-hidden="true" />}

@@ -4,6 +4,8 @@ import { getAvailableActions, getNodeSchema } from '../../utils/logic/index.js'
 import { moduleTypes } from '../../utils/moduleTypes.js'
 import { scoreFuzzyMatch } from '../../utils/fuzzySearch.js'
 import { diagnosticLabel, groupLabel, kindLabel, slotLabel } from '../LogicTree/logicLabels.js'
+import HelpButton from '../HelpButton/HelpButton.jsx'
+import { nodeHelpTopic } from '../../utils/helpLinks.js'
 import NodeForm from '../NodeForm/NodeForm.jsx'
 import DeleteAction from '../DeleteAction/DeleteAction.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
@@ -43,6 +45,7 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
   const [position, setPosition] = useState({ x, y })
   const [bounded, setBounded] = useState(false)
   const [classScope, setClassScope] = useState(targetId.scope === 'private' ? 'private' : 'public')
+  const helpTopic = kind ? nodeHelpTopic({ kind, properties: preset ?? {} }) : null
   const menuRef = useRef(null)
   const moveRef = useRef(null)
   const searchRef = useRef(null)
@@ -90,6 +93,7 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
   useEffect(() => {
     // Ferme aussi le sous-formulaire lorsque l'utilisateur vise un autre élément.
     function handleOutside(event) {
+      if (event.target instanceof Element && event.target.closest('[data-help-panel]')) return
       if (!menuRef.current.contains(event.target)) onClose(false)
     }
     document.addEventListener('pointerdown', handleOutside, true)
@@ -272,7 +276,7 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
         {available.ok && available.target?.kind === 'module' && <DeleteAction targetId={available.target.id} kind={targetKind} onDelete={onDeleteModule} menu />}
       </div>
       </div>
-      {kind && <div className="logic-context-menu__form"><h3>{preset?.constructor === true ? t('class.constructor') : kindLabel(kind, t)}</h3><NodeForm key={`${selectedSlot}:${kind}:${preset?.name ?? ''}:${classScope}`} kind={kind} preset={preset} context={available} onSubmit={(draft) => onInsert(effectiveTarget, selectedSlot, draft)} /></div>}
+      {kind && <div className="logic-context-menu__form"><div className="logic-context-menu__form-head"><h3>{preset?.constructor === true ? t('class.constructor') : kindLabel(kind, t)}</h3>{helpTopic && <HelpButton title={kindLabel(kind, t)} summary={t(helpTopic.summaryKey)} url={helpTopic.url} />}</div><NodeForm key={`${selectedSlot}:${kind}:${preset?.name ?? ''}:${classScope}`} kind={kind} preset={preset} context={available} onSubmit={(draft) => onInsert(effectiveTarget, selectedSlot, draft)} /></div>}
     </div>
   )
 }
