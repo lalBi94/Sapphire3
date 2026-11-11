@@ -35,6 +35,9 @@ Ce rapport distingue strictement ce qui est **opérationnel**, ce qui est
 | Permissions explicites | Opérationnel | `ui.widgets`, `workspace.widget-state`, `engine.native-operations`, `engine.composites` |
 | Permissions fichiers/réseau/native refusées | Opérationnel | `PLUGIN_PERMISSION_UNSUPPORTED` |
 | Interface multilingue du gestionnaire | Opérationnel | clés `plugins.*` dans les huit langues |
+| Vue définition en lecture seule | Opérationnel | bascule de carte, `pluginWidgetView`, définition JSON sans module source |
+| Liens de dépendance module → widget | Opérationnel | `getPluginWidgetLinks`, couche `CanvasLinks`, variables et fonctions liées |
+| Dashboard web exporté | Opérationnel | widgets de plugin, opérations natives, variables capturées, runtime borné/live |
 | Tests automatisés | Opérationnel | `tests/plugins/*.test.js`, packaging npm local |
 | Documentation externe | Opérationnel | `docs/sdk/plugin-sdk.md`, `packages/plugin-sdk/README.md`, exemples |
 
@@ -45,7 +48,6 @@ Ce rapport distingue strictement ce qui est **opérationnel**, ce qui est
 | Renderer de widget | Arbre déclaratif whitelisté ; pas de React/JS tiers, pas de HTML, pas de ressource distante |
 | Entrées de widget | Liaison à une variable visible par nom ; pas d'abonnement par port ni de flux d'événements riche |
 | Sorties de widget | Une fonction `(T) -> void` par sortie ; pas de callbacks multiples |
-| Dashboard web exporté | Opérationnel | widgets de plugin, opérations natives de plugin, variables capturées au pas, runtime borné/live et rendu déclaratif embarqués |
 | Persistance des plugins | Préférence locale `sapphire-plugins` ; pas de synchronisation |
 | Import local | Dialogue natif Neutralinojs ; pas de glisser-déposer de fichier plugin |
 | Compatibilité de version | Plages simples `*`, exacte, `^`, `~`, `>=`, `>` ; pas de résolution de conflits avancée |

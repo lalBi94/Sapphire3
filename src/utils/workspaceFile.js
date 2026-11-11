@@ -2,7 +2,7 @@ import { isId, isRecord, sourceFormatVersion, moduleKinds, createProject } from 
 import { isContract } from './logic/contracts.js'
 import { serializeSource } from './logic/serialization.js'
 import { screenLimits } from './logic/mathNatives.js'
-import { barChartViews, colorPickerViews, heatmapViews, logicalCardTypes, moduleCardTypes, gaugeViews, inputButtonViews, inputNumberViews, ledViews, oscilloscopeViews, rgbLedViews, moduleTypes, minimumModuleSize, progressViews, screenViews, xyPlotViews } from './moduleTypes.js'
+import { barChartViews, colorPickerViews, heatmapViews, logicalCardTypes, moduleCardTypes, gaugeViews, inputButtonViews, inputNumberViews, ledViews, oscilloscopeViews, pluginWidgetViews, rgbLedViews, moduleTypes, minimumModuleSize, progressViews, screenViews, xyPlotViews } from './moduleTypes.js'
 import { heatmapMaximumDimension } from './logic/heatmapState.js'
 import { isEmbeddedImage, isImageReference } from './embeddedImage.js'
 import { validateExercise } from './exercise.js'
@@ -241,6 +241,7 @@ function validatePresentation(project, presentation) {
     if (card.inputButtonView !== undefined && !inputButtonViews.includes(card.inputButtonView)) throw workspaceError('Invalid input button view.')
     if (card.inputNumberView !== undefined && !inputNumberViews.includes(card.inputNumberView)) throw workspaceError('Invalid input number view.')
     if (card.colorPickerView !== undefined && !colorPickerViews.includes(card.colorPickerView)) throw workspaceError('Invalid color picker view.')
+    if (card.pluginWidgetView !== undefined && !pluginWidgetViews.includes(card.pluginWidgetView)) throw workspaceError('Invalid plugin widget view.')
     ids.add(card.id)
   }
   if (project.modules.some((module) => !ids.has(module.id))) throw workspaceError('A module is missing its visual card.')
@@ -253,8 +254,8 @@ function validatePresentation(project, presentation) {
 // N'écrit l'emoji ou les drapeaux de carte que lorsqu'ils sont définis, pour garder les fichiers habituels inchangés.
 function exportableCard(card, nodes) {
   // `screenScale` n'est plus produit : l'écran se dimensionne avec la carte, mais reste toléré à la relecture.
-  const { hidden, locked, emoji, screenView, gaugeView, progressView, barChartView, xyPlotView, oscilloscopeView, heatmapView, ledView, rgbLedView, inputButtonView, inputNumberView, colorPickerView, screenScale, imageRef, ...rest } = card
-  return { ...rest, ...(typeof imageRef === 'string' && imageRef.length > 0 ? { imageRef } : {}), ...(hidden ? { hidden: true } : {}), ...(locked ? { locked: true } : {}), ...(emoji ? { emoji } : {}), ...(screenView && screenView !== 'screen' ? { screenView } : {}), ...(gaugeView && gaugeView !== 'gauge' ? { gaugeView } : {}), ...(progressView && progressView !== 'progress' ? { progressView } : {}), ...(barChartView && barChartView !== 'barChart' ? { barChartView } : {}), ...(xyPlotView && xyPlotView !== 'xyPlot' ? { xyPlotView } : {}), ...(oscilloscopeView && oscilloscopeView !== 'oscilloscope' ? { oscilloscopeView } : {}), ...(heatmapView && heatmapView !== 'heatmap' ? { heatmapView } : {}), ...(ledView && ledView !== 'led' ? { ledView } : {}), ...(rgbLedView && rgbLedView !== 'rgbLed' ? { rgbLedView } : {}), ...(inputButtonView && inputButtonView !== 'button' ? { inputButtonView } : {}), ...(inputNumberView && inputNumberView !== 'input' ? { inputNumberView } : {}), ...(colorPickerView && colorPickerView !== 'picker' ? { colorPickerView } : {}), expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) }
+  const { hidden, locked, emoji, screenView, gaugeView, progressView, barChartView, xyPlotView, oscilloscopeView, heatmapView, ledView, rgbLedView, inputButtonView, inputNumberView, colorPickerView, pluginWidgetView, screenScale, imageRef, ...rest } = card
+  return { ...rest, ...(typeof imageRef === 'string' && imageRef.length > 0 ? { imageRef } : {}), ...(hidden ? { hidden: true } : {}), ...(locked ? { locked: true } : {}), ...(emoji ? { emoji } : {}), ...(screenView && screenView !== 'screen' ? { screenView } : {}), ...(gaugeView && gaugeView !== 'gauge' ? { gaugeView } : {}), ...(progressView && progressView !== 'progress' ? { progressView } : {}), ...(barChartView && barChartView !== 'barChart' ? { barChartView } : {}), ...(xyPlotView && xyPlotView !== 'xyPlot' ? { xyPlotView } : {}), ...(oscilloscopeView && oscilloscopeView !== 'oscilloscope' ? { oscilloscopeView } : {}), ...(heatmapView && heatmapView !== 'heatmap' ? { heatmapView } : {}), ...(ledView && ledView !== 'led' ? { ledView } : {}), ...(rgbLedView && rgbLedView !== 'rgbLed' ? { rgbLedView } : {}), ...(inputButtonView && inputButtonView !== 'button' ? { inputButtonView } : {}), ...(inputNumberView && inputNumberView !== 'input' ? { inputNumberView } : {}), ...(colorPickerView && colorPickerView !== 'picker' ? { colorPickerView } : {}), ...(pluginWidgetView && pluginWidgetView !== 'widget' ? { pluginWidgetView } : {}), expandedNodeIds: (card.expandedNodeIds ?? []).filter((id) => nodes.get(id)?.moduleId === card.id) }
 }
 
 // Contrôle aussi le snapshot de départ d'un exercice, avec les mêmes règles que le document courant.

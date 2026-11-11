@@ -19,6 +19,7 @@ import ValueInputCard from '../ValueInputCard/ValueInputCard.jsx'
 import ColorPickerCard from '../ColorPickerCard/ColorPickerCard.jsx'
 import CommentText from '../CommentText/CommentText.jsx'
 import PluginWidgetCard from '../PluginWidgetCard/PluginWidgetCard.jsx'
+import PluginWidgetDefinition from '../PluginWidgetCard/PluginWidgetDefinition.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './CanvasModule.css'
 
@@ -138,7 +139,7 @@ function ModuleEmoji({ emoji, onChange }) {
 }
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onResizeStart, onResizeEnd, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onImageFile, onEmojiChange, onAnnotationStart, onAnnotationEnd, imageSource = null, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, progressState = null, progressFrames = null, progressPlaying = false, onProgressViewChange, barChartState = null, barChartFrames = null, barChartPlaying = false, onBarChartViewChange, xyPlotState = null, xyPlotFrames = null, xyPlotPlaying = false, onXyPlotViewChange, oscilloscopeState = null, oscilloscopeFrames = null, oscilloscopePlaying = false, onOscilloscopeViewChange, heatmapState = null, heatmapDimensions, onHeatmapViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, rgbLedState = null, rgbLedFrames = null, rgbLedPlaying = false, onRgbLedViewChange, onInputButtonViewChange, onInputChange, inputButtonCallbacks = [], inputButtonCallbackId = null, inputButtonCallbackSupported = true, onBindInputClick, onInputTrigger, onInputValueViewChange, onInputValueChange, onInputValueTrigger, inputValueCallbacks = [], inputValueCallbackId = null, onBindInputValue, onColorPickerViewChange, onColorPickerChange, onColorPickerTrigger, colorPickerCallbacks = [], colorPickerCallbackId = null, onBindColorPicker, pluginWidgetEntry = null, pluginWidgetInputs = {}, pluginWidgetVariables = [], pluginWidgetCallbacks = [], onPluginWidgetStateChange, onPluginWidgetPropertyChange, onPluginWidgetBindInput, onPluginWidgetBindOutput, onPluginWidgetTrigger, onPluginWidgetRemove, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onResizeStart, onResizeEnd, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onImageFile, onEmojiChange, onAnnotationStart, onAnnotationEnd, imageSource = null, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, progressState = null, progressFrames = null, progressPlaying = false, onProgressViewChange, barChartState = null, barChartFrames = null, barChartPlaying = false, onBarChartViewChange, xyPlotState = null, xyPlotFrames = null, xyPlotPlaying = false, onXyPlotViewChange, oscilloscopeState = null, oscilloscopeFrames = null, oscilloscopePlaying = false, onOscilloscopeViewChange, heatmapState = null, heatmapDimensions, onHeatmapViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, rgbLedState = null, rgbLedFrames = null, rgbLedPlaying = false, onRgbLedViewChange, onInputButtonViewChange, onInputChange, inputButtonCallbacks = [], inputButtonCallbackId = null, inputButtonCallbackSupported = true, onBindInputClick, onInputTrigger, onInputValueViewChange, onInputValueChange, onInputValueTrigger, inputValueCallbacks = [], inputValueCallbackId = null, onBindInputValue, onColorPickerViewChange, onColorPickerChange, onColorPickerTrigger, colorPickerCallbacks = [], colorPickerCallbackId = null, onBindColorPicker, pluginWidgetEntry = null, pluginWidgetView = 'widget', onPluginWidgetViewChange, pluginWidgetInputs = {}, pluginWidgetVariables = [], pluginWidgetCallbacks = [], onPluginWidgetStateChange, onPluginWidgetPropertyChange, onPluginWidgetBindInput, onPluginWidgetBindOutput, onPluginWidgetTrigger, onPluginWidgetRemove, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -208,6 +209,8 @@ export default function CanvasModule({ module, camera, zoom, onResize, onResizeS
   const inputNumberView = module.inputNumberView === 'code' ? 'code' : 'input'
   // Un sélecteur de couleur montre sa roue ou le code de son module caché.
   const colorPickerView = module.colorPickerView === 'code' ? 'code' : 'picker'
+  // Une carte de plugin montre son widget ou sa définition déclarative.
+  const pluginWidgetMode = module.pluginWidgetView === 'definition' ? 'definition' : 'widget'
   // La bascule d'en-tête promet l'action inverse de l'état actuel du pliage.
   const expansionLabel = t(expansionState === 'collapse' ? 'canvas.collapseAll' : 'canvas.expandAll')
   // Le zoom sémantique remplace les instructions par les fonctions, puis masque le contenu au niveau modules.
@@ -586,6 +589,17 @@ export default function CanvasModule({ module, camera, zoom, onResize, onResizeS
             ? (definition.colorPickerChannels === 4 ? <Blend size={13} strokeWidth={2} aria-hidden="true" /> : <Palette size={13} strokeWidth={2} aria-hidden="true" />)
             : <Code2 size={13} strokeWidth={2} aria-hidden="true" />}
         </button>}
+        {definition.hasPluginWidget && semanticLevel !== 'modules' && !readOnly && <button
+          type="button"
+          className="canvas-module__view"
+          aria-label={t(pluginWidgetMode === 'definition' ? 'plugins.viewWidget' : 'plugins.viewDefinition')}
+          aria-pressed={pluginWidgetMode === 'definition'}
+          title={t(pluginWidgetMode === 'definition' ? 'plugins.viewWidget' : 'plugins.viewDefinition')}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => { event.stopPropagation(); onPluginWidgetViewChange?.(module.id, pluginWidgetMode === 'definition' ? 'widget' : 'definition') }}
+        >
+          {pluginWidgetMode === 'definition' ? <Puzzle size={13} strokeWidth={2} aria-hidden="true" /> : <Code2 size={13} strokeWidth={2} aria-hidden="true" />}
+        </button>}
         {module.locked && !readOnly && <button
           type="button"
           className="canvas-module__lock"
@@ -610,20 +624,22 @@ export default function CanvasModule({ module, camera, zoom, onResize, onResizeS
       </header>
       {definition.hasPluginWidget ? (
         <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>
-          {contentVisible && <PluginWidgetCard
-            card={module}
-            entry={pluginWidgetEntry}
-            inputs={pluginWidgetInputs}
-            variables={pluginWidgetVariables}
-            callbackFunctions={pluginWidgetCallbacks}
-            readOnly={readOnly}
-            onStateChange={onPluginWidgetStateChange}
-            onPropertyChange={onPluginWidgetPropertyChange}
-            onBindInput={onPluginWidgetBindInput}
-            onBindOutput={onPluginWidgetBindOutput}
-            onTrigger={onPluginWidgetTrigger}
-            onRemove={onPluginWidgetRemove}
-          />}
+          {!contentVisible ? null : pluginWidgetMode === 'definition'
+            ? <PluginWidgetDefinition card={module} entry={pluginWidgetEntry} />
+            : <PluginWidgetCard
+              card={module}
+              entry={pluginWidgetEntry}
+              inputs={pluginWidgetInputs}
+              variables={pluginWidgetVariables}
+              callbackFunctions={pluginWidgetCallbacks}
+              readOnly={readOnly}
+              onStateChange={onPluginWidgetStateChange}
+              onPropertyChange={onPluginWidgetPropertyChange}
+              onBindInput={onPluginWidgetBindInput}
+              onBindOutput={onPluginWidgetBindOutput}
+              onTrigger={onPluginWidgetTrigger}
+              onRemove={onPluginWidgetRemove}
+            />}
         </div>
       ) : definition.hasInputButton ? (
         <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>

@@ -228,6 +228,19 @@ arbitraire n'est accepté.
 Le rendu ne reçoit que des données sérialisables. Il ne peut pas muter le
 moteur, le workspace ou les fichiers.
 
+### Vue définition et dépendances
+
+Un widget de plugin n'a pas de module source : la bascule de la carte affiche
+donc sa **définition déclarative JSON** en lecture seule, et non un faux arbre
+AST. La vue active est conservée dans `pluginWidgetView` (`widget` par défaut,
+`definition` pour la définition).
+
+Les liaisons d'entrée et de sortie produisent des **liens de dépendance** dans
+la couche graphique habituelle : une flèche part du module qui déclare la
+variable ou la fonction liée et entre dans la carte du widget. Un widget masqué,
+sans liaison ou dont le module fournisseur n'a pas de carte visible ne produit
+aucun lien.
+
 ## Opérations natives
 
 ```json

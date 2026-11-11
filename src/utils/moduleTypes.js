@@ -83,3 +83,6 @@ export const inputNumberViews = ['input', 'code']
 
 // Vues possibles d'un sélecteur de couleur : la roue, ou le code de son module caché.
 export const colorPickerViews = ['picker', 'code']
+
+// Vues possibles d'une carte de plugin : le widget, ou sa définition déclarative.
+export const pluginWidgetViews = ['widget', 'definition']

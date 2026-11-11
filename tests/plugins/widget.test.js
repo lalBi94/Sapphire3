@@ -33,6 +33,10 @@ test('widget de plugin : création, état, propriétés et persistance du worksp
     assert.deepEqual(restored.properties, card.properties)
     assert.deepEqual(restored.state, card.state)
     assert.deepEqual(restored.bindings, card.bindings)
+
+    const definitionText = serializeWorkspace(workspace.project, [{ ...card, pluginWidgetView: 'definition' }], workspace.presentation.camera, null)
+    assert.equal(deserializeWorkspace(definitionText).presentation.cards[0].pluginWidgetView, 'definition')
+    assert.throws(() => serializeWorkspace(workspace.project, [{ ...card, pluginWidgetView: 'code' }], workspace.presentation.camera), (error) => error.code === 'WORKSPACE_INVALID')
   } finally {
     configurePluginRuntime([])
   }

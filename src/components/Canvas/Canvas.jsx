@@ -37,6 +37,7 @@ import { colorPickerCallbackId, colorPickerOnChangeNodeId } from '../../utils/lo
 import { buildDashboardDocument, dashboardDefaultLayout } from '../../utils/dashboardExport.js'
 import { dashboardModuleMapFromCards } from '../../utils/dashboardModuleMap.js'
 import { collectPluginVariables, collectPluginWorkspaceDependencies, resolvePluginWidgetInstance } from '../../utils/plugins/pluginWidgets.js'
+import { getPluginWidgetLinks } from '../../utils/pluginWidgetLinks.js'
 import dashboardRuntimeSource from 'virtual:dashboard-runtime'
 import dashboardClientSource from 'virtual:dashboard-client'
 import dashboardLiveSource from 'virtual:dashboard-live'
@@ -358,6 +359,7 @@ export default function Canvas() {
   const executionSession = liveVisible ? null : debugSession?.project === document.project ? debugSession.frames : execution?.trace ?? null
   // Les liens intermodules ne dépendent que de l'analyse, pas du déplacement des cartes.
   const moduleLinks = useMemo(() => getModuleLinks(document.index), [document.index])
+  const canvasLinks = useMemo(() => [...moduleLinks, ...getPluginWidgetLinks(document.project, document.index, document.cards)], [moduleLinks, document.project, document.index, document.cards])
   const selectedScreenCard = selectedScreen ? document.cards.find((card) => card.id === selected.id) ?? null : null
   const selectedScreenModule = selectedScreenCard ? document.index.modules.get(selectedScreenCard.id) ?? null : null
   const selectedScreenCallers = selectedScreenCard ? moduleLinks.filter((link) => link.fromId === selectedScreenCard.id) : []
@@ -1735,7 +1737,7 @@ export default function Canvas() {
       <h1 className="visually-hidden">{t('app.title')}</h1>
       <CanvasGrid camera={camera} zoom={zoom} distorted={distorted} gridVisible={gridVisible} />
       {hudVisible && <CanvasHud camera={camera} zoom={zoom} semanticLevel={semanticLevel} moduleCount={document.index.modules.size} nodeCount={document.index.nodes.size} gridVisible={gridVisible} magnetEnabled={magnetEnabled} />}
-      <CanvasLinks cards={visibleCards} links={moduleLinks} camera={camera} zoom={zoom} />
+      <CanvasLinks cards={visibleCards} links={canvasLinks} camera={camera} zoom={zoom} />
       {semanticCards.map((card) => <CanvasModule key={`${document.revision}:${card.id}`} module={card} camera={camera} zoom={zoom}
         semanticLevel={semanticLevel}
         imageSource={files.imageSourceFor(card)}
@@ -1783,6 +1785,8 @@ export default function Canvas() {
         colorPickerCallbackId={colorPickerBindings.get(card.id) ?? null}
         onBindColorPicker={(id, functionId) => document.bindColorPicker(id, functionId)}
         pluginWidgetEntry={card.type === 'pluginWidget' ? activeWidgets.find((entry) => entry.pluginId === card.pluginId && entry.widget.id === card.widgetId) ?? null : null}
+        pluginWidgetView={card.pluginWidgetView}
+        onPluginWidgetViewChange={(id, view) => document.updateCardView(id, { pluginWidgetView: view })}
         pluginWidgetInputs={pluginInputsByCard.get(card.id) ?? {}}
         pluginWidgetVariables={pluginBindingVariables}
         pluginWidgetCallbacks={pluginCallbackFunctions}

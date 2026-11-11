@@ -77,6 +77,7 @@ données d'un widget fourni par un plugin local :
     "inputs": { "value": "voltage" },
     "outputs": { "setpoint": "function-node-id" }
   },
+  "pluginWidgetView": "definition",
   "expandedNodeIds": []
 }
 ```
@@ -93,6 +94,9 @@ données d'un widget fourni par un plugin local :
   affiche un diagnostic. Aucun champ n'est supprimé ni transformé.
 - Le widget participe à la sélection, au déplacement, au redimensionnement, au
   masquage, au verrouillage et au stockage du workspace.
+- `pluginWidgetView` est optionnel : `widget` (défaut) ou `definition`. La vue
+  `definition` affiche la définition déclarative en lecture seule et n'est
+  écrite que lorsqu'elle est active ; aucune valeur inconnue n'est acceptée.
 
 Les plugins installés et leurs préférences sont hors du workspace, dans la
 préférence locale `sapphire-plugins`. Un workspace ne déclenche jamais
