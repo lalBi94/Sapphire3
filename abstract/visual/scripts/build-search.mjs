@@ -18,6 +18,7 @@ const keywords = {
   executer: 'run live simulation pause stop output sortie vitesse executer',
   exporter: 'transpilation javascript python code copier exporter',
   apparence: 'theme clair sombre palette langue apparence',
+  plugins: 'plugin plugins extension widget operation native composite sp3plugin configuration',
   simulation: 'simulation run live pause stop debug debogage breakpoint point arret memoire trace',
   fichier: 'sauvegarde enregistrer autosauvegarde workspace recuperation fichier dossier zip images',
   types: 'classes lambdas fermeture pointeurs generiques tableaux types stricts',

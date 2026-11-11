@@ -44,7 +44,7 @@
         l'application réelle ; elles ne sont pas des maquettes.
       </p>
       <ul class="meta-chips">
-        <li>9 étapes</li>
+        <li>10 étapes</li>
         <li>10 captures rapprochées</li>
         <li>Interface actuelle</li>
       </ul>
@@ -61,6 +61,7 @@
         <li><a href="#executer">7 — Exécuter</a></li>
         <li><a href="#exporter">8 — Exporter</a></li>
         <li><a href="#apparence">9 — Changer d'apparence</a></li>
+        <li><a href="#plugins">10 — Étendre avec des plugins</a></li>
       </ul>
     </nav>
 
@@ -168,6 +169,11 @@
             <div class="shot-frame"><img src="assets/shots/module-properties.png" alt="Panneau de propriétés du module Library avec son nom, ses exports et ses imports." width="415" height="653" loading="lazy"></div>
             <figcaption><b>Propriétés du module.</b> Le nom, les exports et les imports sont les seules informations publiques.</figcaption>
           </figure>
+          <p>
+            Sur une carte d'entrée — bouton, entier, décimal, texte, sélecteur RGB ou RGBA —, le sélecteur de fonction
+            est placé dans le volet <b>Configuration</b> pliable de la carte. Il est replié par défaut ; un clic sur
+            l'en-tête révèle la fonction liée sans encombrer l'aperçu.
+          </p>
         </section>
 
         <section id="executer">
@@ -216,6 +222,29 @@
             <p><b>À retenir.</b> Une carte est une portée, une ligne est une construction, une flèche est une
             dépendance réellement utilisée. Le moteur valide avant d'écrire : une erreur ne doit pas laisser le
             document dans un état intermédiaire.</p>
+          </div>
+        </section>
+
+        <section id="plugins">
+          <h2>10 — Étendre avec des plugins</h2>
+          <p>
+            <b>Settings → Plugins</b> installe un fichier local <code>.sp3plugin</code>. Un plugin peut ajouter des
+            widgets déclaratifs, des opérations natives typées et des nœuds composites de niveau A. Les widgets
+            apparaissent dans la quatrième colonne du menu de création — ouverte par un clic droit sur le canvas vide —
+            lorsque des plugins sont actifs ; leur carte bascule entre le widget et sa définition déclarative JSON.
+          </p>
+          <p>
+            Le manifeste est validé avant installation : identifiants, permissions, dépendances, conflits, versions et
+            opérations natives. Les entrées et sorties liées à une variable ou à une fonction sont tracées comme des
+            dépendances depuis les modules fournisseurs. Un widget dont le plugin est absent conserve ses données et
+            affiche un diagnostic.
+          </p>
+          <div class="notes-soft">
+            <p><b>À retenir.</b> Un widget de plugin n'est pas un module source : sa vue code montre sa définition
+            déclarative, pas un AST. Aucun <code>eval</code>, <code>new Function</code>, import de code tiers,
+            marketplace ou backend distant n'est utilisé. Les permissions fichiers, réseau et API native sont
+            déclarées mais refusées ; les opérations natives de plugin sont revalidées dans le run borné et le live,
+            et le dashboard exporté les embarque.</p>
           </div>
         </section>
       </div>

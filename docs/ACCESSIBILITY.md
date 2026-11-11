@@ -1,6 +1,6 @@
 # Accessibilité — Sapphire 3
 
-> Référentiel d'accessibilité de **Sapphire 3**, audit réalisé sur la version `0.1.0-beta.6` les **6, 7 et 8 novembre 2026**. Le code courant est `0.1.0-beta.8` ; les vérifications ci-dessous n'ont pas été rejouées intégralement sur cette bêta. Ce document décrit ce qui a été vérifié, corrigé et ce qui reste partiel ou non vérifié. **Il ne constitue pas une certification WCAG.**
+> Référentiel d'accessibilité de **Sapphire 3**, audit réalisé sur la version `0.1.0-beta.6` les **6, 7 et 8 novembre 2026**. Le code courant est `0.1.0-beta.9` ; les vérifications ci-dessous n'ont pas été rejouées intégralement sur cette bêta. Ce document décrit ce qui a été vérifié, corrigé et ce qui reste partiel ou non vérifié. **Il ne constitue pas une certification WCAG.**
 
 ## A. Périmètre
 

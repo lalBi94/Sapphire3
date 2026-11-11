@@ -38,7 +38,7 @@
     <section class="hero" id="presentation">
       <div class="hero-layout">
         <div class="hero-copy">
-          <p class="kicker">Application desktop Windows, Linux et macOS · 0.1.0-beta.8</p>
+          <p class="kicker">Application desktop Windows, Linux et macOS · 0.1.0-beta.9</p>
           <p>Windows vérifié ; paquets Linux et macOS construits mais non testés à l'exécution.
           Le texte décrit le code courant, qui peut être plus récent que la release publiée.</p>
           <h1>Des blocs qui sont de vrai code, pas des dessins qui y ressemblent</h1>
@@ -72,9 +72,9 @@
     </section>
 
     <section class="stats" aria-label="Chiffres clés">
-      <div class="stat"><b>9</b><span>étapes de documentation</span></div>
+      <div class="stat"><b>10</b><span>étapes de documentation</span></div>
       <div class="stat"><b>10</b><span>captures rapprochées</span></div>
-      <div class="stat"><b>64</b><span>exemples locaux</span></div>
+      <div class="stat"><b>65</b><span>exemples locaux</span></div>
       <div class="stat"><b>8</b><span>langues d'interface</span></div>
     </section>
 
@@ -111,6 +111,10 @@
             dans le document : consignes, snapshot de départ, tests d'entrée ou de fonction exécutés par
             <b>Check</b>, retour du robot, verrou d'édition par mot de passe haché (PBKDF2) et enregistrement d'une
             solution ZIP lorsque tous les tests passent. Les thèmes ont une apparence sombre et claire commune.
+            Le <b>Plugin SDK</b> local ajoute des widgets déclaratifs, des opérations natives typées et des nœuds
+            composites de niveau A ; les cartes de widget affichent leur définition JSON et leurs liaisons deviennent
+            des flèches de dépendance. Les entrées natives placent leur sélecteur de fonction dans un volet
+            <b>Configuration</b> pliable.
             Une <b>Discord Rich Presence</b> optionnelle, via un sidecar local sans compte ni token, affiche
             l'activité courante, un chronomètre et deux boutons GitHub ; seuls des compteurs génériques sont publiés.
           </p>
@@ -130,7 +134,9 @@
             analyse synchrone, même si les calculs lourds explicites passent par un Web Worker. Le rendu de monnaie
             des exemples est glouton pour un jeu canonique, et l'exemple de calcul utilise une intégrale numérique de
             Simpson. Le mode exercice ne verrouille que l'interface&nbsp;: les tests restent lisibles et modifiables
-            dans le JSON, et le mot de passe ne chiffre pas le fichier.
+            dans le JSON, et le mot de passe ne chiffre pas le fichier. Le <b>Plugin SDK</b> reste déclaratif&nbsp;:
+            pas de composant React ou JavaScript tiers, pas de marketplace, pas de backend distant, pas de
+            permissions fichiers/réseau/native, et les nœuds sémantiques de niveau B ne sont pas opérationnels.
           </p>
         </div>
         <div class="card">
@@ -221,7 +227,7 @@
       <div class="grid">
         <div class="card">
           <h3><a href="documentation.html">Documentation visuelle</a></h3>
-          <p>Neuf étapes et dix captures rapprochées de l'interface actuelle&nbsp;: ouvrir un projet, lire une carte,
+          <p>Dix étapes et dix captures rapprochées de l'interface actuelle&nbsp;: ouvrir un projet, lire une carte,
           ajouter une construction, relier deux modules, vérifier les propriétés, exécuter, exporter et changer
           d'apparence.</p>
         </div>

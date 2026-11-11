@@ -240,7 +240,7 @@ Entiers signés/non signés de 16/32 bits, flottants IEEE 754 de 32/64 bits ;
 sont numériques explicites, avec troncature ou arrondi et contrôle des bornes.
 
 \textbf{Vérifications exécutées :} \code{pnpm test}, runner natif Node :
-\textbf{676 tests réussis, 0 échec}. Couverture de la construction de l'AST,
+\textbf{770 tests réussis, 0 échec}. Couverture de la construction de l'AST,
 des portées et références, du typage et des tableaux, des pointeurs et de
 l'écriture à travers eux, des types fonction et références de fonction, des
 génériques avancés et des lambdas/fermetures, des bornes et arrondis numériques,
@@ -329,8 +329,16 @@ symboles résolus. Les \textbf{suggestions contextuelles} au point d'édition et
 de \textbf{nouveaux générateurs} de cibles restent à venir ; chaque générateur
 devra refuser les diagnostics bloquants. \code{canGenerate} signifie seulement
 « aucune erreur détectée par les passes actuelles », et non une garantie
-d'exécutabilité. Aucun moteur de suggestion ni système de plugins n'est
-implémenté.
+d'exécutabilité. Aucun moteur de suggestion n'est implémenté.
+
+Le \textbf{Plugin SDK} local est une couche déclarative séparée du modèle
+source : un manifeste \code{.sp3plugin} versionné décrit des widgets, des
+opérations natives typées et des composites de niveau A. Le registre est
+configuré avant l'analyse, injecté dans les Workers et revalidé avant
+exécution. Les widgets de plugin restent des cartes de présentation, sans
+module ni AST ; les opérations natives sont refusées si leur backend manque.
+Aucun \code{eval}, \code{new Function} ni import de code tiers n'est utilisé ;
+aucun marketplace, backend distant ou permission native n'est implémenté.
 
 Le format source v1 préserve les champs supplémentaires. Une version source
 inconnue est conservée et signalée. L'enveloppe workspace est en version 3 : les
@@ -406,7 +414,7 @@ et les violations ; le live ne les calcule pas et ne présente aucun statut de r
 Le site de présentation expose douze dashboards générés dans \code{abstract/visual/dashboards.html} ;
 \code{pnpm dashboards:build} et la CI les maintiennent alignés après tout changement du dashboard.
 
-La bibliothèque locale compte 64 exemples (8 simples, 32 moyens et 24 difficiles).
+La bibliothèque locale compte 65 exemples (8 simples, 33 moyens et 24 difficiles).
 Spirograph trace progressivement sa courbe en 12 images (64×40) ; Pendulum wave
 anime huit pendules en 9 images (56×24). Ces images sont précalculées à la construction
 du projet puis envoyées par \code{blit}/\code{present}, sous le budget de 10\,000 pas.
