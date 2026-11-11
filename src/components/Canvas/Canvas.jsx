@@ -231,7 +231,7 @@ export default function Canvas() {
     trace: [],
     outputSteps: [],
     errorCode: live.errorCode,
-    contracts: { total: 0, observations: 0, violations: [] },
+    contracts: live.contracts ?? { total: 0, observations: 0, violations: [] },
   } : null
   const debugFrame = debugSession?.project === document.project ? debugSession.frames[debugSession.cursor] : null
   const screenPlayback = Boolean(!liveVisible && !debugFrame && simulationResult?.screenFrames?.length && execution && (execution.running || execution.paused || execution.stopped))

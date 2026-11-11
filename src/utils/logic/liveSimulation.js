@@ -1,4 +1,5 @@
 import { analyzeProgram } from './analysis.js'
+import { normalizeContracts, satisfiesContract } from './contracts.js'
 import { validateLiteral, convertConstant, evaluateBinary, evaluateUnary } from './numericConstants.js'
 import { getMathNative } from './mathNatives.js'
 import { createScreenStateReader } from './screenState.js'
@@ -51,6 +52,17 @@ export async function runLiveProgram(project, { inputs = {}, sliceSteps = 400, o
   const functions = new Map(analysis.semantic.symbols.filter((symbol) => symbol.kind === 'FunctionDeclaration').map((symbol) => [symbol.nodeId, nodes.get(symbol.nodeId)]))
   const classMembers = analysis.semantic.index?.classMembers ?? new Map()
   const classModules = analysis.semantic.index?.classModules ?? new Map()
+  // Contraintes vérifiables attachées aux nœuds, relues pendant le live.
+  const contracts = []
+  for (const node of project.nodes) {
+    const entries = normalizeContracts(node?.contracts)
+    if (entries.length) contracts.push({ nodeId: node.id, name: node.properties?.name || node.id, entries })
+  }
+  const contractViolations = []
+  const contractActive = new Map()
+  const contractStates = new Map()
+  let contractObservations = 0
+  const maximumContractViolations = 100
   const entry = [...functions.values()].find((node) => node?.properties?.entryPoint === true)
   if (!entry) return { ok: false, output: [], errorCode: 'SIMULATION_ENTRY_MISSING', error: 'No entry point is marked.' }
   if ((entry.children.parameters ?? []).length > 0) return { ok: false, output: [], errorCode: 'SIMULATION_ENTRY_INPUTS', error: 'The entry point must not require inputs.' }
@@ -101,6 +113,19 @@ export async function runLiveProgram(project, { inputs = {}, sliceSteps = 400, o
       current = current.parent
     }
     throw simulationError('SIMULATION_UNINITIALIZED', 'A value was read before it was initialized.')
+  }
+
+  // Lit une liaison sans lever d'erreur si elle n'est pas encore initialisée.
+  function peekBinding(nodeId, environment) {
+    let current = environment
+    while (current) {
+      if (current.values.has(nodeId)) {
+        const value = current.values.get(nodeId)
+        return value === uninitialized ? undefined : value
+      }
+      current = current.parent
+    }
+    return undefined
   }
 
   // Modifie une liaison existante.
@@ -161,11 +186,22 @@ export async function runLiveProgram(project, { inputs = {}, sliceSteps = 400, o
   }
 
   // Lit le dernier état des widgets et le transmet au pilote.
+  // Résume les contrats observés pour le panneau de simulation live.
+  function contractSummary() {
+    return {
+      total: contracts.reduce((count, entry) => count + entry.entries.length, 0),
+      observations: contractObservations,
+      violations: [...contractViolations],
+      active: [...contractActive.values()],
+    }
+  }
+
   function collectState(extra = {}) {
     return {
       steps,
       currentNodeId,
       output: [...output],
+      contracts: contractSummary(),
       screens: screenReader ? screenReader(global.values) : {},
       gauges: gaugeReader ? gaugeReader(global.values) : {},
       leds: ledReader ? ledReader(global.values) : {},
@@ -211,6 +247,34 @@ export async function runLiveProgram(project, { inputs = {}, sliceSteps = 400, o
     }
   }
 
+  // Vérifie chaque contrat sur l'état courant ; une violation n'est signalée qu'une fois par valeur observée.
+  function checkContracts(environment) {
+    if (contracts.length === 0) return
+    for (const entry of contracts) {
+      const value = peekBinding(entry.nodeId, environment)
+      if (value === undefined) continue
+      for (const contract of entry.entries) {
+        const satisfied = satisfiesContract(contract.kind, value, contract.arguments)
+        if (satisfied === null) continue
+        contractObservations += 1
+        const key = `${entry.nodeId}:${contract.kind}:${JSON.stringify(contract.arguments ?? [])}`
+        if (satisfied) {
+          contractStates.delete(key)
+          contractActive.delete(key)
+          continue
+        }
+        const observed = formatValue(value)
+        const previous = contractStates.get(key)
+        if (!previous || previous !== observed) {
+          const violation = { nodeId: entry.nodeId, name: entry.name, kind: contract.kind, arguments: contract.arguments ?? [], step: steps, value: observed }
+          contractStates.set(key, observed)
+          contractActive.set(key, violation)
+          if (contractViolations.length < maximumContractViolations) contractViolations.push(violation)
+        }
+      }
+    }
+  }
+
   // Rend la main au pilote après une tranche ou sur demande explicite.
   async function maybeYield(force = false) {
     if (!onFrame) return
@@ -219,6 +283,7 @@ export async function runLiveProgram(project, { inputs = {}, sliceSteps = 400, o
     const response = await onFrame(collectState())
     if (response?.stop === true) throw liveStopped
     applyInputs(response?.inputs)
+    checkContracts(global)
     await applyEvents(response?.events)
   }
 
@@ -370,7 +435,11 @@ export async function runLiveProgram(project, { inputs = {}, sliceSteps = 400, o
   // Exécute une instruction avec coopération.
   async function executeStatement(node, environment) {
     await maybeYield()
-    return runStatement(node, environment)
+    try {
+      return await runStatement(node, environment)
+    } finally {
+      checkContracts(environment)
+    }
   }
 
   // Exécute une instruction et propage les contrôles de flux.
@@ -550,6 +619,7 @@ export async function runLiveProgram(project, { inputs = {}, sliceSteps = 400, o
       }
     }
     applyInputs(inputs)
+    checkContracts(global)
     // Convention des exemples : `SP3_LIVE` prolonge leur boucle principale en live.
     for (const node of project.nodes ?? []) {
       if (node?.kind === 'VariableDeclaration' && node.properties?.name === 'SP3_LIVE') global.values.set(node.id, true)
@@ -557,11 +627,11 @@ export async function runLiveProgram(project, { inputs = {}, sliceSteps = 400, o
     await maybeYield(true)
     const returned = await executeFunction(entry, [])
     if (onFrame) await onFrame(collectState({ done: true, returnValue: returned === undefined ? null : formatValue(returned) }))
-    return { ok: true, output, steps, returned: typeof returned === 'bigint' ? Number(returned) : returned, returnValue: returned === undefined ? null : formatValue(returned) }
+    return { ok: true, output, steps, contracts: contractSummary(), returned: typeof returned === 'bigint' ? Number(returned) : returned, returnValue: returned === undefined ? null : formatValue(returned) }
   } catch (error) {
-    if (error === liveStopped) return { ok: true, stopped: true, output, steps }
+    if (error === liveStopped) return { ok: true, stopped: true, output, steps, contracts: contractSummary() }
     const errorCode = error?.code ?? 'SIMULATION_FAILED'
     if (onFrame) await onFrame(collectState({ error: { code: errorCode, message: error instanceof Error ? error.message : 'Simulation stopped.' } }))
-    return { ok: false, output, steps, errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.' }
+    return { ok: false, output, steps, contracts: contractSummary(), errorCode, error: error instanceof Error ? error.message : 'Simulation stopped.' }
   }
 }

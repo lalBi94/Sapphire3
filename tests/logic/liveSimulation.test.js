@@ -79,6 +79,53 @@ test('run live : classes et widgets exécutés par tranches', async () => {
   assert.ok(frames.some((frame) => frame.leds.reactorLed))
 })
 
+test('run live : les contrats sont vérifiés après les instructions et les entrées', async () => {
+  const project = createProject('liveContracts')
+  const app = createModule('contractApp', 'Contract app')
+  project.modules.push(app)
+  const intType = { kind: 'primitive', name: 'int' }
+  const booleanType = { kind: 'primitive', name: 'boolean' }
+  const voidType = { kind: 'primitive', name: 'void' }
+  let sequence = 0
+  const node = (kind, properties = {}, children = {}, references = {}) => {
+    const id = `contracts:${++sequence}`
+    project.nodes.push(createNode(id, app.id, kind, { properties, children, references }))
+    return id
+  }
+  const start = node('Literal', { type: intType, value: '1' })
+  const value = node('VariableDeclaration', { name: 'value', type: intType }, { initializer: start })
+  project.nodes.find((entry) => entry.id === value).contracts = [{ kind: 'positive' }]
+  const liveStart = node('Literal', { type: booleanType, value: false })
+  const live = node('VariableDeclaration', { name: 'SP3_LIVE', type: booleanType }, { initializer: liveStart })
+  const loopTest = node('Reference', {}, {}, { target: { kind: 'name', name: 'SP3_LIVE' } })
+  const loopBody = node('Block', {}, { statements: [] })
+  const loop = node('WhileStatement', {}, { test: loopTest, body: loopBody })
+  const minusOne = node('Literal', { type: intType, value: '-1' })
+  const valueTarget = node('Reference', {}, {}, { target: { kind: 'name', name: 'value' } })
+  const assignment = node('AssignmentStatement', {}, { target: valueTarget, value: minusOne })
+  const mainBody = node('Block', {}, { statements: [assignment, loop] })
+  const main = node('FunctionDeclaration', { name: 'main', type: voidType, entryPoint: true }, { parameters: [], body: mainBody })
+  app.rootNodeIds.push(value, live, main)
+
+  const frames = []
+  const result = await runLiveProgram(project, {
+    inputs: { [value]: -5 },
+    sliceSteps: 20,
+    onFrame: (state) => {
+      frames.push(state)
+      if (frames.length === 2) return { inputs: { [value]: 1 } }
+      return frames.length >= 4 ? { stop: true } : {}
+    },
+  })
+  assert.equal(result.ok, true, result.errorCode)
+  assert.equal(result.contracts.total, 1)
+  assert.ok(result.contracts.observations > 0)
+  assert.ok(result.contracts.violations.some((violation) => violation.nodeId === value && violation.value === '-1'))
+  assert.ok(result.contracts.violations.some((violation) => violation.nodeId === value && violation.value === '-5'))
+  assert.ok(frames.some((frame) => frame.contracts.active.some((violation) => violation.value === '-5')))
+  assert.deepEqual(frames.at(-1).contracts.active, [])
+})
+
 test('run live : les animations et simulations continues bouclent, sans casser le borné', async () => {
   for (const id of ['rotatingTriangle', 'pendulumWave', 'thermostat']) {
     const workspace = deserializeWorkspace(JSON.stringify(examples.find((entry) => entry.id === id).build()))

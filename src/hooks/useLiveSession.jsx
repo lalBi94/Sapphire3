@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { startLive, sendLiveInputs, sendLiveEvents, setLiveSpeed, pauseLive, resumeLive, stopLive } from '../services/liveRunner.js'
 
-const initialLive = Object.freeze({ status: 'idle', steps: 0, output: [], currentNodeId: null, states: {}, errorCode: null, error: '' })
+const initialLive = Object.freeze({ status: 'idle', steps: 0, output: [], currentNodeId: null, states: {}, contracts: { total: 0, observations: 0, violations: [] }, errorCode: null, error: '' })
 
 // Expose une session live : démarrage, entrées, pause, reprise et arrêt.
 export default function useLiveSession() {
@@ -25,6 +25,7 @@ export default function useLiveSession() {
           steps: state.steps,
           output: state.output ?? [],
           currentNodeId: state.currentNodeId ?? null,
+          contracts: state.contracts ?? { total: 0, observations: 0, violations: [] },
           states: {
             screens: state.screens ?? {},
             gauges: state.gauges ?? {},

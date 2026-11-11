@@ -2,6 +2,12 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Contrats en live — 11 novembre 2026
+
+- Les contrats attachés aux variables, constantes et paramètres sont désormais vérifiés pendant le **Run live**, après chaque instruction, après chaque application d'entrée et à chaque changement de valeur. Le contrôle reprend le catalogue pur de `contracts.js` et la même déduplication par valeur observée que le Run borné.
+- Le résultat live expose `contracts.total`, `contracts.observations`, `contracts.violations` (historique) et `contracts.active` (violations encore présentes). Le panneau Simulation utilise les violations actives en live : une violation disparaît dès que la contrainte redevient satisfaite, tandis que le Run borné conserve son historique. Le worker et `useLiveSession` transmettent ces états à chaque frame.
+- Vérifications : **656 tests Node/Python réussis**, dont un test live ciblé (violation après affectation, violation après entrée, disparition de la violation active après retour à une valeur valide). Build Vite réussi ; contrôle navigateur sur **Input console** : contrat `positive` sur `pulses`, Run live affiche « violated at step 59 (value 0) », puis le bouton hold incrémente la valeur et le panneau affiche « Contracts satisfied: 1. » sans erreur console.
+
 ## Undo/redo des gestes et annotations — 11 novembre 2026
 
 - L'historique accepte désormais les modifications de présentation : déplacements et redimensionnements, textes de Comment et légendes d'Image, masquage, verrouillage, emoji et disposition automatique. Les gestes continus utilisent un point de contrôle (`historyStart`/`historyEnd`) : un déplacement ou redimensionnement groupé crée une seule étape, une saisie d'annotation une seule étape par session de champ. Un geste sans changement ne crée aucune étape.

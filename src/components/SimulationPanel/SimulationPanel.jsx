@@ -16,6 +16,9 @@ export default function SimulationPanel({ result, live = false, running = false,
   const panelRef = useRef(null)
   const front = usePanelFront({ title: result ? t('simulation.title') : null, onClose })
   if (!result) return null
+  const contractViolations = result.contracts?.total > 0
+    ? (live ? result.contracts.active ?? result.contracts.violations : result.contracts.violations)
+    : []
 
   // Mesure la bulle dans son canvas avant un déplacement.
   function measure() {
@@ -114,9 +117,9 @@ export default function SimulationPanel({ result, live = false, running = false,
         <pre>{visibleOutput.join('\n') || t('simulation.noOutput')}</pre>
         {result.contracts?.total > 0 && <section className="simulation-panel__contracts" aria-label={t('contracts.title')}>
           <h3>{t('contracts.title')}</h3>
-          {result.contracts.violations.length === 0
+          {contractViolations.length === 0
             ? <p role="status">{t('contracts.satisfied', { count: result.contracts.total })}</p>
-            : <ul>{result.contracts.violations.map((violation, position) => <li key={position} role="alert">{t('contracts.violated', { name: violation.name, rule: contractLabel(violation, t), step: violation.step, value: violation.value })}</li>)}</ul>}
+            : <ul>{contractViolations.map((violation, position) => <li key={position} role="alert">{t('contracts.violated', { name: violation.name, rule: contractLabel(violation, t), step: violation.step, value: violation.value })}</li>)}</ul>}
         </section>}</> : <p className="simulation-panel__error" role="alert">{failureLabel({ code: result.errorCode ?? 'SIMULATION_FAILED' }, t)}</p>}
     </aside>
   )
