@@ -30,6 +30,7 @@ export const keybindCategories = Object.freeze([
       Object.freeze({ id: 'navigation.center', labelKey: 'nav.center', defaultShortcut: 'Ctrl+Shift+F' }),
       Object.freeze({ id: 'navigation.zoom100', labelKey: 'nav.zoom100', defaultShortcut: 'Ctrl+0' }),
       Object.freeze({ id: 'navigation.toggleMinimap', labelKey: 'nav.minimap', defaultShortcut: 'Ctrl+M' }),
+      Object.freeze({ id: 'navigation.commandPalette', labelKey: 'nav.commandPalette', defaultShortcut: 'Ctrl+K', allowInInput: true }),
     ]),
   },
   {

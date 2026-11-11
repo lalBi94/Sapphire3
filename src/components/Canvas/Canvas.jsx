@@ -43,10 +43,13 @@ import { buildDiscordActivity } from '../../utils/discordPresence.js'
 import { layoutModules } from '../../utils/moduleLayout.js'
 import { buildDebugValues } from '../../utils/memorySpace.js'
 import ProjectNavigation from '../ProjectNavigation/ProjectNavigation.jsx'
+import CommandPalette from '../CommandPalette/CommandPalette.jsx'
 import useWorkspaceFiles from '../../hooks/useWorkspaceFiles.jsx'
 import useExercise from '../../hooks/useExercise.jsx'
 import ExercisePanel from '../ExercisePanel/ExercisePanel.jsx'
 import { createExercise } from '../../utils/exercise.js'
+import { examples } from '../../utils/examples.js'
+import { workspaceTemplates } from '../../utils/workspaceTemplates.js'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { useNotifications } from '../../contexts/NotificationContext.jsx'
 import { useTheme } from '../../contexts/ThemeContext.jsx'
@@ -116,13 +119,14 @@ export default function Canvas() {
   const [bookmarksOpen, setBookmarksOpen] = useState(false)
   const [breakpoints, setBreakpoints] = useState(() => new Set())
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [navCollapsed, setNavCollapsed] = useState(false)
   const [presentationMode, setPresentationMode] = useState(false)
   const menuTriggerRef = useRef(null)
   const workspaceRef = useRef(null)
   const groupMoveRef = useRef(null)
   const { language, t } = useTranslation()
-  const { presetThemes, customThemes } = useTheme()
+  const { presetThemes, customThemes, setTheme, setThemeMode } = useTheme()
   const { notify, clear: clearNotifications } = useNotifications()
   const document = useCanvasDocument()
   const liveSession = useLiveSession()
@@ -586,6 +590,56 @@ export default function Canvas() {
     if (!contextMenu) return
     document.createCard(type, { x: contextMenu.worldX, y: contextMenu.worldY }, t(moduleTypes[type].labelKey))
     handleCloseMenu(true)
+  }
+
+  // Place une carte au centre de la vue, sans passer par le menu contextuel.
+  function handlePaletteCreateCard(type) {
+    const definition = moduleTypes[type]
+    if (!definition) return
+    document.createCard(type, { x: Math.round(camera.x - definition.width / 2), y: Math.round(camera.y - definition.height / 2) }, t(definition.labelKey))
+  }
+
+  // Rassemble les commandes de la palette à partir des actions déjà disponibles.
+  function buildCommandPaletteCommands() {
+    const commands = []
+    const add = (group, groupLabel, id, label, keywords, run) => {
+      commands.push({ group, groupLabel, id, label, keywords, run })
+    }
+    const createLabel = t('commandPalette.group.create')
+    for (const type of Object.keys(moduleTypes)) {
+      const definition = moduleTypes[type]
+      add('create', createLabel, `create:${type}`, t(definition.labelKey), [type, 'card', definition.label], () => handlePaletteCreateCard(type))
+    }
+    const exampleLabel = t('commandPalette.group.examples')
+    for (const example of examples) {
+      add('examples', exampleLabel, `example:${example.id}`, t(example.labelKey), [example.id, example.category, example.subcategory, 'example'], () => files.handleOpenExample(example.id))
+    }
+    const templateLabel = t('commandPalette.group.templates')
+    for (const template of workspaceTemplates) {
+      add('templates', templateLabel, `template:${template.id}`, t(template.labelKey), [template.id, 'template'], () => files.handleOpenTemplate(template.id))
+    }
+    const runLabel = t('commandPalette.group.run')
+    add('run', runLabel, 'run:live', t('run.live'), ['run', 'live'], handleRunLive)
+    add('run', runLabel, 'run:bounded', t('run.simulateSp3'), ['run', 'bounded', 'simulation'], () => handleRunSimulation())
+    add('run', runLabel, 'run:debug', t('run.debugSp3'), ['run', 'debug'], handleDebugSp3)
+    add('run', runLabel, 'run:stop', t('simulation.stop'), ['run', 'stop'], handleStopExecution)
+    const fileLabel = t('commandPalette.group.file')
+    add('file', fileLabel, 'file:save', t('nav.saveWorkspace'), ['save'], files.handleSave)
+    add('file', fileLabel, 'file:saveAs', t('nav.saveWorkspaceAs'), ['save', 'as'], files.saveWorkspaceAs)
+    add('file', fileLabel, 'file:exportArchive', t('nav.exportWorkspace'), ['export', 'zip', 'archive'], files.exportWorkspaceArchive)
+    add('file', fileLabel, 'file:exportSvg', t('nav.exportSvg'), ['export', 'svg'], handleExportSvg)
+    add('file', fileLabel, 'file:exportDashboard', t('dashboard.export'), ['export', 'dashboard', 'html'], handleExportDashboard)
+    const themeLabel = t('commandPalette.group.theme')
+    for (const theme of presetThemes) {
+      add('theme', themeLabel, `theme:${theme.id}`, t(theme.labelKey), ['theme', theme.id], () => setTheme(theme.id))
+    }
+    for (const theme of customThemes) {
+      add('theme', themeLabel, `theme:${theme.id}`, theme.name, ['theme', 'custom', theme.id], () => setTheme(theme.id))
+    }
+    add('theme', themeLabel, 'theme:dark', t('theme.dark'), ['theme', 'dark'], () => setThemeMode('dark'))
+    add('theme', themeLabel, 'theme:light', t('theme.light'), ['theme', 'light'], () => setThemeMode('light'))
+    add('navigation', t('commandPalette.group.navigation'), 'navigation:search', t('nav.search'), ['find', 'block', 'search'], search.show)
+    return commands
   }
 
   // Indique si une cible peut être enregistrée comme favori, et si elle est pure.
@@ -1507,6 +1561,7 @@ export default function Canvas() {
     'navigation.center': { available: () => true, run: () => handleRecenter(getModulesBounds()) },
     'navigation.zoom100': { available: () => true, run: resetZoom },
     'navigation.toggleMinimap': { available: () => true, run: () => setMinimapVisible((current) => !current) },
+    'navigation.commandPalette': { available: () => true, run: () => setCommandPaletteOpen((current) => !current) },
     'execution.run': { available: () => true, run: handleRunLive },
     'execution.stop': { available: () => true, run: handleStopExecution },
     'execution.debug': { available: () => true, run: handleDebugSp3 },
@@ -1643,6 +1698,7 @@ export default function Canvas() {
       {flowRun && <FlowPanel session={flowRun.session} contextIndex={document.index} step={flowRun.index} running={flowRun.running} paused={flowRun.paused} stopped={flowRun.stopped} onPause={handlePauseFlow} onResume={handleResumeFlow} onStop={handleStopFlow} onClose={() => setFlowRun(null)} />}
       <TranspilePanel result={transpilationResult} exportError={transpileExportError} onExport={handleExportTranspilation} onClose={() => { setTranspilationResult(null); setTranspileExportError(null) }} />
       {search.open && <NodeSearchPanel index={document.index} cards={visibleCards} selectedId={selected?.kind === 'node' ? selected.id : null} focusToken={search.token} onReveal={handleRevealNode} onClose={handleCloseSearch} />}
+      {commandPaletteOpen && <CommandPalette commands={buildCommandPaletteCommands()} onClose={() => setCommandPaletteOpen(false)} />}
       {!presentationMode && bookmarksOpen && <BookmarkPanel bookmarks={bookmarks} modules={moduleChoices} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark} onClose={() => setBookmarksOpen(false)} />}
       {!presentationMode && settingsOpen && <SettingsWindow
         onClose={() => setSettingsOpen(false)}

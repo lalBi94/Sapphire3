@@ -2,6 +2,12 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Palette de commandes — 11 novembre 2026
+
+- **Ctrl+K** ouvre une palette de commandes qui complète **Rechercher un bloc** sans le remplacer. Elle regroupe la création de toutes les cartes, les exemples locaux, les modèles de workspace, le Run live, le Run borné, le debug, l'arrêt, l'enregistrement, l'enregistrement sous, l'export ZIP/SVG/dashboard, les thèmes prédéfinis et personnalisés, l'apparence sombre/claire et l'ouverture de la recherche de blocs. Les commandes sont construites depuis les handlers existants, sans dupliquer leur logique métier ; la création place la carte au centre de la vue.
+- Le filtre pur `filterCommands` (insensible à la casse et aux accents, multi-mots, priorité aux libellés commençant par le terme) est testé dans `tests/workspace/commandPalette.test.js`. Le raccourci configurable `navigation.commandPalette` rejoint le registre central avec **Ctrl+K** par défaut et reste utilisable depuis un champ de saisie. La palette capture ses propres touches : flèches avec bouclage, Entrée, Échap et Ctrl+K pour fermer ; le focus revient au déclencheur, sauf si un dialogue modal s'ouvre.
+- Vérifications : **660 tests Node/Python réussis**, dont 4 tests dédiés au filtre et la mise à jour du test des raccourcis. Build Vite réussi. Contrôles navigateur : Ctrl+K ouvre la palette avec 109 commandes réparties en sept groupes ; « gauge » puis Entrée crée une carte Gauge au centre ; « light » applique la variante claire ; « find a block » ouvre la recherche de blocs ; « fibonacci » ouvre la confirmation de remplacement ; les flèches déplacent la sélection ; Échap et Ctrl+K ferment la palette ; aucune erreur console.
+
 ## Contrats en live — 11 novembre 2026
 
 - Les contrats attachés aux variables, constantes et paramètres sont désormais vérifiés pendant le **Run live**, après chaque instruction, après chaque application d'entrée et à chaque changement de valeur. Le contrôle reprend le catalogue pur de `contracts.js` et la même déduplication par valeur observée que le Run borné.
