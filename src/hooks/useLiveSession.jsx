@@ -26,6 +26,7 @@ export default function useLiveSession() {
           output: state.output ?? [],
           currentNodeId: state.currentNodeId ?? null,
           contracts: state.contracts ?? { total: 0, observations: 0, violations: [] },
+          variables: state.variables ?? [],
           states: {
             screens: state.screens ?? {},
             gauges: state.gauges ?? {},

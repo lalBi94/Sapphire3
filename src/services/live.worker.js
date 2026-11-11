@@ -1,4 +1,5 @@
 import { runLiveProgram } from '../utils/logic/liveSimulation.js'
+import { applyPluginRuntimePayload } from '../utils/plugins/pluginRuntime.js'
 
 let pendingFrame = null
 let stopRequested = false
@@ -16,6 +17,7 @@ self.onmessage = async (event) => {
   const data = event.data ?? {}
   if (data.type === 'start') {
     try {
+      applyPluginRuntimePayload(data.plugins)
       const result = await runLiveProgram(data.project, {
         inputs: data.inputs ?? {},
         sliceSteps: data.sliceSteps ?? 400,

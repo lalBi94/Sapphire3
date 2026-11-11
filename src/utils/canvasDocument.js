@@ -58,6 +58,9 @@ export function reduceDocument(state, action) {
   if (action.type === 'dashboard') {
     return { ...state, dashboard: action.dashboard }
   }
+  if (action.type === 'refreshAnalysis') {
+    return withSource(state, state.project)
+  }
   if (action.type === 'restoreStarter') {
     return withSource({ ...state, cards: action.starter.presentation.cards, revision: state.revision + 1 }, action.starter.project)
   }
@@ -181,7 +184,7 @@ export function reduceDocument(state, action) {
       : { ...state, mutationError: result.code }
   }
   if (action.type === 'deleteComment') {
-    return { ...state, cards: state.cards.filter((card) => card.id !== action.id || !['comment', 'image'].includes(card.type)) }
+    return { ...state, cards: state.cards.filter((card) => card.id !== action.id || !['comment', 'image', 'pluginWidget'].includes(card.type)) }
   }
   if (action.type === 'bulkDelete') {
     const result = state.project === action.previousProject ? action.prepared : deleteSourceTargets(state.project, action.targets, { index: state.index })
@@ -228,7 +231,7 @@ function recordsHistory(action) {
   if (action.history === true) return true
   if (action.history === false) return false
   if (['geometry', 'text', 'layout'].includes(action.type)) return true
-  if (['presentation', 'exercise', 'dashboard'].includes(action.type)) return false
+  if (['presentation', 'exercise', 'dashboard', 'refreshAnalysis'].includes(action.type)) return false
   return true
 }
 

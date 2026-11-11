@@ -234,6 +234,23 @@ Les opérations de grille sont génériques et ne connaissent pas le jeu de la v
 
 Un nom inconnu est diagnostiqué `NODE_INCOMPLETE` ; une arité ou un type d'argument incompatible produit `TYPE_MISMATCH`. La simulation locale exécute ces opérations de façon déterministe, **sauf `randomDouble` et `randomInt`** : `randomDouble` retourne un double dans `[0, 1)`, `randomInt(min, max)` retourne un entier inclusif dans `[min, max]`, et une plage inversée produit `SIMULATION_RANDOM_RANGE`. Ces deux opérations sont les seules sources d'aléa et changent d'une exécution à l'autre ; la transpilation utilise `Math.random`/`sapphireRandomInt` en JavaScript et `random.random`/`random.randint` en Python. Un résultat non fini (NaN ou infini, par exemple `sqrt(-1)` ou `log(0)`) arrête l'exécution avec `SIMULATION_MATH_DOMAIN`, le modèle numérique n'admettant aucune valeur non finie.
 
+Le gestionnaire de plugins peut ajouter des opérations natives validées au
+registre dynamique consulté par `getMathNative`, après les entrées intégrées.
+Une opération de plugin conserve exactement le même nœud `MathCall`, les mêmes
+contrôles d'arité et de types, la même simulation bornée/live et les mêmes
+refus de transpilation. Son implémentation est une expression pure whitelistée,
+jamais une fonction JavaScript importée. Si la cible JavaScript ou Python n'a
+pas d'émetteur déclaré, la transpilation produit
+`TRANSPILE_EXPRESSION_UNSUPPORTED` ; le backend C refuse `MathCall` avec
+`TRANSPILE_C_UNSUPPORTED`.
+
+Les nœuds composites de niveau A sont des actions de menu qui insèrent un
+brouillon de constructions natives via `createNodeBundle` et
+`insertSourceNodes`. Ils ne créent aucun type d'AST nouveau : le typage,
+l'exécution, le debug, la sérialisation et la transpilation restent ceux des
+nœuds Sapphire existants. Les nœuds sémantiques de niveau B ne sont pas
+opérationnels.
+
 La **transpilation JavaScript/Python** traduit désormais `MathCall` en utilisant l'équivalent natif le plus direct, avec de petits helpers lorsque le langage cible ne préserve pas seul la sémantique SP3 :
 
 | Opérations | JavaScript | Python |

@@ -404,12 +404,28 @@ export function simulateProgram(project, { maxSteps = 10000, captureDebug = fals
       if (!scope) return
       for (const [id, value] of scope.values) {
         const node = nodes.get(id)
-        list.push({ id, name: node?.properties?.name ?? id, kind, type: typeText(types.get(id)), value: value === uninitialized ? null : formatValue(value) })
+        list.push({ id, name: node?.properties?.name ?? id, kind, type: typeText(types.get(id)), value: value === uninitialized ? null : formatValue(value), raw: value === uninitialized ? null : serializableValue(value) })
       }
     }
     add(global, 'global')
     if (functionScope && functionScope !== global) add(functionScope, 'local')
     return list
+  }
+
+  // Convertit une valeur en donnée sérialisable pour les liaisons de widgets.
+  function serializableValue(value, seen = new Set()) {
+    if (value === undefined) return null
+    if (typeof value === 'bigint') return Number(value)
+    if (typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean' || value === null) return value
+    if (Array.isArray(value)) return value.map((entry) => serializableValue(entry, seen))
+    if (value && typeof value === 'object') {
+      if (seen.has(value)) return null
+      const next = new Set(seen).add(value)
+      if (value.classValue === true) return formatValue(value, next)
+      if (value.pointer === true || value.functionValue === true || value.lambdaValue === true || value.methodValue === true) return value.label ?? null
+      return null
+    }
+    return String(value)
   }
 
   // Vérifie chaque contrat sur l'état courant ; une violation n'est signalée qu'une fois par valeur observée.

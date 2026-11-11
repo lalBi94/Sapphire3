@@ -13,6 +13,7 @@ import { createInputButtonModule, inputButtonDefaults } from '../utils/inputButt
 import { createInputNumberModule, inputValueDefaults } from '../utils/inputNumberNode.js'
 import { createColorPickerModule } from '../utils/colorPickerNode.js'
 import { resolveContext, createNodeBundle, insertSourceNodes, updateSourceNode, deleteSourceNodes, deleteSourceModule, reorderSourceNode, setSourceNodeContracts, setModuleExport, addModuleImport, removeModuleImport, ensureModuleImports, captureSourceNode, pasteSourceNode, moveSourceNode, duplicateSourceNode, insertBookmark, renameSourceSymbol, deleteSourceTargets, duplicateSourceTargets, moveSourceNodes, bindInputButtonCallback, bindInputNumberCallback, bindColorPickerCallback, captureSourceModule, pasteSourceModule } from '../utils/logic/index.js'
+import { createPluginWidgetCard } from '../utils/plugins/pluginWidgets.js'
 import { initialDocument, reduceHistory } from '../utils/canvasDocument.js'
 
 // Évite deux cartes Module du même nom lors de l'insertion d'un favori.
@@ -139,6 +140,23 @@ export default function useCanvasDocument() {
   // Modifie la présentation sans réanalyser le programme.
   function updateGeometry(id, patch, options = {}) {
     dispatch({ type: 'geometry', id, patch, history: options.history !== false })
+  }
+
+  // Crée une carte de plugin avec les valeurs par défaut de son manifeste.
+  function createPluginWidget(entry, position, name = null) {
+    const card = createPluginWidgetCard(entry, position, name)
+    dispatch({ type: 'createCard', card })
+    return card
+  }
+
+  // Met à jour l'état ou les propriétés d'un widget de plugin sans toucher à la source logique.
+  function updatePluginWidget(id, patch) {
+    dispatch({ type: 'presentation', id, patch })
+  }
+
+  // Recalcule l'analyse après l'activation ou la désactivation d'un plugin.
+  function refreshAnalysis() {
+    dispatch({ type: 'refreshAnalysis' })
   }
 
   // Bascule une vue de carte sans créer d'étape undo : c'est une action de navigation.
@@ -391,7 +409,7 @@ export default function useCanvasDocument() {
 
   // Retire uniquement l'annotation visuelle, sans toucher à la source ni réanalyser le programme.
   function deleteComment(id) {
-    if (!document.cards.some((card) => card.id === id && ['comment', 'image'].includes(card.type))) return { ok: false, code: 'TARGET_INVALID' }
+    if (!document.cards.some((card) => card.id === id && ['comment', 'image', 'pluginWidget'].includes(card.type))) return { ok: false, code: 'TARGET_INVALID' }
     dispatch({ type: 'deleteComment', id })
     return { ok: true }
   }
@@ -447,5 +465,5 @@ export default function useCanvasDocument() {
     dispatch({ type: 'redo' })
   }
 
-  return { ...document, createCard, updateGeometry, updateCardView, beginHistoryGesture, endHistoryGesture, updateInputButton, updateInputValue, bindInputButton, bindInputValue, updateColorPicker, bindColorPicker, arrangeModules, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, pasteModule, moveNode, moveNodes, duplicateNode, duplicateSelection, deleteNode, deleteModule, deleteSelection, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, previewSymbolRename, applySymbolRename, setExpandedNodes, setCardHidden, setCardLocked, setCardEmoji, setExercise, setDashboard, restoreStarter, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0 || Boolean(history.checkpoint && history.checkpoint.present !== history.present), canRedo: history.future.length > 0 }
+  return { ...document, createCard, createPluginWidget, updatePluginWidget, refreshAnalysis, updateGeometry, updateCardView, beginHistoryGesture, endHistoryGesture, updateInputButton, updateInputValue, bindInputButton, bindInputValue, updateColorPicker, bindColorPicker, arrangeModules, renameCard, updateComment, updateImage, insertNode, configureNode, pasteNode, pasteModule, moveNode, moveNodes, duplicateNode, duplicateSelection, deleteNode, deleteModule, deleteSelection, deleteComment, exportFunction, importFunction, removeImport, reorderNode, setNodeContracts, previewSymbolRename, applySymbolRename, setExpandedNodes, setCardHidden, setCardLocked, setCardEmoji, setExercise, setDashboard, restoreStarter, insertSavedBookmark, replaceWorkspace, undo, redo, canUndo: history.past.length > 0 || Boolean(history.checkpoint && history.checkpoint.present !== history.present), canRedo: history.future.length > 0 }
 }

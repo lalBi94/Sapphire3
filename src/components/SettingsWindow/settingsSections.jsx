@@ -2,6 +2,7 @@ import { BookmarkPlus, Check, Download, ExternalLink, FileInput, FileOutput, Fil
 import ThemeMenu from '../ThemeMenu/ThemeMenu.jsx'
 import KeybindsSection from './KeybindsSection.jsx'
 import WebDashboardSection from './WebDashboardSection.jsx'
+import PluginsSection from './PluginsSection.jsx'
 import LanguageFlag, { languageFlagColors } from './LanguageFlag.jsx'
 import { describeBookmark, getNodeSchema } from '../../utils/logic/index.js'
 import { supportedLanguages } from '../../utils/translations.js'
@@ -204,6 +205,9 @@ export const settingsCategories = [
   ] },
   { id: 'bookmarks', labelKey: 'nav.bookmarks', sections: [
     { id: 'library', labelKey: 'settings.section.library', Component: BookmarksSection },
+  ] },
+  { id: 'plugins', labelKey: 'settings.category.plugins', sections: [
+    { id: 'installed', labelKey: 'settings.section.plugins', Component: PluginsSection },
   ] },
   { id: 'export', labelKey: 'settings.category.export', sections: [
     { id: 'webDashboard', labelKey: 'settings.section.webDashboard', Component: WebDashboardSection },

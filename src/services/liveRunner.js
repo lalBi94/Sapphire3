@@ -1,4 +1,5 @@
 import { clampSimulationSpeed, liveSpeedDefault, liveTickDelay } from '../utils/simulationSpeed.js'
+import { getPluginRuntimePayload } from '../utils/plugins/pluginRuntime.js'
 
 // Pilote un worker live : chaque frame rend la main, puis le worker reprend au tick suivant.
 let worker = null
@@ -96,7 +97,7 @@ export function startLive(project, { inputs = {}, sliceSteps = 400, speed: initi
     worker?.terminate()
     worker = null
   }
-  worker.postMessage({ type: 'start', project, inputs, sliceSteps })
+  worker.postMessage({ type: 'start', project, inputs, sliceSteps, plugins: getPluginRuntimePayload() })
   statusCallback?.({ status: 'running' })
   return true
 }

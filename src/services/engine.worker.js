@@ -1,5 +1,6 @@
 import { analyzeProgram, createDebugSession, simulateProgram } from '../utils/logic/index.js'
 import { transpileProgram } from '../utils/transpilation/index.js'
+import { applyPluginRuntimePayload } from '../utils/plugins/pluginRuntime.js'
 
 // Transmet une avancement sérialisable au demandeur, sans exposer les objets internes du moteur.
 function reporter(id) {
@@ -9,8 +10,9 @@ function reporter(id) {
 // Exécute une opération lourde hors du fil principal.
 // L'annulation est obtenue en terminant le worker : aucun calcul synchrone ne peut être interrompu autrement.
 self.onmessage = (event) => {
-  const { id, action = 'simulate', project, options = {} } = event.data ?? {}
+  const { id, action = 'simulate', project, options = {}, plugins = [] } = event.data ?? {}
   try {
+    applyPluginRuntimePayload(plugins)
     if (action === 'debug') {
       const { project: _project, result: _result, ...session } = createDebugSession(project, { ...options, onProgress: reporter(id) })
       self.postMessage({ id, session })

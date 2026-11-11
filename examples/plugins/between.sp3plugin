@@ -1,0 +1,58 @@
+{
+  "pluginFormatVersion": 1,
+  "apiVersion": 1,
+  "id": "org.sapphire3.examples.between",
+  "name": "Between composite node",
+  "version": "1.0.0",
+  "author": "Sapphire 3 examples",
+  "description": "Adds a high-level comparison node that expands to native Sapphire comparison and boolean nodes.",
+  "permissions": [
+    "engine.composites"
+  ],
+  "dependencies": [],
+  "composites": [
+    {
+      "id": "between",
+      "name": "Value between bounds",
+      "description": "Expands to (value >= lower) and (value <= upper). Fill the three holes after insertion.",
+      "expansion": {
+        "kind": "BinaryExpression",
+        "properties": {
+          "operator": "and"
+        },
+        "children": {
+          "left": {
+            "kind": "BinaryExpression",
+            "properties": {
+              "operator": ">="
+            },
+            "children": {
+              "left": {
+                "kind": "Hole"
+              },
+              "right": {
+                "kind": "Hole"
+              }
+            }
+          },
+          "right": {
+            "kind": "BinaryExpression",
+            "properties": {
+              "operator": "<="
+            },
+            "children": {
+              "left": {
+                "kind": "Hole"
+              },
+              "right": {
+                "kind": "Hole"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "widgets": [],
+  "nativeOperations": []
+}

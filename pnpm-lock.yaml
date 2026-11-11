@@ -45,6 +45,9 @@ importers:
       '@sapphire3/graph':
         specifier: workspace:*
         version: link:packages/graph
+      '@sapphire3/plugin-sdk':
+        specifier: workspace:*
+        version: link:packages/plugin-sdk
       '@sapphire3/project':
         specifier: workspace:*
         version: link:packages/project
@@ -81,6 +84,12 @@ importers:
       '@sapphire3/core':
         specifier: workspace:*
         version: link:../core
+      vite:
+        specifier: 8.3.5
+        version: 8.3.5
+
+  packages/plugin-sdk:
+    devDependencies:
       vite:
         specifier: 8.3.5
         version: 8.3.5

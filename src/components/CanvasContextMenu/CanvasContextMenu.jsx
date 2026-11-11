@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Activity, AudioWaveform, Blend, Box, Braces, ChartColumn, ChartLine, ChevronDown, ChevronRight, EyeOff, Gauge, Hash, Image, Lightbulb, Lock, LockOpen, MessageSquare, Monitor, MousePointerClick, Palette, Search, TextCursorInput } from 'lucide-react'
+import { Activity, AudioWaveform, Blend, Box, Braces, ChartColumn, ChartLine, ChevronDown, ChevronRight, EyeOff, Gauge, Hash, Image, Lightbulb, Lock, LockOpen, MessageSquare, Monitor, MousePointerClick, Palette, Puzzle, Search, SlidersHorizontal, TextCursorInput } from 'lucide-react'
 import { cardCategories, moduleTypes } from '../../utils/moduleTypes.js'
 import { normalizeSearchText } from '../../utils/searchText.js'
 import DeleteAction from '../DeleteAction/DeleteAction.jsx'
@@ -27,10 +27,23 @@ const menuIcons = {
   rgbaPicker: Blend,
   comment: MessageSquare,
   image: Image,
+  pluginWidget: Puzzle,
+}
+
+// Associe un nom d'icône de manifeste à un composant Lucide local.
+function pluginIcon(name) {
+  if (name === 'gauge') return Gauge
+  if (name === 'chart') return ChartLine
+  if (name === 'activity') return Activity
+  if (name === 'led') return Lightbulb
+  if (name === 'slider') return SlidersHorizontal
+  if (name === 'palette') return Palette
+  if (name === 'box') return Box
+  return Puzzle
 }
 
 // Propose les créations disponibles et gère la fermeture ainsi que le focus clavier.
-export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId = null, onDeleteComment, onHideCard, onLockCard, commentLocked = false, anchored = false }) {
+export default function CanvasContextMenu({ x, y, onCreate, onCreatePluginWidget, pluginWidgets = [], onClose, commentId = null, onDeleteComment, onHideCard, onLockCard, commentLocked = false, anchored = false }) {
   const menuRef = useRef(null)
   const searchRef = useRef(null)
   const [term, setTerm] = useState('')
@@ -54,7 +67,13 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId =
 
   // Filtre les cartes par libellé, identifiant ou catégorie, sans casse ni accents.
   const normalizedTerm = normalizeSearchText(term)
-  const categories = commentId ? [] : cardCategories.map((category) => {
+  const pluginActions = commentId ? [] : (pluginWidgets ?? []).filter((entry) => {
+    if (!normalizedTerm) return true
+    const widget = entry.widget
+    const haystack = [widget.name, widget.category, entry.pluginName, entry.pluginId, widget.id].map(normalizeSearchText).join(' ')
+    return haystack.includes(normalizedTerm)
+  })
+  const staticCategories = commentId ? [] : cardCategories.map((category) => {
     const grouped = Array.isArray(category.groups)
     const groups = (grouped ? category.groups : [{ id: category.id, labelKey: category.labelKey, types: category.types }]).map((group) => ({
       ...group,
@@ -66,6 +85,9 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId =
     })).filter((group) => group.types.length > 0)
     return { ...category, grouped, groups }
   }).filter((category) => category.groups.length > 0)
+  const categories = pluginActions.length > 0
+    ? [...staticCategories, { id: 'plugins', labelKey: 'canvas.createCategory.plugins', grouped: false, groups: [], pluginActions }]
+    : staticCategories
 
   // Déplie ou replie une sous-catégorie de widgets ; la recherche force l'affichage des résultats.
   function toggleGroup(id) {
@@ -83,6 +105,15 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId =
     return <button key={type} type="button" role="menuitem" onClick={() => onCreate(type)}>
       <Icon className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />
       {t(moduleTypes[type].actionKey)}
+    </button>
+  }
+
+  // Affiche un widget fourni par un plugin actif.
+  function renderPluginAction(entry) {
+    const Icon = pluginIcon(entry.widget.icon)
+    return <button key={`${entry.pluginId}/${entry.widget.id}`} type="button" role="menuitem" onClick={() => onCreatePluginWidget?.(entry.pluginId, entry.widget.id)}>
+      <Icon className="menu-icon" size={16} strokeWidth={1.75} aria-hidden="true" />
+      {entry.widget.name}
     </button>
   }
 
@@ -146,7 +177,9 @@ export default function CanvasContextMenu({ x, y, onCreate, onClose, commentId =
           : <div role="menu" className="canvas-context-menu__columns" aria-label={t('canvas.addMenu')}>
             {categories.map((category) => <div className="canvas-context-menu__group" role="group" aria-label={t(category.labelKey)} key={category.id}>
               <p className="canvas-context-menu__group-title" aria-hidden="true">{t(category.labelKey)}</p>
-              {category.groups.map((group) => {
+              {category.pluginActions
+                ? category.pluginActions.map(renderPluginAction)
+                : category.groups.map((group) => {
                 if (!category.grouped) return group.types.map(renderAction)
                 const groupKey = `${category.id}.${group.id}`
                 const groupCollapsed = !normalizedTerm && collapsedGroups.has(groupKey)

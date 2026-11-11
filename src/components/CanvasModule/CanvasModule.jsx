@@ -18,6 +18,7 @@ import InputButtonCard from '../InputButtonCard/InputButtonCard.jsx'
 import ValueInputCard from '../ValueInputCard/ValueInputCard.jsx'
 import ColorPickerCard from '../ColorPickerCard/ColorPickerCard.jsx'
 import CommentText from '../CommentText/CommentText.jsx'
+import PluginWidgetCard from '../PluginWidgetCard/PluginWidgetCard.jsx'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import './CanvasModule.css'
 
@@ -137,7 +138,7 @@ function ModuleEmoji({ emoji, onChange }) {
 }
 
 // Affiche un conteneur déplaçable par son en-tête et redimensionnable depuis son angle.
-export default function CanvasModule({ module, camera, zoom, onResize, onResizeStart, onResizeEnd, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onImageFile, onEmojiChange, onAnnotationStart, onAnnotationEnd, imageSource = null, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, progressState = null, progressFrames = null, progressPlaying = false, onProgressViewChange, barChartState = null, barChartFrames = null, barChartPlaying = false, onBarChartViewChange, xyPlotState = null, xyPlotFrames = null, xyPlotPlaying = false, onXyPlotViewChange, oscilloscopeState = null, oscilloscopeFrames = null, oscilloscopePlaying = false, onOscilloscopeViewChange, heatmapState = null, heatmapDimensions, onHeatmapViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, rgbLedState = null, rgbLedFrames = null, rgbLedPlaying = false, onRgbLedViewChange, onInputButtonViewChange, onInputChange, inputButtonCallbacks = [], inputButtonCallbackId = null, inputButtonCallbackSupported = true, onBindInputClick, onInputTrigger, onInputValueViewChange, onInputValueChange, onInputValueTrigger, inputValueCallbacks = [], inputValueCallbackId = null, onBindInputValue, onColorPickerViewChange, onColorPickerChange, onColorPickerTrigger, colorPickerCallbacks = [], colorPickerCallbackId = null, onBindColorPicker, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
+export default function CanvasModule({ module, camera, zoom, onResize, onResizeStart, onResizeEnd, onMove, onMoveStart, onMoveEnd, onRename, onTextChange, onImageChange, onImageFile, onEmojiChange, onAnnotationStart, onAnnotationEnd, imageSource = null, screenState = null, screenFrames = null, screenPlaying = false, onScreenViewChange, onScreenSequenceEnd = null, gaugeState = null, gaugeFrames = null, gaugePlaying = false, onGaugeViewChange, progressState = null, progressFrames = null, progressPlaying = false, onProgressViewChange, barChartState = null, barChartFrames = null, barChartPlaying = false, onBarChartViewChange, xyPlotState = null, xyPlotFrames = null, xyPlotPlaying = false, onXyPlotViewChange, oscilloscopeState = null, oscilloscopeFrames = null, oscilloscopePlaying = false, onOscilloscopeViewChange, heatmapState = null, heatmapDimensions, onHeatmapViewChange, ledState = null, ledFrames = null, ledPlaying = false, onLedViewChange, rgbLedState = null, rgbLedFrames = null, rgbLedPlaying = false, onRgbLedViewChange, onInputButtonViewChange, onInputChange, inputButtonCallbacks = [], inputButtonCallbackId = null, inputButtonCallbackSupported = true, onBindInputClick, onInputTrigger, onInputValueViewChange, onInputValueChange, onInputValueTrigger, inputValueCallbacks = [], inputValueCallbackId = null, onBindInputValue, onColorPickerViewChange, onColorPickerChange, onColorPickerTrigger, colorPickerCallbacks = [], colorPickerCallbackId = null, onBindColorPicker, pluginWidgetEntry = null, pluginWidgetInputs = {}, pluginWidgetVariables = [], pluginWidgetCallbacks = [], onPluginWidgetStateChange, onPluginWidgetPropertyChange, onPluginWidgetBindInput, onPluginWidgetBindOutput, onPluginWidgetTrigger, onPluginWidgetRemove, children, selected = false, readOnly = false, onSelect, onOpenActions, onToggleLock, onActivate, zIndex = 1, fitRequest = 0, dropState, expansionState = null, onToggleExpansion, pulse = null, pure = false, deferContent = false, semanticLevel = 'detail', functionsView = null }) {
   const { t } = useTranslation()
   const [isMoving, setIsMoving] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -178,6 +179,10 @@ export default function CanvasModule({ module, camera, zoom, onResize, onResizeS
   }, [fitRequest, semanticLevel, children, module.id, module.width, module.height, onResize])
 
   const definition = moduleTypes[module.type]
+  const resizeMinimum = {
+    width: Math.max(minimumModuleSize.width, Number.isFinite(module.minWidth) ? module.minWidth : minimumModuleSize.width),
+    height: Math.max(minimumModuleSize.height, Number.isFinite(module.minHeight) ? module.minHeight : minimumModuleSize.height),
+  }
   const name = module.name || t(definition.labelKey)
   // Les annotations portent un libellé distinct pour ne pas dupliquer le nom d'un module dans les repères d'accessibilité.
   const annotationLabel = definition.hasText ? t('card.comment') : definition.hasImage ? t('card.image') : null
@@ -281,7 +286,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onResizeS
     if (!naturalWidth || !naturalHeight) return
     const ratio = naturalWidth / naturalHeight
     const contentHeight = module.width / ratio
-    const height = Math.max(minimumModuleSize.height, Math.ceil(contentHeight + 40))
+    const height = Math.max(resizeMinimum.height, Math.ceil(contentHeight + 40))
     if (!Number.isFinite(height) || Math.abs(module.height - height) < 1) return
     onResize(module.id, module.width, height, { history: false })
   }
@@ -355,8 +360,8 @@ export default function CanvasModule({ module, camera, zoom, onResize, onResizeS
     const resize = resizeRef.current
     if (!resize || resize.pointerId !== event.pointerId) return
 
-    const width = Math.max(minimumModuleSize.width, resize.width + (event.clientX - resize.x) / resize.zoom)
-    const height = Math.max(minimumModuleSize.height, resize.height + (event.clientY - resize.y) / resize.zoom)
+    const width = Math.max(resizeMinimum.width, resize.width + (event.clientX - resize.x) / resize.zoom)
+    const height = Math.max(resizeMinimum.height, resize.height + (event.clientY - resize.y) / resize.zoom)
     if (Number.isFinite(width) && Number.isFinite(height)) onResize(module.id, width, height)
   }
 
@@ -384,8 +389,8 @@ export default function CanvasModule({ module, camera, zoom, onResize, onResizeS
     event.preventDefault()
     onResize(
       module.id,
-      Math.max(minimumModuleSize.width, module.width + direction[0]),
-      Math.max(minimumModuleSize.height, module.height + direction[1]),
+      Math.max(resizeMinimum.width, module.width + direction[0]),
+      Math.max(resizeMinimum.height, module.height + direction[1]),
     )
   }
 
@@ -394,7 +399,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onResizeS
       className={`canvas-module canvas-module--${module.type}${definition.hasEmoji ? ' canvas-module--emoji' : ''}${module.locked ? ' canvas-module--locked' : ''}${isMoving ? ' canvas-module--moving' : ''}${selected ? ' canvas-module--selected' : ''}${dropState ? ` canvas-module--drop-${dropState}` : ''}`}
       role="group"
       aria-label={cardLabel}
-      data-source-module={definition.hasText || definition.hasImage ? undefined : module.id}
+      data-source-module={definition.hasText || definition.hasImage || definition.hasPluginWidget ? undefined : module.id}
       data-card-id={module.id}
       data-card-type={module.type}
       data-semantic-level={semanticLevel}
@@ -410,7 +415,7 @@ export default function CanvasModule({ module, camera, zoom, onResize, onResizeS
       onKeyDown={(event) => event.stopPropagation()}
       onClick={onSelect}
     >
-      {!readOnly && <NodeMenuButton label={name} onOpen={onOpenActions} />}
+      {!readOnly && !definition.hasPluginWidget && <NodeMenuButton label={name} onOpen={onOpenActions} />}
       {typeof pulse === 'number' && <span key={pulse} className="canvas-module__pulse" aria-hidden="true" />}
       <header className="canvas-module__header">
         {definition.hasEmoji && !readOnly && <ModuleEmoji emoji={module.emoji ?? ''} onChange={(value) => onEmojiChange(module.id, value)} />}
@@ -603,7 +608,24 @@ export default function CanvasModule({ module, camera, zoom, onResize, onResizeS
         </button>}
         <HelpButton title={t(helpTopic.titleKey)} summary={t(helpTopic.summaryKey)} url={helpTopic.url} />
       </header>
-      {definition.hasInputButton ? (
+      {definition.hasPluginWidget ? (
+        <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>
+          {contentVisible && <PluginWidgetCard
+            card={module}
+            entry={pluginWidgetEntry}
+            inputs={pluginWidgetInputs}
+            variables={pluginWidgetVariables}
+            callbackFunctions={pluginWidgetCallbacks}
+            readOnly={readOnly}
+            onStateChange={onPluginWidgetStateChange}
+            onPropertyChange={onPluginWidgetPropertyChange}
+            onBindInput={onPluginWidgetBindInput}
+            onBindOutput={onPluginWidgetBindOutput}
+            onTrigger={onPluginWidgetTrigger}
+            onRemove={onPluginWidgetRemove}
+          />}
+        </div>
+      ) : definition.hasInputButton ? (
         <div className="canvas-module__content" data-canvas-scroll tabIndex={0}>
           {!contentVisible
             ? null

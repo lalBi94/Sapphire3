@@ -1,0 +1,191 @@
+{
+  "pluginFormatVersion": 1,
+  "apiVersion": 1,
+  "id": "org.sapphire3.examples.clamp",
+  "name": "Typed clamp operation",
+  "version": "1.0.0",
+  "author": "Sapphire 3 examples",
+  "description": "Adds a typed CLAMP(value, min, max) native operation to the Sapphire engine.",
+  "permissions": [
+    "engine.native-operations"
+  ],
+  "dependencies": [],
+  "nativeOperations": [
+    {
+      "id": "pluginClamp",
+      "name": "CLAMP",
+      "description": "Clamps an integer between inclusive bounds.",
+      "parameters": [
+        {
+          "name": "value",
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          }
+        },
+        {
+          "name": "min",
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          }
+        },
+        {
+          "name": "max",
+          "type": {
+            "kind": "primitive",
+            "name": "int"
+          }
+        }
+      ],
+      "returnType": {
+        "kind": "primitive",
+        "name": "int"
+      },
+      "purity": "pure",
+      "effects": [],
+      "validation": {
+        "kind": "binary",
+        "operator": "<=",
+        "left": {
+          "kind": "param",
+          "name": "min"
+        },
+        "right": {
+          "kind": "param",
+          "name": "max"
+        }
+      },
+      "implementation": {
+        "kind": "conditional",
+        "test": {
+          "kind": "binary",
+          "operator": "<",
+          "left": {
+            "kind": "param",
+            "name": "value"
+          },
+          "right": {
+            "kind": "param",
+            "name": "min"
+          }
+        },
+        "consequent": {
+          "kind": "param",
+          "name": "min"
+        },
+        "alternate": {
+          "kind": "conditional",
+          "test": {
+            "kind": "binary",
+            "operator": ">",
+            "left": {
+              "kind": "param",
+              "name": "value"
+            },
+            "right": {
+              "kind": "param",
+              "name": "max"
+            }
+          },
+          "consequent": {
+            "kind": "param",
+            "name": "max"
+          },
+          "alternate": {
+            "kind": "param",
+            "name": "value"
+          }
+        }
+      },
+      "transpilers": {
+        "javascript": {
+          "kind": "conditional",
+          "test": {
+            "kind": "binary",
+            "operator": "<",
+            "left": {
+              "kind": "param",
+              "name": "value"
+            },
+            "right": {
+              "kind": "param",
+              "name": "min"
+            }
+          },
+          "consequent": {
+            "kind": "param",
+            "name": "min"
+          },
+          "alternate": {
+            "kind": "conditional",
+            "test": {
+              "kind": "binary",
+              "operator": ">",
+              "left": {
+                "kind": "param",
+                "name": "value"
+              },
+              "right": {
+                "kind": "param",
+                "name": "max"
+              }
+            },
+            "consequent": {
+              "kind": "param",
+              "name": "max"
+            },
+            "alternate": {
+              "kind": "param",
+              "name": "value"
+            }
+          }
+        },
+        "python": {
+          "kind": "conditional",
+          "test": {
+            "kind": "binary",
+            "operator": "<",
+            "left": {
+              "kind": "param",
+              "name": "value"
+            },
+            "right": {
+              "kind": "param",
+              "name": "min"
+            }
+          },
+          "consequent": {
+            "kind": "param",
+            "name": "min"
+          },
+          "alternate": {
+            "kind": "conditional",
+            "test": {
+              "kind": "binary",
+              "operator": ">",
+              "left": {
+                "kind": "param",
+                "name": "value"
+              },
+              "right": {
+                "kind": "param",
+                "name": "max"
+              }
+            },
+            "consequent": {
+              "kind": "param",
+              "name": "max"
+            },
+            "alternate": {
+              "kind": "param",
+              "name": "value"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "widgets": [],
+  "composites": []
+}

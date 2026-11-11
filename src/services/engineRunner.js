@@ -1,5 +1,6 @@
 import { analyzeProgram, createDebugSession, simulateProgram } from '../utils/logic/index.js'
 import { transpileProgram } from '../utils/transpilation/index.js'
+import { getPluginRuntimePayload } from '../utils/plugins/pluginRuntime.js'
 
 let worker = null
 let nextRequestId = 0
@@ -73,7 +74,7 @@ function request(action, project, options, control = {}) {
     pending.set(id, { resolve, reject, onProgress, cleanup })
     signal?.addEventListener('abort', abort, { once: true })
     try {
-      target.postMessage({ id, action, project, options })
+      target.postMessage({ id, action, project, options, plugins: getPluginRuntimePayload() })
     } catch (error) {
       pending.delete(id)
       cleanup()

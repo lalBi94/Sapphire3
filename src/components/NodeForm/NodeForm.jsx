@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Plus, Save, Trash2 } from 'lucide-react'
-import { getNodeSchema, binaryOperators, unaryOperators, primitiveType, getCallableSymbols, sameType, isArrayType, mathNatives, containsGeneric, declaredTypeParameters, typeFromRecord, maximumTypeParameters } from '../../utils/logic/index.js'
+import { getNodeSchema, binaryOperators, unaryOperators, primitiveType, getCallableSymbols, sameType, isArrayType, getMathNativeEntries, containsGeneric, declaredTypeParameters, typeFromRecord, maximumTypeParameters } from '../../utils/logic/index.js'
 import { initialNodeForm, nodeConfiguration, emptyExpression, typeFromName, typeNameFromType, typeFromForm, accessedArrayType, arrayIndexType, integerTypeNames, expressionOperators } from './nodeConfiguration.js'
 import NodeTypeInput from './NodeTypeInput.jsx'
 import NodeValueInput from './NodeValueInput.jsx'
@@ -14,7 +14,7 @@ import './NodeForm.css'
 // Regroupe les opérations natives par sous-catégorie, dans l'ordre du registre.
 function nativeGroups() {
   const groups = []
-  for (const native of Object.values(mathNatives)) {
+  for (const native of getMathNativeEntries()) {
     const group = groups.find((entry) => entry.id === native.group)
     if (group) group.ids.push(native.id)
     else groups.push({ id: native.group, ids: [native.id] })

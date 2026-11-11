@@ -196,12 +196,67 @@ export async function runLiveProgram(project, { inputs = {}, sliceSteps = 400, o
     }
   }
 
+  // Rend une valeur live sérialisable sans exposer les objets internes du moteur.
+  function serializableValue(value, seen = new Set()) {
+    if (value === undefined) return null
+    if (typeof value === 'bigint') return Number(value)
+    if (typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean' || value === null) return value
+    if (Array.isArray(value)) return value.map((entry) => serializableValue(entry, seen))
+    if (value && typeof value === 'object') {
+      if (seen.has(value)) return null
+      const next = new Set(seen).add(value)
+      if (value.classValue === true) return formatValue(value, next)
+      if (value.pointer === true || value.functionValue === true || value.lambdaValue === true || value.methodValue === true) return value.label ?? null
+      return null
+    }
+    return String(value)
+  }
+
+  // Liste les variables visibles dans la portée globale et la pile d'appels active.
+  function collectVariables() {
+    const list = []
+    const add = (scope, kind) => {
+      if (!scope) return
+      for (const [id, value] of scope.values) {
+        const node = nodes.get(id)
+        list.push({
+          id,
+          name: node?.properties?.name ?? id,
+          kind,
+          type: types.get(id) ?? null,
+          value: value === uninitialized ? null : formatValue(value),
+          raw: value === uninitialized ? null : serializableValue(value),
+        })
+      }
+    }
+    add(global, 'global')
+    for (const scope of activeScopes) if (scope !== global) add(scope, 'local')
+    return list
+  }
+
+  // Convertit une valeur d'événement vers le type du paramètre de la fonction appelée.
+  function convertEventValue(type, value) {
+    if (!type) return { code: 'SIMULATION_REFERENCE' }
+    if (type.kind === 'array') {
+      if (!Array.isArray(value)) return { code: 'SIMULATION_TYPE' }
+      const converted = []
+      for (const entry of value) {
+        const item = convertEventValue(type.elementType, entry)
+        if (item.code) return item
+        converted.push(item.value)
+      }
+      return { value: converted }
+    }
+    return validateLiteral(type.name, value)
+  }
+
   function collectState(extra = {}) {
     return {
       steps,
       currentNodeId,
       output: [...output],
       contracts: contractSummary(),
+      variables: collectVariables(),
       screens: screenReader ? screenReader(global.values) : {},
       gauges: gaugeReader ? gaugeReader(global.values) : {},
       leds: ledReader ? ledReader(global.values) : {},
@@ -225,17 +280,27 @@ export async function runLiveProgram(project, { inputs = {}, sliceSteps = 400, o
     }
   }
 
-  // Appelle la fonction `onClick(bool)` d'un bouton depuis son binding courant.
+  // Appelle une fonction liée à un événement de widget ou le callback historique d'une entrée.
   async function applyEvents(events) {
     if (!Array.isArray(events)) return
     for (const event of events) {
-      const node = nodes.get(event?.nodeId)
-      if (!node || node.kind !== 'VariableDeclaration') continue
-      const callback = global.values.get(node.id)
       const rawValue = event?.value
+      if (typeof event?.functionId === 'string') {
+        const target = functions.get(event.functionId)
+        const parameterId = target?.children?.parameters?.[0]
+        const parameterType = types.get(parameterId)
+        if (!target || !parameterId || parameterType?.kind === 'primitive' && parameterType.name === 'void') continue
+        const converted = convertEventValue(parameterType, rawValue)
+        if (converted.code) continue
+        await executeFunction(target, [converted.value])
+        continue
+      }
       const colorArray = Array.isArray(rawValue) && (rawValue.length === 3 || rawValue.length === 4) && rawValue.every((entry) => Number.isInteger(entry) && entry >= 0 && entry <= 255)
       const value = colorArray ? [...rawValue] : typeof rawValue === 'boolean' ? rawValue : typeof rawValue === 'string' ? rawValue : typeof rawValue === 'number' && Number.isFinite(rawValue) ? rawValue : null
       if (value === null) continue
+      const node = nodes.get(event?.nodeId)
+      if (!node || node.kind !== 'VariableDeclaration') continue
+      const callback = global.values.get(node.id)
       if (callback?.functionValue === true) {
         const target = functions.get(callback.nodeId)
         if (target) await executeFunction(target, [value])

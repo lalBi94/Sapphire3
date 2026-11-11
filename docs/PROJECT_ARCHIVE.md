@@ -2,6 +2,23 @@
 
 > Les sections datées ci-dessous décrivent l'état observé **à leur date**. Pour l'état courant, se référer à `docs/PROJECT_STATE.md` ; les mentions historiques de Python désactivé ou d'absence d'autosauvegarde sont remplacées par les versions ultérieures.
 
+## Plugin SDK — 11 novembre 2026
+
+- Nouveau package **`@sapphire3/plugin-sdk`** dans `packages/plugin-sdk/`, construit par Vite en ESM autonome. Format `.sp3plugin` déclaratif et versionné (`pluginFormatVersion: 1`, `apiVersion: 1`) ; aucun `import()` de code tiers, `eval`, `new Function` ou accès direct au DOM/moteur.
+- Validation centralisée : identifiants, versions sémantiques, permissions, dépendances, widgets, renderers, propriétés, ports, interactions, état JSON borné, opérations natives typées, expressions sûres, émetteurs JavaScript/Python optionnels et composites de niveau A.
+- Permissions explicites : `ui.widgets`, `workspace.widget-state`, `engine.native-operations`, `engine.composites`. Les permissions fichiers, réseau et API native sont déclarables mais refusées avec `PLUGIN_PERMISSION_UNSUPPORTED`.
+- Cycle de vie local : installation, activation, désactivation, désinstallation, conflits de plugin et d'opération native, compatibilité d'hôte, dépendances et cycles, ordre d'activation.
+- Workspace : nouvelle carte fixe `pluginWidget` qui conserve `pluginId`, `widgetId`, `pluginVersion`, propriétés, état, liaisons et géométrie. Le chargement ne détruit ni ne transforme les données d'un plugin absent ; une carte de diagnostic et **Settings → Plugins** signalent la dépendance manquante.
+- Widgets : renderer déclaratif whitelisté (`stack`, `row`, `text`, `value`, `bar`, `led`, `input`, `button`, `divider`, `spacer`), propriétés configurables, état persistant, entrée liée à une variable visible, sortie liée à une fonction `(T) -> void`, slider et bouton.
+- Opérations natives : registre dynamique consulté après les natives intégrées, typage et validation existants, implémentation par expression pure, simulation bornée/live, émetteurs JavaScript/Python, refus explicite `TRANSPILE_EXPRESSION_UNSUPPORTED` si un backend manque et `TRANSPILE_C_UNSUPPORTED` pour C.
+- Composites : actions de menu qui insèrent un brouillon natif via `createNodeBundle` et `insertSourceNodes`, avec `Hole` pour les emplacements à remplir. Aucun type d'AST nouveau.
+- Sécurité : registre local pur `src/utils/logic/pluginExtensions.js`, injection depuis le gestionnaire ; payload revalidé dans les Workers `engine.worker.js` et `live.worker.js` ; renderer React local sans HTML ; expressions sans accès dynamique au JavaScript.
+- Interface : **Settings → Plugins** avec import local Neutralinojs, métadonnées, capacités, permissions, erreurs, activation/désactivation, désinstallation confirmée et dépendances du workspace. Palette de commandes et menu de création exposent les widgets actifs.
+- Documentation : `docs/sdk/plugin-sdk.md`, `docs/PLUGIN_CAPABILITIES.md`, `packages/plugin-sdk/README.md`, `examples/plugins/README.md`, mises à jour de `docs/WORKSPACE_FILES.md` et `docs/LOGIC_API.md`.
+- Exemples : `examples/plugins/voltmeter.sp3plugin` (widget), `clamp.sp3plugin` (opération `CLAMP` typée), `between.sp3plugin` (composite natif), générés par `build-examples.mjs`.
+- Vérifications : **763 tests Node/Python réussis**, dont 20 tests Plugin SDK couvrant manifestes, cycle de vie, conflits, versions, dépendances, cycles, widgets, persistance de workspace avec plugin absent, opérations natives, payload Worker, transpilation JavaScript/Python/C, composites et `npm pack`. Build Vite frontend réussi. Contrôles navigateur : import simulé dans le stockage local, **Settings → Plugins** affiche le plugin actif, la palette crée **Digital voltmeter**, le slider met à jour l'état, la désactivation affiche le diagnostic de widget indisponible en conservant la carte et ses données, la réactivation restaure l'état à 7,50. Aucun push distant ni publication npm.
+- Limites : nœuds sémantiques de niveau B non opérationnels ; dashboard exporté sans registre de plugins ; pas de bus d'entrée par port ni de callbacks multiples ; permissions fichiers/réseau/native non implémentées ; isolation déclarative et Worker, pas un sandbox JavaScript généraliste.
+
 ## Graph SDK — 11 novembre 2026
 
 - Nouveau package **`@sapphire3/graph`** dans `packages/graph/`, lié au workspace pnpm et construit par Vite en module ESM autonome. Il réutilise `nodeGraphs.js`, `moduleLinks.js`, `reachability.js`, l'analyse sémantique du Core et `flowGraph.js`, sans second AST ni second analyseur.

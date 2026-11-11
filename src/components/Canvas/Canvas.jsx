@@ -36,6 +36,7 @@ import { inputNumberCallbackId, inputNumberOnChangeNodeId } from '../../utils/lo
 import { colorPickerCallbackId, colorPickerOnChangeNodeId } from '../../utils/logic/colorPickerState.js'
 import { buildDashboardDocument, dashboardDefaultLayout } from '../../utils/dashboardExport.js'
 import { dashboardModuleMapFromCards } from '../../utils/dashboardModuleMap.js'
+import { collectPluginVariables, collectPluginWorkspaceDependencies, resolvePluginWidgetInstance } from '../../utils/plugins/pluginWidgets.js'
 import dashboardRuntimeSource from 'virtual:dashboard-runtime'
 import dashboardClientSource from 'virtual:dashboard-client'
 import dashboardLiveSource from 'virtual:dashboard-live'
@@ -53,6 +54,7 @@ import { workspaceTemplates } from '../../utils/workspaceTemplates.js'
 import { useTranslation } from '../../contexts/LanguageContext.jsx'
 import { useNotifications } from '../../contexts/NotificationContext.jsx'
 import { useTheme } from '../../contexts/ThemeContext.jsx'
+import { usePlugins } from '../../contexts/PluginContext.jsx'
 import { diagnosticLabel, nodeLine } from '../LogicTree/logicLabels.js'
 import { failureLabel, translations } from '../../utils/translations.js'
 import { moveDebugSession, resolveDebugScreens, getModuleLinks, getUnusedDeclarationIds, getPureIds, captureBookmark, captureSourceNode, isInputButtonCallbackType, isInputButtonNoop, inputValueCallbackType, isInputNumberNoop, isColorPickerCallbackType, isColorPickerNoop } from '../../utils/logic/index.js'
@@ -128,6 +130,7 @@ export default function Canvas() {
   const { language, t } = useTranslation()
   const { presetThemes, customThemes, setTheme, setThemeMode } = useTheme()
   const { notify, clear: clearNotifications } = useNotifications()
+  const { activeWidgets, runtimeVersion } = usePlugins()
   const document = useCanvasDocument()
   const liveSession = useLiveSession()
   const search = useNodeSearch()
@@ -149,11 +152,11 @@ export default function Canvas() {
   }), [discordMode, document.project.modules.length, document.project.nodes.length, transpilationResult?.target, execution?.running, execution?.paused, execution?.stopped])
   const discordPresence = useDiscordPresence(discordActivity)
   // La sélection est une liste : la première cible pilote les panneaux, les autres les opérations groupées.
-  const selectedTargets = useMemo(() => (Array.isArray(selection) ? selection : []).filter((target) => target?.kind === 'module' ? document.index.modules.has(target.id) : target?.kind === 'node' ? document.index.nodes.has(target.id) : false), [selection, document.index])
+  const selectedTargets = useMemo(() => (Array.isArray(selection) ? selection : []).filter((target) => target?.kind === 'module' ? document.index.modules.has(target.id) || document.cards.some((card) => card.id === target.id && card.type === 'pluginWidget') : target?.kind === 'node' ? document.index.nodes.has(target.id) : target?.kind === 'pluginWidget' ? document.cards.some((card) => card.id === target.id && card.type === 'pluginWidget') : false), [selection, document.index, document.cards])
   const selected = selectedTargets[0] ?? null
   const selectedIds = useMemo(() => new Set(selectedTargets.map((target) => target.id)), [selectedTargets])
   const selectedNodeIds = useMemo(() => selectedTargets.filter((target) => target.kind === 'node').map((target) => target.id), [selectedTargets])
-  const hasScreenSelection = useMemo(() => selectedTargets.some((target) => target.kind === 'module' && document.cards.some((card) => card.id === target.id && !moduleCardTypes.includes(card.type) && logicalCardTypes.includes(card.type))), [selectedTargets, document.cards])
+  const hasScreenSelection = useMemo(() => selectedTargets.some((target) => target.kind === 'pluginWidget' || (target.kind === 'module' && document.cards.some((card) => card.id === target.id && !moduleCardTypes.includes(card.type) && logicalCardTypes.includes(card.type)))), [selectedTargets, document.cards])
   const selectedModuleIds = useMemo(() => selectedTargets.filter((target) => target.kind === 'module').map((target) => target.id), [selectedTargets])
   const { camera, zoom, canvasRef, isPanning, handlePointerDown, handlePointerMove, handlePointerEnd, handleKeyDown, handleRecenter, panTo, zoomBy, resetZoom, restoreCamera } = useCanvasPan()
   // Suit la surface réelle du canvas pour ne monter que le contenu des cartes visibles.
@@ -238,6 +241,68 @@ export default function Canvas() {
     contracts: live.contracts ?? { total: 0, observations: 0, violations: [] },
   } : null
   const debugFrame = debugSession?.project === document.project ? debugSession.frames[debugSession.cursor] : null
+  const pluginVariables = useMemo(() => collectPluginVariables({
+    liveVariables: liveVisible ? live.variables ?? [] : [],
+    debugFrame,
+    simulationVariables: simulationResult?.variables ?? [],
+  }), [liveVisible, live.variables, debugFrame, simulationResult])
+  const pluginBindingVariables = useMemo(() => {
+    const variables = [...pluginVariables]
+    const names = new Set(variables.map((entry) => entry.name))
+    for (const symbol of document.analysis?.semantic?.symbols ?? []) {
+      if (!['VariableDeclaration', 'ConstantDeclaration', 'Parameter'].includes(symbol.kind) || names.has(symbol.name)) continue
+      names.add(symbol.name)
+      variables.push({ id: symbol.nodeId, name: symbol.name, kind: 'global', type: symbol.type ?? null, value: null, raw: null })
+    }
+    return variables
+  }, [pluginVariables, document.analysis])
+  const pluginCallbackFunctions = useMemo(() => [...document.index.nodes.values()]
+    .filter((node) => node.kind === 'FunctionDeclaration' && document.index.nodeTypes.get(node.id)?.kind === 'function' && document.index.nodeTypes.get(node.id).parameters.length === 1 && document.index.nodeTypes.get(node.id).returnType?.name === 'void')
+    .map((node) => ({
+      id: node.id,
+      name: node.properties?.name ?? node.id,
+      type: document.index.nodeTypes.get(node.id),
+      label: `${document.index.modules.get(node.moduleId)?.name ?? ''} · ${node.properties?.name ?? node.id}`,
+    }))
+    .sort((left, right) => left.label.localeCompare(right.label)), [document.index])
+  const pluginInputsByCard = useMemo(() => {
+    const result = new Map()
+    for (const card of document.cards) {
+      if (card.type !== 'pluginWidget') continue
+      const entry = activeWidgets.find((candidate) => candidate.pluginId === card.pluginId && candidate.widget.id === card.widgetId)
+      if (!entry) continue
+      const instance = resolvePluginWidgetInstance(card, entry.widget)
+      const inputs = {}
+      for (const port of entry.widget.inputs ?? []) {
+        const variableName = instance.bindings.inputs[port.id]
+        if (!variableName) continue
+        const variable = [...pluginVariables].reverse().find((candidate) => candidate.name === variableName)
+        if (variable) inputs[port.id] = variable.raw ?? variable.value
+      }
+      result.set(card.id, inputs)
+    }
+    return result
+  }, [document.cards, activeWidgets, pluginVariables])
+  const workspacePluginDependencies = useMemo(() => collectPluginWorkspaceDependencies(document.cards, activeWidgets), [document.cards, activeWidgets])
+  const missingPluginSignature = workspacePluginDependencies.filter((dependency) => dependency.missing).map((dependency) => `${dependency.pluginId}/${dependency.widgetId}`).join('|')
+  const missingPluginNoticeRef = useRef('')
+
+  // Une activation de plugin change le registre du moteur : la source courante est réanalysée.
+  useEffect(() => {
+    if (runtimeVersion > 0) document.refreshAnalysis()
+  }, [runtimeVersion])
+
+  // Signale une dépendance de workspace absente sans retirer ni transformer ses cartes.
+  useEffect(() => {
+    if (!missingPluginSignature) {
+      missingPluginNoticeRef.current = ''
+      return
+    }
+    if (missingPluginNoticeRef.current === missingPluginSignature) return
+    missingPluginNoticeRef.current = missingPluginSignature
+    const count = missingPluginSignature.split('|').length
+    notify({ type: 'error', title: t('plugins.title'), message: t('plugins.missingWorkspace', { count }), key: 'plugins', duration: 0 })
+  }, [missingPluginSignature, notify, t])
   const screenPlayback = Boolean(!liveVisible && !debugFrame && simulationResult?.screenFrames?.length && execution && (execution.running || execution.paused || execution.stopped))
   // État visuel courant des écrans : live prioritaire, puis frame de debug, sinon état final.
   const debugScreens = useMemo(() => debugSession?.project === document.project ? resolveDebugScreens(debugSession.frames, debugSession.cursor) : null, [debugSession, document.project])
@@ -544,7 +609,7 @@ export default function Canvas() {
     const y = event.clientY - bounds.top
     const node = event.target.closest('[data-source-node]')
     const card = event.target.closest('[data-card-id]')
-    const targetId = node ? { kind: 'node', id: node.dataset.sourceNode } : card ? { kind: logicalCardTypes.includes(card.dataset.cardType) ? 'module' : card.dataset.cardType, id: card.dataset.cardId } : null
+    const targetId = node ? { kind: 'node', id: node.dataset.sourceNode } : card ? { kind: card.dataset.cardType === 'pluginWidget' ? 'pluginWidget' : logicalCardTypes.includes(card.dataset.cardType) ? 'module' : card.dataset.cardType, id: card.dataset.cardId } : null
     bringCardToFront(targetId)
     const slot = event.target.closest('[data-slot]')
     const initialSlot = node && slot?.closest('[data-source-node]') === node ? slot.dataset.slot : undefined
@@ -599,6 +664,69 @@ export default function Canvas() {
     document.createCard(type, { x: Math.round(camera.x - definition.width / 2), y: Math.round(camera.y - definition.height / 2) }, t(definition.labelKey))
   }
 
+  // Crée un widget de plugin actif à la position du menu contextuel.
+  function handleCreatePluginWidget(pluginId, widgetId) {
+    if (!contextMenu) return
+    const entry = activeWidgets.find((candidate) => candidate.pluginId === pluginId && candidate.widget.id === widgetId)
+    if (!entry) return
+    const card = document.createPluginWidget(entry, { x: contextMenu.worldX, y: contextMenu.worldY })
+    setSelection([{ kind: 'pluginWidget', id: card.id }])
+    setActiveCardId(card.id)
+    handleCloseMenu(true)
+  }
+
+  // Crée un widget de plugin au centre de la vue depuis la palette de commandes.
+  function handlePaletteCreatePluginWidget(pluginId, widgetId) {
+    const entry = activeWidgets.find((candidate) => candidate.pluginId === pluginId && candidate.widget.id === widgetId)
+    if (!entry) return
+    const card = document.createPluginWidget(entry, {
+      x: Math.round(camera.x - entry.widget.defaultSize.width / 2),
+      y: Math.round(camera.y - entry.widget.defaultSize.height / 2),
+    })
+    setSelection([{ kind: 'pluginWidget', id: card.id }])
+    setActiveCardId(card.id)
+  }
+
+  // Lie une entrée de widget à une variable visible du programme.
+  function handlePluginWidgetBindInput(cardId, portId, variableName) {
+    const card = document.cards.find((candidate) => candidate.id === cardId)
+    if (!card) return
+    const bindings = card.bindings ?? { inputs: {}, outputs: {} }
+    document.updatePluginWidget(cardId, {
+      bindings: {
+        ...bindings,
+        inputs: { ...(bindings.inputs ?? {}), [portId]: variableName },
+      },
+    })
+  }
+
+  // Lie une sortie de widget à une fonction Sapphire compatible.
+  function handlePluginWidgetBindOutput(cardId, portId, functionId) {
+    const card = document.cards.find((candidate) => candidate.id === cardId)
+    if (!card) return
+    const bindings = card.bindings ?? { inputs: {}, outputs: {} }
+    document.updatePluginWidget(cardId, {
+      bindings: {
+        ...bindings,
+        outputs: { ...(bindings.outputs ?? {}), [portId]: functionId },
+      },
+    })
+  }
+
+  // Déclenche la fonction liée à une sortie de widget, dans la session live courante.
+  function handlePluginWidgetTrigger(cardId, outputId, value) {
+    const card = document.cards.find((candidate) => candidate.id === cardId)
+    const functionId = card?.bindings?.outputs?.[outputId]
+    if (!functionId) return
+    const events = [{ functionId, value }]
+    if (live.status === 'running' || live.status === 'paused') {
+      liveSession.sendEvents(events)
+      return
+    }
+    handleRunLive()
+    liveSession.sendEvents(events)
+  }
+
   // Rassemble les commandes de la palette à partir des actions déjà disponibles.
   function buildCommandPaletteCommands() {
     const commands = []
@@ -607,8 +735,12 @@ export default function Canvas() {
     }
     const createLabel = t('commandPalette.group.create')
     for (const type of Object.keys(moduleTypes)) {
+      if (type === 'pluginWidget') continue
       const definition = moduleTypes[type]
       add('create', createLabel, `create:${type}`, t(definition.labelKey), [type, 'card', definition.label], () => handlePaletteCreateCard(type))
+    }
+    for (const entry of activeWidgets) {
+      add('create', createLabel, `create:plugin:${entry.pluginId}:${entry.widget.id}`, entry.widget.name, [entry.widget.name, entry.pluginName, 'plugin', 'widget'], () => handlePaletteCreatePluginWidget(entry.pluginId, entry.widget.id))
     }
     const exampleLabel = t('commandPalette.group.examples')
     for (const example of examples) {
@@ -1317,6 +1449,13 @@ export default function Canvas() {
     return result
   }
 
+  // Insère un composite natif et signale un refus sans modifier la source.
+  function handleInsertComposite(targetId, slot, composite) {
+    const result = handleInsert(targetId, slot, composite.draft)
+    if (!result.ok) notify({ type: 'error', title: t('plugins.title'), message: failureLabel({ code: result.code }, t), key: 'plugins', duration: 5000 })
+    return result
+  }
+
   // Montre la nouvelle position logique après collage, duplication ou déplacement validé.
   function handleNodeTransferred(result) {
     if (result.moduleId) {
@@ -1602,9 +1741,9 @@ export default function Canvas() {
         onActivate={() => bringCardToFront({ kind: card.type, id: card.id })}
         fitRequest={growthRequest.documentRevision === document.revision && growthRequest.moduleId === card.id ? growthRequest.revision : 0}
         deferContent={!renderableCards.has(card.id)}
-        onOpenActions={(event) => handleOpenActions(event, { kind: logicalCardTypes.includes(card.type) ? 'module' : card.type, id: card.id })}
+        onOpenActions={(event) => handleOpenActions(event, card.type === 'pluginWidget' ? { kind: 'pluginWidget', id: card.id } : { kind: logicalCardTypes.includes(card.type) ? 'module' : card.type, id: card.id })}
         selected={selectedIds.has(card.id)}
-        onSelect={(event) => handleSelect(logicalCardTypes.includes(card.type) ? { kind: 'module', id: card.id } : null, { additive: event.ctrlKey || event.metaKey || event.shiftKey })}
+        onSelect={(event) => handleSelect(card.type === 'pluginWidget' ? { kind: 'pluginWidget', id: card.id } : logicalCardTypes.includes(card.type) ? { kind: 'module', id: card.id } : null, { additive: event.ctrlKey || event.metaKey || event.shiftKey })}
         onResize={(id, width, height, options) => document.updateGeometry(id, { width, height }, options)} onResizeStart={() => document.beginHistoryGesture()} onResizeEnd={() => document.endHistoryGesture()}
         onMove={handleModuleMove} onMoveStart={handleModuleMoveStart} onMoveEnd={handleModuleMoveEnd}
         onScreenViewChange={(id, screenView) => document.updateCardView(id, { screenView })}
@@ -1638,6 +1777,16 @@ export default function Canvas() {
         colorPickerCallbacks={colorPickerCallbacks}
         colorPickerCallbackId={colorPickerBindings.get(card.id) ?? null}
         onBindColorPicker={(id, functionId) => document.bindColorPicker(id, functionId)}
+        pluginWidgetEntry={card.type === 'pluginWidget' ? activeWidgets.find((entry) => entry.pluginId === card.pluginId && entry.widget.id === card.widgetId) ?? null : null}
+        pluginWidgetInputs={pluginInputsByCard.get(card.id) ?? {}}
+        pluginWidgetVariables={pluginBindingVariables}
+        pluginWidgetCallbacks={pluginCallbackFunctions}
+        onPluginWidgetStateChange={(id, state) => document.updatePluginWidget(id, { state })}
+        onPluginWidgetPropertyChange={(id, properties) => document.updatePluginWidget(id, { properties })}
+        onPluginWidgetBindInput={handlePluginWidgetBindInput}
+        onPluginWidgetBindOutput={handlePluginWidgetBindOutput}
+        onPluginWidgetTrigger={handlePluginWidgetTrigger}
+        onPluginWidgetRemove={handleDeleteComment}
         screenState={screenPlayback ? null : screenStates[card.id] ?? null}
         screenFrames={screenPlayback ? simulationResult.screenFrames : null}
         screenPlaying={screenPlayback && Boolean(execution?.running)}
@@ -1709,13 +1858,14 @@ export default function Canvas() {
         dashboard={document.dashboard} onChangeDashboard={document.setDashboard} onExportDashboard={handleExportDashboard} dashboardExporting={dashboardExporting} widgetCount={dashboardWidgetCount}
         distorted={distorted} onToggleDistortion={() => setDistorted((current) => !current)} minimapVisible={minimapVisible} onToggleMinimap={() => setMinimapVisible((current) => !current)} magnetEnabled={magnetEnabled} onToggleMagnet={() => setMagnetEnabled((current) => !current)} navVisible={!navCollapsed} onToggleNav={() => setNavCollapsed((current) => !current)} hiddenCards={hiddenCards} onShowAllHidden={handleShowAllHidden} onZoomIn={() => zoomBy(1.25)} onZoomOut={() => zoomBy(0.8)} onZoom100={resetZoom} onCenter={() => handleRecenter(getModulesBounds())}
         bookmarks={bookmarks} canBookmark={bookmarkStatus(selected).can} onSaveBookmark={handleSaveBookmark} onOpenBookmarks={() => setBookmarksOpen(true)} onInsertBookmark={handleInsertBookmark} onDeleteBookmark={handleDeleteBookmark}
+        workspacePlugins={workspacePluginDependencies}
         onOpenRepository={() => openExternal(repositoryUrl)} update={appUpdate.update} onCheckUpdate={() => appUpdate.check()} onInstallUpdate={() => appUpdate.install({ title: t('update.confirmTitle'), body: t('update.confirmBody', { version: appUpdate.update.release?.version ?? '' }) })} onQuit={() => quitApplication()}
         discordEnabled={discordPresence.enabled} onToggleDiscord={discordPresence.setEnabled} />}
       {nodeGraph && <NodeGraphPanel project={document.project} index={document.index} target={nodeGraph.target} mode={nodeGraph.mode} onSelect={handleSelect} onClose={() => setNodeGraph(null)} />}
-      {!presentationMode && selected && !selectedScreen && <NodeProperties key={document.revision} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onPreviewSymbolRename={document.previewSymbolRename} onApplySymbolRename={document.applySymbolRename} onSelect={handleSelect} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onExport={document.exportFunction} onImport={document.importFunction} onRemoveImport={document.removeImport} onContracts={document.setNodeContracts} onClose={() => setSelection([])} onExportImage={handleExportNodeImage} onExportNodeJson={handleExportNodeJson} mutationError={document.mutationError} />}
+      {!presentationMode && selected && selected.kind !== 'pluginWidget' && !selectedScreen && <NodeProperties key={document.revision} selected={selected} project={document.project} index={document.index} onConfigure={document.configureNode} onRename={document.renameCard} onPreviewSymbolRename={document.previewSymbolRename} onApplySymbolRename={document.applySymbolRename} onSelect={handleSelect} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onExport={document.exportFunction} onImport={document.importFunction} onRemoveImport={document.removeImport} onContracts={document.setNodeContracts} onClose={() => setSelection([])} onExportImage={handleExportNodeImage} onExportNodeJson={handleExportNodeJson} mutationError={document.mutationError} />}
       {!presentationMode && selectedScreenCard && selectedScreenModule && <ScreenProperties key={selectedScreenCard.id} card={selectedScreenCard} module={selectedScreenModule} state={screenStates[selectedScreenCard.id] ?? null} links={selectedScreenCallers} onRename={document.renameCard} onSelect={handleSelect} onClose={() => setSelection([])} />}
-      {!presentationMode && contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} onInsert={handleInsert} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onHideCard={handleHideCard} onLockCard={handleToggleLock} targetLocked={isCardLocked(contextMenu.targetId?.id)} onExpansion={(id, expand) => { handleExpansion(id, expand); handleCloseMenu(true) }} canToggleExpansion={contextMenu.targetId?.kind === 'module' && (expandableIds.get(contextMenu.targetId.id)?.length ?? 0) > 0} onOpenGraph={handleOpenNodeGraph} onCopy={handleCopyNode} onCut={handleCutTarget} onPaste={transfers.pasteTarget} onDuplicate={transfers.duplicateNode} hasClipboard={transfers.hasClipboard} showBookmark={bookmarkStatus(contextMenu.targetId).show} canBookmark={bookmarkStatus(contextMenu.targetId).can} onBookmark={handleBookmarkTarget} onClose={handleCloseMenu} />
-        : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} onCreate={handleCreateModule} onClose={handleCloseMenu} anchored={contextMenu.anchored} commentId={contextMenu.targetId ? { id: contextMenu.targetId.id, type: contextMenu.targetId.kind } : null} onDeleteComment={handleDeleteComment} onHideCard={handleHideCard} onLockCard={handleToggleLock} commentLocked={isCardLocked(contextMenu.targetId?.id)} />)}
+      {!presentationMode && contextMenu && (contextMenu.targetId?.kind === 'node' || contextMenu.targetId?.kind === 'module' ? <LogicContextMenu key={contextMenu.id} project={document.project} index={document.index} targetId={contextMenu.targetId} initialSlot={contextMenu.initialSlot} x={contextMenu.x} y={contextMenu.y} onInsert={handleInsert} onInsertComposite={handleInsertComposite} onDelete={handleDeleteNode} onDeleteModule={handleDeleteModule} onHideCard={handleHideCard} onLockCard={handleToggleLock} targetLocked={isCardLocked(contextMenu.targetId?.id)} onExpansion={(id, expand) => { handleExpansion(id, expand); handleCloseMenu(true) }} canToggleExpansion={contextMenu.targetId?.kind === 'module' && (expandableIds.get(contextMenu.targetId.id)?.length ?? 0) > 0} onOpenGraph={handleOpenNodeGraph} onCopy={handleCopyNode} onCut={handleCutTarget} onPaste={transfers.pasteTarget} onDuplicate={transfers.duplicateNode} hasClipboard={transfers.hasClipboard} showBookmark={bookmarkStatus(contextMenu.targetId).show} canBookmark={bookmarkStatus(contextMenu.targetId).can} onBookmark={handleBookmarkTarget} onClose={handleCloseMenu} />
+        : <CanvasContextMenu key={contextMenu.id} x={contextMenu.x} y={contextMenu.y} onCreate={handleCreateModule} onCreatePluginWidget={handleCreatePluginWidget} pluginWidgets={activeWidgets} onClose={handleCloseMenu} anchored={contextMenu.anchored} commentId={contextMenu.targetId ? { id: contextMenu.targetId.id, type: contextMenu.targetId.kind } : null} onDeleteComment={handleDeleteComment} onHideCard={handleHideCard} onLockCard={handleToggleLock} commentLocked={isCardLocked(contextMenu.targetId?.id)} />)}
     </main>
     </div>
   )

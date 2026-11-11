@@ -22,6 +22,7 @@ export const moduleTypes = {
   rgbaPicker: { label: 'RGBA picker', labelKey: 'card.rgbaPicker', targetLabelKey: 'canvas.rgbaPicker', actionKey: 'nav.createRgbaPicker', width: 420, height: 500, renamable: true, hasColorPicker: true, colorPickerChannels: 4 },
   comment: { label: 'Comment', labelKey: 'card.comment', targetLabelKey: 'canvas.note', actionKey: 'nav.createComment', width: 320, height: 220, renamable: true, hasText: true },
   image: { label: 'Image', labelKey: 'card.image', targetLabelKey: 'canvas.image', actionKey: 'nav.createImage', width: 420, height: 260, renamable: true, hasImage: true },
+  pluginWidget: { label: 'Plugin widget', labelKey: 'card.pluginWidget', targetLabelKey: 'canvas.pluginWidget', actionKey: 'nav.createPluginWidget', width: 360, height: 250, renamable: true, hasPluginWidget: true },
 }
 
 export const minimumModuleSize = { width: 180, height: 120 }

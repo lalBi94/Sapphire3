@@ -1,8 +1,9 @@
 import { nodeSchema, acceptsNodeKind } from './nodeSchema.js'
-import { mathNativeIds, getMathNative } from './mathNatives.js'
+import { getMathNativeEntries } from './mathNatives.js'
 import { isArrayType } from './primitives.js'
 import { getPlacementIssue } from './placement.js'
 import { resolveContext } from './contextResolver.js'
+import { getPluginCompositeActions } from './pluginExtensions.js'
 
 // Calcule les insertions depuis les slots et le contexte ; aucun AST n'est reconstruit ici.
 export function getAvailableActions(project, targetId, slotName, options = {}) {
@@ -25,7 +26,7 @@ export function getAvailableActions(project, targetId, slotName, options = {}) {
       if (['ArrayLiteral', 'ArrayCreation'].includes(kind) && context.expectedType && !isArrayType(context.expectedType)) continue
       // Chaque opération native est proposée séparément, dans sa sous-catégorie (Maths, Texte, Tableaux).
       if (kind === 'MathCall') {
-        for (const id of mathNativeIds) actions.push({ id: `${slot.name}:${kind}:${id}`, kind, slot: slot.name, category: nodeSchema[kind].category, group: getMathNative(id)?.group ?? 'native.math', preset: { name: id } })
+        for (const native of getMathNativeEntries()) actions.push({ id: `${slot.name}:${kind}:${native.id}`, kind, slot: slot.name, category: nodeSchema[kind].category, group: native.group ?? 'native.math', preset: { name: native.id } })
         continue
       }
       actions.push({ id: `${slot.name}:${kind}`, kind, slot: slot.name, category: nodeSchema[kind].category })
@@ -33,6 +34,25 @@ export function getAvailableActions(project, targetId, slotName, options = {}) {
     // Une classe accepte un seul constructeur, proposé comme méthode spéciale.
     if (context.classScope && !context.index.classMembers?.get(context.moduleId)?.constructor) {
       actions.push({ id: `${slot.name}:constructor`, kind: 'FunctionDeclaration', slot: slot.name, category: 'declaration', group: 'function', labelKey: 'class.constructor', preset: { constructor: true } })
+    }
+    // Les nœuds composites de niveau A deviennent des actions natives dans le menu.
+    for (const composite of getPluginCompositeActions()) {
+      if (!acceptsNodeKind(slot, composite.rootKind) || getPlacementIssue(composite.rootKind, insertionContext)) continue
+      const schema = nodeSchema[composite.rootKind]
+      actions.push({
+        id: `${slot.name}:composite:${composite.pluginId}:${composite.compositeId}`,
+        kind: composite.rootKind,
+        slot: slot.name,
+        category: schema?.category ?? 'statement',
+        group: 'plugin.composites',
+        label: composite.name,
+        composite: {
+          pluginId: composite.pluginId,
+          compositeId: composite.compositeId,
+          name: composite.name,
+          draft: composite.draft,
+        },
+      })
     }
   }
   return { ...context, actions }

@@ -37,7 +37,7 @@ Mon_Projet/
 
 - `project` : source logique complète, identifiants, références, types et marqueur de point d'entrée inclus. AST, diagnostics, index et caches sont recalculés, pas enregistrés.
 - `workspaceVersion` vaut **3**. Les versions 1 et 2 restent lisibles : la version 1 est normalisée (drapeau `generic` converti en `typeParameters`, `screenScale` retiré) puis validée ; la version 2 devient 3 sans transformation de données. Toute version future ou malformée est refusée avec `WORKSPACE_VERSION_UNSUPPORTED` sans remplacer le document courant. `project.formatVersion` reste indépendant et vaut toujours 1.
-- `cards` : toutes les cartes, même hors écran, dans leur ordre de rangement. Chaque carte contient `id`, `type` (`module`/`class`/`screen`/`gauge`/`progress`/`barChart`/`heatmap`/`led`/`comment`/`image`), `name`, `x`, `y`, `width`, `height`, `expandedNodeIds`.
+- `cards` : toutes les cartes, même hors écran, dans leur ordre de rangement. Chaque carte contient `id`, `type` (`module`/`class`/`screen`/`gauge`/`progress`/`barChart`/`xyPlot`/`oscilloscope`/`heatmap`/`led`/`rgbLed`/`toggleButton`/`holdButton`/`numberInput`/`floatInput`/`stringInput`/`rgbPicker`/`rgbaPicker`/`comment`/`image`/`pluginWidget`), `name`, `x`, `y`, `width`, `height`, `expandedNodeIds`.
 - Une carte `class` référence un module source `kind: "class"` ; ses membres portent `properties.visibility` (`public`/`private`) et le constructeur `properties.constructor: true`. Les nœuds `NewExpression`, `ThisExpression`, `MemberExpression` et les annotations `{kind:"class", classId}` sont sérialisés dans la source. Aucun héritage ni polymorphisme.
 - Une carte Image porte **exactement l'un des deux** champs suivants :
   - `image` : Data URL d'une image encore intégrée (ancien fichier, mode web ou document jamais enregistré) ;
@@ -51,6 +51,52 @@ Mon_Projet/
 - `dashboard` est une clef racine optionnelle qui mémorise la configuration d'export web : `name`, `description`, `themeId`, `palette` (instantané portable des couleurs sombres du thème choisi) et `layoutKey` (identifiant local de disposition). L'export embarque aussi les thèmes prédéfinis et personnalisés disponibles avec leurs variantes claire et sombre ; le thème sélectionné est proposé par défaut et la palette mémorisée reste une palette de secours portable. Aucun chemin, aucune image et aucune donnée de visiteur n'y sont écrits. Une palette invalide est refusée avec `DASHBOARD_CONFIG_INVALID`. La clef est absente des anciens documents et reçoit les valeurs par défaut à l'ouverture ; aucune migration de version n'est nécessaire.
 - Géométrie en unités monde ; minimum 180 × 120. `camera` reprend les coordonnées du centre et l'exposant de zoom (maximum 2, soit 400 %). `selected` vaut `null` ou `{kind: "module" | "node", id}`.
 - Menus ouverts, formulaires non validés, gestes en cours et positions de défilement internes ne sont pas sauvegardés. L'export est celui du document validé en mémoire au clic, pas une capture d'image.
+
+## Cartes de plugin
+
+Une carte `pluginWidget` est une carte de présentation fixe qui porte les
+données d'un widget fourni par un plugin local :
+
+```json
+{
+  "id": "card-uuid",
+  "type": "pluginWidget",
+  "name": "Digital voltmeter",
+  "pluginId": "org.example.voltmeter",
+  "widgetId": "voltmeter",
+  "pluginVersion": "1.0.0",
+  "x": 0,
+  "y": 0,
+  "width": 360,
+  "height": 250,
+  "minWidth": 240,
+  "minHeight": 170,
+  "properties": { "unit": "V" },
+  "state": { "value": 0, "setpoint": 5 },
+  "bindings": {
+    "inputs": { "value": "voltage" },
+    "outputs": { "setpoint": "function-node-id" }
+  },
+  "expandedNodeIds": []
+}
+```
+
+- `pluginId` et `widgetId` identifient le manifeste et le widget.
+- `pluginVersion` est indicative ; la version active peut différer.
+- `properties`, `state` et `bindings` sont des objets JSON bornés.
+- Les liaisons d'entrée associent un port à un nom de variable visible.
+- Les liaisons de sortie associent un port à un identifiant de fonction
+  `(T) -> void`.
+- Une carte de plugin ne crée pas de module source et ne participe pas aux
+  nœuds logiques.
+- Si le plugin est absent ou désactivé, la carte est conservée intégralement et
+  affiche un diagnostic. Aucun champ n'est supprimé ni transformé.
+- Le widget participe à la sélection, au déplacement, au redimensionnement, au
+  masquage, au verrouillage et au stockage du workspace.
+
+Les plugins installés et leurs préférences sont hors du workspace, dans la
+préférence locale `sapphire-plugins`. Un workspace ne déclenche jamais
+l'installation automatique d'un plugin.
 
 ## Images
 

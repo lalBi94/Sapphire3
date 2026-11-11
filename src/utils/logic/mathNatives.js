@@ -1,4 +1,5 @@
 import { primitiveType, arrayType, sameType, isArrayType } from './primitives.js'
+import { getPluginNativeDefinitions } from './pluginExtensions.js'
 
 const intType = primitiveType('int')
 const doubleType = primitiveType('double')
@@ -433,7 +434,13 @@ export const mathNatives = Object.freeze({
 
 // Retourne une opération native par son identifiant, ou null si elle est inconnue.
 export function getMathNative(id) {
-  return typeof id === 'string' && Object.hasOwn(mathNatives, id) ? mathNatives[id] : null
+  if (typeof id === 'string' && Object.hasOwn(mathNatives, id)) return mathNatives[id]
+  return getPluginNativeDefinitions().find((definition) => definition.id === id) ?? null
+}
+
+// Liste toutes les opérations natives disponibles, intégrées puis plugins actifs.
+export function getMathNativeEntries() {
+  return [...Object.values(mathNatives), ...getPluginNativeDefinitions()]
 }
 
 // Liste les identifiants proposés dans les opérations natives, dans l'ordre du registre.

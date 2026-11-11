@@ -35,7 +35,7 @@ function groupedActions(actions) {
 }
 
 // Propose le slot, puis la construction compatible et son formulaire latéral.
-export default function LogicContextMenu({ project, index, targetId, initialSlot, x, y, onInsert, onDelete, onDeleteModule, onHideCard, onLockCard, targetLocked = false, onExpansion, onOpenGraph, onCopy, onCut, onPaste, onDuplicate, hasClipboard, canToggleExpansion = false, showBookmark = false, canBookmark = false, onBookmark, onClose }) {
+export default function LogicContextMenu({ project, index, targetId, initialSlot, x, y, onInsert, onInsertComposite, onDelete, onDeleteModule, onHideCard, onLockCard, targetLocked = false, onExpansion, onOpenGraph, onCopy, onCut, onPaste, onDuplicate, hasClipboard, canToggleExpansion = false, showBookmark = false, canBookmark = false, onBookmark, onClose }) {
   const { t } = useTranslation()
   const [slotName, setSlotName] = useState(initialSlot ?? '')
   const [kind, setKind] = useState('')
@@ -146,12 +146,12 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
 
   // Libellé affiché d'une action : nom prédéfini (opération native) ou construction.
   function actionLabel(action) {
-    return action.labelKey ? t(action.labelKey) : action.preset?.name ?? kindLabel(action.kind, t)
+    return action.labelKey ? t(action.labelKey) : action.label ?? action.preset?.name ?? kindLabel(action.kind, t)
   }
 
   // Identité stable d'une action pour l'état sélectionné.
   function actionKey(action) {
-    return action.preset?.constructor === true ? 'constructor' : action.preset?.name ?? action.kind
+    return action.composite ? `composite:${action.composite.pluginId}/${action.composite.compositeId}` : action.preset?.constructor === true ? 'constructor' : action.preset?.name ?? action.kind
   }
 
   // Rapproche la saisie du libellé, du type, de la catégorie et du slot de l'action.
@@ -172,6 +172,10 @@ export default function LogicContextMenu({ project, index, targetId, initialSlot
 
   // Choisit une construction et, pour une opération mathématique, le nom prédéfini par son entrée de menu.
   function selectAction(action) {
+    if (action.composite) {
+      onInsertComposite?.(effectiveTarget, action.slot ?? selectedSlot, action.composite)
+      return
+    }
     if (action.slot && action.slot !== selectedSlot) setSlotName(action.slot)
     setKind(action.kind)
     setPreset(action.preset ?? null)

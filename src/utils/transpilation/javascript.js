@@ -251,8 +251,11 @@ export function generateJavaScript(analysis, { selection = null } = {}) {
     if (node.kind === 'MemberExpression') return `sapphireMember(${expression(child(node, 'object'))}, ${JSON.stringify(memberNameOf(node, node.properties?.name))})`
     if (node.kind === 'MathCall') {
       const definition = getMathNative(node.properties?.name)
+      const args = (node.children.arguments ?? []).map(expression)
       const emitter = definition ? nativeJavaScript[definition.id] : null
-      if (emitter) return emitter((node.children.arguments ?? []).map(expression))
+      if (emitter) return emitter(args)
+      const pluginCode = definition?.emit?.('javascript', args)
+      if (pluginCode) return pluginCode
       diagnostics.push(createDiagnostic('TRANSPILE_EXPRESSION_UNSUPPORTED', `Opération native ${node.properties?.name ?? '?'} non prise en charge.`, node.location))
       return 'undefined'
     }

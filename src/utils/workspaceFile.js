@@ -148,6 +148,24 @@ function isImageCardValid(card) {
   return isEmbeddedImage(card.image ?? '')
 }
 
+// Une carte de plugin conserve son identité et ses données même si le plugin est absent.
+function isPluginWidgetCardValid(card) {
+  if (typeof card.pluginId !== 'string' || card.pluginId.length === 0 || card.pluginId.length > 128) return false
+  if (typeof card.widgetId !== 'string' || card.widgetId.length === 0 || card.widgetId.length > 128) return false
+  if (card.pluginVersion !== undefined && typeof card.pluginVersion !== 'string') return false
+  if (!isRecord(card.properties) || !isRecord(card.state)) return false
+  if (card.bindings !== undefined && !isRecord(card.bindings)) return false
+  for (const field of ['inputs', 'outputs']) {
+    const bindings = card.bindings?.[field]
+    if (bindings !== undefined && (!isRecord(bindings) || Object.values(bindings).some((value) => typeof value !== 'string'))) return false
+  }
+  if (card.minWidth !== undefined && (!Number.isFinite(card.minWidth) || card.minWidth < minimumModuleSize.width)) return false
+  if (card.minHeight !== undefined && (!Number.isFinite(card.minHeight) || card.minHeight < minimumModuleSize.height)) return false
+  if (card.minWidth !== undefined && card.width < card.minWidth) return false
+  if (card.minHeight !== undefined && card.height < card.minHeight) return false
+  return true
+}
+
 // Contrôle la géométrie et les liens de présentation avant tout remplacement du document courant.
 function validatePresentation(project, presentation) {
   if (!isRecord(presentation) || !Array.isArray(presentation.cards)) throw workspaceError('Invalid workspace presentation.')
@@ -165,6 +183,8 @@ function validatePresentation(project, presentation) {
     const linkedModule = moduleCardTypes.includes(card.type) ? modules.get(card.id) : null
     if (moduleCardTypes.includes(card.type)
       ? !linkedModule || linkedModule.name !== card.name || linkedModule.kind !== (card.type === 'class' ? moduleKinds.class : moduleKinds.module)
+      : card.type === 'pluginWidget'
+        ? !isPluginWidgetCardValid(card)
       : card.type === 'screen'
         ? !modules.has(card.id) || !modules.get(card.id).screen || !Number.isInteger(card.screenWidth) || !Number.isInteger(card.screenHeight) || card.screenWidth < 1 || card.screenHeight < 1 || card.screenWidth > screenLimits.maximumDimension || card.screenHeight > screenLimits.maximumDimension || (card.screenScale !== undefined && (!Number.isFinite(card.screenScale) || card.screenScale < 0.25 || card.screenScale > 4))
         : card.type === 'gauge'
@@ -225,7 +245,7 @@ function validatePresentation(project, presentation) {
   }
   if (project.modules.some((module) => !ids.has(module.id))) throw workspaceError('A module is missing its visual card.')
   const selected = presentation.selected
-  if (selected !== null && (!isRecord(selected) || (selected.kind === 'module' ? !modules.has(selected.id) : selected.kind !== 'node' || !nodes.has(selected.id)))) {
+  if (selected !== null && (!isRecord(selected) || (selected.kind === 'module' ? !modules.has(selected.id) : selected.kind === 'node' ? !nodes.has(selected.id) : selected.kind !== 'pluginWidget' || !presentation.cards.some((card) => card.id === selected.id && card.type === 'pluginWidget')))) {
     throw workspaceError('Invalid workspace selection.')
   }
 }
